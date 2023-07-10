@@ -20,4 +20,4 @@ namespace erl::geometry {
 
     Eigen::Matrix2Xi
     ComputePixelsOfPolygonContour(const Eigen::Ref<const Eigen::Matrix2Xi> &polygon_vertices);
-}  // namespace gpis
+}  // namespace erl::geometry

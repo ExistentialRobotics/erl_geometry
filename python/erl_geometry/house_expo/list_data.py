@@ -13,7 +13,7 @@ _file_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_map_dir() -> str:
-    return os.path.join(os.environ["HOME"], ".cache", "gpis", "data", "house_expo", "json")
+    return os.path.join(os.environ["HOME"], ".cache", "erl_geometry", "house_expo", "data", "json")
 
 
 def get_map_filenames() -> List[str]:
@@ -33,7 +33,7 @@ def get_bad_json_filenames() -> List[str]:
 
 
 def get_traj_dir() -> str:
-    return os.path.join(os.environ["HOME"], ".cache", "gpis", "data", "house_expo", "traj")
+    return os.path.join(os.environ["HOME"], ".cache", "erl_geometry", "house_expo", "data", "traj")
 
 
 def get_map_and_traj_files() -> List[List[str]]:

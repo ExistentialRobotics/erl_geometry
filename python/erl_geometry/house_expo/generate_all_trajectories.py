@@ -59,7 +59,7 @@ def worker_func(json_files: List[str], kwargs: dict) -> None:
             with open(log_filename, "w") as file:
                 process = subprocess.run(
                     [
-                        "gpis-data-house-expo-generate-trajectory",
+                        "erl-geometry-house-expo-generate-trajectory",
                         "--seed",
                         str(kwargs["seed"]),
                         "--json-file",

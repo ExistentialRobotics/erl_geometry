@@ -154,4 +154,4 @@ namespace erl::geometry {
         m_directions_.resize(2, m_num_lines_);
         m_directions_ << m_angles_.array().cos().transpose(), m_angles_.array().sin().transpose();
     }
-}  // namespace gpis
+}  // namespace erl::geometry

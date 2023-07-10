@@ -72,13 +72,17 @@ if os.path.exists("requirements.txt"):
         requires = f.readlines()
 else:
     requires = []
-
-for i in range(len(requires)):
-    require = requires[i]
+for i, require in enumerate(requires):
     if require.startswith("git"):
         left, pkg_name = require.split("=")
         pkg_name = pkg_name.strip()
         requires[i] = f"{pkg_name} @ {require.strip()}"
+
+if os.path.exists("entry_points.txt"):
+    with open("entry_points.txt", "r") as f:
+        entry_points = f.readlines()
+for i, entry_point in enumerate(entry_points):
+    entry_points[i] = entry_point.strip()
 
 setup(
     name=python_pkg_name,
@@ -91,4 +95,5 @@ setup(
     packages=find_packages("python"),
     package_dir={python_pkg_name: f"python/{python_pkg_name}"},
     include_package_data=True,
+    entry_points={"console_scripts": entry_points},
 )

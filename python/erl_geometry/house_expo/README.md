@@ -25,22 +25,22 @@ for frame in sequence:
 - `bad_json_files.txt`: list of json files that define bad room layouts. e.g.
   inaccessible room, too narrow path
 - `uncompress_data.py`: uncompress `json.tar.gz` and `traj.tar.gz` into
-  `$HOME/.cache/gpis/data/house_expo`.
-    - You can call `gpis-data-uncompress-data` in command line.
+  `$HOME/.cache/erl_geometry/house_expo/data`.
+    - You can call `erl-geometry-house-expo-uncompress-data` in command line.
 - `list_data.py`: list available .json files, .csv files, etc.
-    - You can call `gpis-data-house-expo-list-data` in command line.
+    - You can call `erl-geometry-house-expo-list-data` in command line.
 - `sequence.py`: load a pair of .json file and .csv file
 
 # Trajectory Generation
 
 - `generate_png.py`
 - `generate_trajectory.py`
-    - You can call `gpis-data-house-expo-generate-trajectory` in command line.
+    - You can call `erl-geometry-house-expo-generate-trajectory` in command line.
 - `generate_all_trajectories.py`
-    - You can call `gpis-data-house-expo-generate-all-trajectories` in command
+    - You can call `erl-geometry-house-expo-generate-all-trajectories` in command
       line.
 - `verify_data.py`: verify .csv files, results are stored in verify_cache.pkl
-    - You can call `gpis-data-house-expo-verify-data` in command line.
+    - You can call `erl-geometry-house-expo-verify-data` in command line.
 - `merge_verify_cache.py`: collect `verify_cache.pkl` files and merge them into
   `verify_result.pkl`.
 - `print_verify_result.py`: dump the results from the `verify_result.pkl` file.

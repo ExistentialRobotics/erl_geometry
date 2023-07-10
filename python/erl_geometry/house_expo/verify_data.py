@@ -76,7 +76,7 @@ def check_trajectory_completion_percentage_of_json_file(json_file: str, path_ski
         with open(os.path.join(data_dir, log_filename), "w") as file:
             process = subprocess.run(
                 [
-                    "gpis-data-house-expo-generate-trajectory",
+                    "erl-geometry-house-expo-generate-trajectory",
                     "--seed",
                     str(params["seed"]),
                     "--json-file",
