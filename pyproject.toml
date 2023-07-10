@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.mypy]
+python_version = 3.8
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+show_column_numbers = true
+pretty = true
+exclude = [
+    '[\w]+\.pyi$'
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "matplotlib.*",
+    "scipy.*",
+    "cv2.*",
+    "plotly.*",
+    "dash.*",
+    "tqdm.*",
+    "diff_info_gathering.*",
+    "vedo.*"
+]
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 120

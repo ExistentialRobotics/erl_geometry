@@ -1,0 +1,4 @@
+global-include *.pyi
+global-include *.so
+global-include *.yaml
+global-include *.json
