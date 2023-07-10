@@ -41,6 +41,8 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
   - [Space 2D](include/erl_geometry/space_2d.hpp): algorithm to compute SDF, SDDF and normals.
   - [Lidar 2D](include/erl_geometry/lidar_2d.hpp): generate 2D lidar scan with a given space.
   - [Lidar 2D Frame](include/erl_geometry/lidar_2d_frame.hpp): data structure to store 2D lidar scan.
+- Datasets
+  - [HouseExpo](python/erl_geometry/house_expo/README.md)
 - Others
   - [Compute Intersections](include/erl_geometry/utils.hpp)
   - [Euler Angle](include/erl_geometry/euler_angle.hpp)

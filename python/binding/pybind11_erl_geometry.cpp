@@ -19,6 +19,7 @@
 #include "erl_geometry/surface_2d.hpp"
 #include "erl_geometry/winding_number.hpp"
 #include "erl_geometry/utils.hpp"
+#include "erl_geometry/house_expo.hpp"
 
 using namespace erl::common;
 using namespace erl::geometry;
@@ -689,6 +690,15 @@ BindCollisionCheckers(py::module &m) {
         .def("is_collided", py::overload_cast<const Eigen::Ref<const Eigen::Matrix4d> &>(&GridCollisionChecker3D::IsCollided, py::const_), py::arg("pose"));
 }
 
+static void BindHouseExpo(py::module &m) {
+    py::class_<HouseExpoMap>(m, ERL_AS_STRING(HouseExpoMap))
+        .def(py::init<const char *>(), py::arg("file"))
+        .def(py::init<const char *, double>(), py::arg("file"), py::arg("wall_thickness"))
+        .def_property_readonly("file", &HouseExpoMap::GetFile)
+        .def_property_readonly("room_id", &HouseExpoMap::GetRoomId)
+        .def_property_readonly("meter_space", &HouseExpoMap::GetMeterSpace);
+}
+
 PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     m.doc() = "Python 3 Interface of erl_geometry";
     m.def(
@@ -767,4 +777,5 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindLidar2DFrame(m);
     BindLogOddMap2D(m);
     BindCollisionCheckers(m);
+    BindHouseExpo(m);
 }

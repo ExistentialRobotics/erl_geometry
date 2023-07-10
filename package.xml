@@ -2,7 +2,7 @@
 <package format="2">
     <name>erl_geometry</name>
     <version>0.1.0</version>
-    <description>erl_geometry is a C++ library of geometry data structures and algorithms</description>
+    <description>erl_geometry is a C++ library of geometry data structures, algorithms and datasets.</description>
     <author email="daizhirui@hotmail.com">Zhirui Dai</author>
     <maintainer email="daizhirui@hotmail.com">Zhirui Dai</maintainer>
     <license>MIT</license>

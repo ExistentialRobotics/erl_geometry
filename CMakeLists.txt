@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(erl_geometry
         LANGUAGES CXX
         VERSION 0.1.0
-        DESCRIPTION "erl_geometry is a C++ library of geometry data structures and algorithms")
+        DESCRIPTION "erl_geometry is a C++ library of geometry data structures, algorithms and datasets.")
 message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 
 if (NOT COMMAND erl_project_setup)
