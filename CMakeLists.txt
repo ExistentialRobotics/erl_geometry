@@ -11,7 +11,7 @@ if (NOT COMMAND erl_project_setup)
 endif ()
 set(${PROJECT_NAME}_CATKIN_COMPONENTS erl_common)
 erl_project_setup()
-erl_setup_ros()
+erl_setup_ros(CATKIN_COMPONENTS ${${PROJECT_NAME}_CATKIN_COMPONENTS})
 erl_catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} py${PROJECT_NAME}
@@ -53,7 +53,9 @@ erl_install(
 #######################################################################################################################
 # TEST
 #######################################################################################################################
-erl_add_tests()
+erl_add_tests(
+        LIBRARIES ${PROJECT_NAME}
+)
 
 #######################################################################################################################
 # export variables

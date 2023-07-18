@@ -7,7 +7,7 @@ namespace erl::geometry {
     AbstractOccupancyQuadtree::WriteBinary(const std::string &filename) {
         std::ofstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
-            ERL_WARNING("Failed to open file: %s\n", filename.c_str());
+            ERL_WARN("Failed to open file: %s", filename.c_str());
             return false;
         }
 
@@ -27,7 +27,7 @@ namespace erl::geometry {
     AbstractOccupancyQuadtree::WriteBinaryConst(const std::string &filename) const {
         std::ofstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
-            ERL_WARNING("Failed to open file: %s\n", filename.c_str());
+            ERL_WARN("Failed to open file: %s", filename.c_str());
             return false;
         }
 
@@ -47,10 +47,10 @@ namespace erl::geometry {
 
         WriteBinaryData(s);
         if (s.good()) {
-            ERL_DEBUG("Successfully wrote Quadtree of type %s, size %zu, resolution %f\n", GetTreeType().c_str(), GetSize(), GetResolution());
+            ERL_DEBUG("Successfully wrote Quadtree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
             return true;
         } else {
-            ERL_WARNING("Failed to write Quadtree of type %s, size %zu, resolution %f\n", GetTreeType().c_str(), GetSize(), GetResolution());
+            ERL_WARN("Failed to write Quadtree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
             return false;
         }
     }
@@ -59,7 +59,7 @@ namespace erl::geometry {
     AbstractOccupancyQuadtree::ReadBinary(const std::string &filename) {
         std::ifstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
-            ERL_WARNING("Failed to open file: %s\n", filename.c_str());
+            ERL_WARN("Failed to open file: %s", filename.c_str());
             return false;
         }
 
@@ -71,7 +71,7 @@ namespace erl::geometry {
     bool
     AbstractOccupancyQuadtree::ReadBinary(std::istream &s) {
         if (!s.good()) {
-            ERL_WARNING("Input stream is not ready for reading\n");
+            ERL_WARN("Input stream is not ready for reading");
             return false;
         }
 
@@ -79,7 +79,7 @@ namespace erl::geometry {
         std::string line;
         std::getline(s, line);
         if (line.compare(0, sk_BinaryFileHeader_.length(), sk_BinaryFileHeader_) != 0) {
-            ERL_WARNING("First line of Quadtree file header does not start with \"%s\"\n", sk_FileHeader_.c_str());
+            ERL_WARN("First line of Quadtree file header does not start with \"%s\"", sk_FileHeader_.c_str());
             return false;
         }
 
@@ -94,11 +94,11 @@ namespace erl::geometry {
         SetResolution(res);
         if (size > 0) { ReadBinaryData(s); }
         if (size != GetSize()) {
-            ERL_WARNING("GetSize mismatch: %u != %zu\n", size, GetSize());
+            ERL_WARN("GetSize mismatch: %u != %zu", size, GetSize());
             return false;
         }
 
-        ERL_DEBUG("Successfully read Quadtree of type %s, size %zu, resolution %f\n", GetTreeType().c_str(), GetSize(), GetResolution());
+        ERL_DEBUG("Successfully read Quadtree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
         return true;
     }
 }  // namespace erl::geometry

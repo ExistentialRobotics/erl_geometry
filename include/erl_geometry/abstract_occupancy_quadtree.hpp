@@ -150,7 +150,7 @@ namespace erl::geometry {
         inline void
         SetProbabilityHit(double p) {
             m_log_odd_hit_ = logodd::LogOdd(p);
-            ERL_ASSERTM(m_log_odd_hit_ > 0, "ProbabilityHit must be > 0, but is %f\n", m_log_odd_hit_);
+            ERL_ASSERTM(m_log_odd_hit_ > 0, "ProbabilityHit must be > 0, but is %f", m_log_odd_hit_);
         }
 
         [[nodiscard]] inline double
@@ -161,7 +161,7 @@ namespace erl::geometry {
         inline void
         SetProbabilityMiss(double p) {
             m_log_odd_miss_ = logodd::LogOdd(p);
-            ERL_ASSERTM(m_log_odd_miss_ < 0, "ProbabilityMiss must be < 0, but is %f\n", m_log_odd_miss_);
+            ERL_ASSERTM(m_log_odd_miss_ < 0, "ProbabilityMiss must be < 0, but is %f", m_log_odd_miss_);
         }
 
         [[nodiscard]] inline double

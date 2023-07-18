@@ -137,7 +137,7 @@ namespace erl::geometry {
         if (IsRoot()) {
             warned = true;
         } else if (!warned) {
-            ERL_WARNING("called by a non-root IncrementalQuadtree, there may be some leftover of empty sub-trees.\n");
+            ERL_WARN("called by a non-root IncrementalQuadtree, there may be some leftover of empty sub-trees.");
             warned = true;
         }
 
@@ -513,7 +513,7 @@ namespace erl::geometry {
         // a blank image with white background
         cv::Mat image(grid_map_info->Height(), grid_map_info->Width(), CV_8UC3, bg_color);
         // check if the image is created successfully or not
-        if (!image.data) { throw std::runtime_error("Failed to allocate image buffer.\n"); }
+        if (!image.data) { throw std::runtime_error("Failed to allocate image buffer."); }
 
         std::vector<std::shared_ptr<IncrementalQuadtree>> tree_stack;
         tree_stack.reserve(100);
@@ -665,9 +665,9 @@ namespace erl::geometry {
           m_area_(std::move(area)),
           m_node_container_constructor_(node_container_constructor) {
 
-        ERL_ASSERTM(m_setting_->min_half_area_size > 0, "min_half_area_size should be larger than 0.\n");
-        ERL_ASSERTM(m_setting_->cluster_half_area_size > 0, "cluster_half_area_size should be larger than 0.\n");
-        ERL_ASSERTM(m_setting_->min_half_area_size < m_setting_->cluster_half_area_size, "min_half_area_size should be smaller than cluster_half_area_size.\n");
+        ERL_ASSERTM(m_setting_->min_half_area_size > 0, "min_half_area_size should be larger than 0.");
+        ERL_ASSERTM(m_setting_->cluster_half_area_size > 0, "cluster_half_area_size should be larger than 0.");
+        ERL_ASSERTM(m_setting_->min_half_area_size < m_setting_->cluster_half_area_size, "min_half_area_size should be smaller than cluster_half_area_size.");
 
         if (root == nullptr) {  // root node
             m_root_ptr_ = std::make_shared<IncrementalQuadtree *>(this);
@@ -685,8 +685,8 @@ namespace erl::geometry {
      */
     std::shared_ptr<IncrementalQuadtree>
     IncrementalQuadtree::Expand(Children::Type current_root_child_type) {
-        ERL_DEBUG("Expand the tree.\n");
-        ERL_DEBUG_ASSERT(IsRoot(), "*this must be the root node of the tree.\n");
+        ERL_DEBUG("Expand the tree.");
+        ERL_DEBUG_ASSERT(IsRoot(), "*this must be the root node of the tree.");
         ERL_DEBUG_ASSERT(
             current_root_child_type == Children::Type::kNorthWest || current_root_child_type == Children::Type::kNorthEast ||
                 current_root_child_type == Children::Type::kSouthWest || current_root_child_type == Children::Type::kSouthEast,
@@ -715,13 +715,13 @@ namespace erl::geometry {
 
     void
     IncrementalQuadtree::ReplaceChild(const std::shared_ptr<IncrementalQuadtree> &child, Children::Type child_type) {
-        ERL_DEBUG_ASSERT(child != nullptr, "child should not be nullptr.\n");
+        ERL_DEBUG_ASSERT(child != nullptr, "child should not be nullptr.");
         ERL_DEBUG_ASSERT(
             child_type == Children::Type::kNorthWest || child_type == Children::Type::kNorthEast || child_type == Children::Type::kSouthWest ||
                 child_type == Children::Type::kSouthEast,
             "child_type must be one of kNorthWest, kNorthEast, kSouthWest, kSouthEast. Not %s.\n",
             Children::GetTypeName(child_type));
-        ERL_DEBUG_ASSERT(m_children_[static_cast<int>(child_type)] != nullptr, "No existing child to replace.\n");
+        ERL_DEBUG_ASSERT(m_children_[static_cast<int>(child_type)] != nullptr, "No existing child to replace.");
         ERL_DEBUG_ASSERT(
             std::fabs(child->m_area_.half_sizes[0] * 2 - m_area_.half_sizes[0]) < 1e-6,
             "incompatible child half length: %f for this parent of half length: %f.\n",

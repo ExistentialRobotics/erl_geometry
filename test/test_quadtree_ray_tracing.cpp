@@ -46,11 +46,11 @@ Draw(UserData *data) {
         cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {0, 0, 255, 255}, cv::FILLED);
         ex = (max[0] + min[0]) / 2;
         ey = (max[1] + min[1]) / 2;
-        std::cout << "x: " << node_x << ", y: " << node_y << ", dist: " << it.GetDistance() << ", size: " << it.GetNodeSize() << "\n";
+        std::cout << "x: " << node_x << ", y: " << node_y << ", dist: " << it.GetDistance() << ", size: " << it.GetNodeSize() << std::endl;
     }
     cv::line(img, {data->mouse_x, data->mouse_y}, {ex, ey}, {0, 255, 0, 255}, 2);
     auto t1 = std::chrono::high_resolution_clock::now();
-    std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << " us.\n";
+    std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << " us." << std::endl;
     cv::addWeighted(data->img, 0.5, img, 0.5, 0, img);
     cv::imshow(UserData::window_name, img);
 }
@@ -100,8 +100,8 @@ main(int argc, char *argv[]) {
         po::store(po::command_line_parser(argc, argv).options(desc).positional(positional_options).run(), vm);
 
         if (vm.count("help")) {
-            std::cout << "Usage: " << argv[0] << " [options] tree_bt_file\n";
-            std::cout << desc << std::endl;
+            std::cout << "Usage: " << argv[0] << " [options] tree_bt_file" << std::endl
+                      << desc << std::endl;
             return 0;
         }
         po::notify(vm);
@@ -112,7 +112,7 @@ main(int argc, char *argv[]) {
 
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
-    ERL_ASSERTM(data.tree->ReadBinary(options.tree_bt_file), "Fail to load the tree.\n");
+    ERL_ASSERTM(data.tree->ReadBinary(options.tree_bt_file), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = options.resolution;
     setting->padding = options.padding;

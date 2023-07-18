@@ -41,7 +41,7 @@ namespace erl::geometry {
 
         [[nodiscard]] inline std::string
         GetNodeTypeName(int type) const override {
-            ERL_ASSERTM(type == 0, "Invalid node type.\n");
+            ERL_ASSERTM(type == 0, "Invalid node type.");
             return std::to_string(type);
         }
 
@@ -52,7 +52,7 @@ namespace erl::geometry {
 
         [[nodiscard]] inline std::size_t
         Capacity(int type) const override {
-            ERL_ASSERTM(type == 0, "Invalid node type.\n");
+            ERL_ASSERTM(type == 0, "Invalid node type.");
             return m_setting_->capacity;
         }
 
@@ -63,7 +63,7 @@ namespace erl::geometry {
 
         [[nodiscard]] inline std::size_t
         Size(int type) const override {
-            ERL_ASSERTM(type == 0, "Invalid node type.\n");
+            ERL_ASSERTM(type == 0, "Invalid node type.");
             return m_nodes_.size();
         }
 
@@ -75,25 +75,25 @@ namespace erl::geometry {
         inline std::vector<std::shared_ptr<geometry::Node>>::iterator
         Begin(int type) override {
             if (type == 0) { return m_nodes_.begin(); }
-            throw std::runtime_error("Invalid node type.\n");
+            throw std::runtime_error("Invalid node type.");
         }
 
         [[nodiscard]] inline std::vector<std::shared_ptr<geometry::Node>>::const_iterator
         Begin(int type) const override {
             if (type == 0) { return m_nodes_.begin(); }
-            throw std::runtime_error("Invalid node type.\n");
+            throw std::runtime_error("Invalid node type.");
         }
 
         inline std::vector<std::shared_ptr<geometry::Node>>::iterator
         End(int type) override {
             if (type == 0) { return m_nodes_.end(); }
-            throw std::runtime_error("Invalid node type.\n");
+            throw std::runtime_error("Invalid node type.");
         }
 
         [[nodiscard]] inline std::vector<std::shared_ptr<geometry::Node>>::const_iterator
         End(int type) const override {
             if (type == 0) { return m_nodes_.end(); }
-            throw std::runtime_error("Invalid node type.\n");
+            throw std::runtime_error("Invalid node type.");
         }
 
         inline void

@@ -15,26 +15,26 @@ namespace erl::geometry {
 
     private:
         std::shared_ptr<Setting> m_setting_ = {};
-        std::function<void(cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> m_draw_tree_ = {};
-        std::function<void(cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)> m_draw_leaf_ = {};
+        std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> m_draw_tree_ = {};
+        std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)> m_draw_leaf_ = {};
 
     public:
         explicit OccupancyQuadtreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyQuadtreeType> quadtree = nullptr)
             : AbstractQuadtreeDrawer(std::static_pointer_cast<AbstractQuadtreeDrawer::Setting>(setting), std::move(quadtree)),
               m_setting_(std::move(setting)) {
-            ERL_ASSERTM(m_setting_, "setting is nullptr.\n");
+            ERL_ASSERTM(m_setting_, "setting is nullptr.");
         }
 
-        using AbstractQuadtreeDrawer::DrawTree;
         using AbstractQuadtreeDrawer::DrawLeaves;
+        using AbstractQuadtreeDrawer::DrawTree;
 
         void
-        SetDrawTreeCallback(std::function<void(cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> draw_tree) {
+        SetDrawTreeCallback(std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> draw_tree) {
             m_draw_tree_ = std::move(draw_tree);
         }
 
         void
-        SetDrawLeafCallback(std::function<void(cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)> draw_leaf) {
+        SetDrawLeafCallback(std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)> draw_leaf) {
             m_draw_leaf_ = std::move(draw_leaf);
         }
 
@@ -45,7 +45,7 @@ namespace erl::geometry {
             if (m_quadtree_ == nullptr) { return; }
             std::shared_ptr<const OccupancyQuadtreeType> quadtree = std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
             if (quadtree == nullptr) {
-                ERL_WARNING("quadtree is not an occupancy quadtree.\n");
+                ERL_WARN("quadtree is not an occupancy quadtree.");
                 return;
             }
 
@@ -80,7 +80,7 @@ namespace erl::geometry {
                         m_setting_->border_thickness);
                 }
 
-                if (m_draw_tree_) { m_draw_tree_(mat, it); }
+                if (m_draw_tree_) { m_draw_tree_(this, mat, it); }
             }
         }
 
@@ -91,7 +91,7 @@ namespace erl::geometry {
             if (m_quadtree_ == nullptr) { return; }
             std::shared_ptr<const OccupancyQuadtreeType> quadtree = std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
             if (quadtree == nullptr) {
-                ERL_WARNING("quadtree is not an occupancy quadtree.\n");
+                ERL_WARN("quadtree is not an occupancy quadtree.");
                 return;
             }
 
@@ -101,7 +101,7 @@ namespace erl::geometry {
             auto end = quadtree->EndLeaf();
             for (; it != end; ++it) {
 
-                ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!\n");
+                ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!");
 
                 double node_size = it.GetNodeSize();
                 double half_size = node_size / 2.0;
@@ -126,7 +126,7 @@ namespace erl::geometry {
                         m_setting_->border_thickness);
                 }
 
-                if (m_draw_leaf_) { m_draw_leaf_(mat, it); }
+                if (m_draw_leaf_) { m_draw_leaf_(this, mat, it); }
             }
         }
     };

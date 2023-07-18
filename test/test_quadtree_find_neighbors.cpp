@@ -103,7 +103,7 @@ int
 main() {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
-    ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.\n");
+    ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;
     setting->border_color = cv::Scalar(255, 0, 0);

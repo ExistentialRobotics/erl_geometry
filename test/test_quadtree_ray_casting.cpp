@@ -45,7 +45,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             double max_range = -1;
             if (!data->tree->CastRay(x, y, vx, vy, kIgnoreUnknown, max_range, ex, ey)) {
                 if (!data->tree->CastRay(x, y, vx, vy, !kIgnoreUnknown, max_range, ex, ey)) {
-                    std::cout << "Fail to cast ray for angle " << erl::common::RadianToDegree(angles[i]) << ".\n";
+                    std::cout << "Fail to cast ray for angle " << erl::common::RadianToDegree(angles[i]) << std::endl;
                 }
             }
             cv::line(
@@ -56,7 +56,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 1);
         }
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms.\n";
+        std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms." << std::endl;
         cv::addWeighted(data->img, 0.5, img, 0.5, 0, img);
         cv::imshow(UserData::window_name, img);
     }
@@ -66,8 +66,8 @@ int
 main() {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
-    // ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.\n");
-    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451.bt"), "Fail to load the tree.\n");
+    // ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.");
+    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451.bt"), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;
     setting->resolution = 0.01;

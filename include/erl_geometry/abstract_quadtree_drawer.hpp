@@ -12,9 +12,9 @@ namespace erl::geometry {
             Eigen::Vector2d area_max = {1.0, 1.0};
             double resolution = 0.1;
             int padding = 1;
-            cv::Scalar bg_color = {128, 128, 128};  // gray
-            cv::Scalar fg_color = {255, 255, 255};  // white
-            cv::Scalar border_color = {0, 0, 0};    // black
+            cv::Scalar bg_color = {128, 128, 128, 255};  // gray
+            cv::Scalar fg_color = {255, 255, 255, 255};  // white
+            cv::Scalar border_color = {0, 0, 0, 255};    // black
             int border_thickness = 1;
         };
 
@@ -28,7 +28,7 @@ namespace erl::geometry {
         explicit AbstractQuadtreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const AbstractQuadtree> quadtree = nullptr)
             : m_setting_(std::move(setting)),
               m_quadtree_(std::move(quadtree)) {
-            ERL_ASSERTM(m_setting_, "setting is nullptr.\n");
+            ERL_ASSERTM(m_setting_, "setting is nullptr.");
         }
 
         virtual ~AbstractQuadtreeDrawer() = default;

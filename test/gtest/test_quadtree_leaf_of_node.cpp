@@ -64,7 +64,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             cv::circle(img, pt_key, 5, cv::Scalar(0, 0, 0, 255), cv::FILLED);
         }
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms.\n";
+        std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms." << std::endl;
         cv::addWeighted(data->img, 0.4, img, 0.6, 0, img);
         cv::imshow(UserData::window_name, img);
     }
@@ -73,7 +73,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 TEST(Quadtreee, LeafOfNode) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
-    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451.bt"), "Fail to load the tree.\n");
+    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451.bt"), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;
     setting->resolution = 0.01;

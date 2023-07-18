@@ -43,6 +43,7 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
   - [Lidar 2D Frame](include/erl_geometry/lidar_2d_frame.hpp): data structure to store 2D lidar scan.
 - Datasets
   - [HouseExpo](python/erl_geometry/house_expo/README.md)
+  - [GazeboSequence](python/erl_geometry/gazebo/sequence.py)
 - Others
   - [Compute Intersections](include/erl_geometry/utils.hpp)
   - [Euler Angle](include/erl_geometry/euler_angle.hpp)

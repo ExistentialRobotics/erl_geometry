@@ -405,7 +405,7 @@ TEST(OccupancyQuadtree, RayCasting) {
     OccupancyQuadtreeDrawer drawer(setting, tree);
     drawer.DrawLeaves("read_circle.png");
 
-    ERL_INFO("Casting rays in circle ...\n");
+    ERL_INFO("Casting rays in circle ...");
     unsigned int hit = 0;
     unsigned int miss = 0;
     unsigned int unknown = 0;

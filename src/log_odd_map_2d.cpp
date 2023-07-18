@@ -309,9 +309,9 @@ namespace erl::geometry {
         bool in_map_only,
         const std::shared_ptr<LogOddMap2D::LidarFrameMask> &old_mask) const {
 
-        ERL_DEBUG_ASSERT(angles_body.size() > 1, "angles_body is <= 1.\n");
-        ERL_DEBUG_ASSERT(ranges.size() > 1, "ranges is <= 1.\n");
-        ERL_DEBUG_ASSERT(angles_body.size() == ranges.size(), "angles_body and ranges have different sizes.\n");
+        ERL_DEBUG_ASSERT(angles_body.size() > 1, "angles_body is <= 1.");
+        ERL_DEBUG_ASSERT(ranges.size() > 1, "ranges is <= 1.");
+        ERL_DEBUG_ASSERT(angles_body.size() == ranges.size(), "angles_body and ranges have different sizes.");
 
         // LidarFrameMask mask;
         auto mask = std::make_shared<LidarFrameMask>();
@@ -401,8 +401,8 @@ namespace erl::geometry {
         cv::drawContours(mask->mask, lidar_area_contours, 0, CellType::kFree, cv::FILLED, cv::LINE_8);
 
         // if (old_mask != nullptr) {
-        //     ERL_INFO("old_mask size: \n%d, %d\n", old_mask->mask.rows, old_mask->mask.cols);
-        //     ERL_INFO("new_mask size: \n%d, %d\n", mask->mask.rows, mask->mask.cols);
+        //     ERL_INFO("old_mask size: \n%d, %d", old_mask->mask.rows, old_mask->mask.cols);
+        //     ERL_INFO("new_mask size: \n%d, %d", mask->mask.rows, mask->mask.cols);
         //     cv::Mat old_mask_image;
         //     old_mask->mask.copyTo(old_mask_image);
         //     cv::transpose(old_mask_image, old_mask_image);
@@ -434,7 +434,7 @@ namespace erl::geometry {
         bool clip_ranges,
         const std::shared_ptr<LidarFrameMask> &old_mask) const {
 
-        ERL_DEBUG_ASSERT(lidar_angles_body.size() > 1, "angles_body is <= 1.\n");
+        ERL_DEBUG_ASSERT(lidar_angles_body.size() > 1, "angles_body is <= 1.");
 
         long num_rays = lidar_angles_body.size();
         long num_frames = lidar_poses.cols();
@@ -452,10 +452,10 @@ namespace erl::geometry {
             auto &clipped_ranges = clipped_lidar_ranges[i];
             clipped_ranges.resize(num_rays);
 
-            ERL_DEBUG_ASSERT(kRanges.size() > 1, "kRanges.size() <= 1.\n");
+            ERL_DEBUG_ASSERT(kRanges.size() > 1, "kRanges.size() <= 1.");
             ERL_DEBUG_ASSERT(
                 lidar_angles_body.size() == kRanges.size(),
-                "angles_body and ranges have different sizes: %ld vs %ld.\n",
+                "angles_body and ranges have different sizes: %ld vs %ld.",
                 lidar_angles_body.size(),
                 kRanges.size());
 

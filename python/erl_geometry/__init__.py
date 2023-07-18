@@ -1,5 +1,6 @@
 from .pyerl_geometry import *
 from . import house_expo
+from . import gazebo
 
 __all__ = [
     "marching_square",
@@ -26,4 +27,5 @@ __all__ = [
     "GridsCollisionCheckerSe2",
     "GridsCollisionChecker3D",
     "house_expo",
+    "gazebo",
 ]

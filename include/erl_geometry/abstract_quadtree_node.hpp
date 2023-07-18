@@ -46,13 +46,13 @@ namespace erl::geometry {
         [[nodiscard]] inline bool
         HasChild(unsigned int index) const {
             if (m_children_.empty()) { return false; }
-            ERL_DEBUG_ASSERT(index < 4, "Index must be in [0, 3], but got %u.\n", index);
+            ERL_DEBUG_ASSERT(index < 4, "Index must be in [0, 3], but got %u.", index);
             return m_children_[index] != nullptr;
         }
 
         void
         SetChild(std::shared_ptr<AbstractQuadtreeNode> child, unsigned int index) {
-            ERL_DEBUG_ASSERT(index < 4, "Index must be in [0, 3], but got %u.\n", index);
+            ERL_DEBUG_ASSERT(index < 4, "Index must be in [0, 3], but got %u.", index);
             auto& slot = m_children_[index];
             if (slot != nullptr) {
                 slot.reset();

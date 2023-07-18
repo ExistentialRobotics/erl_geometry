@@ -288,7 +288,7 @@ namespace erl::geometry {
 
             QuadtreeKey current_key;
             if (!this->CoordToKeyChecked(px, py, current_key)) {
-                ERL_WARNING("Ray starting from (%f, %f) is out of range.\n", px, py);
+                ERL_WARN("Ray starting from (%f, %f) is out of range.\n", px, py);
                 return false;
             }
 
@@ -326,7 +326,7 @@ namespace erl::geometry {
                 step[1] = 0;
             }
             if (step[0] == 0 && step[1] == 0) {
-                ERL_WARNING("Ray casting in direction (0, 0) is impossible!\n");
+                ERL_WARN("Ray casting in direction (0, 0) is impossible!");
                 return false;
             }
 
@@ -359,7 +359,7 @@ namespace erl::geometry {
                     current_key[0] += step[0];
                     // check overflow
                     if ((step[0] < 0 && current_key[0] == 0) || (step[0] > 0 && current_key[0] == max_key_val)) {
-                        ERL_DEBUG("x coordinate hits boundary, aborting ray cast.\n");
+                        ERL_DEBUG("x coordinate hits boundary, aborting ray cast.");
                         this->KeyToCoord(current_key, ex, ey);
                         return false;
                     }
@@ -368,7 +368,7 @@ namespace erl::geometry {
                     current_key[1] += step[1];
                     // check overflow
                     if ((step[1] < 0 && current_key[1] == 0) || (step[1] > 0 && current_key[1] == max_key_val)) {
-                        ERL_DEBUG("y coordinate hits boundary, aborting ray cast.\n");
+                        ERL_DEBUG("y coordinate hits boundary, aborting ray cast.");
                         this->KeyToCoord(current_key, ex, ey);
                         return false;
                     }
@@ -674,7 +674,7 @@ namespace erl::geometry {
         std::istream&
         ReadBinaryData(std::istream& s) override {
             if (this->m_root_ != nullptr) {
-                ERL_WARNING("Trying to read into an existing tree.\n");
+                ERL_WARN("Trying to read into an existing tree.");
                 return s;
             }
 
@@ -737,7 +737,7 @@ namespace erl::geometry {
         std::ostream&
         WriteBinaryData(std::ostream& s) const override {
             if (this->m_root_ == nullptr) {
-                ERL_WARNING("Trying to write an empty tree.\n");
+                ERL_WARN("Trying to write an empty tree.");
                 return s;
             }
 

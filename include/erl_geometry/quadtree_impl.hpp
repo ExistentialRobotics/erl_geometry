@@ -438,7 +438,7 @@ namespace erl::geometry {
          */
         [[nodiscard]] inline bool
         CoordToKeyChecked(double x, double y, unsigned int depth, QuadtreeKey &key) const {
-            ERL_DEBUG_ASSERT(depth != 0, "When depth = 0, key is 0x0, which is useless!\n");
+            ERL_DEBUG_ASSERT(depth != 0, "When depth = 0, key is 0x0, which is useless!");
             if (depth == mk_TreeDepth_) { return CoordToKeyChecked(x, y, key); }
             if (!CoordToKeyChecked(x, depth, key[0])) { return false; }
             if (!CoordToKeyChecked(y, depth, key[1])) { return false; }
@@ -792,7 +792,7 @@ namespace erl::geometry {
             TreeInAabbIterator(double aabb_mix_x, double aabb_min_y, double aabb_max_x, double aabb_max_y, const ImplType *tree, unsigned int depth = 0)
                 : IteratorBase(tree, depth) {
                 if (this->m_stack_.empty()) { return; }
-                ERL_ASSERTM(tree != nullptr, "Tree is null.\n");
+                ERL_ASSERTM(tree != nullptr, "Tree is null.");
 
                 if (this->m_tree_->CoordToKeyChecked(aabb_mix_x, aabb_min_y, m_aabb_min_key_) &&
                     this->m_tree_->CoordToKeyChecked(aabb_max_x, aabb_max_y, m_aabb_max_key_)) {
@@ -813,7 +813,7 @@ namespace erl::geometry {
                   m_aabb_min_key_(aabb_min_key),
                   m_aabb_max_key_(aabb_max_key) {
                 if (this->m_stack_.empty()) { return; }
-                ERL_ASSERTM(tree != nullptr, "Tree is null.\n");
+                ERL_ASSERTM(tree != nullptr, "Tree is null.");
 
                 // check if the root node is in the AABB
                 typename IteratorBase::StackElement top = this->m_stack_.back();
@@ -957,7 +957,7 @@ namespace erl::geometry {
             LeafInAabbIterator(double aabb_mix_x, double aabb_min_y, double aabb_max_x, double aabb_max_y, const ImplType *tree, unsigned int depth = 0)
                 : IteratorBase(tree, depth) {
                 if (this->m_stack_.empty()) { return; }
-                ERL_ASSERTM(tree != nullptr, "Tree is null.\n");
+                ERL_ASSERTM(tree != nullptr, "Tree is null.");
 
                 if (this->m_tree_->CoordToKeyChecked(aabb_mix_x, aabb_min_y, m_aabb_min_key_) &&
                     this->m_tree_->CoordToKeyChecked(aabb_max_x, aabb_max_y, m_aabb_max_key_)) {
@@ -974,7 +974,7 @@ namespace erl::geometry {
                   m_aabb_min_key_(aabb_min_key),
                   m_aabb_max_key_(aabb_max_key) {
                 if (this->m_stack_.empty()) { return; }
-                ERL_ASSERTM(tree != nullptr, "Tree is null.\n");
+                ERL_ASSERTM(tree != nullptr, "Tree is null.");
 
                 // skip forward to next valid leaf node
                 while (!this->m_stack_.empty() && !this->IsLeaf()) { SingleIncrement(); }
@@ -1595,7 +1595,7 @@ namespace erl::geometry {
             ray.Reset();
             QuadtreeKey key_start, key_end;
             if (!CoordToKeyChecked(sx, sy, key_start) || !CoordToKeyChecked(ex, ey, key_end)) {
-                ERL_WARNING("Ray (%f, %f) -> (%f, %f) is out of range.\n", sx, sy, ex, ey);
+                ERL_WARN("Ray (%f, %f) -> (%f, %f) is out of range.\n", sx, sy, ex, ey);
                 return false;
             }
             if (key_start == key_end) { return true; }
@@ -1627,7 +1627,7 @@ namespace erl::geometry {
                 step[1] = 0;
             }
             if (step[0] == 0 && step[1] == 0) {
-                ERL_WARNING("Ray casting in direction (0, 0) is impossible!\n");
+                ERL_WARN("Ray casting in direction (0, 0) is impossible!");
                 return false;
             }
 
@@ -1680,7 +1680,7 @@ namespace erl::geometry {
                 if (dist_from_origin > length) { break; }  // this happens due to numerical error
 
                 ray.AddKey(current_key);
-                ERL_ASSERTM(ray.size() < ray.capacity() - 1, "Ray capacity is not enough.\n");
+                ERL_ASSERTM(ray.size() < ray.capacity() - 1, "Ray capacity is not enough.");
             }
 
             return true;
@@ -1724,7 +1724,7 @@ namespace erl::geometry {
         inline std::shared_ptr<Node>
         CreateNodeChild(const std::shared_ptr<Node> &node, unsigned int child_idx) {
             node->AllocateChildrenPtr();                                              // allocate children if necessary
-            ERL_DEBUG_ASSERT(!node->HasChild(child_idx), "Child already exists.\n");  // child must not exist
+            ERL_DEBUG_ASSERT(!node->HasChild(child_idx), "Child already exists.");  // child must not exist
             auto new_child = std::make_shared<Node>();                                // create new child
             node->SetChild(new_child, child_idx);                                     // set child
             m_tree_size_++;                                                           // increase tree size
@@ -1740,7 +1740,7 @@ namespace erl::geometry {
          */
         inline void
         DeleteNodeChild(std::shared_ptr<Node> &node, unsigned int child_idx) {
-            ERL_DEBUG_ASSERT(node->HasChild(child_idx), "Child does not exist.\n");  // child must exist
+            ERL_DEBUG_ASSERT(node->HasChild(child_idx), "Child does not exist.");  // child must exist
             node->SetChild(nullptr, child_idx);                                      // set child to nullptr
             m_tree_size_--;                                                          // decrease tree size
             m_size_changed_ = true;                                                  // size of the tree has changed
@@ -1784,7 +1784,7 @@ namespace erl::geometry {
          */
         virtual void
         ExpandNode(std::shared_ptr<Node> &node) {
-            ERL_DEBUG_ASSERT(!node->HasAnyChild(), "Node already has children.\n");
+            ERL_DEBUG_ASSERT(!node->HasAnyChild(), "Node already has children.");
             for (unsigned int i = 0; i < 4; ++i) {
                 auto child = CreateNodeChild(node, i);
                 OnExpandNode(node, child);
@@ -1826,7 +1826,7 @@ namespace erl::geometry {
         DeleteNode(double x, double y, unsigned int depth = 0) {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
-                ERL_WARNING("Point (%f, %f) is out of range.\n", x, y);
+                ERL_WARN("Point (%f, %f) is out of range.\n", x, y);
                 return false;
             } else {
                 return DeleteNode(key, depth);
@@ -2088,7 +2088,7 @@ namespace erl::geometry {
         Search(double x, double y, unsigned int &depth) {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
-                ERL_WARNING("Point (%f, %f) is out of range.\n", x, y);
+                ERL_WARN("Point (%f, %f) is out of range.\n", x, y);
                 return nullptr;
             }
 
@@ -2099,7 +2099,7 @@ namespace erl::geometry {
         Search(double x, double y, unsigned int &depth) const {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
-                ERL_WARNING("Point (%f, %f) is out of range.\n", x, y);
+                ERL_WARN("Point (%f, %f) is out of range.\n", x, y);
                 return nullptr;
             }
 
@@ -2201,7 +2201,7 @@ namespace erl::geometry {
         InsertNode(double x, double y, unsigned int depth = 0) {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
-                ERL_WARNING("Point (%f, %f) is out of range.\n", x, y);
+                ERL_WARN("Point (%f, %f) is out of range.\n", x, y);
                 return nullptr;
             }
             return InsertNode(key, depth);
@@ -2237,7 +2237,7 @@ namespace erl::geometry {
         std::istream &
         ReadData(std::istream &s) override {
             if (!s.good()) {
-                ERL_WARNING("Input stream is not good.\n");
+                ERL_WARN("Input stream is not good.\n");
                 return s;
             }
 
@@ -2245,7 +2245,7 @@ namespace erl::geometry {
             m_size_changed_ = true;
 
             if (m_root_ != nullptr) {
-                ERL_WARNING("Quadtree is not empty, clear it first.\n");
+                ERL_WARN("Quadtree is not empty, clear it first.\n");
                 return s;
             }
 

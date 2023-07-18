@@ -94,7 +94,7 @@ namespace erl::geometry {
 
         inline void
         AddKey(const QuadtreeKey& k) {
-            ERL_ASSERTM(m_end_of_ray_ != m_ray_.end(), "Ray is full.\n");
+            ERL_ASSERTM(m_end_of_ray_ != m_ray_.end(), "Ray is full.");
             *m_end_of_ray_ = k;
             ++m_end_of_ray_;
         }

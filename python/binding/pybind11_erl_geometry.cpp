@@ -321,6 +321,10 @@ BindIncrementalQuadTree(py::module &m) {
         });
 }
 
+static void BindOccupancyQuadtree(py::module &m) {
+
+}
+
 static void
 BindSurface2D(py::module &m) {
 
