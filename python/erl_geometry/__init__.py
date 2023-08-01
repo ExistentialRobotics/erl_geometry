@@ -1,3 +1,7 @@
+# import pybind dependencies
+import erl_common
+
+# import package modules
 from .pyerl_geometry import *
 from . import house_expo
 from . import gazebo

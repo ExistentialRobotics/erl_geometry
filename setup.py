@@ -29,6 +29,25 @@ parser.add_argument("--clean-before-build", action="store_true", help="clean bef
 args, unknown = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + unknown
 
+erl_dependencies = ["erl_common"]
+temp_build_dir = os.path.join(project_dir, "build")
+temp_install_dir = os.path.join(project_dir, "build", "temp_install")
+n_proc = os.cpu_count()
+os.makedirs(temp_install_dir, exist_ok=True)
+for dependency in erl_dependencies:
+    src_dir = os.path.join(project_dir, "..", dependency)
+    assert os.path.exists(src_dir), f"Dependency {dependency} not found"
+    build_dir = os.path.join(temp_build_dir, dependency)
+    os.makedirs(build_dir, exist_ok=True)
+    subprocess.check_call(
+        ["cmake", src_dir, "-DCMAKE_BUILD_TYPE=" + args.build_type, "-DCMAKE_INSTALL_PREFIX=" + temp_install_dir],
+        cwd=build_dir,
+    )
+    subprocess.check_call(
+        ["cmake", "--build", ".", "--target", "install", "--", "-j", str(n_proc)],
+        cwd=build_dir,
+    )
+
 
 class CMakeExtension(Extension):
     def __init__(self, name: str, source_dir: str = project_dir):
@@ -58,11 +77,13 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={ext_dir}",
             f"-DPython3_ROOT_DIR={os.path.dirname(os.path.dirname(sys.executable))}",
             f"-DCMAKE_BUILD_TYPE={ext.build_type}",
+            f"-DCMAKE_PREFIX_PATH={temp_install_dir}",
+            f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
         ]
         os.makedirs(self.build_temp, exist_ok=True)
         subprocess.check_call(["cmake", ext.source_dir] + cmake_args, cwd=self.build_temp)
         subprocess.check_call(
-            ["cmake", "--build", ".", "--target", pybind_module_name, "--", "-j", f"{os.cpu_count()}"],
+            ["cmake", "--build", ".", "--target", pybind_module_name, "--", "-j", f"{n_proc}"],
             cwd=self.build_temp,
         )
 
@@ -81,6 +102,8 @@ for i, require in enumerate(requires):
 if os.path.exists("entry_points.txt"):
     with open("entry_points.txt", "r") as f:
         entry_points = f.readlines()
+else:
+    entry_points = []
 for i, entry_point in enumerate(entry_points):
     entry_points[i] = entry_point.strip()
 

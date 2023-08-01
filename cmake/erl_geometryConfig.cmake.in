@@ -1,7 +1,12 @@
 @PACKAGE_INIT@
 
 # resolve dependencies
-find_package(erl_common REQUIRED)
+foreach(package erl_common)
+    if (NOT TARGET ${package})
+        message(STATUS "Looking for ${package}")
+        find_package(${package} REQUIRED)
+    endif()
+endforeach()
 include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
 
 # name alias
