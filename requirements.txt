@@ -1,1 +1,9 @@
+dash
+plotly
+tqdm
+opencv-python
+pyyaml
+screeninfo
 scipy
+numpy
+vedo

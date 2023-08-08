@@ -157,10 +157,10 @@ namespace YAML {
     inline Emitter &
     operator<<(Emitter &out, const typename erl::geometry::OccupancyQuadtreeDrawer<Node>::Setting &rhs) {
         out << static_cast<const erl::geometry::AbstractQuadtreeDrawer::Setting &>(rhs);
-        out << YAML::BeginMap;
-        out << YAML::Key << "occupied_color" << YAML::Value << rhs.occupied_color;
-        out << YAML::Key << "free_color" << YAML::Value << rhs.free_color;
-        out << YAML::EndMap;
+        out << BeginMap;
+        out << Key << "occupied_color" << Value << rhs.occupied_color;
+        out << Key << "free_color" << Value << rhs.free_color;
+        out << EndMap;
         return out;
     }
 }  // namespace YAML

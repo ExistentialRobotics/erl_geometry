@@ -104,16 +104,16 @@ namespace YAML {
 
     inline Emitter &
     operator<<(Emitter &out, const erl::geometry::AbstractQuadtreeDrawer::Setting &rhs) {
-        out << YAML::BeginMap;
-        out << YAML::Key << "area_min" << YAML::Value << rhs.area_min;
-        out << YAML::Key << "area_max" << YAML::Value << rhs.area_max;
-        out << YAML::Key << "resolution" << YAML::Value << rhs.resolution;
-        out << YAML::Key << "padding" << YAML::Value << rhs.padding;
-        out << YAML::Key << "bg_color" << YAML::Value << rhs.bg_color;
-        out << YAML::Key << "fg_color" << YAML::Value << rhs.fg_color;
-        out << YAML::Key << "border_color" << YAML::Value << rhs.border_color;
-        out << YAML::Key << "border_thickness" << YAML::Value << rhs.border_thickness;
-        out << YAML::EndMap;
+        out << BeginMap;
+        out << Key << "area_min" << Value << rhs.area_min;
+        out << Key << "area_max" << Value << rhs.area_max;
+        out << Key << "resolution" << Value << rhs.resolution;
+        out << Key << "padding" << Value << rhs.padding;
+        out << Key << "bg_color" << Value << rhs.bg_color;
+        out << Key << "fg_color" << Value << rhs.fg_color;
+        out << Key << "border_color" << Value << rhs.border_color;
+        out << Key << "border_thickness" << Value << rhs.border_thickness;
+        out << EndMap;
         return out;
     }
 }  // namespace YAML

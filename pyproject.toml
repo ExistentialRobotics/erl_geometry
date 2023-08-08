@@ -20,7 +20,6 @@ module = [
     "plotly.*",
     "dash.*",
     "tqdm.*",
-    "diff_info_gathering.*",
     "vedo.*"
 ]
 ignore_missing_imports = true
