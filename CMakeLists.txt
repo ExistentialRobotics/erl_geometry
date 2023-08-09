@@ -34,7 +34,7 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PUBLIC erl_common ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} ${catkin_LIBRARIES})
 
 ###################
 # Python bindings #
@@ -42,7 +42,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC erl_common ${catkin_LIBRARIES})
 erl_add_python_package(
         PYTHON_PKG_DIR ${${PROJECT_NAME}_PYTHON_DIR}/${PROJECT_NAME}
         PYBIND_MODULE_NAME py${PROJECT_NAME}
-        DEPENDS_PYTHON_PKGS erl_common)
+        DEPENDS_PYTHON_PKGS ${${PROJECT_NAME}_ERL_PACKAGES})
 
 #######################################################################################################################
 # INSTALL
