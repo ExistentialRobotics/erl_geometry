@@ -1,8 +1,8 @@
 # import pybind dependencies
-import erl_common
+from erl_common.yaml import YamlableBase
 
 # import package modules
-from .pyerl_geometry import *
+from erl_geometry.pyerl_geometry import *
 from . import house_expo
 from . import gazebo
 
@@ -28,8 +28,8 @@ __all__ = [
     "CollisionCheckerBase",
     "PointCollisionChecker2D",
     "PointCollisionChecker3D",
-    "GridsCollisionCheckerSe2",
-    "GridsCollisionChecker3D",
+    "GridCollisionCheckerSe2",
+    "GridCollisionChecker3D",
     "house_expo",
     "gazebo",
 ]

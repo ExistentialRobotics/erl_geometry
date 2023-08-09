@@ -23,12 +23,15 @@ if os.environ.get("ROS_VERSION", "0") == "1":
 
 project_dir = os.path.dirname(os.path.realpath(__file__))
 src_python_dir = os.path.join(project_dir, "python", python_pkg_name)
+egg_info_dir = os.path.join(project_dir, f"{python_pkg_name}.egg-info")
 parser = ArgumentParser()
 parser.add_argument("--build-type", default="Release", choices=["Release", "Debug"], type=str, help="build type")
 parser.add_argument("--clean-before-build", action="store_true", help="clean before build")
 args, unknown = parser.parse_known_args()
 sys.argv = [sys.argv[0]] + unknown
 
+if os.path.exists(egg_info_dir):
+    os.system(f"rm -rf {egg_info_dir}")
 erl_dependencies = ["erl_common"]
 temp_build_dir = os.path.join(project_dir, "build")
 temp_install_dir = os.path.join(project_dir, "build", "temp_install")
@@ -71,8 +74,16 @@ class CMakeBuild(build_ext):
 
     def build_extension(self, ext: CMakeExtension) -> None:
         original_full_path: str = self.get_ext_fullpath(ext.name)
-        ext_dir: str = os.path.abspath(os.path.dirname(original_full_path))  # equal to project_dir
-        ext_dir: str = os.path.join(ext_dir, "python", self.distribution.get_name())
+        if os.path.exists(original_full_path):
+            os.remove(original_full_path)
+
+        # ext_dir equals to build/lib.linux-$(architecture)-cpython-${python_version}
+        ext_dir: str = os.path.abspath(os.path.dirname(original_full_path))
+        ext_dir: str = os.path.join(ext_dir, self.distribution.get_name())
+        old_ext_path = os.path.join(ext_dir, os.path.basename(original_full_path))
+        if os.path.exists(old_ext_path):
+            os.remove(old_ext_path)
+
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={ext_dir}",
             f"-DPython3_ROOT_DIR={os.path.dirname(os.path.dirname(sys.executable))}",

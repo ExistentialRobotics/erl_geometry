@@ -38,8 +38,8 @@ __all__ = [
     "CollisionCheckerBase",
     "PointCollisionChecker2D",
     "PointCollisionChecker3D",
-    "GridsCollisionCheckerSe2",
-    "GridsCollisionChecker3D",
+    "GridCollisionCheckerSe2",
+    "GridCollisionChecker3D",
 ]
 
 def marching_square(
@@ -582,25 +582,25 @@ class PointCollisionChecker2D(CollisionCheckerBase):
 class PointCollisionChecker3D(CollisionCheckerBase):
     def __init__(self: PointCollisionChecker3D, grid_map: GridMapUnsigned3D) -> None: ...
 
-class GridsCollisionCheckerSe2:
+class GridCollisionCheckerSe2:
     def __init__(
-        self: GridsCollisionCheckerSe2,
+        self: GridCollisionCheckerSe2,
         grid_map: GridMapUnsigned2D,
         se2_grid_map_info: GridMapInfo3D,
         metric_shape: npt.NDArray[np.float64],
     ) -> None: ...
     @overload
-    def is_collided(self: GridsCollisionCheckerSe2, grid_coords: npt.NDArray[np.int32]) -> bool: ...
+    def is_collided(self: GridCollisionCheckerSe2, grid_coords: npt.NDArray[np.int32]) -> bool: ...
     @overload
-    def is_collided(self: GridsCollisionCheckerSe2, pose: npt.NDArray[np.float64]) -> bool: ...
+    def is_collided(self: GridCollisionCheckerSe2, pose: npt.NDArray[np.float64]) -> bool: ...
 
-class GridsCollisionChecker3D:
+class GridCollisionChecker3D:
     def __init__(
-        self: GridsCollisionChecker3D,
+        self: GridCollisionChecker3D,
         grid_map: GridMapUnsigned3D,
         metric_voxels: npt.NDArray[np.float64],
     ) -> None: ...
     @overload
-    def is_collided(self: GridsCollisionCheckerSe2, grid_coords: npt.NDArray[np.int32]) -> bool: ...
+    def is_collided(self: GridCollisionCheckerSe2, grid_coords: npt.NDArray[np.int32]) -> bool: ...
     @overload
-    def is_collided(self: GridsCollisionCheckerSe2, pose: npt.NDArray[np.float64]) -> bool: ...
+    def is_collided(self: GridCollisionCheckerSe2, pose: npt.NDArray[np.float64]) -> bool: ...

@@ -27,8 +27,8 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
 - [Log Odd Map 2D](include/erl_geometry/log_odd_map_2d.hpp): 2D occupancy grid map based on log odd.
 - Collision Detection
   - [Winding Number](include/erl_geometry/winding_number.hpp): check if a point is in a polygon.
-  - [Grid Collision Check 2D](include/erl_geometry/grids_collision_checker_se2.hpp): check if a shape hits obstacles.
-  - [Grid Collision Check 3D](include/erl_geometry/grids_collision_checker_se3.hpp): check if a shape hits obstacles.
+  - [Grid Collision Check 2D](include/erl_geometry/grid_collision_checker_se2.hpp): check if a shape hits obstacles.
+  - [Grid Collision Check 3D](include/erl_geometry/grid_collision_checker_3d.hpp): check if a shape hits obstacles.
   - [Point Collision Checker](include/erl_geometry/point_collision_checker.hpp): check if a point is in obstacle.
 - Surface Extraction
   - [Marching Square](include/erl_geometry/marching_square.hpp): extract surface from 2D scalar field.

@@ -4,8 +4,8 @@
 #include "erl_common/yaml.hpp"
 #include "erl_geometry/aabb.hpp"
 #include "erl_geometry/bresenham_2d.hpp"
-#include "erl_geometry/grids_collision_checker_se2.hpp"
-#include "erl_geometry/grids_collision_checker_se3.hpp"
+#include "erl_geometry/grid_collision_checker_se2.hpp"
+#include "erl_geometry/grid_collision_checker_3d.hpp"
 #include "erl_geometry/incremental_quadtree.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/lidar_2d_frame.hpp"
@@ -681,13 +681,13 @@ BindCollisionCheckers(py::module &m) {
     py::class_<PointCollisionChecker3D, CollisionCheckerBase>(m, ERL_AS_STRING(PointCollisionChecker3D))
         .def(py::init<std::shared_ptr<GridMap<uint8_t, 3>>>(), py::arg("grid_map"));
 
-    py::class_<GridsCollisionCheckerSe2, CollisionCheckerBase>(m, ERL_AS_STRING(GridsCollisionCheckerSe2))
+    py::class_<GridCollisionCheckerSe2, CollisionCheckerBase>(m, ERL_AS_STRING(GridCollisionCheckerSe2))
         .def(
             py::init<std::shared_ptr<GridMap<uint8_t, 2>>, const std::shared_ptr<GridMapInfo3D> &, Eigen::Matrix2Xd>(),
             py::arg("grid_map"),
             py::arg("se2_grid_map_info"),
             py::arg("metric_shape"))
-        .def("is_collided", py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &>(&GridsCollisionCheckerSe2::IsCollided, py::const_), py::arg("pose"));
+        .def("is_collided", py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &>(&GridCollisionCheckerSe2::IsCollided, py::const_), py::arg("pose"));
 
     py::class_<GridCollisionChecker3D, CollisionCheckerBase>(m, ERL_AS_STRING(GridCollisionChecker3D))
         .def(py::init<std::shared_ptr<GridMap<uint8_t, 3>>, Eigen::Matrix3Xd>(), py::arg("grid_map"), py::arg("metric_voxels"))

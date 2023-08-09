@@ -7,14 +7,14 @@
 
 namespace erl::geometry {
 
-    class GridsCollisionCheckerSe2 : public CollisionCheckerBase {
+    class GridCollisionCheckerSe2 : public CollisionCheckerBase {
 
         std::shared_ptr<common::GridMapUnsigned2D> m_grid_map_;
         Eigen::Matrix2Xd m_metric_shapes_;
         std::map<int, Eigen::Matrix2Xi> m_oriented_shapes_;
 
     public:
-        GridsCollisionCheckerSe2(
+        GridCollisionCheckerSe2(
             std::shared_ptr<common::GridMapUnsigned2D> grid_map,
             const std::shared_ptr<common::GridMapInfo3D> &grid_map_info,
             Eigen::Matrix2Xd metric_shape)
