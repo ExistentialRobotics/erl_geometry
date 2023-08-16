@@ -41,7 +41,7 @@ MouseCallback(int event, int x, int y, int flags, void *userdata) {
 
         cv::Mat new_image = quadtree_image.clone();
         for (int i = 0; i < 360; ++i) {
-            if (ray_travel_distances[i] < std::numeric_limits<double>::max()) {
+            if (ray_travel_distances[i] < std::numeric_limits<double>::infinity()) {
                 Eigen::Vector2d hit_point = ray_origin + ray_directions.col(i) * ray_travel_distances[i];
                 Eigen::Vector2i hit_point_grid = grid_map_info->MeterToPixelForPoints(hit_point);
                 cv::line(new_image, cv::Point2i(x, y), cv::Point2i(hit_point_grid[0], hit_point_grid[1]), cv::Scalar(255, 0, 0), 1);

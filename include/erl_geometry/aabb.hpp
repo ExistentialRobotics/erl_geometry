@@ -13,10 +13,8 @@ namespace erl::geometry {
         typedef ScalarType Scalar;
         typedef Eigen::Vector<Scalar, Dim> Point;
 
-        Point center = {};
-        Point half_sizes = {};
-
-        AABB() = default;
+        Point center;
+        Point half_sizes;
 
         AABB(Point center, Scalar half_size)
             : Eigen::AlignedBox<Scalar, Dim>(center.array() - half_size, center.array() + half_size),

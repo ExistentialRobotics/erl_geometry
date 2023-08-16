@@ -144,7 +144,7 @@ namespace erl::geometry {
                 return;
             }
 
-            min_x = min_y = std::numeric_limits<double>::max();
+            min_x = min_y = std::numeric_limits<double>::infinity();
             for (auto it = begin(), end = this->end(); it != end; ++it) {
                 double half_size = it.GetNodeSize() / 2.;
                 double node_min_x = it.GetX() - half_size;
@@ -174,7 +174,7 @@ namespace erl::geometry {
                 return;
             }
 
-            max_x = max_y = -std::numeric_limits<double>::max();
+            max_x = max_y = -std::numeric_limits<double>::infinity();
             for (auto it = begin(), end = this->end(); it != end; ++it) {
                 double half_size = it.GetNodeSize() / 2.;
                 double node_max_x = it.GetX() + half_size;
@@ -208,8 +208,8 @@ namespace erl::geometry {
                 return;
             }
 
-            min_x = min_y = std::numeric_limits<double>::max();
-            max_x = max_y = -std::numeric_limits<double>::max();
+            min_x = min_y = std::numeric_limits<double>::infinity();
+            max_x = max_y = -std::numeric_limits<double>::infinity();
             for (auto it = begin(), end = this->end(); it != end; ++it) {
                 double size = it.GetNodeSize();
                 double half_size = size / 2.;
@@ -247,8 +247,8 @@ namespace erl::geometry {
             }
 
             double min_x, min_y, max_x, max_y;
-            min_x = min_y = std::numeric_limits<double>::max();
-            max_x = max_y = -std::numeric_limits<double>::max();
+            min_x = min_y = std::numeric_limits<double>::infinity();
+            max_x = max_y = -std::numeric_limits<double>::infinity();
             for (auto it = begin(), end = this->end(); it != end; ++it) {
                 double size = it.GetNodeSize();
                 double half_size = size / 2.;
@@ -1635,16 +1635,16 @@ namespace erl::geometry {
             double t_max[2];
             double t_delta[2];
             if (step[0] == 0) {
-                t_max[0] = std::numeric_limits<double>::max();
-                t_delta[0] = std::numeric_limits<double>::max();
+                t_max[0] = std::numeric_limits<double>::infinity();
+                t_delta[0] = std::numeric_limits<double>::infinity();
             } else {
                 double voxel_border = KeyToCoord(key_start[0]) + double(step[0]) * 0.5 * m_resolution_;
                 t_max[0] = (voxel_border - sx) / dx;
                 t_delta[0] = m_resolution_ / std::abs(dx);
             }
             if (step[1] == 0) {
-                t_max[1] = std::numeric_limits<double>::max();
-                t_delta[1] = std::numeric_limits<double>::max();
+                t_max[1] = std::numeric_limits<double>::infinity();
+                t_delta[1] = std::numeric_limits<double>::infinity();
             } else {
                 double voxel_border = KeyToCoord(key_start[1]) + double(step[1]) * 0.5 * m_resolution_;
                 t_max[1] = (voxel_border - sy) / dy;
@@ -2324,8 +2324,8 @@ namespace erl::geometry {
         inline void
         Init() {
             SetResolution(m_resolution_);
-            m_metric_min_[0] = m_metric_min_[1] = std::numeric_limits<double>::max();
-            m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<double>::max();
+            m_metric_min_[0] = m_metric_min_[1] = std::numeric_limits<double>::infinity();
+            m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<double>::infinity();
             m_size_changed_ = true;
 #pragma omp parallel default(none) shared(m_key_rays_)
 #pragma omp critical
@@ -2348,8 +2348,8 @@ namespace erl::geometry {
             }
 
             // non-empty tree
-            m_metric_min_[0] = m_metric_min_[1] = std::numeric_limits<double>::max();
-            m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<double>::max();
+            m_metric_min_[0] = m_metric_min_[1] = std::numeric_limits<double>::infinity();
+            m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<double>::infinity();
 
             for (auto it = begin(), end = this->end(); it != end; ++it) {
                 double size = it.GetNodeSize();

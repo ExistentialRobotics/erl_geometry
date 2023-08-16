@@ -334,16 +334,16 @@ namespace erl::geometry {
             double t_max[2];
             double t_delta[2];
             if (step[0] == 0) {
-                t_max[0] = std::numeric_limits<double>::max();
-                t_delta[0] = std::numeric_limits<double>::max();
+                t_max[0] = std::numeric_limits<double>::infinity();
+                t_delta[0] = std::numeric_limits<double>::infinity();
             } else {
                 double voxel_border = this->KeyToCoord(current_key[0]) + double(step[0]) * 0.5 * this->m_resolution_;
                 t_max[0] = (voxel_border - px) / vx;
                 t_delta[0] = this->m_resolution_ / std::abs(vx);
             }
             if (step[1] == 0) {
-                t_max[1] = std::numeric_limits<double>::max();
-                t_delta[1] = std::numeric_limits<double>::max();
+                t_max[1] = std::numeric_limits<double>::infinity();
+                t_delta[1] = std::numeric_limits<double>::infinity();
             } else {
                 double voxel_border = this->KeyToCoord(current_key[1]) + double(step[1]) * 0.5 * this->m_resolution_;
                 t_max[1] = (voxel_border - py) / vy;

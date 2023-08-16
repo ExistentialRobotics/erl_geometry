@@ -250,7 +250,7 @@ namespace erl::geometry {
      */
     double
     Space2D::ComputeSdfGreedily(const Eigen::Ref<const Eigen::Vector2d> &q, SignMethod sign_method) const {
-        double sdf = std::numeric_limits<double>::max();
+        double sdf = std::numeric_limits<double>::infinity();
         int idx_vertex_0 = 0, idx_vertex_1 = 0;
 
         for (int j = 1; j < m_surface_->GetNumLines(); ++j) {
@@ -321,7 +321,7 @@ namespace erl::geometry {
             // Eigen::VectorXd lams(n_lines);
             // Eigen::VectorXd ts(n_lines);
             double lam, t;
-            ddf[i] = std::numeric_limits<double>::max();
+            ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 ComputeIntersectionBetweenRayAndSegment2D(
                     query_points.col(i),
@@ -391,7 +391,7 @@ namespace erl::geometry {
             // Eigen::VectorXd lams(n_lines);
             // Eigen::VectorXd ts(n_lines);
             double lam, t;
-            ddf[i] = std::numeric_limits<double>::max();
+            ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 auto l = m_surface_->lines_to_vertices.col(j);
                 ComputeIntersectionBetweenRayAndSegment2D(query_points.col(i), d, m_surface_->vertices.col(l.x()), m_surface_->vertices.col(l.y()), lam, t);
@@ -478,7 +478,7 @@ namespace erl::geometry {
             Eigen::VectorXd lams(n_lines);
             Eigen::VectorXd ts(n_lines);
             bool is_negative = false;
-            double min_dist = std::numeric_limits<double>::max();
+            double min_dist = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 Eigen::Vector2i l = m_surface_->lines_to_vertices.col(j);
                 const auto &v_1 = m_surface_->vertices.col(l.x());

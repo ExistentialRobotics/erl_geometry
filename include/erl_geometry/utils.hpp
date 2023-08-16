@@ -74,8 +74,8 @@ namespace erl::geometry {
 
         double tmp = v_21.x() * d.y() - v_21.y() * d.x();  // tmp = (p_2 - p_1).cross(d)
         if (std::abs(tmp) < 1.e-10) {
-            lam = std::numeric_limits<double>::max();
-            dist = std::numeric_limits<double>::max();
+            lam = std::numeric_limits<double>::infinity();
+            dist = std::numeric_limits<double>::infinity();
             return;
         }
         lam = (v_20.x() * d.y() - v_20.y() * d.x()) / tmp;         // (p_2 - p_0).cross(d) / tmp
