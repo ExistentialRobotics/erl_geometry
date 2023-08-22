@@ -39,7 +39,11 @@ namespace erl::geometry {
                 std::copy(pa, pa + numel, angles.begin());
                 std::copy(pr, pr + numel, distances.begin());
 
-                Eigen::Map<const Eigen::Matrix23d> pose(pose_ptr, 2, 3);
+                Eigen::Matrix23d pose;
+                // clang-format off
+                pose << pose_ptr[0], pose_ptr[2], pose_ptr[4],
+                        pose_ptr[1], pose_ptr[3], pose_ptr[5];
+                // clang-format on
                 position = pose.col(0);
                 rotation = pose.block<2, 2>(0, 1);
 
