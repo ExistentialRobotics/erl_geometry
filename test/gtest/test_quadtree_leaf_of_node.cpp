@@ -64,7 +64,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             cv::circle(img, pt_key, 5, cv::Scalar(0, 0, 0, 255), cv::FILLED);
         }
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::cout << "Time: " << std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() << " ms." << std::endl;
+        std::cout << "Time: " << std::chrono::duration<double, std::milli>(t1 - t0).count() << " ms." << std::endl;
         cv::addWeighted(data->img, 0.4, img, 0.6, 0, img);
         cv::imshow(UserData::window_name, img);
     }

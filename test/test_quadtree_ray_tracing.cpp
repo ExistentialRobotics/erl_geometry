@@ -50,7 +50,7 @@ Draw(UserData *data) {
     }
     cv::line(img, {data->mouse_x, data->mouse_y}, {ex, ey}, {0, 255, 0, 255}, 2);
     auto t1 = std::chrono::high_resolution_clock::now();
-    std::cout << "Time: " << std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count() << " us." << std::endl;
+    std::cout << "Time: " << std::chrono::duration<double, std::micro>(t1 - t0).count() << " us." << std::endl;
     cv::addWeighted(data->img, 0.5, img, 0.5, 0, img);
     cv::imshow(UserData::window_name, img);
 }
