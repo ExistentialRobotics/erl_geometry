@@ -20,11 +20,16 @@ namespace erl::geometry {
         const int mk_MLeafMaxSize_;
 
     public:
-        explicit KdTreeEigenAdaptor(const EigenMatrix &mat, bool build = true, int leaf_max_size = 10)
-            : m_data_matrix_(mat),
+        explicit KdTreeEigenAdaptor(EigenMatrix mat, bool build = true, int leaf_max_size = 10)
+            : m_data_matrix_(std::move(mat)),
               mk_MLeafMaxSize_(leaf_max_size) {
 
             if (build) { Rebuild(); }
+        }
+
+        [[nodiscard]] const EigenMatrix &
+        GetDataMatrix() const {
+            return m_data_matrix_;
         }
 
         // Rebuild the KD tree from scratch
@@ -35,7 +40,7 @@ namespace erl::geometry {
         }
 
         inline void
-        Knn(size_t k, const Eigen::Vector2d &point, IndexType &indices_out, NumType &metric_out) {
+        Knn(size_t k, const Eigen::Vector<T, Dim> &point, IndexType &indices_out, NumType &metric_out) {
             nanoflann::KNNResultSet<NumType, IndexType> result_set(k);
             result_set.init(&indices_out, &metric_out);
             m_tree_->findNeighbors(result_set, point.data(), nanoflann::SearchParameters());
@@ -60,4 +65,4 @@ namespace erl::geometry {
             return false;
         }
     };
-}  // namespace nanoflann
+}  // namespace erl::geometry
