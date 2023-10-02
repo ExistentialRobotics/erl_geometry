@@ -43,7 +43,13 @@ for dependency in erl_dependencies:
     build_dir = os.path.join(temp_build_dir, dependency)
     os.makedirs(build_dir, exist_ok=True)
     subprocess.check_call(
-        ["cmake", src_dir, "-DCMAKE_BUILD_TYPE=" + args.build_type, "-DCMAKE_INSTALL_PREFIX=" + temp_install_dir],
+        [
+            "cmake",
+            src_dir,
+            "-DCMAKE_BUILD_TYPE=" + args.build_type,
+            "-DCMAKE_INSTALL_PREFIX=" + temp_install_dir,
+            f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
+        ],
         cwd=build_dir,
     )
     subprocess.check_call(
