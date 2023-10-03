@@ -23,7 +23,7 @@ __all__ = [
     "Surface2D",
     "Space2D",
     "Lidar2D",
-    "Lidar2DFrame",
+    "LidarFrame2D",
     "LogOddMap2D",
     "CollisionCheckerBase",
     "PointCollisionChecker2D",

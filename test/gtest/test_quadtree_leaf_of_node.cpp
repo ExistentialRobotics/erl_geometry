@@ -70,7 +70,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     }
 }
 
-TEST(Quadtreee, LeafOfNode) {
+TEST(ERL_GEOMETRY, OccupancyQuadtree_LeafOfNode) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
     ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451.bt"), "Fail to load the tree.");

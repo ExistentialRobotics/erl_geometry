@@ -190,7 +190,7 @@ def main() -> None:
             output_label_index = str(configs["index"])
 
         json_filename = json_files[configs["index"]]
-        house_expo_map = HouseExpoMap(json_filename)
+        house_expo_map = HouseExpoMap(os.path.join(json_dir, json_filename))
         token = os.path.splitext(json_filename)[0]
         csv_file = os.path.join(traj_dir, f"{token}.csv")
 

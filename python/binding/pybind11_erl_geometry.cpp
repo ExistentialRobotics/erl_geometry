@@ -8,7 +8,7 @@
 #include "erl_geometry/grid_collision_checker_3d.hpp"
 #include "erl_geometry/incremental_quadtree.hpp"
 #include "erl_geometry/lidar_2d.hpp"
-#include "erl_geometry/lidar_2d_frame.hpp"
+#include "erl_geometry/lidar_frame_2d.hpp"
 #include "erl_geometry/log_odd_map_2d.hpp"
 #include "erl_geometry/marching_square.hpp"
 #include "erl_geometry/node.hpp"
@@ -321,9 +321,8 @@ BindIncrementalQuadTree(py::module &m) {
         });
 }
 
-static void BindOccupancyQuadtree(py::module &m) {
-
-}
+static void
+BindOccupancyQuadtree(py::module &m) {}
 
 static void
 BindSurface2D(py::module &m) {
@@ -566,28 +565,119 @@ BindLidar2D(py::module &m) {
 }
 
 static void
-BindLidar2DFrame(py::module &m) {
-    py::class_<Lidar2DFrame, std::shared_ptr<Lidar2DFrame>>(m, ERL_AS_STRING(Lidar2DFrame))
+BindLidarFrame2D(py::module &m) {
+    py::class_<LidarFramePartition2D>(m, ERL_AS_STRING(LidarFramePartition2D))
+        .def_property_readonly("index_begin", &LidarFramePartition2D::GetIndexBegin)
+        .def_property_readonly("index_end", &LidarFramePartition2D::GetIndexEnd)
+        .def("angle_in_partition", &LidarFramePartition2D::AngleInPartition, py::arg("angle_world"));
+
+    py::class_<LidarFrame2D, std::shared_ptr<LidarFrame2D>> lidar_frame_2d(m, ERL_AS_STRING(Lidar2DFrame));
+
+    py::class_<LidarFrame2D::Setting, YamlableBase, std::shared_ptr<LidarFrame2D::Setting>>(lidar_frame_2d, "Setting")
+        .def_readwrite("valid_range_min", &LidarFrame2D::Setting::valid_range_min)
+        .def_readwrite("valid_range_max", &LidarFrame2D::Setting::valid_range_max)
+        .def_readwrite("valid_angle_min", &LidarFrame2D::Setting::valid_angle_min)
+        .def_readwrite("valid_angle_max", &LidarFrame2D::Setting::valid_angle_max)
+        .def_readwrite("discontinuity_factor", &LidarFrame2D::Setting::discontinuity_factor)
+        .def_readwrite("min_partition_size", &LidarFrame2D::Setting::min_partition_size);
+
+    lidar_frame_2d.def(py::init<std::shared_ptr<LidarFrame2D::Setting>>(), py::arg("setting"))
+        .def("update", &LidarFrame2D::Update, py::arg("rotation"), py::arg("translation"), py::arg("angles"), py::arg("ranges"))
+        .def_property_readonly("setting", &LidarFrame2D::GetSetting)
+        .def_property_readonly("num_rays", &LidarFrame2D::GetNumRays)
+        .def_property_readonly("rotation_matrix", &LidarFrame2D::GetRotationMatrix)
+        .def_property_readonly("rotation_angle", &LidarFrame2D::GetRotationAngle)
+        .def_property_readonly("translation_vector", &LidarFrame2D::GetTranslationVector)
+        .def_property_readonly("pose_matrix", &LidarFrame2D::GetPoseMatrix)
+        .def_property_readonly("angles_in_frame", &LidarFrame2D::GetAnglesInFrame)
+        .def_property_readonly("angles_in_world", &LidarFrame2D::GetAnglesInWorld)
+        .def_property_readonly("ranges", &LidarFrame2D::GetRanges)
+        .def_property_readonly("ray_directions_in_frame", &LidarFrame2D::GetRayDirectionsInFrame)
+        .def_property_readonly("ray_directions_in_world", &LidarFrame2D::GetRayDirectionsInWorld)
+        .def_property_readonly("end_points_in_frame", &LidarFrame2D::GetEndPointsInFrame)
+        .def_property_readonly("end_points_in_world", &LidarFrame2D::GetEndPointsInWorld)
+        .def_property_readonly("max_valid_range", &LidarFrame2D::GetMaxValidRange)
+        .def_property_readonly("partitions", &LidarFrame2D::GetPartitions)
+        .def_property_readonly("is_valid", &LidarFrame2D::IsValid)
         .def(
-            py::init<double, double, double, const Eigen::Ref<const Eigen::VectorXd> &, const Eigen::Ref<const Eigen::VectorXd> &>(),
-            py::arg("x"),
-            py::arg("y"),
-            py::arg("theta"),
-            py::arg("angles"),
-            py::arg("ranges"))
-        .def_readwrite("x", &Lidar2DFrame::x)
-        .def_readwrite("y", &Lidar2DFrame::y)
-        .def_readwrite("theta", &Lidar2DFrame::theta)
-        .def_readwrite("angles", &Lidar2DFrame::angles)
-        .def_readwrite("ranges", &Lidar2DFrame::ranges)
-        .def_property_readonly("num_angles", &Lidar2DFrame::GetNumAngles)
-        .def_property_readonly("translation", &Lidar2DFrame::GetTranslation)
-        .def_property_readonly("rotation", &Lidar2DFrame::GetRotation)
-        .def_property_readonly("pose", &Lidar2DFrame::GetPose)
-        .def_property_readonly("ray_directions", &Lidar2DFrame::GetRayDirections)
-        .def_property_readonly("oriented_ray_directions", &Lidar2DFrame::GetOrientedRayDirections)
-        .def_property_readonly("ray_end_points_in_body_frame", &Lidar2DFrame::GetRayEndPointsInBodyFrame)
-        .def_property_readonly("ray_end_points_in_world_frame", &Lidar2DFrame::GetRayEndPointsInWorldFrame);
+            "compute_closest_end_point",
+            [](const LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position) {
+                long end_point_index = -1;
+                double distance = 0.0;
+                self.ComputeClosestEndPoint(position, end_point_index, distance);
+                py::dict out;
+                out["end_point_index"] = end_point_index;
+                out["distance"] = distance;
+                return out;
+            },
+            py::arg("position"))
+        .def(
+            "sample_along_rays",
+            [](const LidarFrame2D &self, int num_samples_per_ray, double max_in_obstacle_dist) {
+                Eigen::Matrix2Xd positions;
+                Eigen::Matrix2Xd directions;
+                Eigen::VectorXd distances;
+                self.SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, positions, directions, distances);
+                py::dict out;
+                out["positions"] = positions;
+                out["directions"] = directions;
+                out["distances"] = distances;
+                return out;
+            },
+            py::arg("num_samples_per_ray"),
+            py::arg("max_in_obstacle_dist"))
+        .def(
+            "sample_along_rays",
+            [](const LidarFrame2D &self, double range_step, double max_in_obstacle_dist) {
+                Eigen::Matrix2Xd positions;
+                Eigen::Matrix2Xd directions;
+                Eigen::VectorXd distances;
+                self.SampleAlongRays(range_step, max_in_obstacle_dist, positions, directions, distances);
+                py::dict out;
+                out["positions"] = positions;
+                out["directions"] = directions;
+                out["distances"] = distances;
+                return out;
+            },
+            py::arg("range_step"),
+            py::arg("max_in_obstacle_dist"))
+        .def(
+            "sample_near_surface",
+            [](const LidarFrame2D &self, int num_samples_per_ray, double max_offset) {
+                Eigen::Matrix2Xd positions;
+                Eigen::Matrix2Xd directions;
+                Eigen::VectorXd distances;
+                self.SampleNearSurface(num_samples_per_ray, max_offset, positions, directions, distances);
+                py::dict out;
+                out["positions"] = positions;
+                out["directions"] = directions;
+                out["distances"] = distances;
+                return out;
+            },
+            py::arg("num_samples_per_ray"),
+            py::arg("max_offset"))
+        .def(
+            "sample_in_region",
+            [](const LidarFrame2D &self, int num_samples) {
+                Eigen::Matrix2Xd positions;
+                Eigen::Matrix2Xd directions;
+                Eigen::VectorXd distances;
+                self.SampleInRegion(num_samples, positions, directions, distances);
+                py::dict out;
+                out["positions"] = positions;
+                out["directions"] = directions;
+                out["distances"] = distances;
+                return out;
+            })
+        .def("compute_rays_at", [](const LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position) {
+            Eigen::Matrix2Xd directions;
+            Eigen::VectorXd distances;
+            self.ComputeRaysAt(position, directions, distances);
+            py::dict out;
+            out["directions"] = directions;
+            out["distances"] = distances;
+            return out;
+        });
 }
 
 static void
@@ -694,7 +784,8 @@ BindCollisionCheckers(py::module &m) {
         .def("is_collided", py::overload_cast<const Eigen::Ref<const Eigen::Matrix4d> &>(&GridCollisionChecker3D::IsCollided, py::const_), py::arg("pose"));
 }
 
-static void BindHouseExpo(py::module &m) {
+static void
+BindHouseExpo(py::module &m) {
     py::class_<HouseExpoMap>(m, ERL_AS_STRING(HouseExpoMap))
         .def(py::init<const char *>(), py::arg("file"))
         .def(py::init<const char *, double>(), py::arg("file"), py::arg("wall_thickness"))
@@ -778,7 +869,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindSurface2D(m);
     BindSpace2D(m);
     BindLidar2D(m);
-    BindLidar2DFrame(m);
+    BindLidarFrame2D(m);
     BindLogOddMap2D(m);
     BindCollisionCheckers(m);
     BindHouseExpo(m);

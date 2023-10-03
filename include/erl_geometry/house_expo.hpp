@@ -33,6 +33,7 @@ namespace erl::geometry {
 
         HouseExpoMap(const char *file, double wall_thickness)
             : HouseExpoMap(file) {
+            ERL_ASSERTM(wall_thickness >= 0.1, "Wall thickness must be >= 0.1.");
             std::cout << "Changing wall thickness to " << wall_thickness << " ... " << std::flush;
 #if defined(NDEBUG)
             double free_threshold = (wall_thickness - 0.1) / 2;  // 0.1 is the default thickness of the wall
