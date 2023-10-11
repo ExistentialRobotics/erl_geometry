@@ -4,7 +4,7 @@ from typing import Union
 from typing import overload
 
 import numpy as np
-from erl_geometry import Lidar2DFrame
+from erl_geometry import LidarFrame2D
 from scipy.io.matlab import loadmat
 
 
@@ -42,18 +42,30 @@ class GazeboSequence:
         return self.path.shape[0]
 
     @overload
-    def __getitem__(self, item: int) -> Lidar2DFrame:
+    def __getitem__(self, item: int) -> LidarFrame2D:
         ...
 
     @overload
-    def __getitem__(self, item: slice) -> List[Lidar2DFrame]:
+    def __getitem__(self, item: slice) -> List[LidarFrame2D]:
         ...
 
-    def __getitem__(self, item: Union[slice, int]) -> Union[List[Lidar2DFrame], Lidar2DFrame]:
+    def __getitem__(self, item: Union[slice, int]) -> Union[List[LidarFrame2D], LidarFrame2D]:
         if isinstance(item, slice):
             return [self.__getitem__(i) for i in list(range(len(self)))[item]]
         else:
             if item < -self.path.shape[0] or item >= self.path.shape[0]:
                 raise IndexError
             x, y, theta = self.path[item]
-            return Lidar2DFrame(x, y, theta, self.angles, self.ranges[item])
+            frame_setting = LidarFrame2D.Setting()
+            frame_setting.valid_angle_min = -np.deg2rad(135)
+            frame_setting.valid_angle_max = np.deg2rad(135)
+            frame = LidarFrame2D(frame_setting)
+            rotation = np.array(
+                [
+                    [np.cos(theta), -np.sin(theta)],
+                    [np.sin(theta), np.cos(theta)],
+                ]
+            )
+            translation = np.array([[x], [y]])
+            frame.update(rotation, translation, self.angles, self.ranges[item])
+            return frame

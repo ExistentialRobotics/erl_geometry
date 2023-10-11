@@ -17,7 +17,8 @@ namespace erl::geometry {
             return mode_names[int(mode)];
         }
 
-        static inline Mode GetModeFromName(const std::string& mode_name) {
+        static inline Mode
+        GetModeFromName(const std::string &mode_name) {
             if (mode_name == "kDdf") { return Mode::kDdf; }
             if (mode_name == "kSddfV1") { return Mode::kSddfV1; }
             if (mode_name == "kSddfV2") { return Mode::kSddfV2; }

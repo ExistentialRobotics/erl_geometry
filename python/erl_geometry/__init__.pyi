@@ -2,18 +2,19 @@ from enum import IntEnum
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import Tuple
-from typing import overload
 from typing import Optional
+from typing import Tuple
+from typing import TypedDict
+from typing import overload
 
 import numpy as np
 import numpy.typing as npt
 
-from erl_common.yaml import YamlableBase
 from erl_common.storage import GridMapInfo2D
 from erl_common.storage import GridMapInfo3D
 from erl_common.storage import GridMapUnsigned2D
 from erl_common.storage import GridMapUnsigned3D
+from erl_common.yaml import YamlableBase
 
 __all__ = [
     "marching_square",
@@ -505,7 +506,7 @@ class LidarFrame2D:
     @property
     def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
-    def rotation_angle(self) -> npt.NDArray[np.float64]: ...
+    def rotation_angle(self) -> float: ...
     @property
     def translation_vector(self) -> npt.NDArray[np.float64]: ...
     @property
@@ -530,6 +531,61 @@ class LidarFrame2D:
     def partitions(self) -> List[LidarFramePartition2D]: ...
     @property
     def is_valid(self) -> bool: ...
+    def compute_closest_end_point(
+        self, position: npt.NDArray[np.float64]
+    ) -> TypedDict("returns", {"end_point_index": int, "distance": float}): ...
+    @overload
+    def sample_along_rays(
+        self, num_samples_per_ray: int, max_in_obstacle_dist: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions": npt.NDArray[np.float64],
+            "directions": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    @overload
+    def sample_along_rays(
+        self, range_step: float, max_in_obstacle_dist: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions": npt.NDArray[np.float64],
+            "directions": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def sample_near_surface(
+        self, num_samples_per_ray: int, max_offset: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions": npt.NDArray[np.float64],
+            "directions": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def sample_in_region(
+        self, num_samples: int
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions": npt.NDArray[np.float64],
+            "directions": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def compute_rays_at(
+        self, position: npt.NDArray[np.float64]
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions": npt.NDArray[np.float64],
+            "directions": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
 
 class LogOddMap2D:
     class CellType(IntEnum):

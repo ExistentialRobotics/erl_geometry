@@ -5,14 +5,15 @@ from typing import overload
 import numpy as np
 import numpy.typing as npt
 
-from erl_geometry import Lidar2D
-from erl_geometry import Lidar2DFrame
+from erl_geometry.pyerl_geometry import Lidar2D
+from erl_geometry.pyerl_geometry import LidarFrame2D
 from . import HouseExpoMap
 
 __all__ = ["load_trajectory", "HouseExpoSequence"]
 
 
 def load_trajectory(path_file: str) -> npt.NDArray[np.float64]:
+    print(f"Loading trajectory from {path_file}")
     return np.loadtxt(path_file, dtype=float, delimiter=",")
 
 
@@ -41,22 +42,26 @@ class HouseExpoSequence:
         return self.path.shape[0]
 
     @overload
-    def __getitem__(self, item: int) -> Lidar2DFrame:
+    def __getitem__(self, item: int) -> LidarFrame2D:
         ...
 
     @overload
-    def __getitem__(self, item: slice) -> List[Lidar2DFrame]:
+    def __getitem__(self, item: slice) -> List[LidarFrame2D]:
         ...
 
-    def __getitem__(self, item: Union[slice, int]) -> Union[List[Lidar2DFrame], Lidar2DFrame]:
+    def __getitem__(self, item: Union[slice, int]) -> Union[List[LidarFrame2D], LidarFrame2D]:
         if isinstance(item, slice):
             return [self.__getitem__(i) for i in list(range(len(self)))[item]]
         else:
             if item < -self.path.shape[0] or item >= self.path.shape[0]:
                 raise IndexError
-            x, y, theta = self.path[item]
             self.set_lidar_to_frame_index(item)
-            return Lidar2DFrame(x, y, theta, self.lidar.angles, self.lidar.scan(self.parallel))
+            frame_setting = LidarFrame2D.Setting()
+            frame_setting.valid_angle_min = self.lidar.min_angle
+            frame_setting.valid_angle_max = self.lidar.max_angle
+            frame = LidarFrame2D(frame_setting)
+            frame.update(self.lidar.rotation, self.lidar.translation, self.lidar.angles, self.lidar.scan(self.parallel))
+            return frame
 
     def set_lidar_to_frame_index(self, frame_index: int) -> None:
         self.lidar.translation = self.path[frame_index, :2]

@@ -8,4 +8,4 @@ namespace erl::geometry {
         return os;
     }
 
-}
+}  // namespace erl::geometry

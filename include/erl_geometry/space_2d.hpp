@@ -63,7 +63,8 @@ namespace erl::geometry {
             return m_surface_;
         }
 
-        Space2D AddObstacles(const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &obstacle_vertices, double delta, bool parallel);
+        Space2D
+        AddObstacles(const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &obstacle_vertices, double delta, bool parallel);
 
         /**
          * @brief Generate a map image of which the left-bottom is (xmin, ymin), the right-top is (xmax, ymax), the x axis is to the right, and the y axis is
@@ -85,8 +86,11 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] Eigen::MatrixXd
-        ComputeSdfImage(const common::GridMapInfo2D &grid_map_info, SignMethod sign_method = SignMethod::kLineNormal, bool use_kdtree = false, bool parallel = false)
-            const;
+        ComputeSdfImage(
+            const common::GridMapInfo2D &grid_map_info,
+            SignMethod sign_method = SignMethod::kLineNormal,
+            bool use_kdtree = false,
+            bool parallel = false) const;
 
         [[nodiscard]] Eigen::VectorXd
         ComputeSdf(

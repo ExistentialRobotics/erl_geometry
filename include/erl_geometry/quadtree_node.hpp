@@ -36,11 +36,13 @@ namespace erl::geometry {
             }
         }
 
-        bool operator==(const NodeType &other) const {
+        bool
+        operator==(const NodeType &other) const {
             return m_value_ == other.m_value_;
         }
 
-        bool operator!=(const NodeType &other) const {
+        bool
+        operator!=(const NodeType &other) const {
             return m_value_ != other.m_value_;
         }
 

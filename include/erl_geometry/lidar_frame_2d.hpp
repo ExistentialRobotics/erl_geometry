@@ -19,10 +19,10 @@ namespace erl::geometry {
 
     public:
         struct Setting : public common::Yamlable<Setting> {
-            double valid_range_min = 0.01;
-            double valid_range_max = 30;
-            double valid_angle_min = -135. / 180. * M_PI;
-            double valid_angle_max = 135. / 180. * M_PI;
+            double valid_range_min = 0.0;
+            double valid_range_max = std::numeric_limits<double>::infinity();
+            double valid_angle_min = -M_PI;
+            double valid_angle_max = M_PI;
             double discontinuity_factor = 10;
             int min_partition_size = 5;
         };

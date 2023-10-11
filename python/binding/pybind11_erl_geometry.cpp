@@ -566,14 +566,15 @@ BindLidar2D(py::module &m) {
 
 static void
 BindLidarFrame2D(py::module &m) {
-    py::class_<LidarFramePartition2D>(m, ERL_AS_STRING(LidarFramePartition2D))
+    py::class_<LidarFramePartition2D>(m, "LidarFramePartition2D")
         .def_property_readonly("index_begin", &LidarFramePartition2D::GetIndexBegin)
         .def_property_readonly("index_end", &LidarFramePartition2D::GetIndexEnd)
         .def("angle_in_partition", &LidarFramePartition2D::AngleInPartition, py::arg("angle_world"));
 
-    py::class_<LidarFrame2D, std::shared_ptr<LidarFrame2D>> lidar_frame_2d(m, ERL_AS_STRING(Lidar2DFrame));
+    py::class_<LidarFrame2D, std::shared_ptr<LidarFrame2D>> lidar_frame_2d(m, "LidarFrame2D");
 
     py::class_<LidarFrame2D::Setting, YamlableBase, std::shared_ptr<LidarFrame2D::Setting>>(lidar_frame_2d, "Setting")
+        .def(py::init<>())
         .def_readwrite("valid_range_min", &LidarFrame2D::Setting::valid_range_min)
         .def_readwrite("valid_range_max", &LidarFrame2D::Setting::valid_range_max)
         .def_readwrite("valid_angle_min", &LidarFrame2D::Setting::valid_angle_min)
@@ -668,16 +669,20 @@ BindLidarFrame2D(py::module &m) {
                 out["directions"] = directions;
                 out["distances"] = distances;
                 return out;
-            })
-        .def("compute_rays_at", [](const LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position) {
-            Eigen::Matrix2Xd directions;
-            Eigen::VectorXd distances;
-            self.ComputeRaysAt(position, directions, distances);
-            py::dict out;
-            out["directions"] = directions;
-            out["distances"] = distances;
-            return out;
-        });
+            },
+            py::arg("num_samples"))
+        .def(
+            "compute_rays_at",
+            [](const LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position) {
+                Eigen::Matrix2Xd directions;
+                Eigen::VectorXd distances;
+                self.ComputeRaysAt(position, directions, distances);
+                py::dict out;
+                out["directions"] = directions;
+                out["distances"] = distances;
+                return out;
+            },
+            py::arg("position"));
 }
 
 static void

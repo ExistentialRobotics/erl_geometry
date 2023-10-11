@@ -1099,7 +1099,7 @@ namespace erl::geometry {
         };
 
         class LeafNeighborOnWestIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim_ = 1;    // changing the y-dim key during the search
+            inline static const int sk_ChangingDim_ = 1;  // changing the y-dim key during the search
             inline static const int sk_UnchangedDim_ = 0;
             inline static const bool sk_Increase_ = false;  // decrease the x-dim key
 
@@ -1147,7 +1147,7 @@ namespace erl::geometry {
         };
 
         class LeafNeighborOnEastIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim_ = 1;   // changing the y-dim key during the search
+            inline static const int sk_ChangingDim_ = 1;  // changing the y-dim key during the search
             inline static const int sk_UnchangedDim_ = 0;
             inline static const bool sk_Increase_ = true;  // increase the x-dim key
 
@@ -1194,7 +1194,7 @@ namespace erl::geometry {
         };
 
         class LeafNeighborOnNorthIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim_ = 0;   // changing the x-dim key during the search
+            inline static const int sk_ChangingDim_ = 0;  // changing the x-dim key during the search
             inline static const int sk_UnchangedDim_ = 1;
             inline static const bool sk_Increase_ = true;  // increase the y-dim key
 
@@ -1242,7 +1242,7 @@ namespace erl::geometry {
         };
 
         class LeafNeighborOnSouthIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim_ = 0;    // changing the x-dim key during the search
+            inline static const int sk_ChangingDim_ = 0;  // changing the x-dim key during the search
             inline static const int sk_UnchangedDim_ = 1;
             inline static const bool sk_Increase_ = false;  // decrease the y-dim key
 
@@ -1723,12 +1723,12 @@ namespace erl::geometry {
          */
         inline std::shared_ptr<Node>
         CreateNodeChild(const std::shared_ptr<Node> &node, unsigned int child_idx) {
-            node->AllocateChildrenPtr();                                              // allocate children if necessary
+            node->AllocateChildrenPtr();                                            // allocate children if necessary
             ERL_DEBUG_ASSERT(!node->HasChild(child_idx), "Child already exists.");  // child must not exist
-            auto new_child = std::make_shared<Node>();                                // create new child
-            node->SetChild(new_child, child_idx);                                     // set child
-            m_tree_size_++;                                                           // increase tree size
-            m_size_changed_ = true;                                                   // size of the tree has changed
+            auto new_child = std::make_shared<Node>();                              // create new child
+            node->SetChild(new_child, child_idx);                                   // set child
+            m_tree_size_++;                                                         // increase tree size
+            m_size_changed_ = true;                                                 // size of the tree has changed
             return new_child;
         }
 
@@ -1741,9 +1741,9 @@ namespace erl::geometry {
         inline void
         DeleteNodeChild(std::shared_ptr<Node> &node, unsigned int child_idx) {
             ERL_DEBUG_ASSERT(node->HasChild(child_idx), "Child does not exist.");  // child must exist
-            node->SetChild(nullptr, child_idx);                                      // set child to nullptr
-            m_tree_size_--;                                                          // decrease tree size
-            m_size_changed_ = true;                                                  // size of the tree has changed
+            node->SetChild(nullptr, child_idx);                                    // set child to nullptr
+            m_tree_size_--;                                                        // decrease tree size
+            m_size_changed_ = true;                                                // size of the tree has changed
         }
 
         /**
@@ -2048,7 +2048,7 @@ namespace erl::geometry {
 
                 if (!node->HasAnyChild()) { ExpandNode(node); }  // node has no children, expand it
                 unsigned int next_depth = node_depth + 1;
-                if (next_depth == mk_TreeDepth_) { continue; }   // will reach the max depth, skip it
+                if (next_depth == mk_TreeDepth_) { continue; }  // will reach the max depth, skip it
                 for (unsigned int i = 0; i < 4; ++i) {
                     auto child = GetNodeChild(node, i);
                     if (child != nullptr) { nodes_stack.emplace_back(child, next_depth); }

@@ -90,11 +90,11 @@ namespace erl::geometry {
         struct Setting : public common::Yamlable<Setting> {
 
             /**
-             * The top-most IncrementalQuadtree that is no greater than this GetSize is called cluster. This IncrementalQuadtree and its descendents (sub clusters) stores inserted m_nodes_.
-             * IncrementalQuadtree larger than this GetSize will be subdivided before the node inserted to its descendent. This affects the spacial resolution and the searching
-             * performance. If this GetSize is too large, it takes more time to find nearest neighbors because too many m_nodes_ are collected to do distance comparison.
-             * If this GetSize if too small, the tree volume will be too small. Note that clusterHalfAreaSize must be larger than minHalfAreaSize if they are both
-             * positive. If non-positive, this will be ignored.
+             * The top-most IncrementalQuadtree that is no greater than this GetSize is called cluster. This IncrementalQuadtree and its descendents (sub
+             * clusters) stores inserted m_nodes_. IncrementalQuadtree larger than this GetSize will be subdivided before the node inserted to its descendent.
+             * This affects the spacial resolution and the searching performance. If this GetSize is too large, it takes more time to find nearest neighbors
+             * because too many m_nodes_ are collected to do distance comparison. If this GetSize if too small, the tree volume will be too small. Note that
+             * clusterHalfAreaSize must be larger than minHalfAreaSize if they are both positive. If non-positive, this will be ignored.
              */
             double cluster_half_area_size = 0.8;
             // If the whole tree is larger than this, it will not be allowed to expand. If non-positive, this will be ignored.
@@ -230,8 +230,8 @@ namespace erl::geometry {
 
         /**
          * @param node
-         * @return If node is inserted, a IncrementalQuadtree of top level in the call stack will be returned. Otherwise, nullptr. So, if you call this method from the
-         * root, the (new) root IncrementalQuadtree will be returned.
+         * @return If node is inserted, a IncrementalQuadtree of top level in the call stack will be returned. Otherwise, nullptr. So, if you call this method
+         * from the root, the (new) root IncrementalQuadtree will be returned.
          */
         std::shared_ptr<IncrementalQuadtree>
         Insert(const std::shared_ptr<Node> &node, std::shared_ptr<IncrementalQuadtree> &new_root);

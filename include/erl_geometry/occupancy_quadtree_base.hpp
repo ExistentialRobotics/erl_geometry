@@ -558,7 +558,7 @@ namespace erl::geometry {
                             m_changed_keys_.emplace(key, true);
                         } else if (occ_before != this->IsNodeOccupied(s.node)) {  // occupancy changed, track it
                             auto it = m_changed_keys_.find(key);
-                            if (it == m_changed_keys_.end()) {                    // not found
+                            if (it == m_changed_keys_.end()) {  // not found
                                 m_changed_keys_.emplace(key, false);
                             } else if (!it->second) {
                                 m_changed_keys_.erase(it);

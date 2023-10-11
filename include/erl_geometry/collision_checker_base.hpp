@@ -15,4 +15,4 @@ namespace erl::geometry {
         IsCollided(const Eigen::Ref<const Eigen::VectorXi> &grid_coords) const = 0;
     };
 
-}  // namespace erl::env
+}  // namespace erl::geometry

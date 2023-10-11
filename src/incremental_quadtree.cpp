@@ -347,7 +347,7 @@ namespace erl::geometry {
                                 ray_travel_distance = dist;
                                 hit_node = node;
                             }
-                        }                                 // the node is hit
+                        }  // the node is hit
                     }
                     if (hit_node != nullptr) { return; }  // return if any node is hit, no need to check the rest of the trees
                 }
@@ -449,7 +449,7 @@ namespace erl::geometry {
                                 ray_travel_distance = dist;
                                 hit_node = node;
                             }
-                        }                                 // the node is hit
+                        }  // the node is hit
                     }
                     if (hit_node != nullptr) { return; }  // return if any node is hit, no need to check the rest of the trees
                 }

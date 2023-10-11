@@ -174,7 +174,7 @@ class App:
         for frame_index in tqdm(range(0, len(self.sequence), self.args.skip), ncols=80):
             self.frame_index = frame_index
             frame = self.sequence[self.frame_index]
-            self.log_odd_map.update(frame.translation, frame.theta, frame.angles, frame.ranges)
+            self.log_odd_map.update(frame.translation_vector, frame.rotation_angle, frame.angles_in_frame, frame.ranges)
             # self.log_odd_map.compute_statistics_of_lidar_frame(
             #     frame.translation, frame.theta, frame.angles, frame.ranges, clip_ranges=True
             # )
@@ -204,17 +204,17 @@ class App:
         frame = self.sequence[self.frame_index]
 
         self.vedo_lidar_rays = lidar_rays(
-            frame.translation,
-            frame.oriented_ray_directions,
+            frame.translation_vector,
+            frame.ray_directions_in_world,
             frame.ranges,
             color="lime",
             alpha=0.7,
         )
 
         path = self.sequence.path[: self.frame_index, :2]
-        if path.shape[1] > 0:
+        if path.shape[0] > 0:
             self.vedo_curve_path = vedo.Lines(path[:-1], path[1:], c="red", lw=2)
-            self.plt.add(self.vedo_curve_path, render=False)
+            self.plt.add(self.vedo_curve_path)
 
         if self.vedo_point_frontiers is not None:
             self.plt.remove(*self.vedo_point_frontiers)

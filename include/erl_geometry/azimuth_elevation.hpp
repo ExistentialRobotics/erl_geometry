@@ -20,7 +20,8 @@ namespace erl::geometry {
         return {cos_azimuth * cos_elevation, sin_azimuth * cos_elevation, sin_elevation};
     }
 
-    inline Eigen::Vector2d DirectionToAzimuthElevation(const Eigen::Ref<const Eigen::Vector3d> &direction) {
+    inline Eigen::Vector2d
+    DirectionToAzimuthElevation(const Eigen::Ref<const Eigen::Vector3d> &direction) {
         Eigen::Vector2d azimuth_elevation;
 
         double cos_elevation = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);

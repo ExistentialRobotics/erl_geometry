@@ -3,7 +3,6 @@
 
 namespace erl::geometry {
 
-
     Lidar2D::Lidar2D(std::shared_ptr<Space2D> space)
         : m_space_(std::move(space)) {
         ERL_ASSERTM(m_space_ != nullptr, "space cannot be nullptr!");

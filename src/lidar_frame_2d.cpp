@@ -238,7 +238,7 @@ namespace erl::geometry {
 
         int collected_samples = 0;
         while (collected_samples < num_samples) {
-            Eigen::Vector2d position(distribution(common::g_random_engine), distribution(common::g_random_engine));
+            Eigen::Vector2d position(distribution(common::g_random_engine) + m_translation_[0], distribution(common::g_random_engine) + m_translation_[1]);
             Eigen::Matrix2Xd dirs;
             Eigen::VectorXd dists;
             ComputeRaysAt(position, dirs, dists);

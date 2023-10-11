@@ -27,7 +27,6 @@ namespace erl::geometry {
             : Eigen::AlignedBox<Scalar, Dim>(min, max),
               center((min + max) / 2),
               half_sizes((max - min) / 2) {}
-
     };
 
     typedef AABB<double, 2> Aabb2D;
