@@ -128,7 +128,7 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={ext_dir}",
             f"-DPython3_ROOT_DIR={os.path.dirname(os.path.dirname(sys.executable))}",
             f"-DCMAKE_BUILD_TYPE={build_type}",
-            f"-DCMAKE_INSTALL_PREFIX={temp_install_dir}",
+            f"-DCMAKE_PREFIX_PATH={temp_install_dir}",
             f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
         ]
         build_temp = os.path.join(build_dir, ext.name)
