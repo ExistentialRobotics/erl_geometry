@@ -101,16 +101,16 @@ namespace erl::geometry {
 
         static auto sort_lines_to_objects = [](Eigen::Matrix2Xi &lines_to_vertices, Eigen::Matrix2Xi &objects_to_lines) {
             auto num_lines = lines_to_vertices.cols();
-            objects_to_lines.setConstant(2, num_lines / 3 + 1, -1);  // estimated maximum number of objects
+            objects_to_lines.setConstant(2, num_lines + 1, -1);  // estimated maximum number of objects
             objects_to_lines(0, 0) = 0;
 
             bool reverse = false;
             int num_objects = 0;
             for (int line_idx = 0; line_idx < num_lines; ++line_idx) {
-                auto vertex_idx = lines_to_vertices(1, line_idx);
-                auto next_line_idx = line_idx + 1;
-                auto next_connected_line_idx = next_line_idx;
+                int vertex_idx = lines_to_vertices(1, line_idx);
+                int next_line_idx = line_idx + 1;
 
+                int next_connected_line_idx = next_line_idx;
                 for (; next_connected_line_idx < num_lines; ++next_connected_line_idx) {
                     if (lines_to_vertices(0, next_connected_line_idx) == vertex_idx || lines_to_vertices(1, next_connected_line_idx) == vertex_idx) { break; }
                 }
@@ -121,7 +121,7 @@ namespace erl::geometry {
                         std::swap(lines_to_vertices(0, next_line_idx), lines_to_vertices(1, next_line_idx));
                     }
                 } else {  // reverse the line sequence of the current object, try to extend it from the other end
-                    auto obj_begin_line_idx = objects_to_lines(0, num_objects);
+                    int obj_begin_line_idx = objects_to_lines(0, num_objects);
                     vertex_idx = lines_to_vertices(0, obj_begin_line_idx);
 
                     next_connected_line_idx = next_line_idx;

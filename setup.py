@@ -70,19 +70,18 @@ for dependency in erl_dependencies:
     src_dir = os.path.join(project_dir, "..", dependency)
     assert os.path.exists(src_dir), f"Dependency {dependency} not found"
     temp_build_dir = os.path.join(build_dir, dependency)
-    if os.path.exists(temp_build_dir):
-        continue  # assume that the dependency is already built
     os.makedirs(temp_build_dir, exist_ok=True)
-    subprocess.check_call(
-        [
-            cmake_path,
-            src_dir,
-            f"-DCMAKE_BUILD_TYPE={build_type}",
-            f"-DCMAKE_INSTALL_PREFIX={temp_install_dir}",
-            f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
-        ],
-        cwd=temp_build_dir,
-    )
+    if not os.path.exists(os.path.join(temp_build_dir, "CMakeCache.txt")):
+        subprocess.check_call(
+            [
+                cmake_path,
+                src_dir,
+                f"-DCMAKE_BUILD_TYPE={build_type}",
+                f"-DCMAKE_INSTALL_PREFIX={temp_install_dir}",
+                f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
+            ],
+            cwd=temp_build_dir,
+        )
     subprocess.check_call(
         [cmake_path, "--build", ".", "--target", "install", "--", "-j", str(n_proc)],
         cwd=temp_build_dir,
@@ -123,17 +122,17 @@ class CMakeBuild(build_ext):
         old_ext_path = os.path.join(ext_dir, os.path.basename(original_full_path))
         if os.path.exists(old_ext_path):
             os.remove(old_ext_path)
-
-        cmake_args = [
-            f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={ext_dir}",
-            f"-DPython3_ROOT_DIR={os.path.dirname(os.path.dirname(sys.executable))}",
-            f"-DCMAKE_BUILD_TYPE={build_type}",
-            f"-DCMAKE_PREFIX_PATH={temp_install_dir}",
-            f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
-        ]
         build_temp = os.path.join(build_dir, ext.name)
         os.makedirs(build_temp, exist_ok=True)
-        subprocess.check_call([cmake_path, ext.source_dir] + cmake_args, cwd=build_temp)
+        if not os.path.exists(os.path.join(build_temp, "CMakeCache.txt")):
+            cmake_args = [
+                f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={ext_dir}",
+                f"-DPython3_ROOT_DIR={os.path.dirname(os.path.dirname(sys.executable))}",
+                f"-DCMAKE_BUILD_TYPE={build_type}",
+                f"-DCMAKE_PREFIX_PATH={temp_install_dir}",
+                f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
+            ]
+            subprocess.check_call([cmake_path, ext.source_dir] + cmake_args, cwd=build_temp)
         subprocess.check_call(
             [cmake_path, "--build", ".", "--target", pybind_module_name, "--", "-j", f"{n_proc}"],
             cwd=build_temp,

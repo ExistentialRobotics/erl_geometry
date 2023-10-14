@@ -78,7 +78,7 @@ namespace erl::geometry {
         GetVertexNeighbors(int idx_vertex_0) const {
 
             const auto &object_to_vertices = objects_to_vertices[vertices_to_objects[idx_vertex_0]];
-            auto n_obj_vtx = object_to_vertices.size();
+            long n_obj_vtx = object_to_vertices.size();
             auto last_vtx_idx = n_obj_vtx - 1;
             auto itr = std::find(object_to_vertices.begin(), object_to_vertices.end(), idx_vertex_0);
             if (itr != object_to_vertices.end()) {
@@ -94,20 +94,26 @@ namespace erl::geometry {
     private:
         void
         ComputeObjectsToVertices() {
-            auto n_vtx = GetNumVertices();
-            auto n_obj = GetNumObjects();
+            long n_vtx = GetNumVertices();
+            long n_obj = GetNumObjects();
 
             objects_to_vertices.clear();
             objects_to_vertices.reserve(n_obj);
 
             vertices_to_objects.setConstant(n_vtx, -1);
 
-            for (ssize_t i = 0; i < n_obj; ++i) {
-                auto &idx_l_0 = objects_to_lines(0, i);
-                auto &idx_l_1 = objects_to_lines(1, i);
+            for (long i = 0; i < n_obj; ++i) {
+                const int &idx_l_0 = objects_to_lines(0, i);
+                const int &idx_l_1 = objects_to_lines(1, i);
 
-                Eigen::VectorXi object_to_vertices = lines_to_vertices.row(0).segment(idx_l_0, idx_l_1 - idx_l_0);
-                vertices_to_objects(object_to_vertices).setConstant((int) i);
+                Eigen::VectorXi object_to_vertices(idx_l_1 - idx_l_0 + 1);
+                for (int j = idx_l_0; j < idx_l_1; ++j) {
+                    vertices_to_objects(lines_to_vertices(0, j)) = int(i);
+                    object_to_vertices(j - idx_l_0) = lines_to_vertices(0, j);
+                }
+                vertices_to_objects(lines_to_vertices(1, idx_l_1 - 1)) = int(i);
+                object_to_vertices(idx_l_1 - idx_l_0) = lines_to_vertices(1, idx_l_1 - 1);
+
                 objects_to_vertices.push_back(std::move(object_to_vertices));
             }
         }

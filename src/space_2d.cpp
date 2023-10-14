@@ -299,18 +299,6 @@ namespace erl::geometry {
             query_points.cols(),
             query_directions.cols());
 
-        // find the line segment that intersects the ray
-        // auto filter_func = [](const Eigen::VectorXd &lams, const Eigen::VectorXd &ts) -> double {
-        //     double ddf = std::numeric_limits<double>::infinity();
-        //     for (int i = 0; i < lams.size(); ++i) {
-        //         if (lams[i] <= 1. && lams[i] >= 0. && ts[i] >= 0. && ts[i] < ddf) {  // positive ddf only
-        //             ddf = ts[i];
-        //         }
-        //     }
-        //
-        //     return ddf;
-        // };
-
         Eigen::VectorXd ddf(query_points.cols());
 
 #pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, query_directions, ddf)
@@ -318,8 +306,6 @@ namespace erl::geometry {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();
             auto n_lines = m_surface_->GetNumLines();
-            // Eigen::VectorXd lams(n_lines);
-            // Eigen::VectorXd ts(n_lines);
             double lam, t;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
@@ -330,12 +316,8 @@ namespace erl::geometry {
                     m_surface_->vertices.col(m_surface_->lines_to_vertices(1, j)),
                     lam,
                     t);
-                // lams[j],
-                // ts[j]);
-
                 if (lam <= 1. && lam >= 0. && t >= 0. && t < ddf[i]) { ddf[i] = t; }  // positive ddf only
             }
-            // ddf[i] = filter_func(lams, ts);
         }
 
         return ddf;
@@ -370,17 +352,6 @@ namespace erl::geometry {
             query_points.cols(),
             query_directions.cols());
 
-        // auto filter_func = [](const Eigen::VectorXd &lams, const Eigen::VectorXd &ts) -> double {
-        //     double ddf = std::numeric_limits<double>::infinity();
-        //     for (int i = 0; i < lams.size(); ++i) {
-        //         if (lams[i] <= 1. && lams[i] >= 0. && ts[i] < ddf) {  // min_t(p + t * v == surface_point)
-        //             ddf = ts[i];
-        //         }
-        //     }
-        //
-        //     return ddf;
-        // };
-
         Eigen::VectorXd ddf(query_points.cols());
 
 #pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, query_directions, ddf)
@@ -388,19 +359,14 @@ namespace erl::geometry {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();
             auto n_lines = m_surface_->GetNumLines();
-            // Eigen::VectorXd lams(n_lines);
-            // Eigen::VectorXd ts(n_lines);
             double lam, t;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 auto l = m_surface_->lines_to_vertices.col(j);
                 ComputeIntersectionBetweenRayAndSegment2D(query_points.col(i), d, m_surface_->vertices.col(l.x()), m_surface_->vertices.col(l.y()), lam, t);
-                // lams[j],
-                // ts[j]);
 
                 if (lam <= 1. && lam >= 0. && t < ddf[i]) { ddf[i] = t; }  // min_t(p + t * v == surface_point)
             }
-            // ddf[i] = filter_func(lams, ts);
         }
 
         return ddf;
