@@ -33,7 +33,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] inline double
-        ComputeMeanChildLogOdds() const {
+        GetMeanChildLogOdds() const {
             if (!HasAnyChild()) { return -std::numeric_limits<double>::infinity(); }  // log(0)
 
             double mean = 0;

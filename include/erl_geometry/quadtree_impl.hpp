@@ -79,7 +79,7 @@ namespace erl::geometry {
                 if (other_it == other_end) { return false; }
                 if (it.GetDepth() != other_it.GetDepth()) { return false; }
                 if (it.GetKey() != other_it.GetKey()) { return false; }
-                if (*it != *other_it) { return false; }
+                if (**it != **other_it) { return false; }
             }
 
             if (other_it != other_end) { return false; }
@@ -112,6 +112,11 @@ namespace erl::geometry {
         [[nodiscard]] inline double
         GetResolution() const override {
             return m_resolution_;
+        }
+
+        [[nodiscard]] inline Eigen::Vector2d
+        GetTreeCenter() const {
+            return Eigen::Vector2d(m_tree_center_[0], m_tree_center_[1]);
         }
 
         [[nodiscard]] inline unsigned int
@@ -620,9 +625,9 @@ namespace erl::geometry {
             };
 
         protected:
-            const ImplType *m_tree_;             // the tree this iterator is working on
-            unsigned int m_max_depth_;           // the maximum depth to query
-            std::vector<StackElement> m_stack_;  // stack for depth first traversal
+            const ImplType *m_tree_;           // the tree this iterator is working on
+            unsigned int m_max_depth_;         // the maximum depth to query
+            std::list<StackElement> m_stack_;  // stack for depth first traversal
 
         public:
             /**
@@ -636,7 +641,7 @@ namespace erl::geometry {
                 : m_tree_(tree && tree->GetRoot() ? tree : nullptr),
                   m_max_depth_(depth) {
                 if (m_tree_ && m_max_depth_ == 0) { m_max_depth_ = m_tree_->GetTreeDepth(); }
-                m_stack_.reserve(m_max_depth_);       // reserve memory for stack
+                // m_stack_.reserve(m_max_depth_);       // reserve memory for stack
                 if (m_tree_ && m_tree_->GetRoot()) {  // tree is not empty
                     m_stack_.emplace_back(m_tree_->GetRoot(), m_tree_->CoordToKey(0.0, 0.0), 0);
                 } else {
@@ -644,6 +649,8 @@ namespace erl::geometry {
                     m_max_depth_ = 0;
                 }
             }
+
+            virtual ~IteratorBase() = default;
 
             [[nodiscard]] bool
             operator==(const IteratorBase &other) const {
@@ -675,14 +682,14 @@ namespace erl::geometry {
                 return m_stack_.back().node;
             }
 
-            inline Node &
+            inline std::shared_ptr<Node> &
             operator*() {
-                return *m_stack_.back().node;
+                return m_stack_.back().node;
             }
 
-            [[nodiscard]] inline const Node &
+            [[nodiscard]] inline const std::shared_ptr<Node> &
             operator*() const {
-                return *m_stack_.back().node;
+                return m_stack_.back().node;
             }
 
             [[nodiscard]] inline double
@@ -916,7 +923,7 @@ namespace erl::geometry {
                 }
                 s.depth = cluster_depth;
                 s.key = key;
-                ;
+
                 // skip forward to next valid leaf node
                 while (!this->IsLeaf()) { this->SingleIncrement(); }
             }
@@ -1299,14 +1306,8 @@ namespace erl::geometry {
             LeafOnRayIterator() = default;
 
             LeafOnRayIterator(
-                double px,
-                double py,
-                double vx,
-                double vy,
-                double max_range,
-                bool bidirectional,
-                const ImplType *tree,
-                unsigned int max_leaf_depth)
+                double px, double py, double vx, double vy, double max_range, bool bidirectional, const ImplType *tree, unsigned int max_leaf_depth
+            )
                 : IteratorBase(tree, max_leaf_depth),
                   m_origin_(px, py),
                   m_dir_(vx, vy),
@@ -1659,18 +1660,14 @@ namespace erl::geometry {
                     t_max[0] += t_delta[0];
                     current_key[0] += step[0];
                     ERL_DEBUG_ASSERT(
-                        current_key[0] < (mk_TreeKeyOffset_ << 1),
-                        "current_key[0] = %d exceeds limit %d.\n",
-                        current_key[0],
-                        (mk_TreeKeyOffset_ << 1));
+                        current_key[0] < (mk_TreeKeyOffset_ << 1), "current_key[0] = %d exceeds limit %d.\n", current_key[0], (mk_TreeKeyOffset_ << 1)
+                    );
                 } else {
                     t_max[1] += t_delta[1];
                     current_key[1] += step[1];
                     ERL_DEBUG_ASSERT(
-                        current_key[1] < (mk_TreeKeyOffset_ << 1),
-                        "current_key[1] = %d exceeds limit %d.\n",
-                        current_key[1],
-                        (mk_TreeKeyOffset_ << 1));
+                        current_key[1] < (mk_TreeKeyOffset_ << 1), "current_key[1] = %d exceeds limit %d.\n", current_key[1], (mk_TreeKeyOffset_ << 1)
+                    );
                 }
 
                 if (current_key == key_end) { break; }
@@ -1699,9 +1696,10 @@ namespace erl::geometry {
         [[nodiscard]] bool
         ComputeRayCoords(double sx, double sy, double ex, double ey, std::vector<std::array<double, 2>> &ray) const {
             ray.clear();
-            if (!ComputeRayKeys(sx, sy, ex, ey, m_key_rays_[0])) { return false; }
-            ray.reserve(m_key_rays_[0].size());
-            for (auto &key: m_key_rays_[0]) { ray.emplace_back(KeyToCoord(key[0]), KeyToCoord(key[1])); }
+            QuadtreeKeyRay key_ray;
+            if (!ComputeRayKeys(sx, sy, ex, ey, key_ray)) { return false; }
+            ray.reserve(key_ray.size());
+            for (auto &key: key_ray) { ray.emplace_back(std::array<double, 2>{KeyToCoord(key[0]), KeyToCoord(key[1])}); }
             return true;
         }
 
@@ -1822,7 +1820,7 @@ namespace erl::geometry {
          * @param depth
          * @return
          */
-        bool
+        inline bool
         DeleteNode(double x, double y, unsigned int depth = 0) {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
@@ -1970,7 +1968,7 @@ namespace erl::geometry {
                       expanded(expanded) {}
             };
 
-            std::vector<StackElement> stack;
+            std::list<StackElement> stack;
             stack.emplace_back(m_root_, 0, false);
             while (!stack.empty()) {
                 auto &s = stack.back();
@@ -2332,7 +2330,7 @@ namespace erl::geometry {
             {
                 // do it on the main thread only
                 if (omp_get_thread_num() == 0) { m_key_rays_.resize(omp_get_num_threads()); }
-            };
+            }
         }
 
         inline void

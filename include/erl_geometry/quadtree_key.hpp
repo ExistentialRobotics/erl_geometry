@@ -138,6 +138,12 @@ namespace erl::geometry {
         rend() {
             return m_ray_.rend();
         }
+
+        [[nodiscard]] inline QuadtreeKey
+        operator[](int idx) const {
+            ERL_ASSERTM(idx >= 0 && idx < int(size()), "Index out of bounds.");
+            return m_ray_[idx];
+        }
     };
 
     /**

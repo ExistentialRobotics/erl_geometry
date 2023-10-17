@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include "erl_common/yaml.hpp"
 #include "abstract_quadtree_drawer.hpp"
 
 namespace erl::geometry {
@@ -8,7 +9,7 @@ namespace erl::geometry {
     template<typename OccupancyQuadtreeType>
     class OccupancyQuadtreeDrawer : public AbstractQuadtreeDrawer {
     public:
-        struct Setting : public AbstractQuadtreeDrawer::Setting {
+        struct Setting : public common::OverrideYamlable<AbstractQuadtreeDrawer::Setting, Setting> {
             cv::Scalar occupied_color = {0, 0, 0};    // black
             cv::Scalar free_color = {255, 255, 255};  // white
         };
@@ -133,10 +134,10 @@ namespace erl::geometry {
 }  // namespace erl::geometry
 
 namespace YAML {
-    template<typename Node>
-    struct convert {
+    template<typename Setting>
+    struct ConvertOccupancyQuadtreeDrawerSetting {
         inline static Node
-        encode(const typename erl::geometry::OccupancyQuadtreeDrawer<Node>::Setting &rhs) {
+        encode(const Setting &rhs) {
             Node node = convert<erl::geometry::AbstractQuadtreeDrawer::Setting>::encode(rhs);
             node["occupied_color"] = rhs.occupied_color;
             node["free_color"] = rhs.free_color;
@@ -144,7 +145,7 @@ namespace YAML {
         }
 
         inline static bool
-        decode(const Node &node, typename erl::geometry::OccupancyQuadtreeDrawer<Node>::Setting &rhs) {
+        decode(const Node &node, Setting &rhs) {
             if (!node.IsMap()) { return false; }
             if (!convert<erl::geometry::AbstractQuadtreeDrawer::Setting>::decode(node, rhs)) { return false; }
             rhs.occupied_color = node["occupied_color"].template as<cv::Scalar>();
@@ -153,11 +154,18 @@ namespace YAML {
         }
     };
 
-    template<typename Node>
-    inline Emitter &
-    operator<<(Emitter &out, const typename erl::geometry::OccupancyQuadtreeDrawer<Node>::Setting &rhs) {
-        out << static_cast<const erl::geometry::AbstractQuadtreeDrawer::Setting &>(rhs);
+    template<typename Setting>
+    Emitter &
+    PrintOccupancyQuadtreeDrawerSetting(Emitter &out, const Setting &rhs) {
         out << BeginMap;
+        out << Key << "area_min" << Value << rhs.area_min;
+        out << Key << "area_max" << Value << rhs.area_max;
+        out << Key << "resolution" << Value << rhs.resolution;
+        out << Key << "padding" << Value << rhs.padding;
+        out << Key << "bg_color" << Value << rhs.bg_color;
+        out << Key << "fg_color" << Value << rhs.fg_color;
+        out << Key << "border_color" << Value << rhs.border_color;
+        out << Key << "border_thickness" << Value << rhs.border_thickness;
         out << Key << "occupied_color" << Value << rhs.occupied_color;
         out << Key << "free_color" << Value << rhs.free_color;
         out << EndMap;

@@ -22,28 +22,28 @@ add_executable(test_lidar_area test_lidar_area.cpp)
 add_test(NAME test_lidar_area
         COMMAND test_lidar_area)
 
-add_executable(test_quadtree test_quadtree.cpp)
+add_executable(test_quadtree gtest/test_occupancy_quadtree.cpp)
 add_test(NAME test_quadtree
         COMMAND test_quadtree
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 gtest_discover_tests(test_quadtree)
 
-add_executable(test_quadtree_find_neighbors test_quadtree_find_neighbors.cpp)
+add_executable(test_quadtree_find_neighbors gtest/test_occupancy_quadtree_find_neighbors.cpp)
 add_test(NAME test_quadtree_find_neighbors
         COMMAND test_quadtree_find_neighbors
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
-add_executable(test_quadtree_ray_casting test_quadtree_ray_casting.cpp)
+add_executable(test_quadtree_ray_casting gtest/test_occupancy_quadtree_ray_casting.cpp)
 add_test(NAME test_quadtree_ray_casting
         COMMAND test_quadtree_ray_casting
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
-add_executable(test_quadtree_ray_tracing test_quadtree_ray_tracing.cpp)
+add_executable(test_quadtree_ray_tracing gtest/test_occupancy_quadtree_ray_tracing.cpp)
 add_test(NAME test_quadtree_ray_tracing
         COMMAND test_quadtree_ray_tracing --tree-bt-file gtest/house_expo_room_1451.bt --resolution 0.01
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
-add_executable(test_quadtree_leaf_of_node gtest/test_quadtree_leaf_of_node.cpp)
+add_executable(test_quadtree_leaf_of_node gtest/test_occupancy_quadtree_leaf_of_node.cpp)
 add_test(NAME test_quadtree_leaf_of_node
         COMMAND test_quadtree_leaf_of_node
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})

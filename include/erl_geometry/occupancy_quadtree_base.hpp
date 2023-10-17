@@ -1,6 +1,7 @@
 #pragma once
 
 #include <omp.h>
+#include <list>
 #include "abstract_occupancy_quadtree.hpp"
 #include "quadtree_impl.hpp"
 #include "aabb.hpp"
@@ -11,13 +12,26 @@ namespace erl::geometry {
     class OccupancyQuadtreeBase : public QuadtreeImpl<Node, AbstractOccupancyQuadtree> {
         static_assert(std::is_base_of_v<OccupancyQuadtreeNode, Node>);
 
+    public:
+        struct Setting : public common::Yamlable<Setting> {
+            float log_odd_min = 0.0;
+            float log_odd_max = 0.0;
+            float probability_hit = 0.0;
+            float probability_miss = 0.0;
+            float probability_occupied = 0.0;
+            double resolution = 0.0;
+            bool use_change_detection = false;
+            bool use_aabb_limit = false;
+            Aabb2D aabb = {};
+        };
+
     protected:
         bool m_use_change_detection_ = false;
         QuadtreeKeyBoolMap m_changed_keys_ = {};
         bool m_use_aabb_limit_ = false;
         Aabb2D m_aabb_ = {};
-        QuadtreeKey m_aabb_min_key_ = {};
-        QuadtreeKey m_aabb_max_key_ = {};
+        // QuadtreeKey m_aabb_min_key_ = {};
+        // QuadtreeKey m_aabb_max_key_ = {};
 
     public:
         using ImplType = OccupancyQuadtreeBase<Node>;
@@ -30,15 +44,44 @@ namespace erl::geometry {
               m_use_change_detection_(other.m_use_change_detection_),
               m_changed_keys_(other.m_changed_keys_),
               m_use_aabb_limit_(other.m_use_aabb_limit_),
-              m_aabb_(other.m_aabb_),
-              m_aabb_min_key_(other.m_aabb_min_key_),
-              m_aabb_max_key_(other.m_aabb_max_key_) {
-
+              m_aabb_(other.m_aabb_)
+        // m_aabb_min_key_(other.m_aabb_min_key_),
+        // m_aabb_max_key_(other.m_aabb_max_key_)
+        {
             this->m_log_odd_hit_ = other.m_log_odd_hit_;
             this->m_log_odd_max_ = other.m_log_odd_max_;
             this->m_log_odd_min_ = other.m_log_odd_min_;
             this->m_log_odd_miss_ = other.m_log_odd_miss_;
             this->m_log_odd_occ_threshold_ = other.m_log_odd_occ_threshold_;
+        }
+
+        // YAML setting interface
+        Setting
+        GetSetting() const {
+            Setting setting;
+            setting.log_odd_min = this->GetLogOddMin();
+            setting.log_odd_max = this->GetLogOddMax();
+            setting.probability_hit = this->GetProbabilityHit();
+            setting.probability_miss = this->GetProbabilityMiss();
+            setting.probability_occupied = this->GetOccupancyThreshold();
+            setting.resolution = this->m_resolution_;
+            setting.use_change_detection = this->m_use_change_detection_;
+            setting.use_aabb_limit = this->m_use_aabb_limit_;
+            setting.aabb = this->m_aabb_;
+            return setting;
+        }
+
+        void
+        SetSetting(const Setting& setting) {
+            this->SetLogOddMin(setting.log_odd_min);
+            this->SetLogOddMax(setting.log_odd_max);
+            this->SetProbabilityHit(setting.probability_hit);
+            this->SetProbabilityMiss(setting.probability_miss);
+            this->SetOccupancyThreshold(setting.probability_occupied);
+            this->SetResolution(setting.resolution);
+            this->m_use_change_detection_ = setting.use_change_detection;
+            this->m_use_aabb_limit_ = setting.use_aabb_limit;
+            this->m_aabb_ = setting.aabb;
         }
 
         //-- implement abstract methods
@@ -79,10 +122,11 @@ namespace erl::geometry {
         /**
          * Insert a point cloud in the world frame. Multiple points may fall into the same voxel that is updated only once, and occupied nodes are preferred
          * than free ones. This avoids holes and is more efficient than the plain ray insertion of InsertPointCloudRays().
-         * @param points
-         * @param sensor_origin
-         * @param max_range
-         * @param lazy_eval
+         * @param points 2xN matrix of points in the world frame
+         * @param sensor_origin 2D vector of the sensor origin in the world frame
+         * @param max_range maximum range of the sensor. Points beyond this range are ignored. Non-positive value means no limit.
+         * @param lazy_eval whether to update the occupancy of the nodes immediately. If true, the occupancy is not updated until UpdateInnerOccupancy() is
+         * called.
          * @param discretize
          */
         void
@@ -92,7 +136,8 @@ namespace erl::geometry {
             double max_range,
             bool parallel,
             bool lazy_eval,
-            bool discretize) {
+            bool discretize
+        ) {
 
             QuadtreeKeySet free_cells, occupied_cells;
             // compute cells to update
@@ -110,6 +155,15 @@ namespace erl::geometry {
         }
 
     protected:
+        /**
+         * Compute keys of the cells to update for a point cloud up to the resolution.
+         * @param points 2xN matrix of points in the world frame, points falling into the same voxel are merged to the first appearance.
+         * @param sensor_origin 2D vector of the sensor origin in the world frame
+         * @param max_range maximum range of the sensor. Points beyond this range are ignored. Non-positive value means no limit.
+         * @param parallel whether to use parallel computation
+         * @param free_cells keys of the free cells to update
+         * @param occupied_cells keys of the occupied cells to update
+         */
         void
         ComputeDiscreteUpdateForPointCloud(
             const Eigen::Ref<const Eigen::Matrix2Xd>& points,
@@ -117,7 +171,8 @@ namespace erl::geometry {
             double max_range,
             bool parallel,
             QuadtreeKeySet& free_cells,
-            QuadtreeKeySet& occupied_cells) {
+            QuadtreeKeySet& occupied_cells
+        ) {
 
             long num_points = points.cols();
             if (num_points == 0) { return; }
@@ -141,12 +196,13 @@ namespace erl::geometry {
             double max_range,
             bool parallel,
             QuadtreeKeySet& free_cells,
-            QuadtreeKeySet& occupied_cells) {
+            QuadtreeKeySet& occupied_cells
+        ) {
 
             long num_points = points.cols();
             if (num_points == 0) { return; }
 
-            omp_set_num_threads(this->m_key_rays_.size());  // TODO: uncomment this line to enable parallelization
+            omp_set_num_threads(this->m_key_rays_.size());
 #pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, free_cells, occupied_cells) schedule(guided)
             for (long i = 0; i < num_points; ++i) {
                 const auto& kP = points.col(i);
@@ -216,26 +272,29 @@ namespace erl::geometry {
 
     public:
         /**
-         *
+         * Insert a point cloud ray by ray. Some cells may be updated multiple times.
+         * @param points 2xN matrix of ray end points in the world frame.
+         * @param sensor_origin 2D vector of the sensor origin in the world frame.
+         * @param max_range maximum range of the sensor. Points beyond this range are ignored. Non-positive value means no limit.
+         * @param lazy_eval whether to update the occupancy of the nodes immediately. If true, the occupancy is not updated until UpdateInnerOccupancy() is
+         * called.
          */
         void
         InsertPointCloudRays(
-            const Eigen::Ref<const Eigen::Matrix2Xd>& points,
-            const Eigen::Ref<const Eigen::Vector2d>& sensor_origin,
-            double max_range,
-            bool lazy_eval) {
+            const Eigen::Ref<const Eigen::Matrix2Xd>& points, const Eigen::Ref<const Eigen::Vector2d>& sensor_origin, double max_range, bool lazy_eval
+        ) {
 
             long num_points = points.cols();
             if (num_points == 0) { return; }
 
             omp_set_num_threads(this->m_key_rays_.size());
-#pragma omp parallel for default(none) shared(num_points, points, sensor_origin) schedule(guided)
+#pragma omp parallel for default(none) shared(num_points, points, sensor_origin, max_range, lazy_eval) schedule(guided)
             for (long i = 0; i < num_points; ++i) {
                 const auto& kP = points.col(i);
                 unsigned int thread_idx = omp_get_thread_num();
                 QuadtreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
 
-                if (this->ComputeRayKeys(sensor_origin, kP, key_ray)) {
+                if (this->ComputeRayKeys(sensor_origin[0], sensor_origin[1], kP[0], kP[1], key_ray)) {
 #pragma omp critical
                     {
                         for (auto& key: key_ray) { UpdateNode(key, false, lazy_eval); }
@@ -247,6 +306,17 @@ namespace erl::geometry {
         }
 
         //-- insert ray
+        /**
+         * Insert a ray from (sx, sy) to (ex, ey) into the tree. The ray is cut at max_range if it is positive.
+         * @param sx metric x coordinate of the start point
+         * @param sy metric y coordinate of the start point
+         * @param ex metric x coordinate of the end point
+         * @param ey metric y coordinate of the end point
+         * @param max_range maximum range after which the ray is cut. Non-positive value means no limit.
+         * @param lazy_eval whether to update the occupancy of the nodes immediately. If true, the occupancy is not updated until UpdateInnerOccupancy() is
+         * called.
+         * @return
+         */
         bool
         InsertRay(double sx, double sy, double ex, double ey, double max_range, bool lazy_eval) {
             double dx = ex - sx;
@@ -271,10 +341,10 @@ namespace erl::geometry {
         //-- cast ray
         /**
          * Cast a ray starting from (px, py) along (vx, vy) and get the hit surface point (ex, ey) if the ray hits one.
-         * @param px
-         * @param py
-         * @param vx
-         * @param vy
+         * @param px metric x coordinate of the start point
+         * @param py metric y coordinate of the start point
+         * @param vx x component of the ray direction
+         * @param vy y component of the ray direction
          * @param ignore_unknown whether unknown cells are ignored, i.e. treated as free. If false, the ray casting aborts when an unknown cell is hit and
          * returns false.
          * @param max_range maximum range after which the ray casting is aborted. Non-positive value means no limit.
@@ -283,7 +353,7 @@ namespace erl::geometry {
          * @return true if the ray hits an occupied cell, false otherwise.
          */
         bool
-        CastRay(double px, double py, double vx, double vy, bool ignore_unknown, double max_range, double& ex, double& ey) {
+        CastRay(double px, double py, double vx, double vy, bool ignore_unknown, double max_range, double& ex, double& ey) const {
             // Similar to QuadtreeImpl::ComputeRayKeys, but with extra hitting checks
 
             QuadtreeKey current_key;
@@ -399,14 +469,8 @@ namespace erl::geometry {
             OccupiedLeafOnRayIterator() = default;
 
             OccupiedLeafOnRayIterator(
-                double px,
-                double py,
-                double vx,
-                double vy,
-                double max_range,
-                bool bidirectional,
-                const ImplType* tree,
-                unsigned int max_leaf_depth)
+                double px, double py, double vx, double vy, double max_range, bool bidirectional, const ImplType* tree, unsigned int max_leaf_depth
+            )
                 : Super(px, py, vx, vy, max_range, bidirectional, tree, max_leaf_depth) {
                 if (!this->m_stack_.empty() && !this->m_tree_->IsNodeOccupied(this->m_stack_.back().node)) { ++(*this); }
             }
@@ -437,16 +501,6 @@ namespace erl::geometry {
         [[nodiscard]] inline OccupiedLeafOnRayIterator
         EndOccupiedLeafOnRay() const {
             return OccupiedLeafOnRayIterator();
-        }
-
-        /**
-         * Trace a ray from (x0, y0) to (x1, y1) and return the first occupied node.
-         * @return
-         */
-        bool
-        TraceRay(double px, double py, double vx, double vy, bool ignore_unknown, double max_range, double& ex, double& ey) {
-            // TODO: implement this
-            throw std::runtime_error("Not implemented yet.");
         }
 
         //-- update nodes' occupancy
@@ -510,7 +564,7 @@ namespace erl::geometry {
             };
 
             std::shared_ptr<OccupancyQuadtreeNode> returned_node = nullptr;
-            std::vector<StackElement> stack;
+            std::list<StackElement> stack;
             stack.emplace_back(this->m_root_, create_root, 0, false);
             while (!stack.empty()) {
                 StackElement& s = stack.back();
@@ -575,6 +629,7 @@ namespace erl::geometry {
             return returned_node;
         }
 
+    protected:
         void
         UpdateNodeLogOdds(const std::shared_ptr<OccupancyQuadtreeNode>& node, const float& log_odd_delta) {
             node->AddLogOdds(log_odd_delta);
@@ -590,6 +645,7 @@ namespace erl::geometry {
             }
         }
 
+    public:
         void
         UpdateInnerOccupancy() override {
             if (this->m_root_ == nullptr) { return; }
@@ -608,7 +664,7 @@ namespace erl::geometry {
                       visited(visited) {}
             };
 
-            std::vector<StackElement> stack;
+            std::list<StackElement> stack;
             stack.emplace_back(std::static_pointer_cast<Node>(this->m_root_), 0, false);
             while (!stack.empty()) {
                 auto& s = stack.back();
@@ -793,3 +849,55 @@ namespace erl::geometry {
     };
 
 }  // namespace erl::geometry
+
+namespace YAML {
+    template<typename Setting>
+    struct ConvertOccupancyQuadtreeBaseSetting {
+        inline static Node
+        encode(const Setting& rhs) {
+            Node node;
+            node["log_odd_min"] = rhs.log_odd_min;
+            node["log_odd_max"] = rhs.log_odd_max;
+            node["probability_hit"] = rhs.probability_hit;
+            node["probability_miss"] = rhs.probability_miss;
+            node["probability_occupied"] = rhs.probability_occupied;
+            node["resolution"] = rhs.resolution;
+            node["use_change_detection"] = rhs.use_change_detection;
+            node["use_aabb_limit"] = rhs.use_aabb_limit;
+            node["aabb"] = rhs.aabb;
+            return node;
+        }
+
+        inline static bool
+        decode(const Node& node, Setting& rhs) {
+            if (!node.IsMap()) { return false; }
+            rhs.log_odd_min = node["log_odd_min"].as<float>();
+            rhs.log_odd_max = node["log_odd_max"].as<float>();
+            rhs.probability_hit = node["probability_hit"].as<float>();
+            rhs.probability_miss = node["probability_miss"].as<float>();
+            rhs.probability_occupied = node["probability_occupied"].as<float>();
+            rhs.resolution = node["resolution"].as<double>();
+            rhs.use_change_detection = node["use_change_detection"].as<bool>();
+            rhs.use_aabb_limit = node["use_aabb_limit"].as<bool>();
+            rhs.aabb = node["aabb"].as<erl::geometry::Aabb2D>();
+            return true;
+        }
+    };
+
+    template<typename Setting>
+    Emitter&
+    PrintOccupancyQuadtreeBaseSetting(Emitter& out, const Setting& rhs) {
+        out << BeginMap;
+        out << Key << "log_odd_min" << Value << rhs.log_odd_min;
+        out << Key << "log_odd_max" << Value << rhs.log_odd_max;
+        out << Key << "probability_hit" << Value << rhs.probability_hit;
+        out << Key << "probability_miss" << Value << rhs.probability_miss;
+        out << Key << "probability_occupied" << Value << rhs.probability_occupied;
+        out << Key << "resolution" << Value << rhs.resolution;
+        out << Key << "use_change_detection" << Value << rhs.use_change_detection;
+        out << Key << "use_aabb_limit" << Value << rhs.use_aabb_limit;
+        out << Key << "aabb" << Value << rhs.aabb;
+        out << EndMap;
+        return out;
+    }
+}  // namespace YAML

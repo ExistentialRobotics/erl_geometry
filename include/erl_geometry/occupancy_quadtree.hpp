@@ -2,6 +2,7 @@
 
 #include "occupancy_quadtree_base.hpp"
 #include "occupancy_quadtree_node.hpp"
+#include "occupancy_quadtree_drawer.hpp"
 
 namespace erl::geometry {
 
@@ -27,6 +28,8 @@ namespace erl::geometry {
         GetTreeType() const override {
             return ERL_AS_STRING(OccupancyQuadtree);
         }
+
+        typedef OccupancyQuadtreeDrawer<OccupancyQuadtree> Drawer;
 
     protected:
         /**
@@ -56,3 +59,23 @@ namespace erl::geometry {
         inline static StaticMemberInitializer s_init_ = {};
     };
 }  // namespace erl::geometry
+
+namespace YAML {
+
+    template<>
+    struct convert<erl::geometry::OccupancyQuadtree::Setting> : public ConvertOccupancyQuadtreeBaseSetting<erl::geometry::OccupancyQuadtree::Setting> {};
+
+    inline Emitter &
+    operator<<(Emitter &out, const erl::geometry::OccupancyQuadtree::Setting &rhs) {
+        return PrintOccupancyQuadtreeBaseSetting(out, rhs);
+    }
+
+    template<>
+    struct convert<erl::geometry::OccupancyQuadtree::Drawer::Setting>
+        : public ConvertOccupancyQuadtreeDrawerSetting<erl::geometry::OccupancyQuadtree::Drawer::Setting> {};
+
+    inline Emitter &
+    operator<<(Emitter &out, const erl::geometry::OccupancyQuadtree::Drawer::Setting &rhs) {
+        return PrintOccupancyQuadtreeDrawerSetting(out, rhs);
+    }
+}  // namespace YAML

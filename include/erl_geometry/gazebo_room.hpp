@@ -89,8 +89,13 @@ namespace erl::geometry {
                 }
             }
 
-            TrainDataFrame
+            inline TrainDataFrame &
             operator[](size_t i) {
+                return m_data_frames_[i];
+            }
+
+            inline const TrainDataFrame &
+            operator[](size_t i) const {
                 return m_data_frames_[i];
             }
 
@@ -99,12 +104,12 @@ namespace erl::geometry {
                 return m_data_frames_.size();
             }
 
-            auto
+            inline auto
             begin() {
                 return m_data_frames_.begin();
             }
 
-            auto
+            inline auto
             end() {
                 return m_data_frames_.end();
             }

@@ -20,6 +20,10 @@
 #include "erl_geometry/winding_number.hpp"
 #include "erl_geometry/utils.hpp"
 #include "erl_geometry/house_expo.hpp"
+#include "erl_geometry/occupancy_quadtree.hpp"
+#include "erl_geometry/occupancy_quadtree_drawer.hpp"
+#include "erl_geometry/pybind11_occupancy_quadtree_base.hpp"
+#include "erl_geometry/pybind11_occupancy_quadtree_drawer.hpp"
 
 using namespace erl::common;
 using namespace erl::geometry;
@@ -322,7 +326,26 @@ BindIncrementalQuadTree(py::module &m) {
 }
 
 static void
-BindOccupancyQuadtree(py::module &m) {}
+BindOccupancyQuadtree(py::module &m) {
+    py::class_<QuadtreeKey>(m, "QuadtreeKey")
+        .def("__eq__", [](const QuadtreeKey &self, const QuadtreeKey &other) { return self == other; })
+        .def("__ne__", [](const QuadtreeKey &self, const QuadtreeKey &other) { return self != other; })
+        .def("__getitem__", [](const QuadtreeKey &self, int idx) { return self[idx]; });
+
+    py::class_<QuadtreeKeyRay>(m, "QuadtreeKeyRay")
+        .def("__len__", &QuadtreeKeyRay::size)
+        .def("__getitem__", &QuadtreeKeyRay::operator[], py::arg("idx"));
+
+    py::class_<OccupancyQuadtreeNode, std::shared_ptr<OccupancyQuadtreeNode>>(m, "OccupancyQuadtreeNode")
+        .def_property_readonly("occupancy", &OccupancyQuadtreeNode::GetOccupancy)
+        .def_property_readonly("log_odds", &OccupancyQuadtreeNode::GetLogOdds)
+        .def_property_readonly("mean_child_log_odds", &OccupancyQuadtreeNode::GetMeanChildLogOdds)
+        .def_property_readonly("max_child_log_odds", &OccupancyQuadtreeNode::GetMaxChildLogOdds)
+        .def("allow_update_log_odds", &OccupancyQuadtreeNode::AllowUpdateLogOdds, py::arg("delta"))
+        .def("add_log_odds", &OccupancyQuadtreeNode::AddLogOdds, py::arg("log_odds"));
+    BindOccupancyQuadtree<OccupancyQuadtree, OccupancyQuadtreeNode>(m, "OccupancyQuadtree");
+    BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<OccupancyQuadtree>, OccupancyQuadtree>(m, "OccupancyQuadtreeDrawer");
+}
 
 static void
 BindSurface2D(py::module &m) {
@@ -865,12 +888,13 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
             py::arg("aabb_min"),
             py::arg("aabb_max"));
 
-    BindAabb<double, 2>(m, ERL_AS_STRING(Aabb2D));
-    BindAabb<double, 3>(m, ERL_AS_STRING(Aabb3D));
+    BindAabb<double, 2>(m, "Aabb2D");
+    BindAabb<double, 3>(m, "Aabb3D");
     BindNode(m);
     BindNodeContainer(m);
     BindNodeContainerMultiTypes(m);
     BindIncrementalQuadTree(m);
+    BindOccupancyQuadtree(m);
     BindSurface2D(m);
     BindSpace2D(m);
     BindLidar2D(m);
