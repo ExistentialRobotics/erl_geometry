@@ -14,6 +14,9 @@ namespace erl::geometry {
             s_init_.EnsureLinking();
         }
 
+        explicit OccupancyQuadtree(const std::shared_ptr<Setting> &setting)
+            : OccupancyQuadtreeBase<OccupancyQuadtreeNode>(setting) {}
+
         explicit OccupancyQuadtree(const std::string &filename)
             : OccupancyQuadtreeBase<OccupancyQuadtreeNode>(0.1) {  // resolution will be set by readBinary
             this->ReadBinary(filename);

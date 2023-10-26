@@ -625,9 +625,9 @@ namespace erl::geometry {
             };
 
         protected:
-            const ImplType *m_tree_;           // the tree this iterator is working on
-            unsigned int m_max_depth_;         // the maximum depth to query
-            std::list<StackElement> m_stack_;  // stack for depth first traversal
+            const ImplType *m_tree_;            // the tree this iterator is working on
+            unsigned int m_max_depth_;          // the maximum depth to query
+            std::deque<StackElement> m_stack_;  // stack for depth first traversal
 
         public:
             /**

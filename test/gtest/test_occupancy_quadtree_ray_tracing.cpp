@@ -2,6 +2,7 @@
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 #include "erl_common/angle_utils.hpp"
+#include "erl_common/test_helper.hpp"
 #include <boost/program_options.hpp>
 
 using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geometry::OccupancyQuadtree>;
@@ -73,43 +74,17 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     }
 }
 
+static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
+
 struct Options {
-    std::string tree_bt_file;
+    std::string tree_bt_file = (g_test_data_dir / "house_expo_room_1451.bt").string();
     double resolution = 0.0025;
     int padding = 10;
 };
 
-int
-main(int argc, char *argv[]) {
-    Options options;
+Options options;
 
-    try {
-        namespace po = boost::program_options;
-        po::options_description desc;
-        po::positional_options_description positional_options;
-        // clang-format off
-        desc.add_options()
-            ("help", "produce help message")
-            ("resolution", po::value<double>(&options.resolution)->default_value(options.resolution)->value_name("res"), "resolution of the display image")
-            ("padding", po::value<int>(&options.padding)->default_value(options.padding), "padding of the display image")
-            ("tree-bt-file", po::value<std::string>(&options.tree_bt_file)->value_name("tree_bt_file")->required(), "occupancy tree binary format file");
-        positional_options.add("tree-bt-file", 1);
-        // clang-format on
-
-        po::variables_map vm;
-        po::store(po::command_line_parser(argc, argv).options(desc).positional(positional_options).run(), vm);
-
-        if (vm.count("help")) {
-            std::cout << "Usage: " << argv[0] << " [options] tree_bt_file" << std::endl
-                      << desc << std::endl;
-            return 0;
-        }
-        po::notify(vm);
-    } catch (std::exception &e) {
-        std::cerr << e.what() << "\n";
-        return 1;
-    }
-
+TEST(ERL_GEOMETRY, OccupancyQuadtreeRayTracing) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
     ERL_ASSERTM(data.tree->ReadBinary(options.tree_bt_file), "Fail to load the tree.");
@@ -137,6 +112,35 @@ main(int argc, char *argv[]) {
         Draw(&data);
         std::cout << "Angle: " << erl::common::RadianToDegree(data.angle) << "\n";
     }
+}
 
-    return 0;
+int
+main(int argc, char *argv[]) {
+    ::testing::InitGoogleTest(&argc, argv);
+    try {
+        namespace po = boost::program_options;
+        po::options_description desc;
+        po::positional_options_description positional_options;
+        // clang-format off
+        desc.add_options()
+            ("help", "produce help message")
+            ("resolution", po::value<double>(&options.resolution)->default_value(options.resolution)->value_name("res"), "resolution of the display image")
+            ("padding", po::value<int>(&options.padding)->default_value(options.padding), "padding of the display image")
+            ("tree-bt-file", po::value<std::string>(&options.tree_bt_file)->value_name("tree_bt_file")->default_value(options.tree_bt_file), "occupancy tree binary format file");
+        positional_options.add("tree-bt-file", 1);
+        // clang-format on
+
+        po::variables_map vm;
+        po::store(po::command_line_parser(argc, argv).options(desc).positional(positional_options).run(), vm);
+
+        if (vm.count("help")) {
+            std::cout << "Usage: " << argv[0] << " [options] tree_bt_file" << std::endl << desc << std::endl;
+            return 0;
+        }
+        po::notify(vm);
+    } catch (std::exception &e) {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
+    return RUN_ALL_TESTS();
 }

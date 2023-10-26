@@ -39,6 +39,11 @@ namespace erl::geometry {
         explicit OccupancyQuadtreeBase(double resolution)
             : QuadtreeImpl<Node, AbstractOccupancyQuadtree>(resolution) {}
 
+        explicit OccupancyQuadtreeBase(const std::shared_ptr<Setting>& setting)
+            : QuadtreeImpl<Node, AbstractOccupancyQuadtree>(0.1) {
+            SetSetting(setting);
+        }
+
         OccupancyQuadtreeBase(const ImplType& other)
             : QuadtreeImpl<Node, AbstractOccupancyQuadtree>(other),
               m_use_change_detection_(other.m_use_change_detection_),
@@ -56,32 +61,33 @@ namespace erl::geometry {
         }
 
         // YAML setting interface
-        Setting
+        std::shared_ptr<Setting>
         GetSetting() const {
-            Setting setting;
-            setting.log_odd_min = this->GetLogOddMin();
-            setting.log_odd_max = this->GetLogOddMax();
-            setting.probability_hit = this->GetProbabilityHit();
-            setting.probability_miss = this->GetProbabilityMiss();
-            setting.probability_occupied = this->GetOccupancyThreshold();
-            setting.resolution = this->m_resolution_;
-            setting.use_change_detection = this->m_use_change_detection_;
-            setting.use_aabb_limit = this->m_use_aabb_limit_;
-            setting.aabb = this->m_aabb_;
+            auto setting = std::make_shared<Setting>();
+            setting->log_odd_min = this->GetLogOddMin();
+            setting->log_odd_max = this->GetLogOddMax();
+            setting->probability_hit = this->GetProbabilityHit();
+            setting->probability_miss = this->GetProbabilityMiss();
+            setting->probability_occupied = this->GetOccupancyThreshold();
+            setting->resolution = this->m_resolution_;
+            setting->use_change_detection = this->m_use_change_detection_;
+            setting->use_aabb_limit = this->m_use_aabb_limit_;
+            setting->aabb = this->m_aabb_;
             return setting;
         }
 
         void
-        SetSetting(const Setting& setting) {
-            this->SetLogOddMin(setting.log_odd_min);
-            this->SetLogOddMax(setting.log_odd_max);
-            this->SetProbabilityHit(setting.probability_hit);
-            this->SetProbabilityMiss(setting.probability_miss);
-            this->SetOccupancyThreshold(setting.probability_occupied);
-            this->SetResolution(setting.resolution);
-            this->m_use_change_detection_ = setting.use_change_detection;
-            this->m_use_aabb_limit_ = setting.use_aabb_limit;
-            this->m_aabb_ = setting.aabb;
+        SetSetting(const std::shared_ptr<Setting>& setting) {
+            ERL_ASSERTM(setting != nullptr, "Setting is nullptr.");
+            this->SetLogOddMin(setting->log_odd_min);
+            this->SetLogOddMax(setting->log_odd_max);
+            this->SetProbabilityHit(setting->probability_hit);
+            this->SetProbabilityMiss(setting->probability_miss);
+            this->SetOccupancyThreshold(setting->probability_occupied);
+            this->SetResolution(setting->resolution);
+            this->m_use_change_detection_ = setting->use_change_detection;
+            this->m_use_aabb_limit_ = setting->use_aabb_limit;
+            this->m_aabb_ = setting->aabb;
         }
 
         //-- implement abstract methods

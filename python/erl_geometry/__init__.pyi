@@ -307,7 +307,23 @@ class OccupancyQuadtreeNode:
     def add_log_odds(self, log_odds: float) -> None: ...
 
 class OccupancyQuadtree:
+
+    class Setting(YamlableBase):
+        log_odd_min: float
+        log_odd_max: float
+        probability_hit: float
+        probability_miss: float
+        probability_occupied: float
+        resolution: float
+        use_change_detection: bool
+        use_aabb_limit: bool
+        aabb: Aabb2D
+
+    @overload
     def __init__(self, resolution: float) -> None: ...
+    @overload
+    def __init__(self, setting: Setting) -> None: ...
+
     @property
     def tree_type(self) -> str: ...
     @property
@@ -525,6 +541,16 @@ class OccupancyQuadtree:
         bidirectional: bool = False,
         max_leaf_depth: int = 0,
     ) -> LeafOnRayIterator: ...
+    def iter_occupied_leaf_on_ray(
+        self,
+        px: float,
+        py: float,
+        vx: float,
+        vy: float,
+        max_range: float = -1,
+        bidirectional: bool = False,
+        max_leaf_depth: int = 0,
+    ) -> OccupiedLeafOnRayIterator: ...
 
 class Surface2D:
     @overload

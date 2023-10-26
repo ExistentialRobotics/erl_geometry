@@ -1,17 +1,30 @@
 #pragma once
 
 #include "erl_common/pybind11.hpp"
+#include "erl_common/yaml.hpp"
 #include "erl_geometry/occupancy_quadtree_base.hpp"
 
 template<class Quadtree, class Node>
 void
 BindOccupancyQuadtree(py::module &m, const char *name) {
     py::class_<Quadtree, std::shared_ptr<Quadtree>> tree(m, name);
+    using namespace erl::common;
     using namespace erl::geometry;
+
+    py::class_<typename Quadtree::Setting, YamlableBase, std::shared_ptr<typename Quadtree::Setting>>(tree, "Setting")
+        .def_readwrite("log_odd_min", &Quadtree::Setting::log_odd_min)
+        .def_readwrite("log_odd_max", &Quadtree::Setting::log_odd_max)
+        .def_readwrite("probability_hit", &Quadtree::Setting::probability_hit)
+        .def_readwrite("probability_miss", &Quadtree::Setting::probability_miss)
+        .def_readwrite("resolution", &Quadtree::Setting::resolution)
+        .def_readwrite("use_change_detection", &Quadtree::Setting::use_change_detection)
+        .def_readwrite("use_aabb_limit", &Quadtree::Setting::use_aabb_limit);
 
     // OccupancyQuadtreeBase methods, except iterators
     tree.def(py::init<>([](double resolution) { return std::make_shared<Quadtree>(resolution); }), py::arg("resolution"))
+        .def(py::init<>([](const std::shared_ptr<typename Quadtree::Setting> &setting) { return std::make_shared<Quadtree>(setting); }), py::arg("setting"))
         .def_property_readonly("tree_type", &Quadtree::GetTreeType)
+        .def_property("setting", &Quadtree::GetSetting, &Quadtree::SetSetting)
         .def("is_node_collapsible", &Quadtree::IsNodeCollapsible, py::arg("node"))
         .def(
             "insert_point_cloud",
@@ -21,14 +34,11 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("max_range"),
             py::arg("parallel"),
             py::arg("lazy_eval"),
-            py::arg("discretize"))
+            py::arg("discretize")
+        )
         .def(
-            "insert_point_cloud_rays",
-            &Quadtree::InsertPointCloudRays,
-            py::arg("points"),
-            py::arg("sensor_origin"),
-            py::arg("max_range"),
-            py::arg("lazy_eval"))
+            "insert_point_cloud_rays", &Quadtree::InsertPointCloudRays, py::arg("points"), py::arg("sensor_origin"), py::arg("max_range"), py::arg("lazy_eval")
+        )
         .def("insert_ray", &Quadtree::InsertRay, py::arg("sx"), py::arg("sy"), py::arg("ex"), py::arg("ey"), py::arg("max_range"), py::arg("lazy_eval"))
         .def(
             "cast_ray",
@@ -46,33 +56,38 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("vx"),
             py::arg("vy"),
             py::arg("ignore_unknown"),
-            py::arg("max_range"))
+            py::arg("max_range")
+        )
         .def(
             "update_node",
             py::overload_cast<double, double, bool, bool>(&Quadtree::UpdateNode),
             py::arg("x"),
             py::arg("y"),
             py::arg("occupied"),
-            py::arg("lazy_eval"))
+            py::arg("lazy_eval")
+        )
         .def(
             "update_node",
             py::overload_cast<const QuadtreeKey &, bool, bool>(&Quadtree::UpdateNode),
             py::arg("node_key"),
             py::arg("occupied"),
-            py::arg("lazy_eval"))
+            py::arg("lazy_eval")
+        )
         .def(
             "update_node",
             py::overload_cast<double, double, float, bool>(&Quadtree::UpdateNode),
             py::arg("x"),
             py::arg("y"),
             py::arg("log_odds_delta"),
-            py::arg("lazy_eval"))
+            py::arg("lazy_eval")
+        )
         .def(
             "update_node",
             py::overload_cast<const QuadtreeKey &, float, bool>(&Quadtree::UpdateNode),
             py::arg("node_key"),
             py::arg("log_odds_delta"),
-            py::arg("lazy_eval"))
+            py::arg("lazy_eval")
+        )
         .def("update_inner_occupancy", &Quadtree::UpdateInnerOccupancy)
         .def("to_max_likelihood", &Quadtree::ToMaxLikelihood);
 
@@ -87,28 +102,32 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 double x, y;
                 self.GetMetricMin(x, y);
                 return std::make_tuple(x, y);
-            })
+            }
+        )
         .def_property_readonly(
             "metric_max",
             [](Quadtree &self) {
                 double x, y;
                 self.GetMetricMax(x, y);
                 return std::make_tuple(x, y);
-            })
+            }
+        )
         .def_property_readonly(
             "metric_min_max",
             [](Quadtree &self) {
                 double min_x, min_y, max_x, max_y;
                 self.GetMetricMinMax(min_x, min_y, max_x, max_y);
                 return std::make_tuple(std::make_tuple(min_x, min_y), std::make_tuple(max_x, max_y));
-            })
+            }
+        )
         .def_property_readonly(
             "metric_size",
             [](Quadtree &self) {
                 double x, y;
                 self.GetMetricSize(x, y);
                 return std::make_tuple(x, y);
-            })
+            }
+        )
         .def("get_node_size", &Quadtree::GetNodeSize, py::arg("depth"))
         .def_property_readonly("number_of_leaf_nodes", &Quadtree::ComputeNumberOfLeafNodes)
         .def_property_readonly("memory_usage", &Quadtree::GetMemoryUsage)
@@ -126,7 +145,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                     return std::optional<QuadtreeKey::KeyType>();
                 }
             },
-            py::arg("coordinate"))
+            py::arg("coordinate")
+        )
         .def(
             "coord_to_key_checked",
             [](const Quadtree &self, double coordinate, unsigned int depth) {
@@ -138,7 +158,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 }
             },
             py::arg("coordinate"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "coord_to_key_checked",
             [](const Quadtree &self, double x, double y) {
@@ -150,7 +171,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 }
             },
             py::arg("x"),
-            py::arg("y"))
+            py::arg("y")
+        )
         .def(
             "coord_to_key_checked",
             [](const Quadtree &self, double x, double y, unsigned int depth) {
@@ -163,17 +185,20 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             },
             py::arg("x"),
             py::arg("y"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "adjust_key_to_depth",
             py::overload_cast<QuadtreeKey::KeyType, unsigned int>(&Quadtree::AdjustKeyToDepth, py::const_),
             py::arg("key"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "adjust_key_to_depth",
             py::overload_cast<const QuadtreeKey &, unsigned int>(&Quadtree::AdjustKeyToDepth, py::const_),
             py::arg("key"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "compute_common_ancestor_key",
             [](const Quadtree &self, const QuadtreeKey &key1, const QuadtreeKey &key2) {
@@ -181,7 +206,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 unsigned int ancestor_depth;
                 self.ComputeCommonAncestorKey(key1, key2, key, ancestor_depth);
                 return std::make_tuple(key, ancestor_depth);
-            })
+            }
+        )
         .def(
             "compute_west_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, unsigned int depth) {
@@ -193,7 +219,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 }
             },
             py::arg("key"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "compute_east_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, unsigned int depth) {
@@ -205,7 +232,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 }
             },
             py::arg("key"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "compute_north_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, unsigned int depth) {
@@ -217,7 +245,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 }
             },
             py::arg("key"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "compute_south_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, unsigned int depth) {
@@ -229,7 +258,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 }
             },
             py::arg("key"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def("key_to_coord", py::overload_cast<QuadtreeKey::KeyType>(&Quadtree::KeyToCoord, py::const_), py::arg("key"))
         .def("key_to_coord", py::overload_cast<QuadtreeKey::KeyType, unsigned int>(&Quadtree::KeyToCoord, py::const_), py::arg("key"), py::arg("depth"))
         .def(
@@ -239,7 +269,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 self.KeyToCoord(key, x, y);
                 return std::make_tuple(x, y);
             },
-            py::arg("key"))
+            py::arg("key")
+        )
         .def(
             "key_to_coord",
             [](const Quadtree &self, const QuadtreeKey &key, unsigned int depth) {
@@ -248,7 +279,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 return std::make_tuple(x, y);
             },
             py::arg("key"),
-            py::arg("depth"))
+            py::arg("depth")
+        )
         .def(
             "compute_ray_keys",
             [](const Quadtree &self, double sx, double sy, double ex, double ey) {
@@ -262,7 +294,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("sx"),
             py::arg("sy"),
             py::arg("ex"),
-            py::arg("ey"))
+            py::arg("ey")
+        )
         .def(
             "compute_ray_coords",
             [](const Quadtree &self, double sx, double sy, double ex, double ey) {
@@ -276,7 +309,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("sx"),
             py::arg("sy"),
             py::arg("ex"),
-            py::arg("ey"))
+            py::arg("ey")
+        )
         .def("create_node_child", &Quadtree::CreateNodeChild, py::arg("node"), py::arg("child_idx"))
         .def("delete_node_child", &Quadtree::DeleteNodeChild, py::arg("node"), py::arg("child_idx"))
         .def("get_node_child", py::overload_cast<std::shared_ptr<Node> &, unsigned int>(&Quadtree::GetNodeChild), py::arg("node"), py::arg("child_idx"))
@@ -296,7 +330,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 return std::make_tuple(node, depth);
             },
             py::arg("x"),
-            py::arg("y"))
+            py::arg("y")
+        )
         .def(
             "search",
             [](Quadtree &self, const QuadtreeKey &key) {
@@ -304,7 +339,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
                 std::shared_ptr<Node> node = self.Search(key, depth);
                 return std::make_tuple(node, depth);
             },
-            py::arg("key"))
+            py::arg("key")
+        )
         .def("insert_node", py::overload_cast<double, double, unsigned int>(&Quadtree::InsertNode), py::arg("x"), py::arg("y"), py::arg("depth"))
         .def("insert_node", py::overload_cast<const QuadtreeKey &, unsigned int>(&Quadtree::InsertNode), py::arg("key"), py::arg("depth"));
 
@@ -384,13 +420,15 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("aabb_min_y"),
             py::arg("aabb_max_x"),
             py::arg("aabb_max_y"),
-            py::arg("max_depth") = 0)
+            py::arg("max_depth") = 0
+        )
         .def(
             "iter_leaf_in_aabb",
             py::overload_cast<const QuadtreeKey &, const QuadtreeKey &, unsigned int>(&Quadtree::BeginLeafInAabb, py::const_),
             py::arg("aabb_min_key"),
             py::arg("aabb_max_key"),
-            py::arg("max_depth") = 0)
+            py::arg("max_depth") = 0
+        )
         .def("iter_node", &Quadtree::BeginTree, py::arg("max_depth") = 0)
         .def(
             "iter_node_in_aabb",
@@ -399,37 +437,43 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("aabb_min_y"),
             py::arg("aabb_max_x"),
             py::arg("aabb_max_y"),
-            py::arg("max_depth") = 0)
+            py::arg("max_depth") = 0
+        )
         .def(
             "iter_node_in_aabb",
             py::overload_cast<const QuadtreeKey &, const QuadtreeKey &, unsigned int>(&Quadtree::BeginTreeInAabb, py::const_),
             py::arg("aabb_min_key"),
             py::arg("aabb_max_key"),
-            py::arg("max_depth") = 0)
+            py::arg("max_depth") = 0
+        )
         .def(
             "iter_leaf_neighbor_on_west",
             py::overload_cast<double, double, unsigned int>(&Quadtree::BeginLeafNeighborOnWest, py::const_),
             py::arg("x"),
             py::arg("y"),
-            py::arg("max_leaf_depth") = 0)
+            py::arg("max_leaf_depth") = 0
+        )
         .def(
             "iter_leaf_neighbor_on_west",
             py::overload_cast<const QuadtreeKey &, unsigned int, unsigned int>(&Quadtree::BeginLeafNeighborOnWest, py::const_),
             py::arg("key"),
             py::arg("key_depth"),
-            py::arg("max_leaf_depth") = 0)
+            py::arg("max_leaf_depth") = 0
+        )
         .def(
             "iter_leaf_neighbor_on_east",
             py::overload_cast<double, double, unsigned int>(&Quadtree::BeginLeafNeighborOnEast, py::const_),
             py::arg("x"),
             py::arg("y"),
-            py::arg("max_leaf_depth") = 0)
+            py::arg("max_leaf_depth") = 0
+        )
         .def(
             "iter_leaf_neighbor_on_east",
             py::overload_cast<const QuadtreeKey &, unsigned int, unsigned int>(&Quadtree::BeginLeafNeighborOnEast, py::const_),
             py::arg("key"),
             py::arg("key_depth"),
-            py::arg("max_leaf_depth") = 0)
+            py::arg("max_leaf_depth") = 0
+        )
         .def(
             "iter_leaf_neighbor_on_north",
             py::overload_cast<double, double, unsigned int>(&Quadtree::BeginLeafNeighborOnNorth, py::const_),
@@ -437,25 +481,28 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("y"),
             py::arg("max_leaf_depth") = 0
 
-            )
+        )
         .def(
             "iter_leaf_neighbor_on_north",
             py::overload_cast<const QuadtreeKey &, unsigned int, unsigned int>(&Quadtree::BeginLeafNeighborOnNorth, py::const_),
             py::arg("key"),
             py::arg("key_depth"),
-            py::arg("max_leaf_depth") = 0)
+            py::arg("max_leaf_depth") = 0
+        )
         .def(
             "iter_leaf_neighbor_on_south",
             py::overload_cast<double, double, unsigned int>(&Quadtree::BeginLeafNeighborOnSouth, py::const_),
             py::arg("x"),
             py::arg("y"),
-            py::arg("max_leaf_depth") = 0)
+            py::arg("max_leaf_depth") = 0
+        )
         .def(
             "iter_leaf_neighbor_on_south",
             py::overload_cast<const QuadtreeKey &, unsigned int, unsigned int>(&Quadtree::BeginLeafNeighborOnSouth, py::const_),
             py::arg("key"),
             py::arg("key_depth"),
-            py::arg("max_leaf_depth") = 0)
+            py::arg("max_leaf_depth") = 0
+        )
         .def(
             "iter_leaf_on_ray",
             &Quadtree::BeginLeafOnRay,
@@ -465,5 +512,17 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("vy"),
             py::arg("max_range") = -1,
             py::arg("bidirectional") = false,
-            py::arg("max_leaf_depth") = 0);
+            py::arg("max_leaf_depth") = 0
+        )
+        .def(
+            "iter_occupied_leaf_on_ray",
+            &Quadtree::BeginOccupiedLeafOnRay,
+            py::arg("px"),
+            py::arg("py"),
+            py::arg("vx"),
+            py::arg("vy"),
+            py::arg("max_range") = -1,
+            py::arg("bidirectional") = false,
+            py::arg("max_leaf_depth") = 0
+        );
 }

@@ -2,6 +2,7 @@
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 #include "erl_common/angle_utils.hpp"
+#include "erl_common/test_helper.hpp"
 
 using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geometry::OccupancyQuadtree>;
 
@@ -53,7 +54,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 cv::Point(mouse_x, mouse_y),
                 cv::Point(grid_map_info->MeterToGridForValue(ex, 0), grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(ey, 1)),
                 cv::Scalar(0, 0, 255, 255),
-                1);
+                1
+            );
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         std::cout << "Time: " << std::chrono::duration<double, std::milli>(t1 - t0).count() << " ms." << std::endl;
@@ -62,12 +64,14 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     }
 }
 
-int
-main() {
+static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
+
+TEST(ERL_GEOMETRY, OccupancyQUadtreeRayCasting) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
     // ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.");
-    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451.bt"), "Fail to load the tree.");
+    std::string file = (g_test_data_dir / "house_expo_room_1451.bt").string();
+    ERL_ASSERTM(data.tree->ReadBinary(file), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;
     setting->resolution = 0.01;
@@ -80,5 +84,4 @@ main() {
     cv::imshow(UserData::window_name, data.img);
     cv::setMouseCallback(UserData::window_name, MouseCallback, &data);
     cv::waitKey(0);
-    return 0;
 }
