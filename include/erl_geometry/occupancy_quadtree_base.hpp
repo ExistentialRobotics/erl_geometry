@@ -540,11 +540,12 @@ namespace erl::geometry {
         std::shared_ptr<OccupancyQuadtreeNode>
         UpdateNode(const QuadtreeKey& key, float log_odds_delta, bool lazy_eval) override {
             auto leaf = std::static_pointer_cast<OccupancyQuadtreeNode>(this->Search(key));
+            auto log_odds_delta_ = double(log_odds_delta);
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
             if (leaf) {
-                if (!leaf->AllowUpdateLogOdds(log_odds_delta)) { return leaf; }
-                if (log_odds_delta >= 0 && leaf->GetLogOdds() >= this->m_log_odd_max_) { return leaf; }
-                if (log_odds_delta <= 0 && leaf->GetLogOdds() <= this->m_log_odd_min_) { return leaf; }
+                if (!leaf->AllowUpdateLogOdds(log_odds_delta_)) { return leaf; }
+                if (log_odds_delta_ >= 0 && leaf->GetLogOdds() >= this->m_log_odd_max_) { return leaf; }
+                if (log_odds_delta_ <= 0 && leaf->GetLogOdds() <= this->m_log_odd_min_) { return leaf; }
             }
 
             bool create_root = false;
@@ -612,7 +613,7 @@ namespace erl::geometry {
                 } else {  // we reach the last level
                     if (m_use_change_detection_) {
                         bool occ_before = this->IsNodeOccupied(s.node);
-                        UpdateNodeLogOdds(s.node, log_odds_delta);
+                        UpdateNodeLogOdds(s.node, log_odds_delta_);
 
                         if (s.node_just_created) {
                             m_changed_keys_.emplace(key, true);
@@ -625,7 +626,7 @@ namespace erl::geometry {
                             }
                         }
                     } else {
-                        UpdateNodeLogOdds(s.node, log_odds_delta);
+                        UpdateNodeLogOdds(s.node, log_odds_delta_);
                         returned_node = s.node;  // return the leaf node
                     }
                     stack.pop_back();

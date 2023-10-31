@@ -9,15 +9,15 @@
 struct UserData {
     inline static const char *window_name1 = "test lidar frame 2d: map";
     inline static const char *window_name2 = "test lidar frame 2d: lidar frame";
-    std::shared_ptr<erl::geometry::HouseExpoMap> map;
-    std::shared_ptr<erl::common::GridMapInfo2D> grid_map_info;
-    std::shared_ptr<erl::geometry::Lidar2D> lidar;
-    std::shared_ptr<erl::geometry::LidarFrame2D> lidar_frame;
+    std::shared_ptr<erl::geometry::HouseExpoMap> map = nullptr;
+    std::shared_ptr<erl::common::GridMapInfo2D> grid_map_info = nullptr;
+    std::shared_ptr<erl::geometry::Lidar2D> lidar = nullptr;
+    std::shared_ptr<erl::geometry::LidarFrame2D> lidar_frame = nullptr;
     double fov = 3 * M_PI / 2;  // 270 deg
-    cv::Mat map_image;
-    cv::Mat image1;
-    cv::Mat image2;
-    cv::Mat image2_bk;
+    cv::Mat map_image = {};
+    cv::Mat image1 = {};
+    cv::Mat image2 = {};
+    cv::Mat image2_bk = {};
     bool quit = false;
 };
 

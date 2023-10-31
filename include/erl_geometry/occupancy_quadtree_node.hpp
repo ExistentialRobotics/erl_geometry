@@ -27,7 +27,7 @@ namespace erl::geometry {
         }
 
         virtual bool
-        AllowUpdateLogOdds(double delta) const {
+        AllowUpdateLogOdds(double &delta) const {
             (void) delta;
             return true;
         }

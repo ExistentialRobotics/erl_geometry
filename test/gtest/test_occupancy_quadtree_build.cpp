@@ -124,13 +124,12 @@ TEST(ERL_GEOMETRY, OccupancyQuadtreeBuild) {
         long num_rays = (ros_bag_data.cols() - 7) / 2;
         long j = 0;
         erl::common::ProgressBar bar(int(max_update_cnt), true, std::cout);
-        for (long i = 0; i < ros_bag_data.rows(); i += g_options.stride) {
+        for (long i = 0; i < ros_bag_data.rows(); i += g_options.stride, j++) {
             Eigen::Matrix23d pose = ros_bag_data.row(i).segment(1, 6).reshaped(3, 2).transpose();
             trajectory.col(j) << pose(0, 2), pose(1, 2);
             Eigen::VectorXd angles = ros_bag_data.row(i).segment(7, num_rays);
             Eigen::VectorXd ranges = ros_bag_data.row(i).segment(7 + num_rays, num_rays);
             buf_points.push_back(load_scan(pose.block<2, 2>(0, 0), trajectory.col(j), angles, ranges));
-            j++;
             bar.Update();
         }
         trajectory.conservativeResize(2, j);
