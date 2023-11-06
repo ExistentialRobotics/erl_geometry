@@ -9,11 +9,19 @@ message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 if (NOT COMMAND erl_project_setup)
     find_package(erl_common REQUIRED)
 endif ()
+
+erl_find_package(
+        PACKAGE Qhull
+        REQUIRED
+        COMMANDS UBUNTU_LINUX "try `sudo apt-get install libqhull-dev`"
+        COMMANDS ARCH_LINUX "try `sudo pacman -S qhull`")
+get_target_property(Qhull_INCLUDE_DIRS Qhull::qhullcpp INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(Qhull_LIBRARIES Qhull::qhullcpp LOCATION)
+
 erl_project_setup(
         ${PROJECT_NAME}
-        ERL_PACKAGES erl_common
-)
-erl_setup_ros(CATKIN_COMPONENTS ${${PROJECT_NAME}_CATKIN_COMPONENTS})
+        ERL_PACKAGES erl_common)
+erl_setup_ros()
 erl_catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} py${PROJECT_NAME}
