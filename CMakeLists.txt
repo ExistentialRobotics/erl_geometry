@@ -16,7 +16,26 @@ erl_find_package(
         COMMANDS UBUNTU_LINUX "try `sudo apt-get install libqhull-dev`"
         COMMANDS ARCH_LINUX "try `sudo pacman -S qhull`")
 get_target_property(Qhull_INCLUDE_DIRS Qhull::qhullcpp INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(Qhull_LIBRARIES Qhull::qhullcpp LOCATION)
+get_target_property(qhull_r_location Qhull::qhull_r LOCATION)
+get_target_property(qhullcpp_location Qhull::qhullcpp LOCATION)
+list(APPEND Qhull_LIBRARIES ${qhull_r_location} ${qhullcpp_location})
+
+erl_find_package(
+        PACKAGE Open3D
+        REQUIRED
+        COMMANDS GENERAL "visit http://www.open3d.org/"
+        COMMANDS ARCH_LINUX "try `paru -S open3d`"
+)
+get_target_property(Open3D_LIBRARIES Open3D::Open3D LOCATION)
+
+erl_find_package(
+        PACKAGE octomap
+        REQUIRED
+        COMMANDS UBUNTU_LINUX "try `sudo apt-get install liboctomap-dev`"
+        COMMANDS ARCH_LINUX "try `paru -S octomap`"
+)
+get_target_property(octomap_INCLUDE_DIRS octomap INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(octomap_LIBRARIES octomap LOCATION)
 
 erl_project_setup(
         ${PROJECT_NAME}
@@ -43,7 +62,10 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}
+        PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} Qhull::qhullcpp Qhull::qhull_r
+        Open3D::Open3D octomap
+        ${catkin_LIBRARIES})
 
 ###################
 # Python bindings #

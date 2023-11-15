@@ -1,5 +1,6 @@
 import importlib
 import os
+import shutil
 import subprocess
 import sys
 
@@ -123,7 +124,9 @@ class CMakeBuild(build_ext):
         if os.path.exists(old_ext_path):
             os.remove(old_ext_path)
         build_temp = os.path.join(build_dir, ext.name)
-        os.makedirs(build_temp, exist_ok=True)
+        if os.path.exists(build_temp):
+            shutil.rmtree(build_temp)
+        os.makedirs(build_temp)
         if not os.path.exists(os.path.join(build_temp, "CMakeCache.txt")):
             cmake_args = [
                 f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={ext_dir}",

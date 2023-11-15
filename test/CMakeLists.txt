@@ -38,7 +38,7 @@ add_test(NAME test_quadtree_ray_casting
         COMMAND test_quadtree_ray_casting
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
-add_executable(test_quadtree_ray_tracing gtest/test_occupancy_quadtree_ray_tracing.cpp)
+add_executable(test_quadtree_ray_tracing gtest/test_occupancy_quadtree_occupied_leaf_on_ray.cpp)
 add_test(NAME test_quadtree_ray_tracing
         COMMAND test_quadtree_ray_tracing --tree-bt-file gtest/house_expo_room_1451.bt --resolution 0.01
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})

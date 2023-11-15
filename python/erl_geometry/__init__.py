@@ -30,6 +30,7 @@ __all__ = [
     "PointCollisionChecker3D",
     "GridCollisionCheckerSe2",
     "GridCollisionChecker3D",
+    "Lidar3D",
     "house_expo",
     "gazebo",
 ]

@@ -6,6 +6,7 @@
 #include "erl_common/yaml.hpp"
 #include "erl_common/random.hpp"
 #include "erl_common/angle_utils.hpp"
+#include "kdtree_eigen_adaptor.hpp"
 
 namespace erl::geometry {
     class LidarFramePartition2D;
@@ -24,6 +25,7 @@ namespace erl::geometry {
             double valid_angle_min = -M_PI;
             double valid_angle_max = M_PI;
             double discontinuity_factor = 10;
+            double rolling_diff_discount = 0.9;
             int min_partition_size = 5;
         };
 
@@ -43,11 +45,16 @@ namespace erl::geometry {
         Eigen::Matrix2Xd m_end_pts_frame_ = {};
         Eigen::Matrix2Xd m_end_pts_world_ = {};
 
-        Eigen::VectorXb m_mask_hit_ = {};         // if i-th element is true, then i-th vertex is a hit
-        Eigen::VectorXb m_mask_continuous_ = {};  // if i-th element is true, then (i-1, i) edge is continuous
+        Eigen::VectorXb m_mask_hit_ = {};           // if i-th element is true, then i-th vertex is a hit
+        Eigen::VectorXb m_mask_continuous_ = {};    // if i-th element is true, then (i-1, i) edge is continuous
+        Eigen::VectorXl m_hit_ray_indices_ = {};    // hit ray indices
+        Eigen::Matrix2Xd m_hit_points_world_ = {};  // hit points in world
 
         double m_max_valid_range_ = 0.0;
         std::vector<LidarFramePartition2D> m_partitions_ = {};
+        bool m_partitioned_ = false;
+
+        std::shared_ptr<KdTree2d> m_kd_tree_ = std::make_shared<KdTree2d>();
 
     public:
         explicit LidarFrame2D(std::shared_ptr<Setting> setting)
@@ -60,7 +67,9 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Matrix2d> &rotation,
             const Eigen::Ref<const Eigen::Vector2d> &translation,
             Eigen::VectorXd angles,
-            Eigen::VectorXd ranges);
+            Eigen::VectorXd ranges,
+            bool partition_rays = false
+        );
 
         [[nodiscard]] inline const std::shared_ptr<Setting> &
         GetSetting() const {
@@ -70,6 +79,11 @@ namespace erl::geometry {
         [[nodiscard]] inline long
         GetNumRays() const {
             return m_angles_frame_.size();
+        }
+
+        [[nodiscard]] inline long
+        GetNumHitRays() const {
+            return m_hit_ray_indices_.size();
         }
 
         [[nodiscard]] inline const Eigen::Matrix2d &
@@ -137,50 +151,57 @@ namespace erl::geometry {
 
         [[nodiscard]] inline const std::vector<LidarFramePartition2D> &
         GetPartitions() const {
+            ERL_ASSERTM(m_partitioned_, "LidarFrame2D::GetPartitions() is called before partitioning.");
             return m_partitions_;
         }
 
         [[nodiscard]] inline bool
-        IsValid() const {
-            return !m_partitions_.empty();
+        IsPartitioned() const {
+            return m_partitioned_;
         }
 
-        inline void
-        ComputeClosestEndPoint(const Eigen::Ref<const Eigen::Vector2d> &position, long &end_point_index, double &distance) const {
-            end_point_index = -1;
-            distance = std::numeric_limits<double>::infinity();
-            long n_vertices = m_end_pts_world_.cols();
-            for (long i = 0; i < n_vertices; ++i) {
-                double d = (m_end_pts_world_.col(i) - position).squaredNorm();
-                if (d < distance) {
-                    end_point_index = i;
-                    distance = d;
-                }
-            }
-            distance = std::sqrt(distance);
+        [[nodiscard]] inline bool
+        IsValid() const {
+            return m_max_valid_range_ > 0;
         }
+
+        void
+        ComputeClosestEndPoint(const Eigen::Ref<const Eigen::Vector2d> &position_world, long &end_point_index, double &distance, bool brute_force = false)
+            const;
 
         void
         SampleAlongRays(
-            int num_samples_per_ray,
+            long num_samples_per_ray,
             double max_in_obstacle_dist,
-            Eigen::Matrix2Xd &positions,
-            Eigen::Matrix2Xd &directions,
-            Eigen::VectorXd &distances) const;
+            Eigen::Matrix2Xd &positions_world,
+            Eigen::Matrix2Xd &directions_world,
+            Eigen::VectorXd &distances
+        ) const;
 
         void
-        SampleAlongRays(double range_step, double max_in_obstacle_dist, Eigen::Matrix2Xd &positions, Eigen::Matrix2Xd &directions, Eigen::VectorXd &distances)
-            const;
+        SampleAlongRays(
+            double range_step, double max_in_obstacle_dist, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+        ) const;
 
         void
-        SampleNearSurface(int num_samples_per_ray, double max_offset, Eigen::Matrix2Xd &positions, Eigen::Matrix2Xd &directions, Eigen::VectorXd &distances)
-            const;
+        SampleNearSurface(
+            long num_samples_per_ray, double max_offset, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+        ) const;
 
         void
-        SampleInRegion(int num_samples, Eigen::Matrix2Xd &positions, Eigen::Matrix2Xd &directions, Eigen::VectorXd &distances) const;
+        SampleInRegion(long num_samples, long num_samples_per_iter, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances) const;
 
         void
-        ComputeRaysAt(const Eigen::Ref<const Eigen::Vector2d> &position, Eigen::Matrix2Xd &directions, Eigen::VectorXd &distances) const;
+        ComputeRaysAt(
+            const Eigen::Ref<const Eigen::Vector2d> &position_world,
+            Eigen::Matrix2Xd &directions_world,
+            Eigen::VectorXd &distances,
+            std::vector<long> &visible_hit_point_indices
+        ) const;
+
+    private:
+        void
+        PartitionRays();
     };
 
     class LidarFramePartition2D {
@@ -229,6 +250,7 @@ namespace YAML {
             node["valid_angle_min"] = rhs.valid_angle_min;
             node["valid_angle_max"] = rhs.valid_angle_max;
             node["discontinuity_factor"] = rhs.discontinuity_factor;
+            node["rolling_diff_discount"] = rhs.rolling_diff_discount;
             node["min_partition_size"] = rhs.min_partition_size;
             return node;
         }
@@ -241,6 +263,7 @@ namespace YAML {
             rhs.valid_angle_min = node["valid_angle_min"].as<double>();
             rhs.valid_angle_max = node["valid_angle_max"].as<double>();
             rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
+            rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
             rhs.min_partition_size = node["min_partition_size"].as<int>();
             return true;
         }
@@ -254,6 +277,7 @@ namespace YAML {
         out << Key << "valid_angle_min" << Value << rhs.valid_angle_min;
         out << Key << "valid_angle_max" << Value << rhs.valid_angle_max;
         out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
+        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
         out << Key << "min_partition_size" << Value << rhs.min_partition_size;
         out << EndMap;
         return out;

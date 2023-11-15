@@ -12,6 +12,7 @@
 
     <build_depend>erl_common</build_depend>
     <build_depend>Qhull</build_depend>
+    <build_depend>Open3D</build_depend>
 
     <build_export_depend>erl_common</build_export_depend>
 

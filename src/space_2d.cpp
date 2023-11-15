@@ -212,8 +212,7 @@ namespace erl::geometry {
     double
     Space2D::ComputeSdfWithKdtree(const Eigen::Vector2d &q, SignMethod sign_method) const {
         double sdf;
-        int idx_vertex_0 = 0, idx_vertex_1 = 0;
-
+        long idx_vertex_0 = 0, idx_vertex_1 = 0;
         m_kdtree_->Knn(1, q, idx_vertex_0, sdf);
         sdf = std::sqrt(sdf);
 

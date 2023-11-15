@@ -61,7 +61,7 @@ void
 MouseCallback2(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     (void) flags;
     auto data = reinterpret_cast<UserData *>(userdata);
-    if (!data->lidar_frame->IsValid()) { return; }
+    if (!data->lidar_frame->IsValid() || !data->lidar_frame->IsPartitioned()) { return; }
     static bool mouse_fixed = false;
 
     if (event == cv::EVENT_LBUTTONDOWN) {

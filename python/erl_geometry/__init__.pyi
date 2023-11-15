@@ -9,6 +9,7 @@ from typing import overload
 
 import numpy as np
 import numpy.typing as npt
+import open3d
 
 from erl_common.storage import GridMapInfo2D
 from erl_common.storage import GridMapInfo3D
@@ -34,6 +35,7 @@ __all__ = [
     "Surface2D",
     "Space2D",
     "Lidar2D",
+    "LidarFramePartition2D",
     "LidarFrame2D",
     "LogOddMap2D",
     "CollisionCheckerBase",
@@ -41,6 +43,10 @@ __all__ = [
     "PointCollisionChecker3D",
     "GridCollisionCheckerSe2",
     "GridCollisionChecker3D",
+    "Lidar3D",
+    "LidarFramePartition3D",
+    "LidarFrame3D",
+    "RgbdFrame3D",
 ]
 
 def marching_square(
@@ -307,7 +313,6 @@ class OccupancyQuadtreeNode:
     def add_log_odds(self, log_odds: float) -> None: ...
 
 class OccupancyQuadtree:
-
     class Setting(YamlableBase):
         log_odd_min: float
         log_odd_max: float
@@ -318,12 +323,10 @@ class OccupancyQuadtree:
         use_change_detection: bool
         use_aabb_limit: bool
         aabb: Aabb2D
-
     @overload
     def __init__(self, resolution: float) -> None: ...
     @overload
     def __init__(self, setting: Setting) -> None: ...
-
     @property
     def tree_type(self) -> str: ...
     @property
@@ -756,6 +759,7 @@ class LidarFrame2D:
         valid_angle_min: float
         valid_angle_max: float
         discontinuity_factor: float
+        rolling_diff_discount: float
         min_partition_size: int
     def __init__(self: LidarFrame2D, setting: LidarFrame2D.Setting) -> None: ...
     def update(
@@ -764,11 +768,14 @@ class LidarFrame2D:
         translation: npt.NDArray[np.float64],
         angles: npt.NDArray[np.float64],
         ranges: npt.NDArray[np.float64],
+        partition_rays: bool = False,
     ): ...
     @property
     def setting(self) -> LidarFrame2D.Setting: ...
     @property
     def num_rays(self) -> int: ...
+    @property
+    def num_hit_rays(self) -> int: ...
     @property
     def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
@@ -806,8 +813,8 @@ class LidarFrame2D:
     ) -> TypedDict(
         "returns",
         {
-            "positions": npt.NDArray[np.float64],
-            "directions": npt.NDArray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
             "distances": npt.NDArray[np.float64],
         },
     ): ...
@@ -817,8 +824,8 @@ class LidarFrame2D:
     ) -> TypedDict(
         "returns",
         {
-            "positions": npt.NDArray[np.float64],
-            "directions": npt.NDArray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
             "distances": npt.NDArray[np.float64],
         },
     ): ...
@@ -827,29 +834,29 @@ class LidarFrame2D:
     ) -> TypedDict(
         "returns",
         {
-            "positions": npt.NDArray[np.float64],
-            "directions": npt.NDArray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
             "distances": npt.NDArray[np.float64],
         },
     ): ...
     def sample_in_region(
-        self, num_samples: int
+        self, num_samples: int, num_samples_per_iter: int
     ) -> TypedDict(
         "returns",
         {
-            "positions": npt.NDArray[np.float64],
-            "directions": npt.NDArray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
             "distances": npt.NDArray[np.float64],
         },
     ): ...
     def compute_rays_at(
-        self, position: npt.NDArray[np.float64]
+        self, position_world: npt.NDArray[np.float64]
     ) -> TypedDict(
         "returns",
         {
-            "positions": npt.NDArray[np.float64],
-            "directions": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
             "distances": npt.NDArray[np.float64],
+            "visible_hit_point_indices": List[int],
         },
     ): ...
 
@@ -949,3 +956,264 @@ class GridCollisionChecker3D:
     def is_collided(self: GridCollisionCheckerSe2, grid_coords: npt.NDArray[np.int32]) -> bool: ...
     @overload
     def is_collided(self: GridCollisionCheckerSe2, pose: npt.NDArray[np.float64]) -> bool: ...
+
+class Lidar3D:
+    class Setting(YamlableBase):
+        azimuth_min: float
+        azimuth_max: float
+        elevation_min: float
+        elevation_max: float
+        num_azimuth_lines: int
+        num_elevation_lines: int
+        add_noise: bool
+        range_stddev: float
+    def __init__(self, setting: Setting, o3d_scene: open3d.t.geometry.RaycastingScene) -> None: ...
+    @property
+    def setting(self) -> Setting: ...
+    @property
+    def azimuth_angles(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def elevation_angles(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def ray_directions(self) -> List[List[npt.NDArray[np.float64]]]: ...
+    @property
+    def scene(self) -> open3d.t.geometry.RaycastingScene: ...
+    def scan(
+        self,
+        orientation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+    ) -> npt.NDArray[np.float64]: ...
+
+class LidarFramePartition3D: ...
+
+class LidarFrame3D:
+    class Setting(YamlableBase):
+        valid_range_min: float
+        valid_range_max: float
+        valid_azimuth_min: float
+        valid_azimuth_max: float
+        valid_elevation_min: float
+        valid_elevation_max: float
+        discontinuity_factor: float
+        rolling_diff_discount: float
+        min_partition_size: int
+    def __init__(self: LidarFrame3D, setting: Setting) -> None: ...
+    def update(
+        self,
+        orientation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+        azimuth_angles: npt.NDArray[np.float64],
+        elevation_angles: npt.NDArray[np.float64],
+        ranges: npt.NDArray[np.float64],
+        partition_rays: bool = False,
+    ) -> None: ...
+    @property
+    def setting(self) -> Setting: ...
+    @property
+    def num_rays(self) -> int: ...
+    @property
+    def num_hit_rays(self) -> int: ...
+    @property
+    def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def translation_vector(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def pose_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def azimuth_angles_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def elevation_angles_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def ranges(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def ray_directions_in_world(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def end_points_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def end_points_in_world(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def max_valid_range(self) -> float: ...
+    @property
+    def is_valid(self) -> bool: ...
+    @property
+    def is_partitioned(self) -> bool: ...
+    @property
+    def partitions(self) -> List[LidarFramePartition3D]: ...
+    def compute_closest_end_point(
+        self, position_world: npt.NDArray[np.float64]
+    ) -> TypedDict("returns", {"azimuth_index": int, "elevation_index": int, "distance": float}): ...
+    @overload
+    def sample_along_rays(
+        self, num_samples_per_ray: int, max_in_obstacle_dist: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    @overload
+    def sample_along_rays(
+        self, range_step: float, max_in_obstacle_dist: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def sample_near_surface(
+        self, num_samples_per_ray: int, max_offset: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def sample_in_region(
+        self, num_samples: int, num_samples_per_iter: int
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def compute_rays_at(
+        self, position_world: npt.NDArray[np.float64]
+    ) -> TypedDict(
+        "returns",
+        {
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+            "visible_hit_point_indices": List[int],
+        },
+    ): ...
+
+class RgbdFrame3D:
+    class Setting(LidarFrame3D.Setting):
+        image_height: int
+        image_width: int
+        camera_fx: float
+        camera_fy: float
+        camera_cx: float
+        camera_cy: float
+        depth_scale: float
+    def __init__(self: RgbdFrame3D, setting: Setting) -> None: ...
+    @overload
+    def update(
+        self,
+        orientation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+        depth: npt.NDArray[np.float64],
+        depth_scaled: bool = True,
+        partition_rays: bool = False,
+    ) -> None: ...
+    @overload
+    def update(
+        self,
+        orientation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+        depth_file: str,
+        partition_rays: bool = False,
+    ) -> None: ...
+    @property
+    def setting(self) -> Setting: ...
+    @property
+    def camera_extrinsic_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def camera_intrinsic_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def num_rays(self) -> int: ...
+    @property
+    def num_hit_rays(self) -> int: ...
+    @property
+    def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def translation_vector(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def pose_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def azimuth_angles_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def elevation_angles_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def ranges(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def ray_directions_in_world(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def end_points_in_frame(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def end_points_in_world(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def max_valid_range(self) -> float: ...
+    @property
+    def is_valid(self) -> bool: ...
+    @property
+    def is_partitioned(self) -> bool: ...
+    @property
+    def partitions(self) -> List[LidarFramePartition3D]: ...
+    def compute_closest_end_point(
+        self, position_world: npt.NDArray[np.float64]
+    ) -> TypedDict("returns", {"azimuth_index": int, "elevation_index": int, "distance": float}): ...
+    @overload
+    def sample_along_rays(
+        self, num_samples_per_ray: int, max_in_obstacle_dist: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    @overload
+    def sample_along_rays(
+        self, range_step: float, max_in_obstacle_dist: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def sample_near_surface(
+        self, num_samples_per_ray: int, max_offset: float
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def sample_in_region(
+        self, num_samples: int, num_samples_per_iter: int
+    ) -> TypedDict(
+        "returns",
+        {
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+        },
+    ): ...
+    def compute_rays_at(
+        self, position_world: npt.NDArray[np.float64]
+    ) -> TypedDict(
+        "returns",
+        {
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
+            "visible_hit_point_indices": List[int],
+        },
+    ): ...

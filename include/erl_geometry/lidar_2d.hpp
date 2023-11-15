@@ -7,6 +7,7 @@
 
 namespace erl::geometry {
 
+    // TODO: add YAML support
     class Lidar2D {
     public:
         enum class Mode { kDdf = 0, kSddfV1 = 1, kSddfV2 = 2 };
