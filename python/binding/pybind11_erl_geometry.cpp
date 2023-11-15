@@ -1142,7 +1142,7 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("rotation"),
             py::arg("translation"),
             py::arg("depth"),
-            py::arg("depth_scale"),
+            py::arg("depth_scaled"),
             py::arg("partition_rays") = false
         )
         .def_property_readonly("setting", [](const RgbdFrame3D &self) { return self.GetSetting(); })

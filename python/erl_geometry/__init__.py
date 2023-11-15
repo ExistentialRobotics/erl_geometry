@@ -23,6 +23,7 @@ __all__ = [
     "Surface2D",
     "Space2D",
     "Lidar2D",
+    "LidarFramePartition2D",
     "LidarFrame2D",
     "LogOddMap2D",
     "CollisionCheckerBase",
@@ -31,6 +32,8 @@ __all__ = [
     "GridCollisionCheckerSe2",
     "GridCollisionChecker3D",
     "Lidar3D",
+    "LidarFramePartition3D",
+    "LidarFrame3D",
     "house_expo",
     "gazebo",
 ]
