@@ -52,5 +52,5 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
   - [Compute Intersections](include/erl_geometry/utils.hpp)
   - [Euler Angle](include/erl_geometry/euler_angle.hpp)
   - [Azimuth Elevation](include/erl_geometry/azimuth_elevation.hpp)
-  - [Compute ConvexHull](include/convex_hull.hpp)
-  - [Hidden Point Removal](include/hidden_point_removal.hpp)
+  - [Compute ConvexHull](include/erl_geometry/convex_hull.hpp)
+  - [Hidden Point Removal](include/erl_geometry/hidden_point_removal.hpp)
