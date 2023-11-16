@@ -60,6 +60,12 @@ namespace erl::geometry {
         }
 
         void
+        Reset() {
+            m_max_valid_range_ = 0.0;
+            m_partitioned_ = false;
+        }
+
+        void
         Update(
             const Eigen::Ref<const Eigen::Matrix3d> &rotation,
             const Eigen::Ref<const Eigen::Vector3d> &translation,
@@ -188,17 +194,28 @@ namespace erl::geometry {
             double max_in_obstacle_dist,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances
+            Eigen::VectorXd &distances,
+            double sampled_rays_ratio
         ) const;
 
         void
         SampleAlongRays(
-            double range_step, double max_in_obstacle_dist, Eigen::Matrix3Xd &positions_world, Eigen::Matrix3Xd &directions_world, Eigen::VectorXd &distances
+            double range_step,
+            double max_in_obstacle_dist,
+            Eigen::Matrix3Xd &positions_world,
+            Eigen::Matrix3Xd &directions_world,
+            Eigen::VectorXd &distances,
+            double sampled_rays_ratio
         ) const;
 
         void
         SampleNearSurface(
-            long num_samples_per_ray, double max_offset, Eigen::Matrix3Xd &positions_world, Eigen::Matrix3Xd &directions_world, Eigen::VectorXd &distances
+            long num_samples_per_ray,
+            double max_offset,
+            Eigen::Matrix3Xd &positions_world,
+            Eigen::Matrix3Xd &directions_world,
+            Eigen::VectorXd &distances,
+            double sampled_rays_ratio
         ) const;
 
         void

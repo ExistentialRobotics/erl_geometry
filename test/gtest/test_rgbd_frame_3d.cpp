@@ -61,6 +61,8 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
         bool show_surface_samples = false;
         bool show_region_samples = false;
         bool show_along_ray_samples = false;
+        bool down_sample = false;
+        double down_sample_factor = 4.0;
         auto update_render = [&](open3d::visualization::Visualizer *vis) {
             auto render_tic = std::chrono::high_resolution_clock::now();
             if (show_rgbd_rays || show_rgbd_points || show_surface_samples || show_region_samples || show_along_ray_samples) {
@@ -71,8 +73,18 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                 auto rgbd_frame_3d_setting = std::make_shared<RgbdFrame3D::Setting>();
                 auto rgbd_frame_3d = std::make_shared<RgbdFrame3D>(rgbd_frame_3d_setting);
                 if (show_rgbd_rays || show_rgbd_points || !surface_samples_ready || !region_samples_ready || !along_ray_samples_ready) {
+                    cv::Mat depth_img = cv::imread((depth_dir / depth_files[cur_depth_file]).string(), cv::IMREAD_UNCHANGED);
+                    if (down_sample) {
+                        double factor = 1 / down_sample_factor;
+                        auto [new_height, new_width] = rgbd_frame_3d->Resize(factor);
+                        cv::resize(depth_img, depth_img, cv::Size(new_width, new_height), 0, 0, cv::INTER_NEAREST);
+                    }
+                    depth_img.convertTo(depth_img, CV_64FC1);  // convert to double
+                    Eigen::MatrixXd depth;
+                    cv::cv2eigen(depth_img, depth);
+                    std::cout << "rgbd image size: " << depth.rows() << " x " << depth.cols() << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->Update(rotation, camera_position, (depth_dir / depth_files[cur_depth_file]).string());
+                    rgbd_frame_3d->Update(rotation, camera_position, depth, false, false);  // depth not scaled yet, do not partition rays
                     auto toc = std::chrono::high_resolution_clock::now();
                     std::cout << "rgbd_frame_3d->Update takes " << std::chrono::duration<double, std::milli>(toc - tic).count() << " ms" << std::endl;
                 }
@@ -116,10 +128,12 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     Eigen::Matrix3Xd sampled_positions, sampled_directions;
                     Eigen::VectorXd sampled_distances;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleNearSurface(10, 0.05, sampled_positions, sampled_directions, sampled_distances);
+                    rgbd_frame_3d->SampleNearSurface(10, 0.05, sampled_positions, sampled_directions, sampled_distances, 1.0);
                     auto toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleNearSurface: " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
                     long num_samples = sampled_positions.cols();
+                    std::cout << "============================" << std::endl
+                              << "SampleNearSurface: " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl
+                              << num_samples << " surface samples" << std::endl;
                     surface_samples_line_set->Clear();
                     surface_samples_line_set->points_.reserve(num_samples * 2);
                     surface_samples_line_set->lines_.reserve(num_samples);
@@ -145,10 +159,11 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                 if (show_region_samples && !region_samples_ready) {
                     Eigen::Matrix3Xd sampled_positions, sampled_directions;
                     Eigen::VectorXd sampled_distances;
-                    long num_samples = rgbd_frame_3d->GetNumRays() / 10;
+                    long num_samples = rgbd_frame_3d->GetNumRays() / 100;
                     long num_samples_per_iter = num_samples / 20;
-                    std::cout << "num_samples: " << num_samples << std::endl;
-                    std::cout << "num_samples_per_iter: " << num_samples_per_iter << std::endl;
+                    std::cout << "============================" << std::endl
+                              << "num_samples: " << num_samples << std::endl
+                              << "num_samples_per_iter: " << num_samples_per_iter << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
                     rgbd_frame_3d->SampleInRegion(num_samples, num_samples_per_iter, sampled_positions, sampled_directions, sampled_distances, true);
                     auto toc = std::chrono::high_resolution_clock::now();
@@ -181,11 +196,13 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     double range_step = 0.2;
                     double max_in_obstacle_dist = 0.05;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, sampled_positions, sampled_directions, sampled_distances);
+                    rgbd_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, sampled_positions, sampled_directions, sampled_distances, 1.0);
                     auto toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleAlongRays (fixed range step): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
-
                     long num_samples = sampled_positions.cols();
+                    std::cout << "============================" << std::endl
+                              << "SampleAlongRays (fixed range step): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms"
+                              << std::endl
+                              << num_samples << " samples" << std::endl;
                     long num_hit_rays = rgbd_frame_3d->GetNumHitRays();
                     long num_samples_per_ray = 5l;
                     num_samples += num_hit_rays * num_samples_per_ray;
@@ -211,11 +228,13 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     }
 
                     tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, sampled_positions, sampled_directions, sampled_distances);
+                    rgbd_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, sampled_positions, sampled_directions, sampled_distances, 1.0);
                     toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleAlongRays (fixed num samples per ray): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
                     long collected_num_samples = num_samples;
                     num_samples = sampled_positions.cols();
+                    std::cout << "SampleAlongRays (fixed num samples per ray): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count()
+                              << " ms" << std::endl
+                              << num_samples << " samples" << std::endl;
                     for (long i = 0; i < num_samples; ++i) {
                         along_ray_samples_line_set->points_.emplace_back(sampled_positions.col(i));
                         along_ray_samples_line_set->points_.emplace_back(sampled_positions.col(i) + sampled_directions.col(i) * sampled_distances[i]);
@@ -351,22 +370,31 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
             update_render(vis);  // notify vis to update
             return true;
         };
-        key_to_callback[GLFW_KEY_LEFT] = [&](open3d::visualization::Visualizer *vis) -> bool {
-            if (cur_depth_file == 0) { return false; }
-            --cur_depth_file;
-            update_render(vis);  // notify vis to update
+        key_to_callback[GLFW_KEY_F8] = [&](open3d::visualization::Visualizer *vis) -> bool {
+            down_sample = !down_sample;
+            std::cout << "down_sample: " << down_sample << std::endl << "down_sample_factor: " << down_sample_factor << std::endl;
             surface_samples_ready = false;
             region_samples_ready = false;
             along_ray_samples_ready = false;
+            update_render(vis);  // notify vis to update
+            return true;
+        };
+        key_to_callback[GLFW_KEY_LEFT] = [&](open3d::visualization::Visualizer *vis) -> bool {
+            if (cur_depth_file == 0) { return false; }
+            --cur_depth_file;
+            surface_samples_ready = false;
+            region_samples_ready = false;
+            along_ray_samples_ready = false;
+            update_render(vis);  // notify vis to update
             return true;
         };
         key_to_callback[GLFW_KEY_RIGHT] = [&](open3d::visualization::Visualizer *vis) -> bool {
             if (cur_depth_file == num_depth_files - 1) { return false; }
             ++cur_depth_file;
-            update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
             along_ray_samples_ready = false;
+            update_render(vis);  // notify vis to update
             return true;
         };
         key_to_callback[GLFW_KEY_H] = [&](open3d::visualization::Visualizer *vis) -> bool {
@@ -380,7 +408,8 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                       << "[F4]: toggle region samples." << std::endl
                       << "[F5]: toggle along ray samples." << std::endl
                       << "[F6]: toggle sample rays." << std::endl
-                      << "[F7]: toggle sample points." << std::endl;
+                      << "[F7]: toggle sample points." << std::endl
+                      << "[F8]: down sample RGBD frame." << std::endl;
             return true;
         };
 

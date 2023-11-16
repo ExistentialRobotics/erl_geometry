@@ -25,16 +25,11 @@ namespace erl::geometry {
         if (joggle_inputs) { options = "QJ"; }
         qhull.runQhull(qhull_points.comment().c_str(), qhull_points.dimension(), qhull_points.count(), qhull_points.coordinates(), options.c_str());
 
-        // get indices of the points on the convex hull
-        orgQhull::QhullFacetList facets = qhull.facetList();
-        std::set<long> indices_set;
-        for (orgQhull::QhullFacet &facet: facets) {
-            if (!facet.isGood()) { continue; }  // skip degenerate facets
-            orgQhull::QhullVertexSet vertices = facet.vertices();
-            for (const orgQhull::QhullVertex &vertex: vertices) { indices_set.insert(vertex.point().id()); }
+        hull_pt_map.clear();
+        hull_pt_map.reserve(qhull.vertexCount());
+        for (const orgQhull::QhullVertex &kVertex: qhull.vertexList()) {
+            hull_pt_map.push_back(kVertex.point().id());
         }
-        hull_pt_map.assign(indices_set.begin(), indices_set.end());
-        std::sort(hull_pt_map.begin(), hull_pt_map.end());
     }
 
     void

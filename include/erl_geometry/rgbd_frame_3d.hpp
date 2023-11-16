@@ -29,12 +29,32 @@ namespace erl::geometry {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
+        /**
+         * @brief Resize the frame by a factor. Need to call Update() after this.
+         * @param factor the factor to resize the frame. (0, 1) to shrink, (1, +inf) to enlarge.
+         * @return the new image size (height, width).
+         */
+        std::pair<int, int>
+        Resize(double factor) {
+            Reset();
+            int old_image_height = m_setting_->image_height;
+            int old_image_width = m_setting_->image_width;
+            m_setting_->image_height = static_cast<int>(m_setting_->image_height * factor);
+            m_setting_->image_width = static_cast<int>(m_setting_->image_width * factor);
+            factor = (double(m_setting_->image_height) / double(old_image_height) + double(m_setting_->image_width) / double(old_image_width)) / 2.0;
+            m_setting_->camera_fx *= factor;
+            m_setting_->camera_fy *= factor;
+            m_setting_->camera_cx *= factor;
+            m_setting_->camera_cy *= factor;
+            return {m_setting_->image_height, m_setting_->image_width};
+        }
+
         void
         Update(
             const Eigen::Ref<const Eigen::Matrix3d> &rotation,
             const Eigen::Ref<const Eigen::Vector3d> &translation,
             Eigen::MatrixXd depth,
-            bool depth_scaled = true,
+            bool depth_scaled,
             bool partition_rays = false
         );
 
@@ -96,6 +116,7 @@ namespace erl::geometry {
         using LidarFrame3D::GetTranslationVector;
         using LidarFrame3D::IsPartitioned;
         using LidarFrame3D::IsValid;
+        using LidarFrame3D::Reset;
         using LidarFrame3D::SampleAlongRays;
         using LidarFrame3D::SampleInRegion;
         using LidarFrame3D::SampleNearSurface;

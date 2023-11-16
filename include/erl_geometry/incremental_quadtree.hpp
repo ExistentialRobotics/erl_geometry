@@ -125,13 +125,10 @@ namespace erl::geometry {
          * @param setting
          * @param area
          * @param node_container_constructor
-         * @param root shared memory of root pointer. If nullptr, this will be the root. Otherwise, you should pass the root's shared memory such that all the
-         * trees in the same tree structure share the same root.
          * @return
          */
         [[nodiscard]] static inline std::shared_ptr<IncrementalQuadtree>
         Create(std::shared_ptr<Setting> setting, const Aabb2D &area, const std::function<std::shared_ptr<NodeContainer>()> &node_container_constructor) {
-
             auto tree = std::shared_ptr<IncrementalQuadtree>(new IncrementalQuadtree(std::move(setting), area, node_container_constructor, nullptr));
             return tree;
         }

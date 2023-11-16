@@ -998,6 +998,7 @@ class LidarFrame3D:
         rolling_diff_discount: float
         min_partition_size: int
     def __init__(self: LidarFrame3D, setting: Setting) -> None: ...
+    def reset(self) -> None: ...
     def update(
         self,
         orientation: npt.NDArray[np.float64],
@@ -1046,7 +1047,7 @@ class LidarFrame3D:
     ) -> TypedDict("returns", {"azimuth_index": int, "elevation_index": int, "distance": float}): ...
     @overload
     def sample_along_rays(
-        self, num_samples_per_ray: int, max_in_obstacle_dist: float
+        self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float
     ) -> TypedDict(
         "returns",
         {
@@ -1057,7 +1058,7 @@ class LidarFrame3D:
     ): ...
     @overload
     def sample_along_rays(
-        self, range_step: float, max_in_obstacle_dist: float
+        self, range_step: float, max_in_obstacle_dist: float, sampled_rays_ratio: float
     ) -> TypedDict(
         "returns",
         {
@@ -1067,7 +1068,7 @@ class LidarFrame3D:
         },
     ): ...
     def sample_near_surface(
-        self, num_samples_per_ray: int, max_offset: float
+        self, num_samples_per_ray: int, max_offset: float, sampled_rays_ratio: float
     ) -> TypedDict(
         "returns",
         {
@@ -1077,7 +1078,7 @@ class LidarFrame3D:
         },
     ): ...
     def sample_in_region(
-        self, num_samples: int, num_samples_per_iter: int
+        self, num_samples: int, num_samples_per_iter: int, parallel: bool
     ) -> TypedDict(
         "returns",
         {
@@ -1107,6 +1108,8 @@ class RgbdFrame3D:
         camera_cy: float
         depth_scale: float
     def __init__(self: RgbdFrame3D, setting: Setting) -> None: ...
+    def reset(self) -> None: ...
+    def resize(self, factor: float) -> Tuple[int, int]: ...
     @overload
     def update(
         self,
@@ -1167,7 +1170,7 @@ class RgbdFrame3D:
     ) -> TypedDict("returns", {"azimuth_index": int, "elevation_index": int, "distance": float}): ...
     @overload
     def sample_along_rays(
-        self, num_samples_per_ray: int, max_in_obstacle_dist: float
+        self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float
     ) -> TypedDict(
         "returns",
         {
@@ -1178,7 +1181,7 @@ class RgbdFrame3D:
     ): ...
     @overload
     def sample_along_rays(
-        self, range_step: float, max_in_obstacle_dist: float
+        self, range_step: float, max_in_obstacle_dist: float, sampled_rays_ratio: float
     ) -> TypedDict(
         "returns",
         {
@@ -1188,7 +1191,7 @@ class RgbdFrame3D:
         },
     ): ...
     def sample_near_surface(
-        self, num_samples_per_ray: int, max_offset: float
+        self, num_samples_per_ray: int, max_offset: float, sampled_rays_ratio: float
     ) -> TypedDict(
         "returns",
         {
@@ -1198,7 +1201,7 @@ class RgbdFrame3D:
         },
     ): ...
     def sample_in_region(
-        self, num_samples: int, num_samples_per_iter: int
+        self, num_samples: int, num_samples_per_iter: int, parallel: bool
     ) -> TypedDict(
         "returns",
         {

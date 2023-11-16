@@ -928,6 +928,7 @@ BindLidarFrame3D(py::module &m) {
         .def_readwrite("rolling_diff_discount", &LidarFrame3D::Setting::rolling_diff_discount)
         .def_readwrite("min_partition_size", &LidarFrame3D::Setting::min_partition_size);
     lidar_frame.def(py::init<std::shared_ptr<LidarFrame3D::Setting>>(), py::arg("setting").none(false))
+        .def("reset", &LidarFrame3D::Reset)
         .def(
             "update",
             &LidarFrame3D::Update,
@@ -1004,8 +1005,8 @@ BindLidarFrame3D(py::module &m) {
         .def_property_readonly(
             "end_points_in_world",
             [](const LidarFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                long n_azimuths = self.GetNumAzimuthLines();
+                long n_elevations = self.GetNumElevationLines();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
                 const Eigen::MatrixX<Eigen::Vector3d> &kEndPointsInWorld = self.GetEndPointsInWorld();
                 for (long i = 0; i < n_azimuths; ++i) {
@@ -1042,11 +1043,11 @@ BindLidarFrame3D(py::module &m) {
         )
         .def(
             "sample_along_rays",
-            [](const LidarFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist) -> py::dict {
+            [](const LidarFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, positions_world, directions_world, distances);
+                self.SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, positions_world, directions_world, distances, sampled_rays_ratio);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1054,15 +1055,16 @@ BindLidarFrame3D(py::module &m) {
                 return out;
             },
             py::arg("num_samples_per_ray"),
-            py::arg("max_in_obstacle_dist")
+            py::arg("max_in_obstacle_dist"),
+            py::arg("sampled_rays_ratio")
         )
         .def(
             "sample_along_rays",
-            [](const LidarFrame3D &self, double range_step, double max_in_obstacle_dist) -> py::dict {
+            [](const LidarFrame3D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleAlongRays(range_step, max_in_obstacle_dist, positions_world, directions_world, distances);
+                self.SampleAlongRays(range_step, max_in_obstacle_dist, positions_world, directions_world, distances, sampled_rays_ratio);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1070,15 +1072,16 @@ BindLidarFrame3D(py::module &m) {
                 return out;
             },
             py::arg("range_step"),
-            py::arg("max_in_obstacle_dist")
+            py::arg("max_in_obstacle_dist"),
+            py::arg("sampled_rays_ratio")
         )
         .def(
             "sample_near_surface",
-            [](const LidarFrame3D &self, long num_samples_per_ray, double max_offset) -> py::dict {
+            [](const LidarFrame3D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleNearSurface(num_samples_per_ray, max_offset, positions_world, directions_world, distances);
+                self.SampleNearSurface(num_samples_per_ray, max_offset, positions_world, directions_world, distances, sampled_rays_ratio);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1086,15 +1089,16 @@ BindLidarFrame3D(py::module &m) {
                 return out;
             },
             py::arg("num_samples_per_ray"),
-            py::arg("max_offset")
+            py::arg("max_offset"),
+            py::arg("sampled_rays_ratio")
         )
         .def(
             "sample_in_region",
-            [](const LidarFrame3D &self, long num_samples, long num_samples_per_iter) -> py::dict {
+            [](const LidarFrame3D &self, long num_samples, long num_samples_per_iter, bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleInRegion(num_samples, num_samples_per_iter, positions_world, directions_world, distances);
+                self.SampleInRegion(num_samples, num_samples_per_iter, positions_world, directions_world, distances, parallel);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1102,7 +1106,8 @@ BindLidarFrame3D(py::module &m) {
                 return out;
             },
             py::arg("num_samples"),
-            py::arg("num_samples_per_iter")
+            py::arg("num_samples_per_iter"),
+            py::arg("parallel")
         )
         .def(
             "compute_rays_at",
@@ -1134,6 +1139,8 @@ BindRgbdFrame3D(py::module &m) {
         .def_readwrite("camera_cy", &RgbdFrame3D::Setting::camera_cy)
         .def_readwrite("depth_scale", &RgbdFrame3D::Setting::depth_scale);
     rgbd_frame.def(py::init<std::shared_ptr<RgbdFrame3D::Setting>>(), py::arg("setting").none(false))
+        .def("reset", [](RgbdFrame3D &self) { self.Reset(); })
+        .def("resize", &RgbdFrame3D::Resize, py::arg("factor"))
         .def(
             "update",
             py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &, const Eigen::Ref<const Eigen::Vector3d> &, Eigen::MatrixXd, bool, bool>(
@@ -1213,8 +1220,8 @@ BindRgbdFrame3D(py::module &m) {
         .def_property_readonly(
             "end_points_in_world",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                long n_azimuths = self.GetNumAzimuthLines();
+                long n_elevations = self.GetNumElevationLines();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
                 const Eigen::MatrixX<Eigen::Vector3d> &kEndPointsInWorld = self.GetEndPointsInWorld();
                 for (long i = 0; i < n_azimuths; ++i) {
@@ -1251,11 +1258,11 @@ BindRgbdFrame3D(py::module &m) {
         )
         .def(
             "sample_along_rays",
-            [](const RgbdFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist) -> py::dict {
+            [](const RgbdFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, positions_world, directions_world, distances);
+                self.SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, positions_world, directions_world, distances, sampled_rays_ratio);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1263,15 +1270,16 @@ BindRgbdFrame3D(py::module &m) {
                 return out;
             },
             py::arg("num_samples_per_ray"),
-            py::arg("max_in_obstacle_dist")
+            py::arg("max_in_obstacle_dist"),
+            py::arg("sampled_rays_ratio")
         )
         .def(
             "sample_along_rays",
-            [](const RgbdFrame3D &self, double range_step, double max_in_obstacle_dist) -> py::dict {
+            [](const RgbdFrame3D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleAlongRays(range_step, max_in_obstacle_dist, positions_world, directions_world, distances);
+                self.SampleAlongRays(range_step, max_in_obstacle_dist, positions_world, directions_world, distances, sampled_rays_ratio);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1279,15 +1287,16 @@ BindRgbdFrame3D(py::module &m) {
                 return out;
             },
             py::arg("range_step"),
-            py::arg("max_in_obstacle_dist")
+            py::arg("max_in_obstacle_dist"),
+            py::arg("sampled_rays_ratio")
         )
         .def(
             "sample_near_surface",
-            [](const RgbdFrame3D &self, long num_samples_per_ray, double max_offset) -> py::dict {
+            [](const RgbdFrame3D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleNearSurface(num_samples_per_ray, max_offset, positions_world, directions_world, distances);
+                self.SampleNearSurface(num_samples_per_ray, max_offset, positions_world, directions_world, distances, sampled_rays_ratio);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1295,15 +1304,16 @@ BindRgbdFrame3D(py::module &m) {
                 return out;
             },
             py::arg("num_samples_per_ray"),
-            py::arg("max_offset")
+            py::arg("max_offset"),
+            py::arg("sampled_rays_ratio")
         )
         .def(
             "sample_in_region",
-            [](const RgbdFrame3D &self, long num_samples, long num_samples_per_iter) -> py::dict {
+            [](const RgbdFrame3D &self, long num_samples, long num_samples_per_iter, bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleInRegion(num_samples, num_samples_per_iter, positions_world, directions_world, distances);
+                self.SampleInRegion(num_samples, num_samples_per_iter, positions_world, directions_world, distances, parallel);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -1311,7 +1321,8 @@ BindRgbdFrame3D(py::module &m) {
                 return out;
             },
             py::arg("num_samples"),
-            py::arg("num_samples_per_iter")
+            py::arg("num_samples_per_iter"),
+            py::arg("parallel")
         )
         .def(
             "compute_rays_at",

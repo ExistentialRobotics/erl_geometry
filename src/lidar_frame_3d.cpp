@@ -126,16 +126,22 @@ namespace erl::geometry {
 
     void
     LidarFrame3D::SampleAlongRays(
-        long num_samples_per_ray, double max_in_obstacle_dist, Eigen::Matrix3Xd &positions_world, Eigen::Matrix3Xd &directions_world, Eigen::VectorXd &distances
+        long num_samples_per_ray,
+        double max_in_obstacle_dist,
+        Eigen::Matrix3Xd &positions_world,
+        Eigen::Matrix3Xd &directions_world,
+        Eigen::VectorXd &distances,
+        double sampled_rays_ratio
     ) const {
-        long n_hit_points = m_hit_points_world_.cols();
-        long n_samples = n_hit_points * num_samples_per_ray;
+        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.cols(), sampled_rays_ratio);
+        auto n_rays = long(ray_indices.size());
+        long n_samples = n_rays * num_samples_per_ray;
         positions_world.resize(3, n_samples);
         directions_world.resize(3, n_samples);
         distances.resize(n_samples);
 
         long index = 0;
-        for (long ray_idx = 0; ray_idx < n_hit_points; ++ray_idx) {
+        for (long &ray_idx: ray_indices) {
             const long &kAzimuthIdx = m_hit_ray_indices_(0, ray_idx);
             const long &kElevationIdx = m_hit_ray_indices_(1, ray_idx);
             double range = m_ranges_(kAzimuthIdx, kElevationIdx);
@@ -158,15 +164,22 @@ namespace erl::geometry {
 
     void
     LidarFrame3D::SampleAlongRays(
-        double range_step, double max_in_obstacle_dist, Eigen::Matrix3Xd &positions_world, Eigen::Matrix3Xd &directions_world, Eigen::VectorXd &distances
+        double range_step,
+        double max_in_obstacle_dist,
+        Eigen::Matrix3Xd &positions_world,
+        Eigen::Matrix3Xd &directions_world,
+        Eigen::VectorXd &distances,
+        double sampled_rays_ratio
     ) const {
-        long n_rays = m_hit_ray_indices_.cols();
+        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.cols(), sampled_rays_ratio);
+        auto n_rays = long(ray_indices.size());
         long n_samples = 0;
         Eigen::VectorXl n_samples_per_ray(n_rays);
-        for (long ray_idx = 0; ray_idx < n_rays; ++ray_idx) {
+        for (long idx = 0; idx < n_rays; ++idx) {
+            long ray_idx = ray_indices[idx];
             const long &kAzimuthIdx = m_hit_ray_indices_(0, ray_idx);
             const long &kElevationIdx = m_hit_ray_indices_(1, ray_idx);
-            long &n = n_samples_per_ray[ray_idx];
+            long &n = n_samples_per_ray[idx];
             n = long(std::floor((m_ranges_(kAzimuthIdx, kElevationIdx) + max_in_obstacle_dist) / range_step)) + 1;
             n_samples += n;
         }
@@ -175,10 +188,11 @@ namespace erl::geometry {
         distances.resize(n_samples);
 
         long sample_idx = 0;
-        for (long ray_idx = 0; ray_idx < n_rays; ++ray_idx) {
+        for (long idx = 0; idx < n_rays; ++idx) {
+            long ray_idx = ray_indices[idx];
             const long &kAzimuthIdx = m_hit_ray_indices_(0, ray_idx);
             const long &kElevationIdx = m_hit_ray_indices_(1, ray_idx);
-            long &n_samples_of_ray = n_samples_per_ray[ray_idx];
+            long &n_samples_of_ray = n_samples_per_ray[idx];
 
             double range = m_ranges_(kAzimuthIdx, kElevationIdx);
             const Eigen::Vector3d &kDirWorld = m_dirs_world_(kAzimuthIdx, kElevationIdx);
@@ -198,9 +212,15 @@ namespace erl::geometry {
 
     void
     LidarFrame3D::SampleNearSurface(
-        long num_samples_per_ray, double max_offset, Eigen::Matrix3Xd &positions_world, Eigen::Matrix3Xd &directions_world, Eigen::VectorXd &distances
+        long num_samples_per_ray,
+        double max_offset,
+        Eigen::Matrix3Xd &positions_world,
+        Eigen::Matrix3Xd &directions_world,
+        Eigen::VectorXd &distances,
+        double sampled_rays_ratio
     ) const {
-        long n_rays = m_hit_ray_indices_.cols();
+        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.cols(), sampled_rays_ratio);
+        auto n_rays = long(ray_indices.size());
         long n_samples = n_rays * num_samples_per_ray;
         positions_world.resize(3, n_samples);
         directions_world.resize(3, n_samples);
@@ -208,14 +228,16 @@ namespace erl::geometry {
 
         std::uniform_real_distribution<double> uniform(-max_offset, max_offset);
         long sample_idx = 0;
-        for (long ray_idx = 0; ray_idx < n_rays; ++ray_idx) {
+        for (long &ray_idx: ray_indices) {
             const long &kAzimuthIdx = m_hit_ray_indices_(0, ray_idx);
             const long &kElevationIdx = m_hit_ray_indices_(1, ray_idx);
             const Eigen::Vector3d &kDirWorld = m_dirs_world_(kAzimuthIdx, kElevationIdx);
-            double offset = uniform(erl::common::g_random_engine);
-            positions_world.col(sample_idx) << m_translation_ + (m_ranges_(kAzimuthIdx, kElevationIdx) + offset) * kDirWorld;
-            directions_world.col(sample_idx) << kDirWorld;
-            distances[sample_idx++] = -offset;
+            for (long i = 0; i < num_samples_per_ray; ++i) {
+                double offset = uniform(erl::common::g_random_engine);
+                positions_world.col(sample_idx) << m_translation_ + (m_ranges_(kAzimuthIdx, kElevationIdx) + offset) * kDirWorld;
+                directions_world.col(sample_idx) << kDirWorld;
+                distances[sample_idx++] = -offset;
+            }
         }
     }
 
@@ -231,10 +253,8 @@ namespace erl::geometry {
         ERL_ASSERTM(num_samples > 0, "num_samples (%ld) must be positive.", num_samples);
         if (num_samples_per_iter < 0 || num_samples_per_iter >= num_samples) { num_samples_per_iter = num_samples; }
 
-        auto num_batches = num_samples / num_samples_per_iter;
-        if (num_batches <= 1) { parallel = false; }
         if (parallel) {
-            uint32_t num_threads = std::min(uint32_t(num_batches), std::thread::hardware_concurrency());
+            uint32_t num_threads = std::thread::hardware_concurrency();
             long num_samples_per_thread = num_samples / num_threads + 1;  // make sure we have enough samples
             std::vector<std::thread> threads;
             threads.reserve(num_threads);
@@ -258,7 +278,7 @@ namespace erl::geometry {
             }
             for (auto &thread: threads) { thread.join(); }
             threads.clear();
-            ERL_INFO("%ld samples collected in %ld iterations.", num_samples_per_thread * num_threads, std::accumulate(iter_cnts.begin(), iter_cnts.end(), 0L));
+            ERL_DEBUG("%ld samples collected in %ld iterations.", num_samples_per_thread * num_threads, std::accumulate(iter_cnts.begin(), iter_cnts.end(), 0L));
             positions_world.resize(3, num_samples);
             directions_world.resize(3, num_samples);
             distances.resize(num_samples);
@@ -273,7 +293,7 @@ namespace erl::geometry {
         } else {
             long iter_cnt = 0;
             SampleInRegionThread(erl::common::g_random_engine(), num_samples, num_samples_per_iter, &positions_world, &directions_world, &distances, &iter_cnt);
-            ERL_INFO("%ld samples collected in %ld iterations.", num_samples, iter_cnt);
+            ERL_DEBUG("%ld samples collected in %ld iterations.", num_samples, iter_cnt);
         }
     }
 
@@ -391,9 +411,8 @@ namespace erl::geometry {
 
             long num_samples_to_collect = std::min(num_samples - collected_samples, num_samples_per_iter);
             if (num_samples_to_collect < num_rays) {
-                std::vector<long> indices(num_rays);
-                std::iota(indices.begin(), indices.end(), 0);
-                std::shuffle(indices.begin(), indices.end(), random_engine);
+                std::vector<long> indices = common::GenerateShuffledIndices<long>(num_rays, random_engine);
+
                 for (long i = 0; i < num_samples_to_collect; ++i) {
                     long &ray_idx = indices[i];
                     positions_world.col(collected_samples) << position_world;
