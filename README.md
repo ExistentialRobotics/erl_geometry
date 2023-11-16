@@ -39,8 +39,12 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
 - 2D Point Cloud Processing
   - [Surface 2D](include/erl_geometry/surface_2d.hpp): data structure to store 2D surface consisting of points and normals.
   - [Space 2D](include/erl_geometry/space_2d.hpp): algorithm to compute SDF, SDDF and normals.
-  - [Lidar 2D](include/erl_geometry/lidar_2d.hpp): generate 2D lidar scan with a given space.
-  - [Lidar Frame 2D](include/erl_geometry/lidar_frame_2d.hpp): data structure to store 2D lidar scan and sample from it.
+  - [LiDAR 2D](include/erl_geometry/lidar_2d.hpp): generate 2D LiDAR scan with a given space.
+  - [LiDAR Frame 2D](include/erl_geometry/lidar_frame_2d.hpp): data structure to store 2D LiDAR scan and sample from it.
+- 3D Point Cloud Processing
+  - [LiDAR 3D](include/erl_geometry/lidar_3d.hpp): generate 3D LiDAR scan with a given scene.
+  - [LiDAR Frame 3D](include/erl_geometry/lidar_frame_3d.hpp): data structure to store 3D LiDAR scan and sample from it.
+  - [RGBD Frame 3D](include/erl_geometry/rgbd_frame_3d.hpp): data structure to store a RGBD image (currently only depth) and sample from it.
 - Datasets
   - [HouseExpo](python/erl_geometry/house_expo/README.md)
   - [GazeboSequence](python/erl_geometry/gazebo/sequence.py)
@@ -48,3 +52,5 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
   - [Compute Intersections](include/erl_geometry/utils.hpp)
   - [Euler Angle](include/erl_geometry/euler_angle.hpp)
   - [Azimuth Elevation](include/erl_geometry/azimuth_elevation.hpp)
+  - [Compute ConvexHull](include/convex_hull.hpp)
+  - [Hidden Point Removal](include/hidden_point_removal.hpp)
