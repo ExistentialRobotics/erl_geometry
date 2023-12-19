@@ -7,7 +7,6 @@
 
 namespace erl::geometry {
 
-    // TODO: add YAML support
     class Lidar2D {
     public:
         enum class Mode { kDdf = 0, kSddfV1 = 1, kSddfV2 = 2 };
@@ -27,145 +26,147 @@ namespace erl::geometry {
             throw std::runtime_error("Unknown mode: " + mode_name);
         }
 
+        struct Setting : common::Yamlable<Setting> {
+            double min_angle = -M_PI;
+            double max_angle = M_PI;  // [min_angle, max_angle) by default
+            int num_lines = 360;
+            Mode mode = Mode::kDdf;
+            Space2D::SignMethod sign_method = Space2D::SignMethod::kLineNormal;
+        };
+
     private:
-        std::shared_ptr<Space2D> m_space_;
-        Eigen::Isometry2d m_pose_;
-        double m_min_angle_ = -M_PI;
-        double m_max_angle_ = M_PI;
-        int m_num_lines_ = 360;
-        Eigen::VectorXd m_angles_;
-        Eigen::Matrix2Xd m_directions_;
-        Mode m_mode_ = Mode::kDdf;
-        Space2D::SignMethod m_sign_method_ = Space2D::SignMethod::kLineNormal;
+        std::shared_ptr<Setting> m_setting_ = nullptr;
+        std::shared_ptr<Space2D> m_space_ = nullptr;
 
     public:
         Lidar2D() = delete;
 
-        explicit Lidar2D(std::shared_ptr<Space2D> space);
-
-        [[nodiscard]] inline Eigen::Matrix3d
-        GetPose() const {
-            return m_pose_.matrix();
+        Lidar2D(std::shared_ptr<Setting> setting, std::shared_ptr<Space2D> space)
+            : m_setting_(std::move(setting)),
+              m_space_(std::move(space)) {
+            ERL_ASSERTM(m_space_ != nullptr, "space cannot be nullptr!");
         }
 
-        inline void
-        SetPose(const Eigen::Matrix3d &pose) {
-            m_pose_ = pose;
+        [[nodiscard]] inline std::shared_ptr<Setting>
+        GetSetting() const {
+            return m_setting_;
         }
-
-        [[nodiscard]] inline Eigen::Vector2d
-        GetTranslation() const {
-            return m_pose_.translation();
-        }
-
-        inline void
-        SetTranslation(const Eigen::Ref<const Eigen::Vector2d> &translation) {
-            m_pose_.translation() = translation;
-        }
-
-        [[nodiscard]] inline Eigen::Matrix2d
-        GetRotation() const {
-            return m_pose_.linear();  // faster than .rotation
-        }
-
-        inline void
-        SetRotation(const Eigen::Ref<const Eigen::Matrix2d> &rotation) {
-            m_pose_.matrix().block<2, 2>(0, 0) = rotation;
-        }
-
-        inline void
-        SetRotation(double angle) {
-            m_pose_.matrix().block<2, 2>(0, 0) = Eigen::Rotation2Dd(angle).matrix();
-        }
-
-        [[nodiscard]] inline double
-        GetMinAngle() const {
-            return m_min_angle_;
-        }
-
-        void
-        SetMinAngle(double angle);
-
-        [[nodiscard]] inline double
-        GetMaxAngle() const {
-            return m_max_angle_;
-        }
-
-        void
-        SetMaxAngle(double angle);
-
-        [[nodiscard]] inline int
-        GetNumLines() const {
-            return m_num_lines_;
-        }
-
-        void
-        SetNumLines(int num_lines);
 
         [[nodiscard]] inline Eigen::VectorXd
         GetAngles() const {
-            return m_angles_;
+            if (m_setting_->max_angle - m_setting_->min_angle == 2 * M_PI) {
+                double d = 2 * M_PI / m_setting_->num_lines;
+                return Eigen::VectorXd::LinSpaced(m_setting_->num_lines, m_setting_->min_angle, m_setting_->max_angle - d);
+            }
+            return Eigen::VectorXd::LinSpaced(m_setting_->num_lines, m_setting_->min_angle, m_setting_->max_angle);
         }
 
         [[nodiscard]] inline Eigen::Matrix2Xd
-        GetRayDirections() const {
-            return m_directions_;
+        GetRayDirectionsInFrame() const {
+            Eigen::Matrix2Xd directions(2, m_setting_->num_lines);
+            Eigen::VectorXd angles = GetAngles();
+            directions << angles.array().cos().transpose(), angles.array().sin().transpose();
+            return directions;
         }
 
-        [[nodiscard]] inline Eigen::Matrix2Xd
-        GetOrientedRayDirections() const {
-            auto rotation = GetRotation();
-            return rotation * m_directions_;
+        [[nodiscard]] inline Eigen::VectorXd
+        Scan(double rotation_angle, const Eigen::Ref<const Eigen::Vector2d> &translation, bool parallel) const {
+            Eigen::Matrix2d rotation = Eigen::Rotation2Dd(rotation_angle).toRotationMatrix();
+            return Scan(rotation, translation, parallel);
         }
 
-        [[nodiscard]] inline Mode
-        GetMode() const {
-            return m_mode_;
+        [[nodiscard]] inline Eigen::VectorXd
+        Scan(const Eigen::Ref<const Eigen::Matrix2d> &rotation, const Eigen::Ref<const Eigen::Vector2d> &translation, bool parallel) const {
+            Eigen::Matrix2Xd directions = rotation * GetRayDirectionsInFrame();
+            Eigen::Matrix2Xd positions = translation.replicate(1, m_setting_->num_lines);
+            switch (m_setting_->mode) {
+                case Mode::kDdf:
+                    return m_space_->ComputeDdf(positions, directions, parallel);
+                case Mode::kSddfV1:
+                    return m_space_->ComputeSddfV1(positions, directions, parallel);
+                case Mode::kSddfV2:
+                    return m_space_->ComputeSddfV2(positions, directions, m_setting_->sign_method, parallel);
+            }
+
+            throw std::runtime_error("Unknown mode: " + std::to_string(int(m_setting_->mode)));
         }
 
-        inline void
-        SetMode(Mode mode) {
-            m_mode_ = mode;
+        [[nodiscard]] inline std::vector<Eigen::VectorXd>
+        ScanMultiPoses(const std::vector<Eigen::Matrix3d> &poses, bool parallel = false) const {
+            auto n = int(poses.size());
+            std::vector<Eigen::VectorXd> out(n);
+
+#pragma omp parallel for if (parallel) default(none) shared(poses, n, out, Eigen::Dynamic)
+            for (int i = 0; i < n; ++i) {
+                Eigen::Matrix2d rotation = poses[i].block<2, 2>(0, 0);
+                Eigen::Vector2d translation = poses[i].block<2, 1>(0, 2);
+                out[i] = Scan(rotation, translation, false);
+            }
+
+            return out;
         }
-
-        [[nodiscard]] inline Space2D::SignMethod
-        GetSignMethod() const {
-            return m_sign_method_;
-        }
-
-        inline void
-        SetSignMethod(Space2D::SignMethod sign_method) {
-            m_sign_method_ = sign_method;
-        }
-
-        [[nodiscard]] Eigen::VectorXd
-        Scan(bool parallel = false) const;
-
-        [[nodiscard]] std::vector<Eigen::VectorXd>
-        ScanMultiPoses(const std::vector<Eigen::Matrix3d> &poses, bool parallel = false) const;
-
-        [[nodiscard]] std::vector<Eigen::VectorXd>
-        ScanMultiPoses(
-            const Eigen::Ref<const Eigen::VectorXd> &xs,
-            const Eigen::Ref<const Eigen::VectorXd> &ys,
-            const Eigen::Ref<const Eigen::VectorXd> &thetas,
-            bool parallel = false) const;
-
-        [[nodiscard]] std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>>
-        GetRays(bool parallel = false) const;
-
-        [[nodiscard]] std::vector<std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>>>
-        GetRaysOfMultiPoses(const std::vector<Eigen::Matrix3d> &poses, bool parallel = false) const;
-
-        [[nodiscard]] std::vector<std::vector<std::pair<Eigen::Vector2d, Eigen::Vector2d>>>
-        GetRaysOfMultiPoses(
-            const Eigen::Ref<const Eigen::VectorXd> &xs,
-            const Eigen::Ref<const Eigen::VectorXd> &ys,
-            const Eigen::Ref<const Eigen::VectorXd> &thetas,
-            bool parallel = false) const;
-
-    private:
-        void
-        UpdateDirections();
     };
 }  // namespace erl::geometry
+
+namespace YAML {
+
+    template<>
+    struct convert<erl::geometry::Lidar2D::Mode> {
+        static Node
+        encode(const erl::geometry::Lidar2D::Mode &rhs) {
+            Node node;
+            node = erl::geometry::Lidar2D::GetModeName(rhs);
+            return node;
+        }
+
+        static bool
+        decode(const Node &node, erl::geometry::Lidar2D::Mode &rhs) {
+            if (!node.IsScalar()) { return false; }
+            rhs = erl::geometry::Lidar2D::GetModeFromName(node.as<std::string>());
+            return true;
+        }
+    };
+
+    inline Emitter &
+    operator<<(Emitter &out, const erl::geometry::Lidar2D::Mode &rhs) {
+        out << erl::geometry::Lidar2D::GetModeName(rhs);
+        return out;
+    }
+
+    template<>
+    struct convert<erl::geometry::Lidar2D::Setting> {
+        static Node
+        encode(const erl::geometry::Lidar2D::Setting &rhs) {
+            Node node;
+            node["min_angle"] = rhs.min_angle;
+            node["max_angle"] = rhs.max_angle;
+            node["num_lines"] = rhs.num_lines;
+            node["mode"] = rhs.mode;
+            node["sign_method"] = rhs.sign_method;
+            return node;
+        }
+
+        static bool
+        decode(const Node &node, erl::geometry::Lidar2D::Setting &rhs) {
+            if (!node.IsMap()) { return false; }
+            rhs.min_angle = node["min_angle"].as<double>();
+            rhs.max_angle = node["max_angle"].as<double>();
+            rhs.num_lines = node["num_lines"].as<int>();
+            rhs.mode = node["mode"].as<erl::geometry::Lidar2D::Mode>();
+            rhs.sign_method = node["sign_method"].as<erl::geometry::Space2D::SignMethod>();
+            return true;
+        }
+    };
+
+    inline Emitter &
+    operator<<(Emitter &out, const erl::geometry::Lidar2D::Setting &rhs) {
+        out << BeginMap;
+        out << Key << "min_angle" << Value << rhs.min_angle;
+        out << Key << "max_angle" << Value << rhs.max_angle;
+        out << Key << "num_lines" << Value << rhs.num_lines;
+        out << Key << "mode" << Value << rhs.mode;
+        out << Key << "sign_method" << Value << rhs.sign_method;
+        out << EndMap;
+        return out;
+    }
+}  // namespace YAML

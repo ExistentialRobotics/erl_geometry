@@ -6,7 +6,6 @@
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 
-
 TEST(ERL_GEOMETRY, OccupancyQuadtreeHouseExpo) {
     std::filesystem::path test_data_dir = std::filesystem::path(__FILE__).parent_path();
     int map_index = 1451;
@@ -16,13 +15,10 @@ TEST(ERL_GEOMETRY, OccupancyQuadtreeHouseExpo) {
     Eigen::Vector2d map_max = house_expo_map.GetMeterSpace()->GetSurface()->vertices.rowwise().maxCoeff();
     Eigen::Vector2d map_resolution(0.01, 0.01);
     Eigen::Vector2i map_padding(100, 100);
-    erl::geometry::Lidar2D lidar(house_expo_map.GetMeterSpace());
-    double angle_min = -M_PI;
-    double angle_max = M_PI;
-    double res = 0.5 * M_PI / 180.0;
+    auto lidar_setting = std::make_shared<erl::geometry::Lidar2D::Setting>();
+    lidar_setting->num_lines = 720;
+    erl::geometry::Lidar2D lidar(lidar_setting, house_expo_map.GetMeterSpace());
     bool scan_in_parallel = true;
-    lidar.SetNumLines(int((angle_max - angle_min) / res));
-    long num_lines = lidar.GetNumLines();
 
     std::filesystem::path traj_file_path = test_data_dir / ("house_expo_room_" + std::to_string(map_index) + ".csv");
     std::vector<std::vector<double>> trajectory =
@@ -48,11 +44,11 @@ TEST(ERL_GEOMETRY, OccupancyQuadtreeHouseExpo) {
     bool pixel_based = true;
     cv::Scalar trajectory_color(0, 0, 255, 255);
     Eigen::VectorXd lidar_angles = lidar.GetAngles();
-    Eigen::Matrix2Xd line_directions(2, num_lines);
-    Eigen::Matrix2Xd points(2, num_lines);
+    Eigen::Matrix2Xd line_directions(2, lidar_setting->num_lines);
+    Eigen::Matrix2Xd points(2, lidar_setting->num_lines);
     cv::Mat img;
     const char *window_name = "quadtree house expo";
-    for (long i = 0; i < num_lines; ++i) { line_directions.col(i) << std::cos(lidar_angles[i]), std::sin(lidar_angles[i]); }
+    for (long i = 0; i < lidar_setting->num_lines; ++i) { line_directions.col(i) << std::cos(lidar_angles[i]), std::sin(lidar_angles[i]); }
     std::cout << "Press any key to start" << std::endl;
     drawer->DrawLeaves(img);
     cv::imshow(window_name, img);
@@ -61,14 +57,13 @@ TEST(ERL_GEOMETRY, OccupancyQuadtreeHouseExpo) {
     for (long i = 0; i < max_update_cnt; ++i) { cur_traj.col(i) << trajectory[i][0], trajectory[i][1]; }
     for (long i = 0; i < max_update_cnt; i += stride) {
         std::vector<double> &waypoint = trajectory[i];
-        lidar.SetTranslation(Eigen::Vector2d(waypoint[0], waypoint[1]));
-        lidar.SetRotation(waypoint[2]);
-        auto lidar_ranges = lidar.Scan(scan_in_parallel);
+
+        Eigen::Matrix2d rotation = Eigen::Rotation2Dd(waypoint[2]).toRotationMatrix();
+        Eigen::Vector2d translation(waypoint[0], waypoint[1]);
+        auto lidar_ranges = lidar.Scan(rotation, translation, scan_in_parallel);
         // lidar_ranges += erl::common::GenerateGaussianNoise(lidar_ranges.size(), 0.0, 0.01);
 
-        Eigen::Matrix2d rotation = lidar.GetRotation();
-        Eigen::Vector2d translation = lidar.GetTranslation();
-        for (long j = 0; j < num_lines; ++j) { points.col(j) << rotation * (lidar_ranges[j] * line_directions.col(j)) + translation; }
+        for (long j = 0; j < lidar_setting->num_lines; ++j) { points.col(j) << rotation * (lidar_ranges[j] * line_directions.col(j)) + translation; }
         auto t0 = std::chrono::high_resolution_clock::now();
         tree->InsertPointCloud(points, translation, max_range, parallel, lazy_eval, discrete);
         auto t1 = std::chrono::high_resolution_clock::now();

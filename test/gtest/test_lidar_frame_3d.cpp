@@ -47,7 +47,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         o3d_scene->AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*room_mesh));
 
         auto lidar_3d_setting = std::make_shared<Lidar3D::Setting>();
-        auto lidar_3d = std::make_shared<Lidar3D>(lidar_3d_setting, o3d_scene);
+        auto lidar_3d = std::make_shared<Lidar3D>(lidar_3d_setting, room_mesh->vertices_, room_mesh->triangles_);
 
         double lidar_roll = 0.0;
         double lidar_pitch = 0.0;
@@ -120,7 +120,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     Eigen::Matrix3Xd sampled_positions, sampled_directions;
                     Eigen::VectorXd sampled_distances;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    lidar_frame_3d->SampleNearSurface(10, 0.05, sampled_positions, sampled_directions, sampled_distances, 1.0);
+                    lidar_frame_3d->SampleNearSurface(10, 0.05, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     auto toc = std::chrono::high_resolution_clock::now();
                     std::cout << "SampleNearSurface: " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
                     long num_samples = sampled_positions.cols();
@@ -185,7 +185,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     double range_step = 0.2;
                     double max_in_obstacle_dist = 0.05;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    lidar_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, sampled_positions, sampled_directions, sampled_distances, 1.0);
+                    lidar_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     auto toc = std::chrono::high_resolution_clock::now();
                     std::cout << "SampleAlongRays (fixed range step): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
 
@@ -215,7 +215,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     }
 
                     tic = std::chrono::high_resolution_clock::now();
-                    lidar_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, sampled_positions, sampled_directions, sampled_distances, 1.0);
+                    lidar_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     toc = std::chrono::high_resolution_clock::now();
                     std::cout << "SampleAlongRays (fixed num samples per ray): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
                     long collected_num_samples = num_samples;

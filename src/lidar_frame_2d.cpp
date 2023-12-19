@@ -96,17 +96,25 @@ namespace erl::geometry {
 
     void
     LidarFrame2D::SampleAlongRays(
-        long num_samples_per_ray, double max_in_obstacle_dist, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+        long n_samples_per_ray,
+        double max_in_obstacle_dist,
+        double sampled_rays_ratio,
+        Eigen::Matrix2Xd &positions_world,
+        Eigen::Matrix2Xd &directions_world,
+        Eigen::VectorXd &distances
     ) const {
-        long num_samples = num_samples_per_ray * m_hit_ray_indices_.size();
-        positions_world.resize(2, num_samples);
-        directions_world.resize(2, num_samples);
-        distances.resize(num_samples);
+        std::vector<long> hit_ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
+        auto n_rays = long(hit_ray_indices.size());
+        long n_samples = n_rays * n_samples_per_ray;
+        positions_world.resize(2, n_samples);
+        directions_world.resize(2, n_samples);
+        distances.resize(n_samples);
 
         long index = 0;
-        for (const long &kRayIdx: m_hit_ray_indices_) {
-            double range = m_angles_frame_[kRayIdx];
-            double range_step = (range + max_in_obstacle_dist) / double(num_samples_per_ray);
+        for (long &hit_ray_idx: hit_ray_indices) {
+            const long &kRayIdx = m_hit_ray_indices_[hit_ray_idx];
+            double range = m_ranges_[kRayIdx];
+            double range_step = (range + max_in_obstacle_dist) / double(n_samples_per_ray);
             const Eigen::Vector2d &kDirWorld = m_dirs_world_.col(kRayIdx);
 
             positions_world.col(index) << m_translation_;
@@ -114,7 +122,7 @@ namespace erl::geometry {
             distances[index++] = range;
 
             Eigen::Vector2d shift = range_step * kDirWorld;
-            for (long j = 1; j < num_samples_per_ray; ++j) {
+            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_per_ray; ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(index) << positions_world.col(index - 1) + shift;
                 directions_world.col(index) << kDirWorld;
@@ -125,15 +133,22 @@ namespace erl::geometry {
 
     void
     LidarFrame2D::SampleAlongRays(
-        double range_step, double max_in_obstacle_dist, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+        double range_step,
+        double max_in_obstacle_dist,
+        double sampled_rays_ratio,
+        Eigen::Matrix2Xd &positions_world,
+        Eigen::Matrix2Xd &directions_world,
+        Eigen::VectorXd &distances
     ) const {
-
-        long num_rays = m_hit_ray_indices_.size();
+        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
+        auto n_rays = long(ray_indices.size());
         long num_samples = 0;
-        Eigen::VectorXl num_samples_per_ray(num_rays);
-        for (long ray_idx = 0; ray_idx < num_rays; ++ray_idx) {
-            long &n = num_samples_per_ray[ray_idx];
-            n = long(std::floor((m_ranges_[m_hit_ray_indices_[ray_idx]] + max_in_obstacle_dist) / range_step)) + 1;
+        std::vector<std::pair<long, long>> n_samples_per_ray;
+        n_samples_per_ray.reserve(n_rays);
+        for (long &idx: ray_indices) {
+            auto ray_idx = m_hit_ray_indices_[idx];
+            auto n = long(std::floor((m_ranges_[ray_idx] + max_in_obstacle_dist) / range_step)) + 1;
+            n_samples_per_ray.emplace_back(ray_idx, n);
             num_samples += n;
         }
         positions_world.resize(2, num_samples);
@@ -141,18 +156,15 @@ namespace erl::geometry {
         distances.resize(num_samples);
 
         long sample_idx = 0;
-        for (long i = 0; i < num_rays; ++i) {
-            long &num_samples_of_ray = num_samples_per_ray[i];
-            const long &kRayIdx = m_hit_ray_indices_[i];
-
-            double range = m_ranges_[kRayIdx];
-            const Eigen::Vector2d &kDirWorld = m_dirs_world_.col(kRayIdx);
+        for (auto &[ray_idx, n_samples_of_ray]: n_samples_per_ray) {
+            double range = m_ranges_[ray_idx];
+            const Eigen::Vector2d &kDirWorld = m_dirs_world_.col(ray_idx);
             positions_world.col(sample_idx) << m_translation_;
             directions_world.col(sample_idx) << kDirWorld;
             distances[sample_idx++] = range;
 
             Eigen::Vector2d shift = range_step * kDirWorld;
-            for (long sample_idx_of_ray = 1; sample_idx_of_ray < num_samples_of_ray; ++sample_idx_of_ray) {
+            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_of_ray; ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(sample_idx) << positions_world.col(sample_idx - 1) + shift;
                 directions_world.col(sample_idx) << kDirWorld;
@@ -163,21 +175,28 @@ namespace erl::geometry {
 
     void
     LidarFrame2D::SampleNearSurface(
-        long num_samples_per_ray, double max_offset, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+        long num_samples_per_ray,
+        double max_offset,
+        double sampled_rays_ratio,
+        Eigen::Matrix2Xd &positions_world,
+        Eigen::Matrix2Xd &directions_world,
+        Eigen::VectorXd &distances
     ) const {
-        long num_rays = m_hit_ray_indices_.size();
-        long num_samples = num_samples_per_ray * num_rays;
-        positions_world.resize(2, num_samples);
-        directions_world.resize(2, num_samples);
-        distances.resize(num_samples);
+        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
+        auto n_rays = long(ray_indices.size());
+        long n_samples = num_samples_per_ray * n_rays;
+        positions_world.resize(2, n_samples);
+        directions_world.resize(2, n_samples);
+        distances.resize(n_samples);
 
         std::uniform_real_distribution<double> uniform(-max_offset, max_offset);
         long sample_idx = 0;
-        for (const long &kRayIdx: m_hit_ray_indices_) {
+        for (long &hit_ray_idx: ray_indices) {
+            const long &kRayIdx = m_hit_ray_indices_[hit_ray_idx];
             const double &kRange = m_ranges_[kRayIdx];
+            auto dir_world = m_dirs_world_.col(kRayIdx);
             for (long ray_sample_idx = 0; ray_sample_idx < num_samples_per_ray; ++ray_sample_idx) {
                 double offset = uniform(erl::common::g_random_engine);
-                auto dir_world = m_dirs_world_.col(kRayIdx);
                 positions_world.col(sample_idx) << m_translation_ + (kRange + offset) * dir_world;
                 directions_world.col(sample_idx) << dir_world;
                 distances[sample_idx++] = -offset;

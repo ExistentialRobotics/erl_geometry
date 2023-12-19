@@ -20,21 +20,24 @@ namespace erl::geometry {
             auto projected_point = projected_points.col(i);
             double &norm = norms[i];
 
-            norm = 0;
-#pragma GCC unroll 3
-            for (long j = 0; j < 3; ++j) {
-                double &p = projected_point[j];
-                p = point[j] - camera_position[j];
-                norm += p * p;
-            }
-            norm = std::sqrt(norm);
+            projected_point << point - camera_position;
+            norm = projected_point.norm();
+//            norm = 0;
+//#pragma GCC unroll 3
+//            for (long j = 0; j < 3; ++j) {
+//                double &p = projected_point[j];
+//                p = point[j] - camera_position[j];
+//                norm += p * p;
+//            }
+//            norm = std::sqrt(norm);
             ERL_ASSERTM(norm < radius, "norm (%f) should be < radius (%f).", norm, radius);
 
-#pragma GCC unroll 3
-            for (long j = 0; j < 3; ++j) {
-                double &p = projected_point[j];
-                p += 2 * (radius - norm) * (p / norm);
-            }
+            projected_point << projected_point + 2 * (radius - norm) * (projected_point / norm);
+//#pragma GCC unroll 3
+//            for (long j = 0; j < 3; ++j) {
+//                double &p = projected_point[j];
+//                p += 2 * (radius - norm) * (p / norm);
+//            }
         }
     }
 

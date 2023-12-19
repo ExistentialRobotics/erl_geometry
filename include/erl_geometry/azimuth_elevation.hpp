@@ -22,10 +22,13 @@ namespace erl::geometry {
 
     inline void
     DirectionToAzimuthElevation(const Eigen::Ref<const Eigen::Vector3d> &direction, double &azimuth, double &elevation) {
-        double cos_elevation = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
-        double sin_elevation = direction[2];
-        elevation = std::atan2(sin_elevation, cos_elevation);
-        azimuth = std::atan2(direction[1] / cos_elevation, direction[0] / cos_elevation);
+        // double cos_elevation = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1]);
+        // double sin_elevation = direction[2];
+        // elevation = std::atan2(sin_elevation, cos_elevation);
+        // double cos_elevation = std::cos(elevation);
+        // azimuth = std::atan2(direction[1] / cos_elevation, direction[0] / cos_elevation);
+        elevation = std::asin(direction[2]);  // [-pi/2, pi/2]
+        azimuth = std::atan2(direction[1], direction[0]);  // [-pi, pi)
     }
 
 }  // namespace erl::geometry

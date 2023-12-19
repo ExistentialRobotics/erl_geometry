@@ -72,6 +72,7 @@ namespace erl::geometry {
         long num_hit_points = 0;
         for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
             for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
+                if (!m_mask_hit_(azimuth_idx, elevation_idx)) { continue; }
                 double &range = m_ranges_(azimuth_idx, elevation_idx);
                 if (range > m_max_valid_range_) { m_max_valid_range_ = range; }
                 m_hit_ray_indices_.col(num_hit_points) << azimuth_idx, elevation_idx;
@@ -128,10 +129,10 @@ namespace erl::geometry {
     LidarFrame3D::SampleAlongRays(
         long num_samples_per_ray,
         double max_in_obstacle_dist,
+        double sampled_rays_ratio,
         Eigen::Matrix3Xd &positions_world,
         Eigen::Matrix3Xd &directions_world,
-        Eigen::VectorXd &distances,
-        double sampled_rays_ratio
+        Eigen::VectorXd &distances
     ) const {
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.cols(), sampled_rays_ratio);
         auto n_rays = long(ray_indices.size());
@@ -166,21 +167,21 @@ namespace erl::geometry {
     LidarFrame3D::SampleAlongRays(
         double range_step,
         double max_in_obstacle_dist,
+        double sampled_rays_ratio,
         Eigen::Matrix3Xd &positions_world,
         Eigen::Matrix3Xd &directions_world,
-        Eigen::VectorXd &distances,
-        double sampled_rays_ratio
+        Eigen::VectorXd &distances
     ) const {
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.cols(), sampled_rays_ratio);
         auto n_rays = long(ray_indices.size());
         long n_samples = 0;
-        Eigen::VectorXl n_samples_per_ray(n_rays);
-        for (long idx = 0; idx < n_rays; ++idx) {
-            long ray_idx = ray_indices[idx];
+        std::vector<std::pair<std::pair<long, long>, long>> n_samples_per_ray;
+        n_samples_per_ray.reserve(n_rays);
+        for (long &ray_idx: ray_indices) {
             const long &kAzimuthIdx = m_hit_ray_indices_(0, ray_idx);
             const long &kElevationIdx = m_hit_ray_indices_(1, ray_idx);
-            long &n = n_samples_per_ray[idx];
-            n = long(std::floor((m_ranges_(kAzimuthIdx, kElevationIdx) + max_in_obstacle_dist) / range_step)) + 1;
+            auto n = long(std::floor((m_ranges_(kAzimuthIdx, kElevationIdx) + max_in_obstacle_dist) / range_step)) + 1;
+            n_samples_per_ray.emplace_back(std::make_pair(kAzimuthIdx, kElevationIdx), n);
             n_samples += n;
         }
         positions_world.resize(3, n_samples);
@@ -188,14 +189,11 @@ namespace erl::geometry {
         distances.resize(n_samples);
 
         long sample_idx = 0;
-        for (long idx = 0; idx < n_rays; ++idx) {
-            long ray_idx = ray_indices[idx];
-            const long &kAzimuthIdx = m_hit_ray_indices_(0, ray_idx);
-            const long &kElevationIdx = m_hit_ray_indices_(1, ray_idx);
-            long &n_samples_of_ray = n_samples_per_ray[idx];
+        for (auto &[ray_idx, n_samples_of_ray]: n_samples_per_ray) {
+            auto &[azimuth_idx, elevation_idx] = ray_idx;
 
-            double range = m_ranges_(kAzimuthIdx, kElevationIdx);
-            const Eigen::Vector3d &kDirWorld = m_dirs_world_(kAzimuthIdx, kElevationIdx);
+            double range = m_ranges_(azimuth_idx, elevation_idx);
+            const Eigen::Vector3d &kDirWorld = m_dirs_world_(azimuth_idx, elevation_idx);
             positions_world.col(sample_idx) << m_translation_;
             directions_world.col(sample_idx) << kDirWorld;
             distances[sample_idx++] = range;
@@ -214,13 +212,13 @@ namespace erl::geometry {
     LidarFrame3D::SampleNearSurface(
         long num_samples_per_ray,
         double max_offset,
+        double sampled_rays_ratio,
         Eigen::Matrix3Xd &positions_world,
         Eigen::Matrix3Xd &directions_world,
-        Eigen::VectorXd &distances,
-        double sampled_rays_ratio
+        Eigen::VectorXd &distances
     ) const {
-        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.cols(), sampled_rays_ratio);
-        auto n_rays = long(ray_indices.size());
+        std::vector<long> hit_ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.cols(), sampled_rays_ratio);
+        auto n_rays = long(hit_ray_indices.size());
         long n_samples = n_rays * num_samples_per_ray;
         positions_world.resize(3, n_samples);
         directions_world.resize(3, n_samples);
@@ -228,9 +226,9 @@ namespace erl::geometry {
 
         std::uniform_real_distribution<double> uniform(-max_offset, max_offset);
         long sample_idx = 0;
-        for (long &ray_idx: ray_indices) {
-            const long &kAzimuthIdx = m_hit_ray_indices_(0, ray_idx);
-            const long &kElevationIdx = m_hit_ray_indices_(1, ray_idx);
+        for (long &hit_ray_idx: hit_ray_indices) {
+            const long &kAzimuthIdx = m_hit_ray_indices_(0, hit_ray_idx);
+            const long &kElevationIdx = m_hit_ray_indices_(1, hit_ray_idx);
             const Eigen::Vector3d &kDirWorld = m_dirs_world_(kAzimuthIdx, kElevationIdx);
             for (long i = 0; i < num_samples_per_ray; ++i) {
                 double offset = uniform(erl::common::g_random_engine);
@@ -278,7 +276,9 @@ namespace erl::geometry {
             }
             for (auto &thread: threads) { thread.join(); }
             threads.clear();
-            ERL_DEBUG("%ld samples collected in %ld iterations.", num_samples_per_thread * num_threads, std::accumulate(iter_cnts.begin(), iter_cnts.end(), 0L));
+            ERL_DEBUG(
+                "%ld samples collected in %ld iterations.", num_samples_per_thread * num_threads, std::accumulate(iter_cnts.begin(), iter_cnts.end(), 0L)
+            );
             positions_world.resize(3, num_samples);
             directions_world.resize(3, num_samples);
             distances.resize(num_samples);
@@ -304,6 +304,7 @@ namespace erl::geometry {
         Eigen::VectorXd &distances,
         std::vector<long> &visible_hit_point_indices
     ) const {
+        ERL_ASSERTM(!std::isinf(m_max_valid_range_), "max valid range is not set.");
         double radius = (m_max_valid_range_ + (position_world - m_translation_).norm()) * 10.0;
         visible_hit_point_indices.clear();
         HiddenPointRemoval(m_hit_points_world_, position_world, radius, visible_hit_point_indices, false);

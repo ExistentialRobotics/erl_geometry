@@ -25,16 +25,13 @@ class HouseExpoSequence:
             self.map = HouseExpoMap(json_file)
         else:
             self.map = HouseExpoMap(json_file, wall_thickness)
-        self.lidar = Lidar2D(self.map.meter_space)
-        self.lidar.sign_method = self.map.meter_space.SignMethod.kPolygon
-        if lidar_mode == "kDdf":
-            self.lidar.mode = self.lidar.Mode.kDdf
-        elif lidar_mode == "kSddfV1":
-            self.lidar.mode = self.lidar.Mode.kSddfV1
-        elif lidar_mode == "kSddfV2":
-            self.lidar.mode = self.lidar.Mode.kSddfV2
-        else:
-            raise ValueError(f"Unknown lidar_mode: {lidar_mode}.")
+        lidar_setting = Lidar2D.Setting()
+        lidar_setting.min_angle = -np.pi
+        lidar_setting.max_angle = np.pi
+        lidar_setting.num_lines = 360
+        lidar_setting.sign_method = self.map.meter_space.SignMethod.kPolygon
+        lidar_setting.mode = Lidar2D.Mode(lidar_mode)
+        self.lidar = Lidar2D(lidar_setting, self.map.meter_space)
         self.path = load_trajectory(path_file)
         self.parallel = True
 
@@ -55,26 +52,19 @@ class HouseExpoSequence:
         else:
             if item < -self.path.shape[0] or item >= self.path.shape[0]:
                 raise IndexError
-            self.set_lidar_to_frame_index(item)
+            rotation_angle = self.path[item, 2]
+            rotation = np.array(
+                [[np.cos(rotation_angle), -np.sin(rotation_angle)], [np.sin(rotation_angle), np.cos(rotation_angle)]]
+            )
+            translation = self.path[item, :2]
             frame_setting = LidarFrame2D.Setting()
-            frame_setting.valid_angle_min = self.lidar.min_angle
-            frame_setting.valid_angle_max = self.lidar.max_angle
+            frame_setting.valid_angle_min = self.lidar.setting.min_angle
+            frame_setting.valid_angle_max = self.lidar.setting.max_angle
             frame = LidarFrame2D(frame_setting)
-            frame.update(self.lidar.rotation, self.lidar.translation, self.lidar.angles, self.lidar.scan(self.parallel))
+            frame.update(
+                rotation,
+                translation,
+                self.lidar.angles,
+                self.lidar.scan(rotation, translation, self.parallel),
+            )
             return frame
-
-    def set_lidar_to_frame_index(self, frame_index: int) -> None:
-        self.lidar.translation = self.path[frame_index, :2]
-        self.lidar.set_rotation(self.path[frame_index, 2])
-
-    def get_rays_of_frames(self, frame_indices: Union[range, List[int]]) -> npt.NDArray[np.float64]:
-        frame_indices = list(frame_indices)
-        assert len(frame_indices) > 0
-        if len(frame_indices) == 1:
-            self.set_lidar_to_frame_index(frame_indices[0])
-            return self.lidar.get_rays()
-        else:
-            xs = self.path[frame_indices, 0]
-            ys = self.path[frame_indices, 1]
-            thetas = self.path[frame_indices, 2]
-            return self.lidar.get_rays_of_multi_poses(xs, ys, thetas, self.parallel)

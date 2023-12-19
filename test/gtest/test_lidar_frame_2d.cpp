@@ -26,8 +26,9 @@ MouseCallback1(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     (void) flags;
     auto data = reinterpret_cast<UserData *>(userdata);
     if (event == cv::EVENT_LBUTTONDOWN) {
-        data->lidar->SetTranslation(data->grid_map_info->PixelToMeterForPoints(Eigen::Vector2i(mouse_x, mouse_y)));
-        data->lidar_frame->Update(data->lidar->GetRotation(), data->lidar->GetTranslation(), data->lidar->GetAngles(), data->lidar->Scan(true));
+        Eigen::Matrix2d rotation = Eigen::Matrix2d::Identity();
+        Eigen::Vector2d position = data->grid_map_info->PixelToMeterForPoints(Eigen::Vector2i(mouse_x, mouse_y));
+        data->lidar_frame->Update(rotation, position, data->lidar->GetAngles(), data->lidar->Scan(rotation, position, true));
         data->image1 = data->map_image.clone();
         std::vector<cv::Point2i> points;
         points.reserve(data->lidar_frame->GetNumRays() * 2);
@@ -75,7 +76,8 @@ MouseCallback2(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         Eigen::Vector2d position = data->grid_map_info->PixelToMeterForPoints(Eigen::Vector2i(mouse_x, mouse_y));
         Eigen::Matrix2Xd directions;
         Eigen::VectorXd distances;
-        data->lidar_frame->ComputeRaysAt(position, directions, distances);
+        std::vector<long> visible_hit_point_indices;
+        data->lidar_frame->ComputeRaysAt(position, directions, distances, visible_hit_point_indices);
         std::vector<cv::Point2i> points;
         points.reserve(distances.size() * 2);
         points.emplace_back(mouse_x, mouse_y);
@@ -103,11 +105,13 @@ TEST(ERL_GEOMETRY, LidarFrame2D) {
         data.map->GetMeterSpace()->GetSurface()->vertices.rowwise().minCoeff(),
         data.map->GetMeterSpace()->GetSurface()->vertices.rowwise().maxCoeff(),
         Eigen::Vector2d(0.01, 0.01),
-        Eigen::Vector2i(10, 10));
-    data.lidar = std::make_shared<Lidar2D>(data.map->GetMeterSpace());
-    data.lidar->SetMinAngle(-data.fov / 2);
-    data.lidar->SetMaxAngle(data.fov / 2);
-    data.lidar->SetNumLines(int(std::round(data.fov / M_PI * 180)));
+        Eigen::Vector2i(10, 10)
+    );
+    auto lidar_setting = std::make_shared<Lidar2D::Setting>();
+    lidar_setting->min_angle = -data.fov / 2;
+    lidar_setting->max_angle = data.fov / 2;
+    lidar_setting->num_lines = int(std::round(data.fov / M_PI * 180)) + 1;
+    data.lidar = std::make_shared<Lidar2D>(lidar_setting, data.map->GetMeterSpace());
     auto setting = std::make_shared<LidarFrame2D::Setting>();
     setting->valid_angle_min = -data.fov / 2;
     setting->valid_angle_max = data.fov / 2;

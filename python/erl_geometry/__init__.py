@@ -2,11 +2,12 @@
 from erl_common.yaml import YamlableBase
 
 # import package modules
-from erl_geometry.pyerl_geometry import *
+from .pyerl_geometry import *
 from . import house_expo
 from . import gazebo
 
 __all__ = [
+    "manually_set_seed",
     "marching_square",
     "bresenham_2d",
     "winding_number",
@@ -32,6 +33,7 @@ __all__ = [
     "GridCollisionCheckerSe2",
     "GridCollisionChecker3D",
     "Lidar3D",
+    "DepthCamera3D",
     "LidarFramePartition3D",
     "LidarFrame3D",
     "house_expo",

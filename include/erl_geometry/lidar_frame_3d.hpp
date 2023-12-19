@@ -192,30 +192,30 @@ namespace erl::geometry {
         SampleAlongRays(
             long num_samples_per_ray,
             double max_in_obstacle_dist,
+            double sampled_rays_ratio,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances,
-            double sampled_rays_ratio
+            Eigen::VectorXd &distances
         ) const;
 
         void
         SampleAlongRays(
             double range_step,
             double max_in_obstacle_dist,
+            double sampled_rays_ratio,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances,
-            double sampled_rays_ratio
+            Eigen::VectorXd &distances
         ) const;
 
         void
         SampleNearSurface(
             long num_samples_per_ray,
             double max_offset,
+            double sampled_rays_ratio,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances,
-            double sampled_rays_ratio
+            Eigen::VectorXd &distances
         ) const;
 
         void

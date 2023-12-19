@@ -93,23 +93,20 @@ TEST(ERL_GEOMETRY, OccupancyQuadtreeBuild) {
         buf_points.reserve(max_update_cnt);
         trajectory.resize(2, max_update_cnt);
         // setup lidar
-        erl::geometry::Lidar2D lidar(house_expo_map.GetMeterSpace());
-        double angle_min = -M_PI;
-        double angle_max = M_PI;
-        double res = 0.5 * M_PI / 180.0;
+        auto lidar_setting = std::make_shared<erl::geometry::Lidar2D::Setting>();
+        lidar_setting->num_lines = 720;
+        erl::geometry::Lidar2D lidar(lidar_setting, house_expo_map.GetMeterSpace());
         bool scan_in_parallel = true;
-        lidar.SetNumLines(int((angle_max - angle_min) / res));
         Eigen::VectorXd lidar_angles = lidar.GetAngles();
         // load data into buffer
         long j = 0;
         erl::common::ProgressBar bar(int(max_update_cnt), true, std::cout);
         for (std::size_t i = 0; i < csv_trajectory.size(); i += g_options.stride) {
             trajectory.col(j) << csv_trajectory[i][0], csv_trajectory[i][1];
-            lidar.SetTranslation(trajectory.col(j));
-            lidar.SetRotation(csv_trajectory[i][2]);
-            Eigen::VectorXd lidar_ranges = lidar.Scan(scan_in_parallel);
+            Eigen::Matrix2d rotation = Eigen::Rotation2Dd(csv_trajectory[i][2]).toRotationMatrix();
+            Eigen::VectorXd lidar_ranges = lidar.Scan(rotation, trajectory.col(j), scan_in_parallel);
             lidar_ranges += erl::common::GenerateGaussianNoise(lidar_ranges.size(), 0.0, 0.01);
-            buf_points.push_back(load_scan(lidar.GetRotation(), trajectory.col(j), lidar_angles, lidar_ranges));
+            buf_points.push_back(load_scan(rotation, trajectory.col(j), lidar_angles, lidar_ranges));
             j++;
             bar.Update();
         }

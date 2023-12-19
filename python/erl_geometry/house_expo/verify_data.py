@@ -50,13 +50,16 @@ def check_trajectory_completion_percentage_of_json_file(json_file: str, path_ski
     )
 
     image_scan = np.zeros_like(image_map)
-    rays = grid_map_info.meter_to_pixel_for_points(
-        sequence.get_rays_of_frames(range(0, len(sequence), path_skip)).reshape([2, -1], order="F")
-    ).T.reshape(
-        [-1, 2, 2]
-    )  # (4, N) -> (2, 2N) -> (2N, 2) -> (N, 2, 2)
-    rays = np.round(rays).astype(np.int32)
-    cv2.polylines(image_scan, rays, False, 255, 1)
+    frames = [sequence[i] for i in range(0, len(sequence), path_skip)]
+    rays = []
+    for frame in frames:
+        frame_rays = np.empty((frame.num_rays * 2, 2))
+        frame_rays[::2, :] = frame.translation_vector
+        frame_rays[1::2, :] = frame.end_points_in_world
+        rays.append(rays)
+    rays = np.concatenate(rays, axis=0)
+    rays = np.round(grid_map_info.meter_to_pixel_for_points(rays)).astype(np.int32)
+    image_scan = cv2.polylines(image_scan, rays, isClosed=False, color=[255, 255, 255], thickness=1)
 
     intersection = np.sum((image_map > 0) & (image_scan > 0))
     scanned_percentage = intersection / np.sum(image_map > 0)

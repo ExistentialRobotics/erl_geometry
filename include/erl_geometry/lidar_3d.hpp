@@ -1,14 +1,13 @@
 #pragma once
 
 #include "erl_common/yaml.hpp"
-#include "erl_common/random.hpp"
-#include "erl_geometry/azimuth_elevation.hpp"
-
+#include "azimuth_elevation.hpp"
+#include "range_sensor_3d.hpp"
 #include <open3d/t/geometry/RaycastingScene.h>
 
 namespace erl::geometry {
 
-    class Lidar3D {
+    class Lidar3D : public RangeSensor3D {
 
     public:
         struct Setting : common::Yamlable<Setting> {
@@ -21,26 +20,29 @@ namespace erl::geometry {
             double elevation_max = M_PI / 12;   // 15 degree
             int num_azimuth_lines = 900;        // angular resolution: 0.4 degree
             int num_elevation_lines = 16;       // angular resolution: 2 degree
-            bool add_noise = false;             // add noise to range measurements
-            double range_stddev = 0.03;         // typical range error: 3cm
         };
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        open3d::t::geometry::RaycastingScene *m_scene_ = nullptr;
 
     public:
         Lidar3D() = delete;
 
-        Lidar3D(std::shared_ptr<Setting> setting, const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
-            : m_setting_(std::move(setting)),
-              m_scene_(o3d_scene.get()) {
+        Lidar3D(std::shared_ptr<Setting> setting, const Eigen::Ref<const Eigen::Matrix3Xd> &vertices, const Eigen::Ref<const Eigen::Matrix3Xi> &triangles)
+            : RangeSensor3D(vertices, triangles),
+              m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
-        Lidar3D(std::shared_ptr<Setting> setting, open3d::t::geometry::RaycastingScene *o3d_scene)
-            : m_setting_(std::move(setting)),
-              m_scene_(o3d_scene) {
+        Lidar3D(std::shared_ptr<Setting> setting, const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles)
+            : RangeSensor3D(vertices, triangles),
+              m_setting_(std::move(setting)) {
+            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
+        }
+
+        Lidar3D(std::shared_ptr<Setting> setting, const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
+            : RangeSensor3D(o3d_scene),
+              m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
@@ -51,6 +53,10 @@ namespace erl::geometry {
 
         [[nodiscard]] inline Eigen::VectorXd
         GetAzimuthAngles() const {
+            if (m_setting_->azimuth_max - m_setting_->azimuth_min == 2 * M_PI) {
+                double d = 2 * M_PI / m_setting_->num_azimuth_lines;
+                return Eigen::VectorXd::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max - d);
+            }
             return Eigen::VectorXd::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max);
         }
 
@@ -59,29 +65,8 @@ namespace erl::geometry {
             return Eigen::VectorXd::LinSpaced(m_setting_->num_elevation_lines, m_setting_->elevation_min, m_setting_->elevation_max);
         }
 
-        [[nodiscard]] inline Eigen::MatrixX<Eigen::Vector3d>
-        GetRayDirectionsInFrame() const {
-            Eigen::VectorXd azimuth_angles = GetAzimuthAngles();
-            Eigen::VectorXd elevation_angles = GetElevationAngles();
-
-            Eigen::MatrixX<Eigen::Vector3d> directions(m_setting_->num_azimuth_lines, m_setting_->num_elevation_lines);
-            for (int azimuth_idx = 0; azimuth_idx < m_setting_->num_azimuth_lines; ++azimuth_idx) {
-                double azimuth = azimuth_angles[azimuth_idx];
-                for (int elevation_idx = 0; elevation_idx < m_setting_->num_elevation_lines; ++elevation_idx) {
-                    directions(azimuth_idx, elevation_idx) = AzimuthElevationToDirection(azimuth, elevation_angles[elevation_idx]);
-                }
-            }
-
-            return directions;
-        }
-
-        [[nodiscard]] inline const open3d::t::geometry::RaycastingScene &
-        GetScene() const {
-            return *m_scene_;
-        }
-
-        [[nodiscard]] Eigen::MatrixXd
-        Scan(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const;
+        [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
+        GetRayDirectionsInFrame() const override;
     };
 }  // namespace erl::geometry
 
@@ -99,21 +84,18 @@ namespace YAML {
             node["elevation_max"] = rhs.elevation_max;
             node["num_azimuth_lines"] = rhs.num_azimuth_lines;
             node["num_elevation_lines"] = rhs.num_elevation_lines;
-            node["add_noise"] = rhs.add_noise;
-            node["range_stddev"] = rhs.range_stddev;
             return node;
         }
 
         static bool
         decode(const Node &node, erl::geometry::Lidar3D::Setting &rhs) {
+            if (!node.IsMap()) { return false; }
             rhs.azimuth_min = node["azimuth_min"].as<double>();
             rhs.azimuth_max = node["azimuth_max"].as<double>();
             rhs.elevation_min = node["elevation_min"].as<double>();
             rhs.elevation_max = node["elevation_max"].as<double>();
             rhs.num_azimuth_lines = node["num_azimuth_lines"].as<int>();
             rhs.num_elevation_lines = node["num_elevation_lines"].as<int>();
-            rhs.add_noise = node["add_noise"].as<bool>();
-            rhs.range_stddev = node["range_stddev"].as<double>();
             return true;
         }
     };
@@ -127,8 +109,6 @@ namespace YAML {
         out << Key << "elevation_max" << Value << rhs.elevation_max;
         out << Key << "num_azimuth_lines" << Value << rhs.num_azimuth_lines;
         out << Key << "num_elevation_lines" << Value << rhs.num_elevation_lines;
-        out << Key << "add_noise" << Value << rhs.add_noise;
-        out << Key << "range_stddev" << Value << rhs.range_stddev;
         out << EndMap;
         return out;
     }

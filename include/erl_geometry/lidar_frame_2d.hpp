@@ -171,8 +171,9 @@ namespace erl::geometry {
 
         void
         SampleAlongRays(
-            long num_samples_per_ray,
+            long n_samples_per_ray,
             double max_in_obstacle_dist,
+            double sampled_rays_ratio,
             Eigen::Matrix2Xd &positions_world,
             Eigen::Matrix2Xd &directions_world,
             Eigen::VectorXd &distances
@@ -180,16 +181,28 @@ namespace erl::geometry {
 
         void
         SampleAlongRays(
-            double range_step, double max_in_obstacle_dist, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+            double range_step,
+            double max_in_obstacle_dist,
+            double sampled_rays_ratio,
+            Eigen::Matrix2Xd &positions_world,
+            Eigen::Matrix2Xd &directions_world,
+            Eigen::VectorXd &distances
         ) const;
 
         void
         SampleNearSurface(
-            long num_samples_per_ray, double max_offset, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+            long num_samples_per_ray,
+            double max_offset,
+            double sampled_rays_ratio,
+            Eigen::Matrix2Xd &positions_world,
+            Eigen::Matrix2Xd &directions_world,
+            Eigen::VectorXd &distances
         ) const;
 
         void
-        SampleInRegion(long num_samples, long num_samples_per_iter, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances) const;
+        SampleInRegion(
+            long num_samples, long num_samples_per_iter, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
+        ) const;
 
         void
         ComputeRaysAt(
