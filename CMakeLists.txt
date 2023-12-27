@@ -63,9 +63,8 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}
-        PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} Qhull::qhullcpp Qhull::qhull_r
-        Open3D::Open3D octomap
-        ${catkin_LIBRARIES})
+        PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D octomap
+        PUBLIC ${catkin_LIBRARIES})
 
 ###################
 # Python bindings #

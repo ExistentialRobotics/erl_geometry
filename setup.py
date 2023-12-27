@@ -80,6 +80,7 @@ for dependency in erl_dependencies:
                 f"-DCMAKE_BUILD_TYPE={build_type}",
                 f"-DCMAKE_INSTALL_PREFIX={temp_install_dir}",
                 f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
+                f"-DERL_BUILD_TEST:BOOL=OFF",
             ],
             cwd=temp_build_dir,
         )
@@ -134,6 +135,7 @@ class CMakeBuild(build_ext):
                 f"-DCMAKE_BUILD_TYPE={build_type}",
                 f"-DCMAKE_PREFIX_PATH={temp_install_dir}",
                 f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
+                f"-DERL_BUILD_TEST:BOOL=OFF",
             ]
             subprocess.check_call([cmake_path, ext.source_dir] + cmake_args, cwd=build_temp)
         subprocess.check_call(
