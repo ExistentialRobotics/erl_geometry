@@ -1,8 +1,10 @@
+import glob
 import importlib
 import os
 import shutil
 import subprocess
 import sys
+import site
 
 if sys.version_info.major == 3 and sys.version_info.minor < 11:
     import toml as tomllib
@@ -19,7 +21,15 @@ with open("pyproject.toml", "r") as f:
     config = tomllib.loads("".join(f.readlines()))
 python_pkg_name = config["erl"]["python_pkg_name"]
 pybind_module_name = config["erl"]["pybind_module_name"]
-build_type = config["erl"]["build_type"]
+cmake_build_type = config["erl"].get("build_type", "Release")
+cmake_ignore_conda_libraries = config["erl"].get("ignore_conda_libraries", "ON")
+cmake_use_lapack = config["erl"].get("use_lapack", "ON")
+cmake_use_lapack_strict = config["erl"].get("use_lapack_strict", "OFF")
+cmake_use_intel_mkl = config["erl"].get("use_intel_mkl", "ON")
+cmake_use_aocl = config["erl"].get("use_aocl", "OFF")
+cmake_use_single_threaded_blas = config["erl"].get("use_single_threaded_blas", "ON")
+cmake_build_test = config["erl"].get("build_test", "OFF")
+
 erl_dependencies = config["erl"]["erl_dependencies"]
 
 # detect if ROS1 is enabled
@@ -45,49 +55,53 @@ for path in cmake_paths:
 assert cmake_path is not None, f"cmake is not found in {cmake_paths}"
 
 # load configuration
-build_type = os.environ.get("BUILD_TYPE", build_type)
+cmake_build_type = os.environ.get("BUILD_TYPE", cmake_build_type)
+cmake_ignore_conda_libraries = os.environ.get("IGNORE_CONDA_LIBRARIES", cmake_ignore_conda_libraries)
+cmake_use_lapack = os.environ.get("USE_LAPACK", cmake_use_lapack)
+cmake_use_lapack_strict = os.environ.get("USE_LAPACK_STRICT", cmake_use_lapack_strict)
+cmake_use_intel_mkl = os.environ.get("USE_INTEL_MKL", cmake_use_intel_mkl)
+cmake_use_aocl = os.environ.get("USE_AOCL", cmake_use_aocl)
+cmake_use_single_threaded_blas = os.environ.get("USE_SINGLE_THREADED_BLAS", cmake_use_single_threaded_blas)
+cmake_build_test = os.environ.get("BUILD_TEST", cmake_build_test)
+
 available_build_types = ["Release", "Debug", "RelWithDebInfo"]
-assert build_type in available_build_types, f"build type {build_type} is not in {available_build_types}"
-print(f"Build type: {build_type}")
+assert cmake_build_type in available_build_types, f"build type {cmake_build_type} is not in {available_build_types}"
 clean_before_build = os.environ.get("CLEAN_BEFORE_BUILD", "0") == "1"
 n_proc = os.cpu_count()
 
 # compute paths
-project_dir = os.path.dirname(os.path.realpath(__file__))
-src_python_dir = os.path.join(project_dir, "python", python_pkg_name)
-egg_info_dir = os.path.join(project_dir, f"{python_pkg_name}.egg-info")
-build_dir = os.path.join(project_dir, "build", build_type)
-temp_install_dir = os.path.join(build_dir, "temp_install")
-os.makedirs(temp_install_dir, exist_ok=True)
+project_dir = os.path.dirname(os.path.realpath(__file__))  # the directory of setup.py, should be the project root
+src_python_dir = os.path.join(project_dir, "python", python_pkg_name)  # the directory of python source code
+egg_info_dir = os.path.join(project_dir, f"{python_pkg_name}.egg-info")  # the directory of egg-info
+build_dir = os.path.join(project_dir, "build", cmake_build_type)  # the build directory
+
+# print configuration
+print("====================================================================================================")
+print("Configuration:")
+print("----------------------------------------------------------------------------------------------------")
+print(f"Project directory: {project_dir}")
+print(f"Python source directory: {src_python_dir}")
+print(f"Egg-info directory: {egg_info_dir}")
+print(f"Build directory: {build_dir}")
+print(f"Clean before build: {clean_before_build}")
+print(f"Number of threads: {n_proc}")
+print(f"Python executable: {sys.executable}")
+print(f"Python version: {sys.version}")
+print(f"CMAKE_BUILD_TYPE: {cmake_build_type}")
+print(f"ERL_IGNORE_CONDA_LIBRARIES: {cmake_ignore_conda_libraries}")
+print(f"ERL_USE_LAPACK: {cmake_use_lapack}")
+print(f"ERL_USE_LAPACK_STRICT: {cmake_use_lapack_strict}")
+print(f"ERL_USE_INTEL_MKL: {cmake_use_intel_mkl}")
+print(f"ERL_USE_AOCL: {cmake_use_aocl}")
+print(f"ERL_USE_SINGLE_THREADED_BLAS: {cmake_use_single_threaded_blas}")
+print(f"ERL_BUILD_TEST: {cmake_build_test}")
+print("====================================================================================================")
 
 # clean up
 if os.path.exists(egg_info_dir):
     os.system(f"rm -rf {egg_info_dir}")
 if clean_before_build:
     os.system(f"rm -rf {build_dir}")
-
-# install erl_dependencies
-for dependency in erl_dependencies:
-    src_dir = os.path.join(project_dir, "..", dependency)
-    assert os.path.exists(src_dir), f"Dependency {dependency} not found"
-    temp_build_dir = os.path.join(build_dir, dependency)
-    os.makedirs(temp_build_dir, exist_ok=True)
-    if not os.path.exists(os.path.join(temp_build_dir, "CMakeCache.txt")):
-        subprocess.check_call(
-            [
-                cmake_path,
-                src_dir,
-                f"-DCMAKE_BUILD_TYPE={build_type}",
-                f"-DCMAKE_INSTALL_PREFIX={temp_install_dir}",
-                f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
-                f"-DERL_BUILD_TEST:BOOL=OFF",
-            ],
-            cwd=temp_build_dir,
-        )
-    subprocess.check_call(
-        [cmake_path, "--build", ".", "--target", "install", "--", "-j", str(n_proc)],
-        cwd=temp_build_dir,
-    )
 
 
 # build the package
@@ -127,19 +141,35 @@ class CMakeBuild(build_ext):
         build_temp = os.path.join(build_dir, ext.name)
         if os.path.exists(build_temp):
             shutil.rmtree(build_temp)
-        os.makedirs(build_temp)
+        os.makedirs(build_temp, exist_ok=True)
+        os.makedirs(ext_dir, exist_ok=True)
         if not os.path.exists(os.path.join(build_temp, "CMakeCache.txt")):
             cmake_args = [
-                f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={ext_dir}",
-                f"-DPython3_ROOT_DIR={os.path.dirname(os.path.dirname(sys.executable))}",
-                f"-DCMAKE_BUILD_TYPE={build_type}",
-                f"-DCMAKE_PREFIX_PATH={temp_install_dir}",
+                f"-DPython3_ROOT_DIR:PATH={os.path.dirname(os.path.dirname(sys.executable))}",
+                f"-DCMAKE_BUILD_TYPE={cmake_build_type}",
+                f"-DCMAKE_INSTALL_PREFIX:PATH={ext_dir}",  # used to install the package
                 f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
-                f"-DERL_BUILD_TEST:BOOL=OFF",
+                f"-DERL_IGNORE_CONDA_LIBRARIES:BOOL={cmake_ignore_conda_libraries}",
+                f"-DERL_USE_LAPACK:BOOL={cmake_use_lapack}",
+                f"-DERL_USE_LAPACK_STRICT:BOOL={cmake_use_lapack_strict}",
+                f"-DERL_USE_INTEL_MKL:BOOL={cmake_use_intel_mkl}",
+                f"-DERL_USE_AOCL:BOOL={cmake_use_aocl}",
+                f"-DERL_USE_SINGLE_THREADED_BLAS:BOOL={cmake_use_single_threaded_blas}",
+                f"-DERL_BUILD_TEST:BOOL={cmake_build_test}",
+                f"-DPIP_LIB_DIR:PATH={ext_dir}",
             ]
+            # add dependencies
+            site_packages_dir = site.getsitepackages()[0]
+            for dependency in erl_dependencies:
+                cmake_dir = f"{site_packages_dir}/{dependency}/share/{dependency}/cmake"
+                if not os.path.exists(cmake_dir):
+                    raise RuntimeError(f"dependency {dependency} is not installed")
+                cmake_args.append(f"-D{dependency}_DIR:PATH={site_packages_dir}/{dependency}/share/{dependency}/cmake")
+            # run cmake configure
             subprocess.check_call([cmake_path, ext.source_dir] + cmake_args, cwd=build_temp)
+        # run cmake build and install
         subprocess.check_call(
-            [cmake_path, "--build", ".", "--target", pybind_module_name, "--", "-j", f"{n_proc}"],
+            [cmake_path, "--build", ".", "--target", "install", "--", "-j", f"{n_proc}"],
             cwd=build_temp,
         )
 
@@ -155,13 +185,6 @@ for i, require in enumerate(requires):
         pkg_name = pkg_name.strip()
         requires[i] = f"{pkg_name} @ {require.strip()}"
 
-# if os.path.exists("entry_points.txt"):
-#     with open("entry_points.txt", "r") as f:
-#         entry_points = f.readlines()
-# else:
-#     entry_points = []
-# for i, entry_point in enumerate(entry_points):
-#     entry_points[i] = entry_point.strip()
 
 setup(
     name=python_pkg_name,
