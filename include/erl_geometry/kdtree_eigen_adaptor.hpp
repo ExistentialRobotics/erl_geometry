@@ -64,7 +64,11 @@ namespace erl::geometry {
 
         void
         Clear() {
-            m_data_matrix_.resize(0, 0);
+            if (Dim == Eigen::Dynamic) {
+                m_data_matrix_.resize(0, 0);
+            } else {
+                m_data_matrix_.resize(Dim, 0);
+            }
             m_tree_ = nullptr;
         }
 

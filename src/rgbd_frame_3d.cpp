@@ -41,7 +41,8 @@ namespace erl::geometry {
         m_hit_points_world_.resize(3, num_azimuths * num_elevations);
 
         // compute directions and end points
-#pragma omp parallel for collapse(2) default(none) shared(num_azimuths, num_elevations, Eigen::Dynamic)
+        Eigen::Matrix4d extrinsic = GetCameraExtrinsicMatrix();
+#pragma omp parallel for collapse(2) default(none) shared(num_azimuths, num_elevations, extrinsic, Eigen::Dynamic)
         for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
             for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
                 double &range = m_ranges_(azimuth_idx, elevation_idx);
@@ -66,8 +67,10 @@ namespace erl::geometry {
                 DirectionToAzimuthElevation(dir_frame, azimuth, elevation);
 
                 // transform directions and end_points to world
-                m_dirs_world_(azimuth_idx, elevation_idx) << m_rotation_ * dir_frame;
-                m_end_pts_world_(azimuth_idx, elevation_idx) << m_rotation_ * end_pt_frame + m_translation_;
+                auto rotation_ref = extrinsic.topLeftCorner<3, 3>();
+                auto translation_ref = extrinsic.topRightCorner<3, 1>();
+                m_dirs_world_(azimuth_idx, elevation_idx) << rotation_ref * dir_frame;
+                m_end_pts_world_(azimuth_idx, elevation_idx) << rotation_ref * end_pt_frame + translation_ref;
 
                 // max valid range
                 // cannot move this line to the outer loop, because directions are computed in the inner loop

@@ -378,6 +378,7 @@ namespace erl::geometry {
         long *iter_cnt_ptr
     ) const {
         if (num_samples_per_iter < 0 || num_samples_per_iter >= num_samples) { num_samples_per_iter = num_samples; }
+        ERL_ASSERTM(m_hit_points_world_.cols() > 0, "no hit points. cannot sample in region.");
 
         std::uniform_int_distribution<long> uniform_int_dist(0, m_hit_points_world_.cols() - 1);
         std::uniform_real_distribution<double> uniform_real_dist(0.1, 0.8);  // avoid getting too close to either the sensor or the hit point

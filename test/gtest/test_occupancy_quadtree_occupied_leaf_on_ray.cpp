@@ -108,7 +108,7 @@ TEST(ERL_GEOMETRY, OccupancyQuadtreeOccupiedLeafOnRay) {
         } else if (key == 'd') {
             data.angle -= erl::common::DegreeToRadian(1);
         }
-        data.angle = erl::common::ClipAngle(data.angle);
+        data.angle = erl::common::WrapAnglePi(data.angle);
         Draw(&data);
         std::cout << "Angle: " << erl::common::RadianToDegree(data.angle) << "\n";
     }

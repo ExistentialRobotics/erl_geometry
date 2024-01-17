@@ -40,9 +40,9 @@ namespace erl::geometry {
         m_max_valid_range_ = 0.0;
         long num_hit_points = 0;
         for (long i = 0; i < n; ++i) {
-            double angle = common::ClipAngle(m_angles_frame_[i]);
+            double angle = common::WrapAnglePi(m_angles_frame_[i]);
             double &range = m_ranges_[i];
-            m_angles_world_[i] = common::ClipAngle(angle + m_rotation_angle_);
+            m_angles_world_[i] = common::WrapAnglePi(angle + m_rotation_angle_);
 
             // directions
             auto dir_frame = m_dirs_frame_.col(i);
@@ -312,7 +312,7 @@ namespace erl::geometry {
         double gamma1 = m_setting_->rolling_diff_discount;
         double gamma2 = 1 - gamma1;
         for (long i = 0; i < n; ++i) {
-            double angle = common::ClipAngle(m_angles_frame_[i]);
+            double angle = common::WrapAnglePi(m_angles_frame_[i]);
             double &range = m_ranges_[i];
             if (i == 0 || !m_mask_hit_[i]) { continue; }
 

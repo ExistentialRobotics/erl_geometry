@@ -246,7 +246,7 @@ namespace erl::geometry {
 
         [[nodiscard]] inline bool
         AngleInPartition(double angle_world) const {
-            double angle_frame = common::ClipAngle(angle_world - m_frame_->m_rotation_angle_);
+            double angle_frame = common::WrapAnglePi(angle_world - m_frame_->m_rotation_angle_);
             return (angle_frame >= m_frame_->m_angles_frame_[m_index_begin_]) && (angle_frame <= m_frame_->m_angles_frame_[m_index_end_]);
         }
     };

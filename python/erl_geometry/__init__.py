@@ -1,5 +1,5 @@
 # import pybind dependencies
-import erl_common as common
+from erl_common.yaml import YamlableBase
 
 # import package modules
 from .pyerl_geometry import *
@@ -7,7 +7,7 @@ from . import house_expo
 from . import gazebo
 
 __all__ = [
-    "common",
+    "YamlableBase",
     "manually_set_seed",
     "marching_square",
     "bresenham_2d",

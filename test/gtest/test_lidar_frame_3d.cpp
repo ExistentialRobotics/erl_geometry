@@ -359,7 +359,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_J] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_roll -= angle_step;
-            lidar_roll = ClipAngle(lidar_roll);
+            lidar_roll = WrapAnglePi(lidar_roll);
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -368,7 +368,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_L] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_roll += angle_step;
-            lidar_roll = ClipAngle(lidar_roll);
+            lidar_roll = WrapAnglePi(lidar_roll);
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -377,7 +377,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_K] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_pitch -= angle_step;
-            lidar_pitch = ClipAngle(lidar_pitch);
+            lidar_pitch = WrapAnglePi(lidar_pitch);
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -386,7 +386,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_I] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_pitch += angle_step;
-            lidar_pitch = ClipAngle(lidar_pitch);
+            lidar_pitch = WrapAnglePi(lidar_pitch);
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -395,7 +395,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_U] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_yaw -= angle_step;
-            lidar_yaw = ClipAngle(lidar_yaw);
+            lidar_yaw = WrapAnglePi(lidar_yaw);
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -404,7 +404,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_O] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_yaw += angle_step;
-            lidar_yaw = ClipAngle(lidar_yaw);
+            lidar_yaw = WrapAnglePi(lidar_yaw);
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
