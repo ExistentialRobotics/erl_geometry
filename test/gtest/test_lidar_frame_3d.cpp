@@ -1,8 +1,3 @@
-#include "erl_common/test_helper.hpp"
-#include "erl_common/angle_utils.hpp"
-#include "erl_geometry/lidar_3d.hpp"
-#include "erl_geometry/lidar_frame_3d.hpp"
-
 #include <open3d/geometry/TriangleMesh.h>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
@@ -11,24 +6,55 @@
 #include <open3d/t/geometry/RaycastingScene.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 #include <open3d/visualization/utility/DrawGeometry.h>
+#include <boost/program_options.hpp>
+
+#include "erl_common/test_helper.hpp"
+#include "erl_common/angle_utils.hpp"
+#include "erl_geometry/lidar_3d.hpp"
+#include "erl_geometry/lidar_frame_3d.hpp"
+
+std::filesystem::path gtest_dir = std::filesystem::path(__FILE__).parent_path();
+
+struct Options {
+    std::string window_name = "LidarFrame3D";
+    std::string ply_file = (gtest_dir / "replica-office-0.ply").string();
+    double lidar_elevation_min = -15;
+    double lidar_elevation_max = 15;
+    int lidar_num_elevation_lines = 16;
+    double init_x = std::numeric_limits<double>::infinity();
+    double init_y = std::numeric_limits<double>::infinity();
+    double init_z = std::numeric_limits<double>::infinity();
+    double init_roll = std::numeric_limits<double>::infinity();
+    double init_pitch = std::numeric_limits<double>::infinity();
+    double init_yaw = std::numeric_limits<double>::infinity();
+};
+
+Options g_options;
 
 TEST(ERL_GEOMETRY, LidarFrame3D) {
     using namespace erl::common;
     using namespace erl::geometry;
-
-    std::filesystem::path gtest_dir = __FILE__;
-    gtest_dir = gtest_dir.parent_path();
-    std::filesystem::path ply_path = gtest_dir / "replica-office-0.ply";
-    std::cout << "ply_path: " << ply_path << std::endl;
+    std::cout << "ply_file: " << g_options.ply_file << std::endl
+              << "lidar_elevation_min: " << g_options.lidar_elevation_min << std::endl
+              << "lidar_elevation_max: " << g_options.lidar_elevation_max << std::endl
+              << "lidar_num_elevation_lines: " << g_options.lidar_num_elevation_lines << std::endl
+              << "init_x: " << g_options.init_x << std::endl
+              << "init_y: " << g_options.init_y << std::endl
+              << "init_z: " << g_options.init_z << std::endl
+              << "init_roll: " << g_options.init_roll << std::endl
+              << "init_pitch: " << g_options.init_pitch << std::endl
+              << "init_yaw: " << g_options.init_yaw << std::endl;
 
     try {
         auto room_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
         {
             open3d::io::ReadTriangleMeshOptions options;
             options.enable_post_processing = true;
-            open3d::io::ReadTriangleMesh(ply_path.string(), *room_mesh, options);
+            open3d::io::ReadTriangleMesh(g_options.ply_file, *room_mesh, options);
             room_mesh->ComputeTriangleNormals();
         }
+        std::shared_ptr<open3d::geometry::TriangleMesh> position_sphere = open3d::geometry::TriangleMesh::CreateSphere(0.1);
+        position_sphere->PaintUniformColor({0.0, 0.0, 1.0});
         auto lidar_rays_line_set = std::make_shared<open3d::geometry::LineSet>();
         auto lidar_point_cloud = std::make_shared<open3d::geometry::PointCloud>();
         auto surface_samples_line_set = std::make_shared<open3d::geometry::LineSet>();
@@ -47,12 +73,24 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         o3d_scene->AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*room_mesh));
 
         auto lidar_3d_setting = std::make_shared<Lidar3D::Setting>();
+        lidar_3d_setting->elevation_min = DegreeToRadian(g_options.lidar_elevation_min);
+        lidar_3d_setting->elevation_max = DegreeToRadian(g_options.lidar_elevation_max);
+        lidar_3d_setting->num_elevation_lines = g_options.lidar_num_elevation_lines;
         auto lidar_3d = std::make_shared<Lidar3D>(lidar_3d_setting, room_mesh->vertices_, room_mesh->triangles_);
 
         double lidar_roll = 0.0;
         double lidar_pitch = 0.0;
         double lidar_yaw = 0.0;
         Eigen::Vector3d lidar_position = room_mesh->GetCenter();
+
+        if (std::isfinite(g_options.init_x)) { lidar_position[0] = g_options.init_x; }
+        if (std::isfinite(g_options.init_y)) { lidar_position[1] = g_options.init_y; }
+        if (std::isfinite(g_options.init_z)) { lidar_position[2] = g_options.init_z; }
+        if (std::isfinite(g_options.init_roll)) { lidar_roll = DegreeToRadian(g_options.init_roll); }
+        if (std::isfinite(g_options.init_pitch)) { lidar_pitch = DegreeToRadian(g_options.init_pitch); }
+        if (std::isfinite(g_options.init_yaw)) { lidar_yaw = DegreeToRadian(g_options.init_yaw); }
+        position_sphere->Translate(lidar_position);
+
         Eigen::MatrixX<Eigen::Vector3d> lidar_ray_dirs = lidar_3d->GetRayDirectionsInFrame();
         Eigen::VectorXd azimuths = lidar_3d->GetAzimuthAngles();
         Eigen::VectorXd elevations = lidar_3d->GetElevationAngles();
@@ -187,7 +225,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     auto tic = std::chrono::high_resolution_clock::now();
                     lidar_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     auto toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleAlongRays (fixed range step): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
+                    std::cout << "SampleAlongRays (fixed range step): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms"
+                              << std::endl;
 
                     long num_samples = sampled_positions.cols();
                     long num_hit_rays = lidar_frame_3d->GetNumHitRays();
@@ -217,7 +256,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     tic = std::chrono::high_resolution_clock::now();
                     lidar_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleAlongRays (fixed num samples per ray): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
+                    std::cout << "SampleAlongRays (fixed num samples per ray): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count()
+                              << " ms" << std::endl;
                     long collected_num_samples = num_samples;
                     num_samples = sampled_positions.cols();
                     for (long i = 0; i < num_samples; ++i) {
@@ -360,6 +400,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_J] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_roll -= angle_step;
             lidar_roll = WrapAnglePi(lidar_roll);
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -369,6 +410,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_L] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_roll += angle_step;
             lidar_roll = WrapAnglePi(lidar_roll);
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -378,6 +420,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_K] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_pitch -= angle_step;
             lidar_pitch = WrapAnglePi(lidar_pitch);
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -387,6 +430,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_I] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_pitch += angle_step;
             lidar_pitch = WrapAnglePi(lidar_pitch);
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -396,6 +440,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_U] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_yaw -= angle_step;
             lidar_yaw = WrapAnglePi(lidar_yaw);
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -405,6 +450,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_O] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_yaw += angle_step;
             lidar_yaw = WrapAnglePi(lidar_yaw);
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -413,6 +459,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_LEFT] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[0] -= translation_step;
+            position_sphere->Translate(Eigen::Vector3d(-translation_step, 0.0, 0.0));
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -421,6 +469,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_RIGHT] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[0] += translation_step;
+            position_sphere->Translate(Eigen::Vector3d(translation_step, 0.0, 0.0));
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -429,6 +479,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_DOWN] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[1] -= translation_step;
+            position_sphere->Translate(Eigen::Vector3d(0.0, -translation_step, 0.0));
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -437,6 +489,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_UP] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[1] += translation_step;
+            position_sphere->Translate(Eigen::Vector3d(0.0, translation_step, 0.0));
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -445,6 +499,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_PAGE_DOWN] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[2] -= translation_step;
+            position_sphere->Translate(Eigen::Vector3d(0.0, 0.0, -translation_step));
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -453,6 +509,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_PAGE_UP] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[2] += translation_step;
+            position_sphere->Translate(Eigen::Vector3d(0.0, 0.0, translation_step));
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_ready = false;
@@ -483,8 +541,13 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                       << "[F7]: toggle sample points." << std::endl;
             return true;
         };
+        key_to_callback[GLFW_KEY_ESCAPE] = [&](open3d::visualization::Visualizer *vis) -> bool {
+            std::cout << "visualizer closed." << std::endl;
+            vis->Close();
+            return true;
+        };
 
-        std::vector<std::shared_ptr<const open3d::geometry::Geometry>> geometries = {room_mesh};
+        std::vector<std::shared_ptr<const open3d::geometry::Geometry>> geometries = {room_mesh, position_sphere};
         if (show_lidar_rays) { geometries.emplace_back(lidar_rays_line_set); }
         if (show_lidar_points) { geometries.emplace_back(lidar_point_cloud); }
         if (show_surface_samples) {
@@ -502,4 +565,44 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         open3d::visualization::DrawGeometriesWithKeyCallbacks(geometries, key_to_callback, "test LidarFrame3D");
 
     } catch (const std::exception &e) { std::cerr << e.what() << std::endl; }
+}
+
+int
+main(int argc, char **argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    try {
+        namespace po = boost::program_options;
+        po::options_description desc;
+        // po::positional_options_description positional_options;
+        // clang-format off
+        desc.add_options()
+            ("help", "produce help message")
+            ("ply-file", po::value<std::string>(&g_options.ply_file)->default_value(g_options.ply_file), "ply file path")
+            ("lidar-elevation-min", po::value<double>(&g_options.lidar_elevation_min)->default_value(g_options.lidar_elevation_min), "lidar elevation min")
+            ("lidar-elevation-max", po::value<double>(&g_options.lidar_elevation_max)->default_value(g_options.lidar_elevation_max), "lidar elevation max")
+            ("lidar-num-elevation-lines", po::value<int>(&g_options.lidar_num_elevation_lines)->default_value(g_options.lidar_num_elevation_lines), "lidar num elevation lines")
+            ("init-x", po::value<double>(&g_options.init_x)->default_value(g_options.init_x), "init x")
+            ("init-y", po::value<double>(&g_options.init_y)->default_value(g_options.init_y), "init y")
+            ("init-z", po::value<double>(&g_options.init_z)->default_value(g_options.init_z), "init z")
+            ("init-roll", po::value<double>(&g_options.init_roll)->default_value(g_options.init_roll), "init roll")
+            ("init-pitch", po::value<double>(&g_options.init_pitch)->default_value(g_options.init_pitch), "init pitch")
+            ("init-yaw", po::value<double>(&g_options.init_yaw)->default_value(g_options.init_yaw), "init yaw")
+            ;
+        // positional_options.add("tree-bt-file", 1);
+        // clang-format on
+
+        po::variables_map vm;
+        // po::store(po::command_line_parser(argc, argv).options(desc).positional(positional_options).run(), vm);
+        po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
+
+        if (vm.count("help")) {
+            std::cout << "Usage: " << argv[0] << " [options] tree_bt_file" << std::endl << desc << std::endl;
+            return 0;
+        }
+        po::notify(vm);
+    } catch (std::exception &e) {
+        std::cerr << e.what() << "\n";
+        return 1;
+    }
+    return RUN_ALL_TESTS();
 }

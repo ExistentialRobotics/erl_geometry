@@ -4,7 +4,7 @@
 #include "erl_common/progress_bar.hpp"
 #include "erl_common/random.hpp"
 #include "erl_geometry/gazebo_room.hpp"
-#include "erl_geometry/house_expo.hpp"
+#include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include <boost/program_options.hpp>
@@ -31,7 +31,7 @@ struct Options {
 
 static Options g_options;
 
-TEST(ERL_GEOMETRY, OccupancyQuadtreeBuild) {
+TEST(OccupancyQuadtree, Build) {
 
     long max_update_cnt;
     Eigen::Vector2d map_min(0, 0);

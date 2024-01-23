@@ -29,7 +29,7 @@ namespace erl::geometry {
 
         [[nodiscard]] std::string
         GetTreeType() const override {
-            return ERL_AS_STRING(OccupancyQuadtree);
+            return "OccupancyQuadtree";
         }
 
         typedef OccupancyQuadtreeDrawer<OccupancyQuadtree> Drawer;

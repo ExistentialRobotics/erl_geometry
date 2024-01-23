@@ -1,21 +1,21 @@
 #pragma once
 
-#include "abstract_quadtree_node.hpp"
+#include "abstract_octree_node.hpp"
 #include <vector>
 
 namespace erl::geometry {
 
     template<typename T>
-    class QuadtreeDataNode : public AbstractQuadtreeNode {
+    class OctreeDataNode : public AbstractOctreeNode {
     protected:
         T m_value_;
 
     public:
-        using NodeType = QuadtreeDataNode<T>;
+        using NodeType = OctreeDataNode<T>;
 
-        QuadtreeDataNode() = default;
+        OctreeDataNode() = default;
 
-        explicit QuadtreeDataNode(T t)
+        explicit OctreeDataNode(T t)
             : m_value_(t) {}
 
         /**
@@ -23,15 +23,16 @@ namespace erl::geometry {
          * @param other
          * @attention This is a deep copy, so it is expensive.
          */
-        QuadtreeDataNode(const NodeType &other)
-            : AbstractQuadtreeNode(),
+        OctreeDataNode(const NodeType &other)
+            : AbstractOctreeNode(),
               m_value_(other.m_value_) {
             if (other.m_children_.empty()) { return; }
             AllocateChildrenPtr();
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < 8; ++i) {
                 if (other.m_children_[i] != nullptr) {
-                    m_children_[i] = std::static_pointer_cast<AbstractQuadtreeNode>(
-                        std::make_shared<NodeType>(*std::static_pointer_cast<NodeType>(other.m_children_[i])));  // deep copy recursively
+                    m_children_[i] = std::static_pointer_cast<AbstractOctreeNode>(  // deep copy recursively
+                        std::make_shared<NodeType>(*std::static_pointer_cast<NodeType>(other.m_children_[i]))
+                    );
                 }
             }
         }
@@ -80,5 +81,4 @@ namespace erl::geometry {
             return s;
         }
     };
-
 }  // namespace erl::geometry

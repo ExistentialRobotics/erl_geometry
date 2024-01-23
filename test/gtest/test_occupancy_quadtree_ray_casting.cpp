@@ -66,7 +66,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 
 static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
 
-TEST(ERL_GEOMETRY, OccupancyQUadtreeRayCasting) {
+TEST(OccupancyQuadtree, RayCasting) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
     // ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.");

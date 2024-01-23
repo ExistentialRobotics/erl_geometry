@@ -2,7 +2,7 @@
 
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/test_helper.hpp"
-#include "erl_geometry/house_expo.hpp"
+#include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/lidar_frame_2d.hpp"
 

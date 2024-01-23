@@ -1,3 +1,5 @@
+#include <open3d/io/TriangleMeshIO.h>
+
 #include "erl_common/grid_map.hpp"
 #include "erl_common/pybind11.hpp"
 #include "erl_common/string_utils.hpp"
@@ -19,11 +21,15 @@
 #include "erl_geometry/surface_2d.hpp"
 #include "erl_geometry/winding_number.hpp"
 #include "erl_geometry/utils.hpp"
-#include "erl_geometry/house_expo.hpp"
+#include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
-#include "erl_geometry/pybind11_occupancy_quadtree_base.hpp"
+#include "erl_geometry/occupancy_octree.hpp"
+#include "erl_geometry/occupancy_octree_drawer.hpp"
+#include "erl_geometry/pybind11_occupancy_quadtree.hpp"
 #include "erl_geometry/pybind11_occupancy_quadtree_drawer.hpp"
+#include "erl_geometry/pybind11_occupancy_octree.hpp"
+#include "erl_geometry/pybind11_occupancy_octree_drawer.hpp"
 #include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/depth_camera_3d.hpp"
 #include "erl_geometry/lidar_frame_3d.hpp"
@@ -70,11 +76,13 @@ BindAabb(py::module &m, const char *py_class_name) {
     ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_aabb, Cls, half_sizes);
 
     py_aabb.def(
-               "__contains__", [](const Cls &aabb, const Eigen::Vector<Scalar, Dim> &point) { return aabb.contains(point); }, py::arg("point")
-    )
+               "__contains__",
+               [](const Cls &aabb, const Eigen::Vector<Scalar, Dim> &point) { return aabb.contains(point); },
+               py::arg("point"))
         .def(
-            "__contains__", [](const Cls &aabb_1, const Cls &aabb_2) { return aabb_1.contains(aabb_2); }, py::arg("another_aabb")
-        )
+            "__contains__",
+            [](const Cls &aabb_1, const Cls &aabb_2) { return aabb_1.contains(aabb_2); },
+            py::arg("another_aabb"))
         .def("corner", &Cls::corner, py::arg("corner_type"))
         .def("intersects", &Cls::intersects, py::arg("another_aabb"));
 }
@@ -110,14 +118,12 @@ BindNodeContainer(py::module &m) {
             "collect_nodes_of_type_in_aabb_2d",
             py::overload_cast<int, const Aabb2D &>(&NodeContainer::CollectNodesOfTypeInAabb2D, py::const_),
             py::arg("type"),
-            py::arg("aabb_2d")
-        )
+            py::arg("aabb_2d"))
         .def(
             "collect_nodes_of_type_in_aabb_3d",
             py::overload_cast<int, const Aabb3D &>(&NodeContainer::CollectNodesOfTypeInAabb3D, py::const_),
             py::arg("type"),
-            py::arg("aabb_3d")
-        )
+            py::arg("aabb_3d"))
         .def(
             "insert",
             [](NodeContainer &node_container, const std::shared_ptr<Node> &node) -> bool {
@@ -125,8 +131,7 @@ BindNodeContainer(py::module &m) {
                 node_container.Insert(node, too_close);
                 return too_close;
             },
-            py::arg("node")
-        )
+            py::arg("node"))
         .def("remove", &NodeContainer::Remove, py::arg("node"));
 }
 
@@ -177,12 +182,10 @@ BindIncrementalQuadTree(py::module &m) {
     py_quadtree
         .def(
             py::init(py::overload_cast<std::shared_ptr<IncrementalQuadtree::Setting>, const Aabb2D &, const std::function<std::shared_ptr<NodeContainer>()> &>(
-                &IncrementalQuadtree::Create
-            )),
+                &IncrementalQuadtree::Create)),
             py::arg("setting"),
             py::arg("area"),
-            py::arg("node_container_constructor")
-        )
+            py::arg("node_container_constructor"))
         .def_property_readonly("setting", &IncrementalQuadtree::GetSetting)
         .def_property_readonly("root", &IncrementalQuadtree::GetRoot)
         .def_property_readonly("cluster", &IncrementalQuadtree::GetCluster)
@@ -204,19 +207,17 @@ BindIncrementalQuadTree(py::module &m) {
                 auto inserted_node = quadtree.Insert(node, new_root);
                 return py::make_tuple(new_root, inserted_node);
             },
-            py::arg("node")
-        )
+            py::arg("node"))
         .def("remove", &IncrementalQuadtree::Remove, py::arg("node"))
         .def(
             "collect_trees",
-            [](const IncrementalQuadtree &quadtree, const std::function<bool(const std::shared_ptr<const IncrementalQuadtree> &)> &qualify
-            ) -> std::vector<std::shared_ptr<const IncrementalQuadtree>> {
+            [](const IncrementalQuadtree &quadtree, const std::function<bool(const std::shared_ptr<const IncrementalQuadtree> &)> &qualify)
+                -> std::vector<std::shared_ptr<const IncrementalQuadtree>> {
                 std::vector<std::shared_ptr<const IncrementalQuadtree>> out;
                 quadtree.CollectTrees(qualify, out);
                 return out;
             },
-            py::arg("qualify")
-        )
+            py::arg("qualify"))
         .def(
             "collect_non_empty_clusters",
             [](IncrementalQuadtree &quadtree, const Aabb2D &area) {
@@ -225,16 +226,14 @@ BindIncrementalQuadTree(py::module &m) {
                 quadtree.CollectNonEmptyClusters(area, clusters, square_distances);
                 return py::make_tuple(clusters, square_distances);
             },
-            py::arg("area")
-        )
+            py::arg("area"))
         .def(
             "collect_nodes",
             [](const IncrementalQuadtree &quadtree) -> std::vector<std::shared_ptr<Node>> {
                 std::vector<std::shared_ptr<Node>> out;
                 quadtree.CollectNodes(out);
                 return out;
-            }
-        )
+            })
         .def(
             "collect_nodes_of_type",
             [](const IncrementalQuadtree &quadtree, int type) -> std::vector<std::shared_ptr<Node>> {
@@ -242,8 +241,7 @@ BindIncrementalQuadTree(py::module &m) {
                 quadtree.CollectNodesOfType(type, out);
                 return out;
             },
-            py::arg("type")
-        )
+            py::arg("type"))
         .def(
             "collect_nodes_of_type_in_area",
             [](const IncrementalQuadtree &quadtree, int type, const Aabb2D &area) -> std::vector<std::shared_ptr<Node>> {
@@ -252,8 +250,7 @@ BindIncrementalQuadTree(py::module &m) {
                 return out;
             },
             py::arg("type"),
-            py::arg("area")
-        )
+            py::arg("area"))
         .def_property_readonly("node_types", &IncrementalQuadtree::GetNodeTypes)
         .def(
             "ray_tracing",
@@ -268,8 +265,7 @@ BindIncrementalQuadTree(py::module &m) {
             },
             py::arg("ray_origin"),
             py::arg("ray_direction"),
-            py::arg("hit_distance_threshold")
-        )
+            py::arg("hit_distance_threshold"))
         .def(
             "ray_tracing",
             [](const IncrementalQuadtree &self,
@@ -283,8 +279,7 @@ BindIncrementalQuadTree(py::module &m) {
             },
             py::arg("ray_origins"),
             py::arg("ray_directions"),
-            py::arg("hit_distance_threshold")
-        )
+            py::arg("hit_distance_threshold"))
         .def(
             "ray_tracing",
             [](const IncrementalQuadtree &self,
@@ -300,8 +295,7 @@ BindIncrementalQuadTree(py::module &m) {
             py::arg("node_type"),
             py::arg("ray_origin"),
             py::arg("ray_direction"),
-            py::arg("hit_distance_threshold")
-        )
+            py::arg("hit_distance_threshold"))
         .def(
             "ray_tracing",
             [](const IncrementalQuadtree &self,
@@ -319,8 +313,7 @@ BindIncrementalQuadTree(py::module &m) {
             py::arg("ray_origins"),
             py::arg("ray_directions"),
             py::arg("hit_distance_threshold"),
-            py::arg("num_threads")
-        )
+            py::arg("num_threads"))
         .def(
             "plot",
             &IncrementalQuadtree::Plot,
@@ -333,8 +326,7 @@ BindIncrementalQuadTree(py::module &m) {
             py::arg("area_rect_thickness") = 2,
             py::arg("tree_data_color") = cv::Scalar{255, 0, 0},
             py::arg("tree_data_radius") = 2,
-            py::arg("plot_node_data") = py::none()
-        )
+            py::arg("plot_node_data") = py::none())
         .def("__str__", [](const IncrementalQuadtree &quadtree) -> std::string {
             std::stringstream ss;
             quadtree.Print(ss);
@@ -363,6 +355,26 @@ BindOccupancyQuadtree(py::module &m) {
 }
 
 static void
+BindOccupancyOctree(py::module &m) {
+    py::class_<OctreeKey>(m, "OctreeKey")
+        .def("__eq__", [](const OctreeKey &self, const OctreeKey &other) { return self == other; })
+        .def("__ne__", [](const OctreeKey &self, const OctreeKey &other) { return self != other; })
+        .def("__getitem__", [](const OctreeKey &self, int idx) { return self[idx]; });
+
+    py::class_<OctreeKeyRay>(m, "OctreeKeyRay").def("__len__", &OctreeKeyRay::size).def("__getitem__", &OctreeKeyRay::operator[], py::arg("idx"));
+
+    py::class_<OccupancyOctreeNode, std::shared_ptr<OccupancyOctreeNode>>(m, "OccupancyOctreeNode")
+        .def_property_readonly("occupancy", &OccupancyOctreeNode::GetOccupancy)
+        .def_property_readonly("log_odds", &OccupancyOctreeNode::GetLogOdds)
+        .def_property_readonly("mean_child_log_odds", &OccupancyOctreeNode::GetMeanChildLogOdds)
+        .def_property_readonly("max_child_log_odds", &OccupancyOctreeNode::GetMaxChildLogOdds)
+        .def("allow_update_log_odds", &OccupancyOctreeNode::AllowUpdateLogOdds, py::arg("delta"))
+        .def("add_log_odds", &OccupancyOctreeNode::AddLogOdds, py::arg("log_odds"));
+    BindOccupancyOctree<OccupancyOctree, OccupancyOctreeNode>(m, "OccupancyOctree");
+    BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<OccupancyOctree>, OccupancyOctree>(m, "OccupancyOctreeDrawer");
+}
+
+static void
 BindSurface2D(py::module &m) {
 
     py::class_<Surface2D, std::shared_ptr<Surface2D>>(m, ERL_AS_STRING(Surface2D))
@@ -372,8 +384,7 @@ BindSurface2D(py::module &m) {
             py::arg("normals"),
             py::arg("lines2vertices"),
             py::arg("objects2lines"),
-            py::arg("outside_flags")
-        )
+            py::arg("outside_flags"))
         .def(py::init<const Surface2D &>(), py::arg("surface"))
         .def_property_readonly("num_vertices", &Surface2D::GetNumVertices)
         .def_property_readonly("num_lines", &Surface2D::GetNumLines)
@@ -391,15 +402,13 @@ BindSurface2D(py::module &m) {
             [](Surface2D &surface, int idx_object) {
                 return Eigen::Matrix2Xd(surface.GetObjectVertices(idx_object));
             },  // cast Eigen::Ref -> Eigen::Matrix2Xfp -> numpy array
-            py::arg("index_object")
-        )
+            py::arg("index_object"))
         .def(
             "get_object_normals",
             [](Surface2D &surface, int idx_object) {
                 return Eigen::Matrix2Xd(surface.GetObjectNormals(idx_object));
             },  // cast Eigen::Ref -> Eigen::Matrix2Xfp -> numpy array
-            py::arg("index_object")
-        )
+            py::arg("index_object"))
         .def("get_vertex_neighbors", &Surface2D::GetVertexNeighbors, py::arg("index_vertex"));
 }
 
@@ -411,41 +420,35 @@ BindSpace2D(py::module &m) {
         .value(
             Space2D::GetSignMethodName(Space2D::SignMethod::kPointNormal),
             Space2D::SignMethod::kPointNormal,
-            "Use the normal of the nearest vertex to determine the sign."
-        )
+            "Use the normal of the nearest vertex to determine the sign.")
         .value(
             Space2D::GetSignMethodName(Space2D::SignMethod::kLineNormal),
             Space2D::SignMethod::kLineNormal,
-            "Use the normal of the nearest line segment to determine the sign."
-        )
+            "Use the normal of the nearest line segment to determine the sign.")
         .value(
             Space2D::GetSignMethodName(Space2D::SignMethod::kPolygon),
             Space2D::SignMethod::kPolygon,
-            "Use the nearest object polygon and the winding number algorithm to determine the sign."
-        )
+            "Use the nearest object polygon and the winding number algorithm to determine the sign.")
         .export_values();
 
     py_space
         .def(
             py::init<const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &, const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &>(),
             py::arg("ordered_object_vertices"),
-            py::arg("ordered_object_normals")
-        )
+            py::arg("ordered_object_normals"))
         .def(
             py::init<const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &, const Eigen::Ref<const Eigen::VectorXb> &, double, bool>(),
             py::arg("ordered_object_vertices"),
             py::arg("outside_flags"),
             py::arg("delta") = 0.01,
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             py::init<const Eigen::Ref<const Eigen::MatrixXd> &, const GridMapInfo2D &, double, double, bool>(),
             py::arg("map_image"),
             py::arg("grid_map_info"),
             py::arg("free_threshold"),
             py::arg("delta") = 0.01,
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(py::init<const Space2D &>(), py::arg("space2d"))
         .def_static("get_sign_method_name", &Space2D::GetSignMethodName, py::arg("sign_method"))
         .def_static("get_sign_method_from_name", &Space2D::GetSignMethodFromName, py::arg("sign_method_name"))
@@ -457,16 +460,14 @@ BindSpace2D(py::module &m) {
             py::arg("grid_map_info"),
             py::arg("sign_method") = Space2D::SignMethod::kLineNormal,
             py::arg("use_kdtree") = false,
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "compute_sdf",
             &Space2D::ComputeSdf,
             py::arg("query_points"),
             py::arg("sign_method") = Space2D::SignMethod::kLineNormal,
             py::arg("use_kd_tree") = false,
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def("compute_sdf_with_kdtree", &Space2D::ComputeSdfWithKdtree, py::arg("q"), py::arg("sign_method"))
         .def("compute_sdf_greedily", &Space2D::ComputeSdfGreedily, py::arg("q"), py::arg("sign_method"))
         .def(
@@ -486,15 +487,13 @@ BindSpace2D(py::module &m) {
             },
             py::arg("grid_map_info"),
             py::arg("query_directions"),
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "compute_ddf",
             py::overload_cast<const Eigen::Ref<const Eigen::Matrix2Xd> &, const Eigen::Ref<const Eigen::Matrix2Xd> &, bool>(&Space2D::ComputeDdf, py::const_),
             py::arg("query_points"),
             py::arg("query_directions"),
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "compute_sddf_v1",
             [](const Space2D &space, const GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel) {
@@ -512,17 +511,15 @@ BindSpace2D(py::module &m) {
             },
             py::arg("grid_map_info"),
             py::arg("query_directions"),
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "compute_sddf_v1",
             py::overload_cast<const Eigen::Ref<const Eigen::Matrix2Xd> &, const Eigen::Ref<const Eigen::Matrix2Xd> &, bool>(
-                &Space2D::ComputeSddfV1, py::const_
-            ),
+                &Space2D::ComputeSddfV1,
+                py::const_),
             py::arg("query_points"),
             py::arg("query_directions"),
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "compute_sddf_v2",
             [](const Space2D &space,
@@ -545,18 +542,16 @@ BindSpace2D(py::module &m) {
             py::arg("map_image_info"),
             py::arg("query_directions"),
             py::arg("sign_method") = Space2D::SignMethod::kLineNormal,
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "compute_sddf_v2",
             py::overload_cast<const Eigen::Ref<const Eigen::Matrix2Xd> &, const Eigen::Ref<const Eigen::Matrix2Xd> &, Space2D::SignMethod, bool>(
-                &Space2D::ComputeSddfV2, py::const_
-            ),
+                &Space2D::ComputeSddfV2,
+                py::const_),
             py::arg("query_points"),
             py::arg("query_directions"),
             py::arg("sign_method") = Space2D::SignMethod::kLineNormal,
-            py::arg("parallel") = false
-        );
+            py::arg("parallel") = false);
 }
 
 static void
@@ -588,21 +583,18 @@ BindLidar2D(py::module &m) {
             py::overload_cast<double, const Eigen::Ref<const Eigen::Vector2d> &, bool>(&Lidar2D::Scan, py::const_),
             py::arg("rotation_angle"),
             py::arg("translation"),
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "scan",
             py::overload_cast<const Eigen::Ref<const Eigen::Matrix2d> &, const Eigen::Ref<const Eigen::Vector2d> &, bool>(&Lidar2D::Scan, py::const_),
             py::arg("rotation"),
             py::arg("translation"),
-            py::arg("parallel") = false
-        )
+            py::arg("parallel") = false)
         .def(
             "scan_multi_poses",
             py::overload_cast<const std::vector<Eigen::Matrix3d> &, bool>(&Lidar2D::ScanMultiPoses, py::const_),  // const method should use py::const_
             py::arg("poses"),
-            py::arg("parallel") = false
-        );
+            py::arg("parallel") = false);
 }
 
 static void
@@ -632,8 +624,7 @@ BindLidarFrame2D(py::module &m) {
             py::arg("translation"),
             py::arg("angles"),
             py::arg("ranges"),
-            py::arg("partition_rays") = false
-        )
+            py::arg("partition_rays") = false)
         .def_property_readonly("setting", &LidarFrame2D::GetSetting)
         .def_property_readonly("num_rays", &LidarFrame2D::GetNumRays)
         .def_property_readonly("num_hit_rays", &LidarFrame2D::GetNumHitRays)
@@ -663,8 +654,7 @@ BindLidarFrame2D(py::module &m) {
                 out["distance"] = distance;
                 return out;
             },
-            py::arg("position")
-        )
+            py::arg("position"))
         .def(
             "sample_along_rays",
             [](const LidarFrame2D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) {
@@ -680,8 +670,7 @@ BindLidarFrame2D(py::module &m) {
             },
             py::arg("num_samples_per_ray"),
             py::arg("max_in_obstacle_dist"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
             [](const LidarFrame2D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) {
@@ -697,8 +686,7 @@ BindLidarFrame2D(py::module &m) {
             },
             py::arg("range_step"),
             py::arg("max_in_obstacle_dist"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
             [](const LidarFrame2D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) {
@@ -714,8 +702,7 @@ BindLidarFrame2D(py::module &m) {
             },
             py::arg("num_samples_per_ray"),
             py::arg("max_offset"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_in_region",
             [](const LidarFrame2D &self, long num_samples, long num_samples_per_iter) {
@@ -730,8 +717,7 @@ BindLidarFrame2D(py::module &m) {
                 return out;
             },
             py::arg("num_samples"),
-            py::arg("num_samples_per_iter")
-        )
+            py::arg("num_samples_per_iter"))
         .def(
             "compute_rays_at",
             [](const LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position_world) {
@@ -745,8 +731,7 @@ BindLidarFrame2D(py::module &m) {
                 out["visible_hit_point_indices"] = visible_hit_point_indices;
                 return out;
             },
-            py::arg("position_world")
-        );
+            py::arg("position_world"));
 }
 
 static void
@@ -778,8 +763,7 @@ BindLogOddMap2D(py::module &m) {
             py::init<std::shared_ptr<LogOddMap2D::Setting>, std::shared_ptr<GridMapInfo2D>, const Eigen::Ref<const Eigen::Matrix2Xd> &>(),
             py::arg("setting").none(false),
             py::arg("grid_map_info"),
-            py::arg("shape_vertices")
-        )
+            py::arg("shape_vertices"))
         .def_static("get_cell_type_name", &LogOddMap2D::GetCellTypeName, py::arg("cell_type"))
         .def_static("get_cell_type_from_name", &LogOddMap2D::GetCellTypeFromName, py::arg("cell_type_name"))
         .def("update", &LogOddMap2D::Update, py::arg("position"), py::arg("theta"), py::arg("angles_body"), py::arg("ranges"))
@@ -798,16 +782,23 @@ BindLogOddMap2D(py::module &m) {
                 int num_unexplored_cells;
                 int num_out_of_map_cells;
                 self.ComputeStatisticsOfLidarFrame(
-                    position, theta, angles_body, ranges, clip_ranges, mask, num_occupied_cells, num_free_cells, num_unexplored_cells, num_out_of_map_cells
-                );
+                    position,
+                    theta,
+                    angles_body,
+                    ranges,
+                    clip_ranges,
+                    mask,
+                    num_occupied_cells,
+                    num_free_cells,
+                    num_unexplored_cells,
+                    num_out_of_map_cells);
                 return std::make_tuple(num_occupied_cells, num_free_cells, num_unexplored_cells, num_out_of_map_cells);
             },
             py::arg("position"),
             py::arg("theta"),
             py::arg("angles_body"),
             py::arg("ranges"),
-            py::arg("clip_ranges")
-        )
+            py::arg("clip_ranges"))
         .def_property_readonly("setting", &LogOddMap2D::GetSetting)
         .def_property_readonly("log_map", &LogOddMap2D::GetLogMap)
         .def_property_readonly("possibility_map", &LogOddMap2D::GetPossibilityMap)
@@ -839,8 +830,7 @@ BindCollisionCheckers(py::module &m) {
             py::init<std::shared_ptr<GridMap<uint8_t, 2>>, const std::shared_ptr<GridMapInfo3D> &, Eigen::Matrix2Xd>(),
             py::arg("grid_map"),
             py::arg("se2_grid_map_info"),
-            py::arg("metric_shape")
-        )
+            py::arg("metric_shape"))
         .def("is_collided", py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &>(&GridCollisionCheckerSe2::IsCollided, py::const_), py::arg("pose"));
 
     py::class_<GridCollisionChecker3D, CollisionCheckerBase>(m, ERL_AS_STRING(GridCollisionChecker3D))
@@ -855,7 +845,22 @@ BindHouseExpo(py::module &m) {
         .def(py::init<const char *, double>(), py::arg("file"), py::arg("wall_thickness"))
         .def_property_readonly("file", &HouseExpoMap::GetFile)
         .def_property_readonly("room_id", &HouseExpoMap::GetRoomId)
-        .def_property_readonly("meter_space", &HouseExpoMap::GetMeterSpace);
+        .def_property_readonly("meter_space", &HouseExpoMap::GetMeterSpace)
+        .def(
+            "to_json",
+            [](const HouseExpoMap &map) {
+                nlohmann::json json_data;
+                HouseExpoMap::ToJson(json_data, map);
+                return json_data.dump();
+            })
+        .def(
+            "extrude_to_3d",
+            [](const HouseExpoMap &map, double room_height, const std::string &filename) {
+                auto mesh = map.ExtrudeTo3D(room_height);
+                open3d::io::WriteTriangleMesh(filename, *mesh, false, false, true, true, true, false);
+            },
+            py::arg("room_height"),
+            py::arg("filename"));
 }
 
 static void
@@ -875,14 +880,12 @@ BindLidar3D(py::module &m) {
             py::init<std::shared_ptr<Lidar3D::Setting>, const Eigen::Ref<const Eigen::Matrix3Xd> &, const Eigen::Ref<const Eigen::Matrix3Xi> &>(),
             py::arg("setting").none(false),
             py::arg("vertices"),
-            py::arg("triangles")
-        )
+            py::arg("triangles"))
         .def(
             py::init<std::shared_ptr<Lidar3D::Setting>, const std::vector<Eigen::Vector3d> &, const std::vector<Eigen::Vector3i> &>(),
             py::arg("setting").none(false),
             py::arg("vertices"),
-            py::arg("triangles")
-        )
+            py::arg("triangles"))
         .def_property_readonly("setting", &Lidar3D::GetSetting)
         .def_property_readonly("azimuth_angles", &Lidar3D::GetAzimuthAngles)
         .def_property_readonly("elevation_angles", &Lidar3D::GetElevationAngles)
@@ -902,8 +905,7 @@ BindLidar3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def("scan", &Lidar3D::Scan, py::arg("orientation"), py::arg("translation"), py::arg("add_noise") = false, py::arg("noise_stddev") = 0.03);
 }
 
@@ -924,14 +926,12 @@ BindDepthCamera3D(py::module &m) {
             py::init<std::shared_ptr<DepthCamera3D::Setting>, const Eigen::Ref<const Eigen::Matrix3Xd> &, const Eigen::Ref<const Eigen::Matrix3Xi> &>(),
             py::arg("setting").none(false),
             py::arg("vertices"),
-            py::arg("triangles")
-        )
+            py::arg("triangles"))
         .def(
             py::init<std::shared_ptr<DepthCamera3D::Setting>, const std::vector<Eigen::Vector3d> &, const std::vector<Eigen::Vector3i> &>(),
             py::arg("setting").none(false),
             py::arg("vertices"),
-            py::arg("triangles")
-        )
+            py::arg("triangles"))
         .def_property_readonly("setting", &DepthCamera3D::GetSetting)
         .def_property_readonly(
             "ray_directions_in_frame",
@@ -949,8 +949,7 @@ BindDepthCamera3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def("scan", &DepthCamera3D::Scan, py::arg("orientation"), py::arg("translation"), py::arg("add_noise") = false, py::arg("noise_stddev") = 0.03);
 }
 
@@ -978,8 +977,7 @@ BindLidarFrame3D(py::module &m) {
             py::arg("azimuths"),
             py::arg("elevations"),
             py::arg("ranges"),
-            py::arg("partition_rays") = false
-        )
+            py::arg("partition_rays") = false)
         .def_property_readonly("setting", [](const LidarFrame3D &self) { return self.GetSetting(); })
         .def_property_readonly("num_rays", &LidarFrame3D::GetNumRays)
         .def_property_readonly("num_hit_rays", &LidarFrame3D::GetNumHitRays)
@@ -1005,8 +1003,7 @@ BindLidarFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly(
             "ray_directions_in_world",
             [](const LidarFrame3D &self) -> py::array_t<double> {
@@ -1023,8 +1020,7 @@ BindLidarFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly(
             "end_points_in_frame",
             [](const LidarFrame3D &self) -> py::array_t<double> {
@@ -1041,8 +1037,7 @@ BindLidarFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly(
             "end_points_in_world",
             [](const LidarFrame3D &self) -> py::array_t<double> {
@@ -1059,8 +1054,7 @@ BindLidarFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly("max_valid_range", &LidarFrame3D::GetMaxValidRange)
         .def_property_readonly("hit_mask", &LidarFrame3D::GetHitMask)
         .def_property_readonly("is_valid", &LidarFrame3D::IsValid)
@@ -1080,8 +1074,7 @@ BindLidarFrame3D(py::module &m) {
                 return out;
             },
             py::arg("position_world"),
-            py::arg("brute_force") = false
-        )
+            py::arg("brute_force") = false)
         .def(
             "sample_along_rays",
             [](const LidarFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
@@ -1097,8 +1090,7 @@ BindLidarFrame3D(py::module &m) {
             },
             py::arg("num_samples_per_ray"),
             py::arg("max_in_obstacle_dist"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
             [](const LidarFrame3D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
@@ -1114,8 +1106,7 @@ BindLidarFrame3D(py::module &m) {
             },
             py::arg("range_step"),
             py::arg("max_in_obstacle_dist"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
             [](const LidarFrame3D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) -> py::dict {
@@ -1131,8 +1122,7 @@ BindLidarFrame3D(py::module &m) {
             },
             py::arg("num_samples_per_ray"),
             py::arg("max_offset"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_in_region",
             [](const LidarFrame3D &self, long num_samples, long num_samples_per_iter, bool parallel) -> py::dict {
@@ -1148,8 +1138,7 @@ BindLidarFrame3D(py::module &m) {
             },
             py::arg("num_samples"),
             py::arg("num_samples_per_iter"),
-            py::arg("parallel")
-        )
+            py::arg("parallel"))
         .def(
             "compute_rays_at",
             [](const LidarFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world) -> py::dict {
@@ -1163,8 +1152,7 @@ BindLidarFrame3D(py::module &m) {
                 out["visible_hit_point_indices"] = visible_hit_point_indices;
                 return out;
             },
-            py::arg("position_world")
-        );
+            py::arg("position_world"));
 }
 
 static void
@@ -1185,14 +1173,12 @@ BindRgbdFrame3D(py::module &m) {
         .def(
             "update",
             py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &, const Eigen::Ref<const Eigen::Vector3d> &, Eigen::MatrixXd, bool, bool>(
-                &RgbdFrame3D::Update
-            ),
+                &RgbdFrame3D::Update),
             py::arg("rotation"),
             py::arg("translation"),
             py::arg("depth"),
             py::arg("depth_scaled"),
-            py::arg("partition_rays") = false
-        )
+            py::arg("partition_rays") = false)
         .def_property_readonly("setting", [](const RgbdFrame3D &self) { return self.GetSetting(); })
         .def_property_readonly("camera_extrinsic_matrix", &RgbdFrame3D::GetCameraExtrinsicMatrix)
         .def_property_readonly("camera_intrinsic_matrix", &RgbdFrame3D::GetCameraIntrinsicMatrix)
@@ -1220,8 +1206,7 @@ BindRgbdFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly(
             "ray_directions_in_world",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
@@ -1238,8 +1223,7 @@ BindRgbdFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly(
             "end_points_in_frame",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
@@ -1256,8 +1240,7 @@ BindRgbdFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly(
             "end_points_in_world",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
@@ -1274,8 +1257,7 @@ BindRgbdFrame3D(py::module &m) {
                     }
                 }
                 return out;
-            }
-        )
+            })
         .def_property_readonly("max_valid_range", [](const RgbdFrame3D &self) { return self.GetMaxValidRange(); })
         .def_property_readonly("hit_mask", [](const RgbdFrame3D &self) { return self.GetHitMask(); })
         .def_property_readonly("is_valid", [](const RgbdFrame3D &self) { return self.IsValid(); })
@@ -1295,8 +1277,7 @@ BindRgbdFrame3D(py::module &m) {
                 return out;
             },
             py::arg("position_world"),
-            py::arg("brute_force") = false
-        )
+            py::arg("brute_force") = false)
         .def(
             "sample_along_rays",
             [](const RgbdFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
@@ -1312,8 +1293,7 @@ BindRgbdFrame3D(py::module &m) {
             },
             py::arg("num_samples_per_ray"),
             py::arg("max_in_obstacle_dist"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
             [](const RgbdFrame3D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
@@ -1329,8 +1309,7 @@ BindRgbdFrame3D(py::module &m) {
             },
             py::arg("range_step"),
             py::arg("max_in_obstacle_dist"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
             [](const RgbdFrame3D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) -> py::dict {
@@ -1346,8 +1325,7 @@ BindRgbdFrame3D(py::module &m) {
             },
             py::arg("num_samples_per_ray"),
             py::arg("max_offset"),
-            py::arg("sampled_rays_ratio")
-        )
+            py::arg("sampled_rays_ratio"))
         .def(
             "sample_in_region",
             [](const RgbdFrame3D &self, long num_samples, long num_samples_per_iter, bool parallel) -> py::dict {
@@ -1363,8 +1341,7 @@ BindRgbdFrame3D(py::module &m) {
             },
             py::arg("num_samples"),
             py::arg("num_samples_per_iter"),
-            py::arg("parallel")
-        )
+            py::arg("parallel"))
         .def(
             "compute_rays_at",
             [](const RgbdFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world) -> py::dict {
@@ -1378,8 +1355,7 @@ BindRgbdFrame3D(py::module &m) {
                 out["visible_hit_point_indices"] = visible_hit_point_indices;
                 return out;
             },
-            py::arg("position_world")
-        );
+            py::arg("position_world"));
 }
 
 PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
@@ -1394,8 +1370,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
             },
             py::arg("start"),
             py::arg("end"),
-            py::arg("stop") = py::none()
-        )
+            py::arg("stop") = py::none())
         .def("compute_pixels_of_polygon_contour", &ComputePixelsOfPolygonContour, py::arg("polygon_vertices"))
         .def(
             "marching_square",
@@ -1408,8 +1383,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
                 return py::make_tuple(vertices, lines_to_vertices, objects_to_lines);
             },
             py::arg("img"),
-            py::arg("iso_value")
-        )
+            py::arg("iso_value"))
         .def("winding_number", &WindingNumber, py::arg("p"), py::arg("vertices"))
         .def(
             "compute_nearest_distance_from_point_to_line_segment_2d",
@@ -1419,8 +1393,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
             py::arg("line_segment_x1"),
             py::arg("line_segment_y1"),
             py::arg("line_segment_x2"),
-            py::arg("line_segment_y2")
-        )
+            py::arg("line_segment_y2"))
         .def(
             "compute_intersection_between_ray_and_segment_2d",
             [](const Eigen::Ref<const Eigen::Vector2d> &ray_start_point,
@@ -1435,8 +1408,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
             py::arg("ray_start_point"),
             py::arg("ray_direction"),
             py::arg("segment_point1"),
-            py::arg("segment_point2")
-        )
+            py::arg("segment_point2"))
         .def(
             "compute_intersection_between_ray_and_aabb_2d",
             [](const Eigen::Ref<const Eigen::Vector2d> &p,
@@ -1451,8 +1423,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
             py::arg("ray_start_point"),
             py::arg("ray_direction"),
             py::arg("aabb_min"),
-            py::arg("aabb_max")
-        );
+            py::arg("aabb_max"));
 
     BindAabb<double, 2>(m, "Aabb2D");
     BindAabb<double, 3>(m, "Aabb3D");
@@ -1461,6 +1432,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindNodeContainerMultiTypes(m);
     BindIncrementalQuadTree(m);
     BindOccupancyQuadtree(m);
+    BindOccupancyOctree(m);
     BindSurface2D(m);
     BindSpace2D(m);
     BindLidar2D(m);

@@ -60,7 +60,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     }
 }
 
-TEST(ERL_GEOMETRY, OccupancyQuadtree_LeafInAABB) {
+TEST(OccupancyQuadtree, IterateLeafInAABB) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
     std::filesystem::path path = __FILE__;

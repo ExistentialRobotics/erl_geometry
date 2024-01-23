@@ -6,14 +6,13 @@
 
 namespace erl::geometry {
 
-    static inline void SphericalProjection(
+    static inline void
+    SphericalProjection(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
         const Eigen::Ref<const Eigen::Vector3d> &camera_position,
         double radius,
         Eigen::Matrix3Xd &projected_points,
-        Eigen::VectorXd &norms
-        ) {
-
+        Eigen::VectorXd &norms) {
         long num_points = points.cols();
         for (long i = 0; i < num_points; ++i) {
             auto point = points.col(i);
@@ -22,22 +21,8 @@ namespace erl::geometry {
 
             projected_point << point - camera_position;
             norm = projected_point.norm();
-//            norm = 0;
-//#pragma GCC unroll 3
-//            for (long j = 0; j < 3; ++j) {
-//                double &p = projected_point[j];
-//                p = point[j] - camera_position[j];
-//                norm += p * p;
-//            }
-//            norm = std::sqrt(norm);
             ERL_ASSERTM(norm < radius, "norm (%f) should be < radius (%f).", norm, radius);
-
             projected_point << projected_point + 2 * (radius - norm) * (projected_point / norm);
-//#pragma GCC unroll 3
-//            for (long j = 0; j < 3; ++j) {
-//                double &p = projected_point[j];
-//                p += 2 * (radius - norm) * (p / norm);
-//            }
         }
     }
 
@@ -47,8 +32,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector3d> &camera_position,
         double radius,
         std::vector<long> &visible_point_indices,
-        bool joggle_inputs
-    ) {
+        bool joggle_inputs) {
         ERL_ASSERTM(radius > 0.0, "radius (%f) should be positive.", radius);
 
         // perform spherical projection
@@ -82,8 +66,7 @@ namespace erl::geometry {
         Eigen::Matrix3Xl &mesh_triangles,
         Eigen::Matrix3Xd &mesh_vertices,
         std::vector<long> &visible_point_indices,
-        bool joggle_inputs
-    ) {
+        bool joggle_inputs) {
         ERL_ASSERTM(radius > 0.0, "radius (%f) should be positive.", radius);
 
         // perform spherical projection

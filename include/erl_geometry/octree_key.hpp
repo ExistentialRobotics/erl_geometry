@@ -9,33 +9,33 @@
 namespace erl::geometry {
 
     /**
-     * QuadtreeKey is a simple class that represents a key for a quadtree node. It is a 2D vector of uint16_t.
+     * OctreeKey is a simple class that represents a key for an octree node. It is a 3D vector of uint16_t.
      * Each element counts the number of cells from the origin as discrete address of a voxel.
      */
-    class QuadtreeKey {
+    class OctreeKey {
     public:
         typedef uint16_t KeyType;
 
         struct KeyHash {
             [[nodiscard]] inline std::size_t
-            operator()(const QuadtreeKey& key) const {
-                return (std::size_t(key.m_k_[0]) << 16) | std::size_t(key.m_k_[1]);
+            operator()(const OctreeKey& key) const {
+                return (std::size_t(key.m_k_[0]) << 32) | (std::size_t(key.m_k_[1]) << 16) | std::size_t(key.m_k_[2]);
             }
         };
 
-        QuadtreeKey() = default;
+        OctreeKey() = default;
 
-        QuadtreeKey(KeyType a, KeyType b)
-            : m_k_{a, b} {}
+        OctreeKey(KeyType a, KeyType b, KeyType c)
+            : m_k_{a, b, c} {}
 
         [[nodiscard]] inline bool
-        operator==(const QuadtreeKey& other) const {
-            return m_k_[0] == other.m_k_[0] && m_k_[1] == other.m_k_[1];
+        operator==(const OctreeKey& other) const {
+            return m_k_[0] == other.m_k_[0] && m_k_[1] == other.m_k_[1] && m_k_[2] == other.m_k_[2];
         }
 
         [[nodiscard]] inline bool
-        operator!=(const QuadtreeKey& other) const {
-            return m_k_[0] != other.m_k_[0] || m_k_[1] != other.m_k_[1];
+        operator!=(const OctreeKey& other) const {
+            return m_k_[0] != other.m_k_[0] || m_k_[1] != other.m_k_[1] || m_k_[2] != other.m_k_[2];
         }
 
         inline KeyType&
@@ -50,71 +50,74 @@ namespace erl::geometry {
 
         /**
          * Compute the key of a child node from the key of its parent node and the index of the child node.
-         * @param pos index of child node (0..3)
+         * @param pos index of child node (0..7)
          * @param center_offset_key
          * @param parent_key
          * @param child_key
          */
         inline static void
-        ComputeChildKey(unsigned int pos, QuadtreeKey::KeyType center_offset_key, const QuadtreeKey& parent_key, QuadtreeKey& child_key) {
+        ComputeChildKey(unsigned int pos, OctreeKey::KeyType center_offset_key, const OctreeKey& parent_key, OctreeKey& child_key) {
             child_key[0] = parent_key[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
             child_key[1] = parent_key[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key[2] = parent_key[2] + ((pos & 4) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
         }
 
         /**
-         * Compute child index (0..3) from key at given level.
+         * Compute child index (0..7) from key at given level.
          * @param key
          * @param level level=0 means the leaf level
          * @return
          */
         inline static uint8_t
-        ComputeChildIndex(const QuadtreeKey& key, unsigned int level) {
+        ComputeChildIndex(const OctreeKey& key, unsigned int level) {
             uint8_t pos = 0;
             if (key[0] & (1 << level)) { pos += 1; }
             if (key[1] & (1 << level)) { pos += 2; }
+            if (key[2] & (1 << level)) { pos += 4; }
             return pos;
         }
 
         inline static bool
-        KeyInAabb(const QuadtreeKey& key, QuadtreeKey::KeyType center_offset_key, const QuadtreeKey& aabb_min_key, const QuadtreeKey& aabb_max_key) {
+        KeyInAabb(const OctreeKey& key, OctreeKey::KeyType center_offset_key, const OctreeKey& aabb_min_key, const OctreeKey& aabb_max_key) {
             return (aabb_min_key[0] <= (key[0] + center_offset_key)) && (aabb_min_key[1] <= (key[1] + center_offset_key)) &&
-                   (aabb_max_key[0] >= (key[0] - center_offset_key)) && (aabb_max_key[1] >= (key[1] - center_offset_key));
+                   (aabb_min_key[2] <= (key[2] + center_offset_key)) && (aabb_max_key[0] >= (key[0] - center_offset_key)) &&
+                   (aabb_max_key[1] >= (key[1] - center_offset_key)) && (aabb_max_key[2] >= (key[2] - center_offset_key));
         }
 
     private:
-        KeyType m_k_[2] = {0, 0};
+        KeyType m_k_[3] = {0, 0, 0};
     };
 
     /**
      * Data structure to efficiently compute the nodes to update from a scan insertion using a hash set.
      */
-    typedef std::unordered_set<QuadtreeKey, QuadtreeKey::KeyHash> QuadtreeKeySet;
+    typedef std::unordered_set<OctreeKey, OctreeKey::KeyHash> OctreeKeySet;
 
     /**
      * Data structure to efficiently track changed nodes.
      */
-    typedef std::unordered_map<QuadtreeKey, bool, QuadtreeKey::KeyHash> QuadtreeKeyBoolMap;
+    typedef std::unordered_map<OctreeKey, bool, OctreeKey::KeyHash> OctreeKeyBoolMap;
 
     /**
      * Data structure for efficient ray casting.
      */
-    class QuadtreeKeyRay {
+    class OctreeKeyRay {
     public:
-        typedef std::vector<QuadtreeKey>::iterator Iterator;
-        typedef std::vector<QuadtreeKey>::const_iterator ConstIterator;
-        typedef std::vector<QuadtreeKey>::reverse_iterator ReverseIterator;
+        typedef std::vector<OctreeKey>::iterator Iterator;
+        typedef std::vector<OctreeKey>::const_iterator ConstIterator;
+        typedef std::vector<OctreeKey>::reverse_iterator ReverseIterator;
 
     private:
-        std::vector<QuadtreeKey> m_ray_ = {};
+        std::vector<OctreeKey> m_ray_ = {};
         Iterator m_end_of_ray_ = m_ray_.begin();
 
     public:
-        QuadtreeKeyRay() {
+        OctreeKeyRay() {
             m_ray_.resize(100000);
             Reset();
         }
 
-        QuadtreeKeyRay(const QuadtreeKeyRay& other) {
+        OctreeKeyRay(const OctreeKeyRay& other) {
             m_ray_ = other.m_ray_;
             auto size = other.end() - other.begin();
             m_end_of_ray_ = m_ray_.begin() + size;
@@ -126,7 +129,7 @@ namespace erl::geometry {
         }
 
         inline void
-        AddKey(const QuadtreeKey& k) {
+        AddKey(const OctreeKey& k) {
             ERL_ASSERTM(m_end_of_ray_ != m_ray_.end(), "Ray is full.");
             *m_end_of_ray_ = k;
             ++m_end_of_ray_;
@@ -172,7 +175,7 @@ namespace erl::geometry {
             return m_ray_.rend();
         }
 
-        [[nodiscard]] inline QuadtreeKey
+        [[nodiscard]] inline OctreeKey
         operator[](int idx) const {
             ERL_ASSERTM(idx >= 0 && idx < int(size()), "Index out of bounds.");
             return m_ray_[idx];

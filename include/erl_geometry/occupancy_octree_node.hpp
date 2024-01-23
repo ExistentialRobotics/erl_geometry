@@ -1,14 +1,14 @@
 #pragma once
 
-#include "quadtree_data_node.hpp"
+#include "octree_data_node.hpp"
 #include "logodd.hpp"
 
 namespace erl::geometry {
 
-    class OccupancyQuadtreeNode : public QuadtreeDataNode<float> {
+    class OccupancyOctreeNode : public OctreeDataNode<float> {
     public:
-        OccupancyQuadtreeNode()
-            : QuadtreeDataNode<float>(0) {}
+        OccupancyOctreeNode()
+            : OctreeDataNode<float>(0) {}
 
         //-- node occupancy
         [[nodiscard]] inline double
@@ -38,10 +38,10 @@ namespace erl::geometry {
 
             double mean = 0;
             uint8_t c = 0;
-            for (unsigned int i = 0; i < 4; ++i) {
+            for (unsigned int i = 0; i < 8; ++i) {
                 auto &child = m_children_[i];
                 if (child == nullptr) { continue; }
-                mean += std::static_pointer_cast<OccupancyQuadtreeNode>(child)->GetOccupancy();
+                mean += std::static_pointer_cast<OccupancyOctreeNode>(child)->GetOccupancy();
                 ++c;
             }
 
@@ -54,10 +54,10 @@ namespace erl::geometry {
             float max = -std::numeric_limits<float>::max();
             if (!HasAnyChild()) { return max; }
 
-            for (unsigned int i = 0; i < 4; ++i) {
+            for (unsigned int i = 0; i < 8; ++i) {
                 auto &child = m_children_[i];
                 if (child == nullptr) { continue; }
-                float l = std::static_pointer_cast<OccupancyQuadtreeNode>(child)->GetLogOdds();
+                float l = std::static_pointer_cast<OccupancyOctreeNode>(child)->GetLogOdds();
                 if (l > max) { max = l; }
             }
             return max;

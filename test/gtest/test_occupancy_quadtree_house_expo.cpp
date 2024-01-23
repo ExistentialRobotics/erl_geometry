@@ -1,12 +1,12 @@
 #include "erl_common/test_helper.hpp"
 #include "erl_common/csv.hpp"
 #include "erl_common/random.hpp"
-#include "erl_geometry/house_expo.hpp"
+#include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 
-TEST(ERL_GEOMETRY, OccupancyQuadtreeHouseExpo) {
+TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     std::filesystem::path test_data_dir = std::filesystem::path(__FILE__).parent_path();
     int map_index = 1451;
     std::filesystem::path map_file_path = test_data_dir / ("house_expo_room_" + std::to_string(map_index) + ".json");

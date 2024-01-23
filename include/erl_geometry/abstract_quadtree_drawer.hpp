@@ -2,6 +2,7 @@
 
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/yaml.hpp"
+#include "abstract_quadtree.hpp"
 
 namespace erl::geometry {
 

@@ -23,14 +23,29 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
       quadtree.
     - [QuadtreeKey](include/erl_geometry/quadtree_key.hpp): key for quadtree node to achieve fast lookup.
     - [Abstract Quadtree Node](include/erl_geometry/abstract_quadtree_node.hpp): abstract class for quadtree node.
-    - [Quadtree Node](include/erl_geometry/quadtree_node.hpp): template implementation of quadtree node with data type
-      T.
+    - [Quadtree Data Node](include/erl_geometry/quadtree_data_node.hpp): template implementation of quadtree node with
+      data type T.
     - [Occupancy Quadtree Node](include/erl_geometry/occupancy_quadtree_node.hpp): implementation of quadtree node with
       occupancy data.
     - [LogOdd](include/erl_geometry/logodd.hpp): implementation of log odd.
     - [Abstract Quadtree Drawer](include/erl_geometry/abstract_quadtree_drawer.hpp): abstract class for quadtree drawer.
     - [Occupancy Quadtree Drawer](include/erl_geometry/occupancy_quadtree_drawer.hpp): visualization of occupancy
       quadtree.
+- Occupancy Octree: developed based on [Octomap](https://octomap.github.io/)
+    - [Occupancy Octree](include/erl_geometry/occupancy_octree.hpp): implementation of occupancy octree.
+    - [Abstract Octree](include/erl_geometry/abstract_octree.hpp): abstract class for octree.
+    - [Octree Implementation](include/erl_geometry/octree_impl.hpp): implementation of octree, unlike incremental
+      quadtree, this one always inserts nodes to the deepest level.
+    - [Abstract Occupancy Octree](include/erl_geometry/abstract_occupancy_octree.hpp): abstract class for occupancy
+      octree.
+    - [OctreeKey](include/erl_geometry/octree_key.hpp): key for octree node to achieve fast lookup.
+    - [Abstract Octree Node](include/erl_geometry/abstract_octree_node.hpp): abstract class for octree node.
+    - [Octree Data Node](include/erl_geometry/octree_data_node.hpp): template implementation of octree node with data
+      type T.
+    - [Occupancy Octree Node](include/erl_geometry/occupancy_octree_node.hpp): implementation of octree node with
+      occupancy data.
+    - [Abstract Octree Drawer](include/erl_geometry/abstract_octree_drawer.hpp): abstract class for octree drawer.
+    - [Occupancy Octree Drawer](include/erl_geometry/occupancy_octree_drawer.hpp): visualization of occupancy octree.
 - [Log Odd Map 2D](include/erl_geometry/log_odd_map_2d.hpp): 2D occupancy grid map based on log odd.
 - Collision Detection
     - [Winding Number](include/erl_geometry/winding_number.hpp): check if a point is in a polygon.
@@ -39,10 +54,13 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
     - [Point Collision Checker](include/erl_geometry/point_collision_checker.hpp): check if a point is in obstacle.
 - Surface Extraction
     - [Marching Square](include/erl_geometry/marching_square.hpp): extract surface from 2D scalar field.
-- Ray Tracing
+- Polygon Triangulation
+    - [EarCut](include/erl_geometry/earcut.hpp): triangulate a polygon even with holes.
+    - [Convert Polygon to Triangle Mesh](include/erl_geometry/polygon_to_mesh.hpp): triangulate a polygon.
+- Ray Casting
     - [Bresenham 2D](include/erl_geometry/bresenham_2d.hpp): 2D ray tracing.
     - [Ray Marching](include/erl_geometry/ray_marching.hpp): 2D ray marching with SDF.
-    - Also available in quadtree.
+    - Also available in Quadtree and Octree.
 - 2D Point Cloud Processing
     - [Surface 2D](include/erl_geometry/surface_2d.hpp): data structure to store 2D surface consisting of points and
       normals.

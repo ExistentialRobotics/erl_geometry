@@ -1,17 +1,17 @@
 #pragma once
 
 #include "erl_common/assert.hpp"
-#include "abstract_quadtree.hpp"
-#include "quadtree_key.hpp"
-#include "occupancy_quadtree_node.hpp"
+#include "abstract_octree.hpp"
+#include "octree_key.hpp"
+#include "occupancy_octree_node.hpp"
 #include "logodd.hpp"
 
 namespace erl::geometry {
 
     /**
-     * AbstractOccupancyQuadtree is a base class that implements generic occupancy quadtree functionality.
+     * AbstractOccupancyOctree is a base class that implements generic occupancy quadtree functionality.
      */
-    class AbstractOccupancyQuadtree : public AbstractQuadtree {
+    class AbstractOccupancyOctree : public AbstractOctree {
 
     protected:
         // occupancy parameters, stored in log-odds
@@ -22,10 +22,10 @@ namespace erl::geometry {
         float m_log_odd_occ_threshold_ = 0;  // threshold that is used to decide whether a cell is occupied or not, =0.5 in probability
 
         // binary file header identifier
-        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyQuadtree binary file";
+        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";
 
     public:
-        AbstractOccupancyQuadtree() = default;
+        AbstractOccupancyOctree() = default;
 
         //--IO
         /**
@@ -76,23 +76,23 @@ namespace erl::geometry {
 
         //-- occupancy queries
         [[nodiscard]] inline bool
-        IsNodeOccupied(const std::shared_ptr<const OccupancyQuadtreeNode>& node) const {
+        IsNodeOccupied(const std::shared_ptr<const OccupancyOctreeNode>& node) const {
             return node->GetLogOdds() >= m_log_odd_occ_threshold_;
         }
 
         [[nodiscard]] inline bool
-        IsNodeOccupied(const OccupancyQuadtreeNode& node) const {
+        IsNodeOccupied(const OccupancyOctreeNode& node) const {
             return node.GetLogOdds() >= m_log_odd_occ_threshold_;
         }
 
         [[nodiscard]] inline bool
-        IsNodeAtThreshold(const std::shared_ptr<const OccupancyQuadtreeNode>& node) const {
+        IsNodeAtThreshold(const std::shared_ptr<const OccupancyOctreeNode>& node) const {
             float log_odds = node->GetLogOdds();
             return log_odds >= m_log_odd_max_ || log_odds <= m_log_odd_min_;
         }
 
         [[nodiscard]] inline bool
-        IsNodeAtThreshold(const OccupancyQuadtreeNode& node) const {
+        IsNodeAtThreshold(const OccupancyOctreeNode& node) const {
             float log_odds = node.GetLogOdds();
             return log_odds >= m_log_odd_max_ || log_odds <= m_log_odd_min_;
         }
@@ -106,17 +106,17 @@ namespace erl::geometry {
          * UpdateInnerOccupancy() after all updates are done.
          * @return
          */
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(const QuadtreeKey& key, float log_odds_delta, bool lazy_eval) = 0;
+        virtual std::shared_ptr<OccupancyOctreeNode>
+        UpdateNode(const OctreeKey& key, float log_odds_delta, bool lazy_eval) = 0;
 
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(double x, double y, float log_odds_delta, bool lazy_eval) = 0;
+        virtual std::shared_ptr<OccupancyOctreeNode>
+        UpdateNode(double x, double y, double z, float log_odds_delta, bool lazy_eval) = 0;
 
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(const QuadtreeKey& key, bool occupied, bool lazy_eval) = 0;
+        virtual std::shared_ptr<OccupancyOctreeNode>
+        UpdateNode(const OctreeKey& key, bool occupied, bool lazy_eval) = 0;
 
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(double x, double y, bool occupied, bool lazy_eval) = 0;
+        virtual std::shared_ptr<OccupancyOctreeNode>
+        UpdateNode(double x, double y, double z, bool occupied, bool lazy_eval) = 0;
 
         virtual void
         UpdateInnerOccupancy() = 0;

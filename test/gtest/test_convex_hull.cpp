@@ -1,11 +1,9 @@
-#include "erl_geometry/convex_hull.hpp"
-// #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/TriangleMesh.h>
 #include <open3d/io/PointCloudIO.h>
-// #include <open3d/io/TriangleMeshIO.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 #include <open3d/visualization/utility/DrawGeometry.h>
 #include "erl_common/test_helper.hpp"
+#include "erl_geometry/convex_hull.hpp"
 
 TEST(ERL_GEOMETRY, ConvexHull) {
 

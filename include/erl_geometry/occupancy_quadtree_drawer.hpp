@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include "erl_common/opencv.hpp"
 #include "erl_common/yaml.hpp"
 #include "abstract_quadtree_drawer.hpp"
 

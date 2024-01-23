@@ -1,10 +1,10 @@
-#include "erl_geometry/abstract_occupancy_quadtree.hpp"
+#include "erl_geometry/abstract_occupancy_octree.hpp"
 #include <fstream>
 
 namespace erl::geometry {
 
     bool
-    AbstractOccupancyQuadtree::WriteBinary(const std::string &filename) {
+    AbstractOccupancyOctree::WriteBinary(const std::string &filename) {
         std::ofstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
@@ -17,14 +17,14 @@ namespace erl::geometry {
     }
 
     bool
-    AbstractOccupancyQuadtree::WriteBinary(std::ostream &s) {
+    AbstractOccupancyOctree::WriteBinary(std::ostream &s) {
         ToMaxLikelihood();
         Prune();
-        return const_cast<const AbstractOccupancyQuadtree *>(this)->WriteBinary(s);
+        return const_cast<const AbstractOccupancyOctree *>(this)->WriteBinary(s);
     }
 
     bool
-    AbstractOccupancyQuadtree::WriteBinary(const std::string &filename) const {
+    AbstractOccupancyOctree::WriteBinary(const std::string &filename) const {
         std::ofstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
@@ -37,7 +37,7 @@ namespace erl::geometry {
     }
 
     bool
-    AbstractOccupancyQuadtree::WriteBinary(std::ostream &s) const {
+    AbstractOccupancyOctree::WriteBinary(std::ostream &s) const {
         // write header
         s << sk_BinaryFileHeader_ << "\n# (feel free to add / change comments, but leave the first line as it is!)\n#\n"
           << "id " << GetTreeType() << std::endl
@@ -47,16 +47,16 @@ namespace erl::geometry {
 
         WriteBinaryData(s);
         if (s.good()) {
-            ERL_DEBUG("Successfully wrote Quadtree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
+            ERL_DEBUG("Successfully wrote Octree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
             return true;
         } else {
-            ERL_WARN("Failed to write Quadtree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
+            ERL_WARN("Failed to write Octree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
             return false;
         }
     }
 
     bool
-    AbstractOccupancyQuadtree::ReadBinary(const std::string &filename) {
+    AbstractOccupancyOctree::ReadBinary(const std::string &filename) {
         std::ifstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
@@ -69,7 +69,7 @@ namespace erl::geometry {
     }
 
     bool
-    AbstractOccupancyQuadtree::ReadBinary(std::istream &s) {
+    AbstractOccupancyOctree::ReadBinary(std::istream &s) {
         if (!s.good()) {
             ERL_WARN("Input stream is not ready for reading");
             return false;
@@ -79,7 +79,7 @@ namespace erl::geometry {
         std::string line;
         std::getline(s, line);
         if (line.compare(0, sk_BinaryFileHeader_.length(), sk_BinaryFileHeader_) != 0) {
-            ERL_WARN("First line of Quadtree file header does not start with \"%s\"", sk_FileHeader_.c_str());
+            ERL_WARN("First line of Octree file header does not start with \"%s\"", sk_FileHeader_.c_str());
             return false;
         }
 
@@ -98,7 +98,7 @@ namespace erl::geometry {
             return false;
         }
 
-        ERL_DEBUG("Successfully read Quadtree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
+        ERL_DEBUG("Successfully read Octree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
         return true;
     }
 }  // namespace erl::geometry

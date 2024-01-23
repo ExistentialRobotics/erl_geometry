@@ -84,7 +84,7 @@ struct Options {
 
 Options options;
 
-TEST(ERL_GEOMETRY, OccupancyQuadtreeOccupiedLeafOnRay) {
+TEST(OccupancyQuadtree, IterateOccupiedLeafOnRay) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
     ERL_ASSERTM(data.tree->ReadBinary(options.tree_bt_file), "Fail to load the tree.");

@@ -7,15 +7,15 @@
 namespace erl::geometry {
 
     /**
-     * AbstractQuadtree is a base class for all quadtree implementations. It provides a common interface for factory pattern and file I/O.
+     * AbstractOctree is a base class for all octree implementations. It provides a common interface for factory pattern and file I/O.
      */
-    class AbstractQuadtree {
+    class AbstractOctree {
 
     public:
-        AbstractQuadtree() = default;
-        virtual ~AbstractQuadtree() = default;
+        AbstractOctree() = default;
+        virtual ~AbstractOctree() = default;
 
-        [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>
+        [[nodiscard]] virtual std::shared_ptr<AbstractOctree>
         Create() const = 0;
 
         //-- get tree information
@@ -34,21 +34,21 @@ namespace erl::geometry {
         [[nodiscard]] virtual std::size_t
         GetMemoryUsagePerNode() const = 0;
         virtual void
-        GetMetricMin(double& x, double& y) = 0;
+        GetMetricMin(double& x, double& y, double& z) = 0;
         virtual void
-        GetMetricMin(double& x, double& y) const = 0;
+        GetMetricMin(double& x, double& y, double& z) const = 0;
         virtual void
-        GetMetricMax(double& x, double& y) = 0;
+        GetMetricMax(double& x, double& y, double& z) = 0;
         virtual void
-        GetMetricMax(double& x, double& y) const = 0;
+        GetMetricMax(double& x, double& y, double& z) const = 0;
         virtual void
-        GetMetricMinMax(double& min_x, double& min_y, double& max_x, double& max_y) = 0;
+        GetMetricMinMax(double& min_x, double& min_y, double& min_z, double& max_x, double& max_y, double& max_z) = 0;
         virtual void
-        GetMetricMinMax(double& min_x, double& min_y, double& max_x, double& max_y) const = 0;
+        GetMetricMinMax(double& min_x, double& min_y, double& min_z, double& max_x, double& max_y, double& max_z) const = 0;
         virtual void
-        GetMetricSize(double& x, double& y) = 0;
+        GetMetricSize(double& x, double& y, double& z) = 0;
         virtual void
-        GetMetricSize(double& x, double& y) const = 0;
+        GetMetricSize(double& x, double& y, double& z) const = 0;
 
         //-- IO
 
@@ -73,10 +73,10 @@ namespace erl::geometry {
         WriteData(std::ostream& s) const = 0;
 
         // Read from file
-        static std::shared_ptr<AbstractQuadtree>
+        static std::shared_ptr<AbstractOctree>
         Read(const std::string& filename);
         // Read from stream
-        static std::shared_ptr<AbstractQuadtree>
+        static std::shared_ptr<AbstractOctree>
         Read(std::istream& s);
         /**
          * Read all nodes from the input steam (without file header) for a created tree.
@@ -90,17 +90,17 @@ namespace erl::geometry {
          * @param res resolution of the tree
          * @return
          */
-        static std::shared_ptr<AbstractQuadtree>
+        static std::shared_ptr<AbstractOctree>
         CreateTree(const std::string& id, double res);
 
     private:
-        inline static std::map<std::string, std::shared_ptr<AbstractQuadtree>> s_class_id_mapping_ = {};
+        inline static std::map<std::string, std::shared_ptr<AbstractOctree>> s_class_id_mapping_ = {};
 
     protected:
         static bool
         ReadHeader(std::istream& s, std::string& id, unsigned int& size, double& res);
         static void
-        RegisterTreeType(const std::shared_ptr<AbstractQuadtree>& tree);
-        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractQuadtree";
+        RegisterTreeType(const std::shared_ptr<AbstractOctree>& tree);
+        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractOctree";
     };
 }  // namespace erl::geometry
