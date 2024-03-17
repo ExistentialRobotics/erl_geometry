@@ -2,34 +2,36 @@
 
 #include <omp.h>
 #include <list>
+#include "erl_common/random.hpp"
 #include "abstract_occupancy_octree.hpp"
 #include "octree_impl.hpp"
 #include "aabb.hpp"
 
 namespace erl::geometry {
 
+    struct OccupancyOctreeBaseSetting : public common::Yamlable<OccupancyOctreeBaseSetting> {
+        float log_odd_min = -2.0;
+        float log_odd_max = 3.5;
+        double probability_hit = 0.7;
+        double probability_miss = 0.4;
+        double probability_occupied_threshold = 0.5;
+        double resolution = 0.05;
+        bool use_change_detection = false;
+        bool use_aabb_limit = false;
+        Aabb3D aabb = {};
+    };
+
     template<class Node>
     class OccupancyOctreeBase : public OctreeImpl<Node, AbstractOccupancyOctree> {
         static_assert(std::is_base_of_v<OccupancyOctreeNode, Node>);
 
-    public:
-        struct Setting : public common::Yamlable<Setting> {
-            float log_odd_min = 0.0;
-            float log_odd_max = 0.0;
-            float probability_hit = 0.0;
-            float probability_miss = 0.0;
-            float probability_occupied = 0.0;
-            double resolution = 0.0;
-            bool use_change_detection = false;
-            bool use_aabb_limit = false;
-            Aabb3D aabb = {};
-        };
-
     protected:
         bool m_use_change_detection_ = false;
         OctreeKeyBoolMap m_changed_keys_ = {};
-        bool m_use_aabb_limit_ = false;
+        bool m_use_aabb_limit_ = false;  // only occupied nodes in this bounding box are updated
         Aabb3D m_aabb_ = {};
+        OctreeKeyVectorMap m_discrete_end_point_mapping_ = {};  // buffer used for inserting point cloud to track the end points
+        OctreeKeyVectorMap m_end_point_mapping_ = {};           // buffer used for inserting point cloud to track the end points
 
     public:
         using Self = OccupancyOctreeBase<Node>;
@@ -37,9 +39,18 @@ namespace erl::geometry {
         explicit OccupancyOctreeBase(double resolution)
             : OctreeImpl<Node, AbstractOccupancyOctree>(resolution) {}
 
-        explicit OccupancyOctreeBase(const std::shared_ptr<Setting>& setting)
+        explicit OccupancyOctreeBase(const std::shared_ptr<OccupancyOctreeBaseSetting>& setting)
             : OctreeImpl<Node, AbstractOccupancyOctree>(0.1) {
-            SetSetting(setting);
+            ERL_ASSERTM(setting != nullptr, "setting is nullptr");
+            this->SetLogOddMin(setting->log_odd_min);
+            this->SetLogOddMax(setting->log_odd_max);
+            this->SetProbabilityHit(setting->probability_hit);
+            this->SetProbabilityMiss(setting->probability_miss);
+            this->SetOccupancyThreshold(setting->probability_occupied_threshold);
+            this->SetResolution(setting->resolution);
+            this->m_use_change_detection_ = setting->use_change_detection;
+            this->m_use_aabb_limit_ = setting->use_aabb_limit;
+            this->m_aabb_ = setting->aabb;
         }
 
         OccupancyOctreeBase(const Self& other)
@@ -55,68 +66,43 @@ namespace erl::geometry {
             this->m_log_odd_occ_threshold_ = other.m_log_odd_occ_threshold_;
         }
 
-        // YAML setting interface
-        std::shared_ptr<Setting>
-        GetSetting() const {
-            auto setting = std::make_shared<Setting>();
-            setting->log_odd_min = this->GetLogOddMin();
-            setting->log_odd_max = this->GetLogOddMax();
-            setting->probability_hit = this->GetProbabilityHit();
-            setting->probability_miss = this->GetProbabilityMiss();
-            setting->probability_occupied = this->GetOccupancyThreshold();
-            setting->resolution = this->GetResolution();
-            setting->use_change_detection = this->m_use_change_detection_;
-            setting->use_aabb_limit = this->m_use_aabb_limit_;
-            setting->aabb = this->m_aabb_;
-            return setting;
+        [[nodiscard]] inline bool
+        GetUseChangeDetection() const {
+            return m_use_change_detection_;
         }
 
-        void
-        SetSetting(const std::shared_ptr<Setting>& setting) {
-            ERL_ASSERTM(setting != nullptr, "setting is nullptr");
-            this->SetLogOddMin(setting->log_odd_min);
-            this->SetLogOddMax(setting->log_odd_max);
-            this->SetProbabilityHit(setting->probability_hit);
-            this->SetProbabilityMiss(setting->probability_miss);
-            this->SetOccupancyThreshold(setting->probability_occupied);
-            this->SetResolution(setting->resolution);
-            this->m_use_change_detection_ = setting->use_change_detection;
-            this->m_use_aabb_limit_ = setting->use_aabb_limit;
-            this->m_aabb_ = setting->aabb;
+        inline void
+        SetUseChangeDetection(bool use_change_detection) {
+            m_use_change_detection_ = use_change_detection;
         }
 
         //-- implement abstract methods
-
-        inline bool
-        IsNodeCollapsible(const std::shared_ptr<Node>& node) const override {
-            // all children must exist
-            if (node->GetNumChildren() != 8) { return false; }
-
-            auto first_child = this->GetNodeChild(node, 0);
-            if (first_child->HasAnyChild()) { return false; }
-
-            for (unsigned int i = 1; i < 8; ++i) {
-                auto child = this->GetNodeChild(node, i);
-                // child should be a leaf node
-                if (child->HasAnyChild() || *child != *first_child) { return false; }
-            }
-
-            return true;
-        }
-
         inline void
-        OnExpandNode(std::shared_ptr<Node>& node, std::shared_ptr<Node>& child) override {
-            child->SetLogOdds(node->GetLogOdds());  // copy log odds from parent to child
-        }
-
-        inline void
-        OnPruneNode(std::shared_ptr<Node>& node) override {
-            node->SetLogOdds(this->GetNodeChild(node, 0)->GetLogOdds());  // copy log odds from child to parent
-        }
-
-        inline void
-        OnDeleteNodeChild(std::shared_ptr<Node>& node, unsigned int /* deleted_child_idx */) override {
+        OnDeleteNodeChild(Node* node, uint32_t /* deleted_child_idx */) override {
             node->SetLogOdds(node->GetMaxChildLogOdds());  // copy log odds from child to parent
+        }
+
+        //-- Sample position
+        /**
+         * Sample positions from the free space.
+         */
+        void
+        SamplePositions(std::size_t num_positions, std::vector<Eigen::Vector3d>& positions) const {
+            positions.clear();
+            positions.reserve(num_positions);
+            double min_x, min_y, min_z, max_x, max_y, max_z;
+            this->GetMetricMinMax(min_x, min_y, min_z, max_x, max_y, max_z);
+            std::uniform_real_distribution<double> uniform_x(min_x, max_x);
+            std::uniform_real_distribution<double> uniform_y(min_y, max_y);
+            std::uniform_real_distribution<double> uniform_z(min_z, max_z);
+            while (positions.size() < num_positions) {
+                double x = uniform_x(common::g_random_engine);
+                double y = uniform_y(common::g_random_engine);
+                double z = uniform_z(common::g_random_engine);
+                const Node* node = this->Search(x, y, z);
+                if (node == nullptr || this->IsNodeOccupied(node)) { continue; }
+                positions.emplace_back(x, y, z);
+            }
         }
 
         //-- insert point cloud
@@ -130,16 +116,16 @@ namespace erl::geometry {
          * called.
          * @param discretize
          */
-        inline void
+        virtual void
         InsertPointCloud(
             const Eigen::Ref<const Eigen::Matrix3Xd>& points,
             const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
             double max_range,
             bool parallel,
             bool lazy_eval,
-            bool discretize
-        ) {
-            OctreeKeySet free_cells, occupied_cells;
+            bool discretize) {
+
+            static OctreeKeyVector free_cells, occupied_cells;  // static to avoid memory allocation
             // compute cells to update
             if (discretize) {
                 ComputeDiscreteUpdateForPointCloud(points, sensor_origin, max_range, parallel, free_cells, occupied_cells);
@@ -147,13 +133,10 @@ namespace erl::geometry {
                 ComputeUpdateForPointCloud(points, sensor_origin, max_range, parallel, free_cells, occupied_cells);
             }
             // insert data into tree
-            // update free cells
-            for (auto free_cell: free_cells) { UpdateNode(free_cell, false, lazy_eval); }
-            // update occupied cells
-            for (auto occupied_cell: occupied_cells) { UpdateNode(occupied_cell, true, lazy_eval); }
+            for (OctreeKey& free_cell: free_cells) { UpdateNode(free_cell, false, lazy_eval); }
+            for (OctreeKey& occupied_cell: occupied_cells) { UpdateNode(occupied_cell, true, lazy_eval); }
         }
 
-    protected:
         /**
          * Compute keys of the cells to update for a point cloud up to the resolution.
          * @param points 3xN matrix of points in the world frame, points falling into the same voxel are merged to the first appearance.
@@ -163,28 +146,28 @@ namespace erl::geometry {
          * @param free_cells keys of the free cells to update
          * @param occupied_cells keys of the occupied cells to update
          */
-        inline void
+        void
         ComputeDiscreteUpdateForPointCloud(
             const Eigen::Ref<const Eigen::Matrix3Xd>& points,
             const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
             double max_range,
             bool parallel,
-            OctreeKeySet& free_cells,
-            OctreeKeySet& occupied_cells
-        ) {
+            OctreeKeyVector& free_cells,
+            OctreeKeyVector& occupied_cells) {
 
             long num_points = points.cols();
             if (num_points == 0) { return; }
 
             Eigen::Matrix3Xd new_points(3, num_points);
-            OctreeKeySet end_points;
+            m_discrete_end_point_mapping_.clear();
             for (long i = 0; i < num_points; ++i) {
                 const auto& kP = points.col(i);
                 OctreeKey key = this->CoordToKey(kP[0], kP[1], kP[2]);
-                std::pair<OctreeKeySet::iterator, bool> ret = end_points.insert(key);
-                if (ret.second) { new_points.col(long(end_points.size()) - 1) = kP; }  // new end point!
+                auto& indices = m_discrete_end_point_mapping_[key];
+                if (indices.empty()) { new_points.col(long(m_discrete_end_point_mapping_.size()) - 1) << kP; }  // new end point!
+                indices.push_back(i);
             }
-            new_points.conservativeResize(3, long(end_points.size()));
+            new_points.conservativeResize(3, long(m_discrete_end_point_mapping_.size()));
             ComputeUpdateForPointCloud(new_points, sensor_origin, max_range, parallel, free_cells, occupied_cells);
         }
 
@@ -194,123 +177,127 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
             double max_range,
             bool parallel,
-            OctreeKeySet& free_cells,
-            OctreeKeySet& occupied_cells
-        ) {
+            OctreeKeyVector& free_cells,
+            OctreeKeyVector& occupied_cells) {
 
             long num_points = points.cols();
             if (num_points == 0) { return; }
 
+            static OctreeKeySet free_cells_set;  // static to avoid memory allocation
+
+            free_cells_set.clear();
+            m_end_point_mapping_.clear();
+            free_cells.clear();
+            occupied_cells.clear();
+
+            std::vector<double> ranges(num_points);
+            std::vector<std::array<double, 3>> diffs(num_points);
             omp_set_num_threads(this->m_key_rays_.size());
-#pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, free_cells, occupied_cells) schedule(guided)
+
+            // insert occupied endpoint
             for (long i = 0; i < num_points; ++i) {
                 const auto& kP = points.col(i);
-                unsigned int thread_idx = omp_get_thread_num();
-                OctreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
 
-                double dx = kP[0] - sensor_origin[0];
-                double dy = kP[1] - sensor_origin[1];
-                double dz = kP[2] - sensor_origin[2];
-                double range = std::sqrt(dx * dx + dy * dy + dz * dz);
-                if (m_use_aabb_limit_) {  // bounding box is specified
-                    if (m_aabb_.contains(kP) && (max_range < 0. || range <= max_range)) {
-                        // insert occupied endpoint
-                        OctreeKey key;
-                        if (this->CoordToKeyChecked(kP[0], kP[1], kP[2], key)) {
-#pragma omp critical(occupied_insert)
-                            occupied_cells.insert(key);
-                        }
-                    }
+                double& dx = diffs[i][0];
+                double& dy = diffs[i][1];
+                double& dz = diffs[i][2];
+                double& range = ranges[i];
 
-                    // insert free cells up to the bounding box boundary
-                    double ex = kP[0];
-                    double ey = kP[1];
-                    double ez = kP[2];
-                    if ((max_range >= 0.) && (range > max_range)) {
-                        double r = max_range / range;
-                        ex = sensor_origin[0] + dx * r;
-                        ey = sensor_origin[1] + dy * r;
-                        ez = sensor_origin[2] + dz * r;
-                    }
-                    if (this->ComputeRayKeys(sensor_origin[0], sensor_origin[1], sensor_origin[2], ex, ey, ez, key_ray)) {
-#pragma omp critical(free_insert)
-                        free_cells.insert(key_ray.begin(), key_ray.end());
-                    }
+                dx = kP[0] - sensor_origin[0];
+                dy = kP[1] - sensor_origin[1];
+                dz = kP[2] - sensor_origin[2];
+                range = std::sqrt(dx * dx + dy * dy + dz * dz);
 
-                } else {  // bounding box is not specified
-                    if (max_range < 0. || (range <= max_range)) {
-                        // insert free cells
-                        if (this->ComputeRayKeys(sensor_origin[0], sensor_origin[1], sensor_origin[2], kP[0], kP[1], kP[2], key_ray)) {
-#pragma omp critical(free_insert)
-                            free_cells.insert(key_ray.begin(), key_ray.end());
-                        }
-                        // insert occupied endpoint
-                        OctreeKey key;
-                        if (this->CoordToKeyChecked(kP[0], kP[1], kP[2], key)) {
-#pragma omp critical(occupied_insert)
-                            occupied_cells.insert(key);
-                        }
-                    } else {  // the point is out of range
-                        double r = max_range / range;
-                        // insert free cells
-                        if (this->ComputeRayKeys(
-                                sensor_origin[0],
-                                sensor_origin[1],
-                                sensor_origin[2],
-                                sensor_origin[0] + dx * r,
-                                sensor_origin[1] + dy * r,
-                                sensor_origin[2] + dz * r,
-                                key_ray
-                            )) {
-#pragma omp critical(free_insert)
-                            free_cells.insert(key_ray.begin(), key_ray.end());
-                        }
+                OctreeKey key;
+                if (m_use_aabb_limit_) {                                                     // bounding box is specified
+                    if ((m_aabb_.contains(kP) && (max_range < 0. || range <= max_range)) &&  // inside bounding box and range limit
+                        this->CoordToKeyChecked(kP[0], kP[1], kP[2], key)) {                 // key is valid
+                        auto& indices = m_end_point_mapping_[key];
+                        if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
+                        indices.push_back(i);
+                    }
+                } else {
+                    if ((max_range < 0. || (range <= max_range)) &&           // range limit
+                        this->CoordToKeyChecked(kP[0], kP[1], kP[2], key)) {  // key is valid
+                        auto& indices = m_end_point_mapping_[key];
+                        if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
+                        indices.push_back(i);
                     }
                 }
             }
 
-            // prefer occupied cells to free ones
-            // due to the resolution, the same cell may appear in both free_cells and occupied_cells.
-            for (auto it = free_cells.begin(), end = free_cells.end(); it != end;) {
-                if (occupied_cells.find(*it) != occupied_cells.end()) {
-                    it = free_cells.erase(it);
-                } else {
-                    ++it;
+            const double& sx = sensor_origin[0];
+            const double& sy = sensor_origin[1];
+            const double& sz = sensor_origin[2];
+
+            // insert free cells
+#pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, sx, sy, sz, ranges, diffs, free_cells, free_cells_set)
+            for (long i = 0; i < num_points; ++i) {
+                const auto& kP = points.col(i);
+                uint32_t thread_idx = omp_get_thread_num();
+                OctreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
+
+                double& dx = diffs[i][0];
+                double& dy = diffs[i][1];
+                double& dz = diffs[i][2];
+                double& range = ranges[i];
+
+                double ex = kP[0];
+                double ey = kP[1];
+                double ez = kP[2];
+                if ((max_range >= 0.) && (range > max_range)) {  // crop ray at max_range
+                    double r = max_range / range;
+                    ex = sx + dx * r;
+                    ey = sy + dy * r;
+                    ez = sz + dz * r;
+                }
+
+                if (!this->ComputeRayKeys(sx, sy, sz, ex, ey, ez, key_ray)) { continue; }  // key is invalid
+#pragma omp critical(free_insert)
+                {
+                    for (auto& key: key_ray) {
+                        if (m_end_point_mapping_.find(key) != m_end_point_mapping_.end()) { continue; }  // skip keys marked as occupied
+                        auto it = free_cells_set.emplace(key);
+                        if (it.second) { free_cells.push_back(key); }
+                    }
                 }
             }
         }
 
-    public:
         /**
-         * Insert a point cloud ray by ray. Some cells may be updated multiple times.
+         * Insert a point cloud ray by ray. Some cells may be updated multiple times. Benchmark shows that this is slower and less accurate than
+         * InsertPointCloud.
          * @param points 3xN matrix of ray end points in the world frame.
          * @param sensor_origin 3D vector of the sensor origin in the world frame.
          * @param max_range maximum range of the sensor. Points beyond this range are ignored. Non-positive value means no limit.
+         * @param parallel whether to use parallel computation
          * @param lazy_eval whether to update the occupancy of the nodes immediately. If true, the occupancy is not updated until UpdateInnerOccupancy() is
          * called.
          */
-        void
+        virtual void
         InsertPointCloudRays(
-            const Eigen::Ref<const Eigen::Matrix3Xd>& points, const Eigen::Ref<const Eigen::Vector3d>& sensor_origin, double max_range, bool lazy_eval
-        ) {
+            const Eigen::Ref<const Eigen::Matrix3Xd>& points,
+            const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
+            double max_range,
+            bool parallel,
+            bool lazy_eval) {
 
             long num_points = points.cols();
             if (num_points == 0) { return; }
 
             omp_set_num_threads(this->m_key_rays_.size());
-#pragma omp parallel for default(none) shared(num_points, points, sensor_origin, max_range, lazy_eval) schedule(guided)
+#pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, lazy_eval) schedule(guided)
             for (long i = 0; i < num_points; ++i) {
                 const auto& kP = points.col(i);
-                unsigned int thread_idx = omp_get_thread_num();
+                uint32_t thread_idx = omp_get_thread_num();
                 OctreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
+                if (!this->ComputeRayKeys(sensor_origin[0], sensor_origin[1], sensor_origin[2], kP[0], kP[1], kP[2], key_ray)) { continue; }
 
-                if (this->ComputeRayKeys(sensor_origin[0], sensor_origin[1], sensor_origin[2], kP[0], kP[1], kP[2], key_ray)) {
 #pragma omp critical
-                    {
-                        for (auto& key: key_ray) { UpdateNode(key, false, lazy_eval); }
-                        double range = (kP - sensor_origin).norm();
-                        if (max_range <= 0. || (max_range > 0. && range <= max_range)) { UpdateNode(kP[0], kP[1], kP[2], true, lazy_eval); }
-                    }
+                {
+                    for (auto& key: key_ray) { UpdateNode(key, false, lazy_eval); }
+                    double range = (kP - sensor_origin).norm();
+                    if (max_range <= 0. || (max_range > 0. && range <= max_range)) { UpdateNode(kP[0], kP[1], kP[2], true, lazy_eval); }
                 }
             }
         }
@@ -329,7 +316,7 @@ namespace erl::geometry {
          * called.
          * @return
          */
-        bool
+        virtual bool
         InsertRay(double sx, double sy, double sz, double ex, double ey, double ez, double max_range, bool lazy_eval) {
             double dx = ex - sx;
             double dy = ey - sy;
@@ -353,6 +340,229 @@ namespace erl::geometry {
         }
 
         //-- cast ray
+        void
+        CastRays(
+            const Eigen::Ref<const Eigen::Vector3d>& position,
+            const Eigen::Ref<const Eigen::Matrix3d>& rotation,
+            const Eigen::Ref<const Eigen::VectorXd>& azimuth_angles,
+            const Eigen::Ref<const Eigen::VectorXd>& elevation_angles,
+            bool ignore_unknown,
+            double max_range,
+            bool prune_rays,  // whether to prune rays after the first hit of the same occupied node
+            bool parallel,
+            std::vector<std::pair<long, long>>& hit_ray_indices,  // (azimuth_idx, elevation_idx) of the hit rays
+            std::vector<Eigen::Vector3d>& hit_positions,
+            std::vector<const Node*>& hit_nodes,
+            std::vector<uint32_t>& node_depths) const {
+
+            long num_azimuths = azimuth_angles.size();
+            long num_elevations = elevation_angles.size();
+            if (num_azimuths == 0 || num_elevations == 0) { return; }
+            long num_rays = num_azimuths * num_elevations;
+
+            hit_ray_indices.clear();
+            hit_positions.clear();
+            hit_nodes.clear();
+            node_depths.clear();
+
+            hit_ray_indices.resize(num_rays);
+            hit_positions.resize(num_rays);
+            hit_nodes.resize(num_rays);
+            node_depths.resize(num_rays);
+
+#pragma omp parallel for if (parallel) default(none) \
+    shared(position,                                 \
+               rotation,                             \
+               num_azimuths,                         \
+               num_elevations,                       \
+               azimuth_angles,                       \
+               elevation_angles,                     \
+               ignore_unknown,                       \
+               max_range,                            \
+               hit_ray_indices,                      \
+               hit_positions,                        \
+               hit_nodes,                            \
+               node_depths)
+            for (long i = 0; i < num_azimuths; ++i) {
+                long idx_base = i * num_elevations;
+                for (long j = 0; j < num_elevations; ++j) {
+                    long idx = idx_base + j;
+                    double cos_elevation = std::cos(elevation_angles[j]);
+                    Eigen::Vector3d direction(
+                        std::cos(azimuth_angles[i]) * cos_elevation,
+                        std::sin(azimuth_angles[i]) * cos_elevation,
+                        std::sin(elevation_angles[j]));
+                    direction = rotation * direction;
+                    Eigen::Vector3d& hit_position = hit_positions[idx];
+                    hit_nodes[idx] = this->CastRay(
+                        position[0],
+                        position[1],
+                        position[2],
+                        direction[0],
+                        direction[1],
+                        direction[2],
+                        ignore_unknown,
+                        max_range,
+                        hit_position[0],
+                        hit_position[1],
+                        hit_position[2],
+                        node_depths[idx]);
+                }
+            }
+
+            absl::flat_hash_set<const Node*> hit_nodes_set;
+
+            std::vector<std::pair<long, long>> filtered_hit_ray_indices;
+            std::vector<Eigen::Vector3d> filtered_hit_positions;
+            std::vector<const Node*> filtered_hit_nodes;
+            std::vector<uint32_t> filtered_node_depths;
+
+            filtered_hit_ray_indices.reserve(num_rays);
+            filtered_hit_positions.reserve(num_rays);
+            filtered_hit_nodes.reserve(num_rays);
+            filtered_node_depths.reserve(num_rays);
+
+            // remove rays that hit nothing or hit the same node if prune_rays is true
+            for (long i = 0; i < num_rays; ++i) {
+                const Node*& hit_node = hit_nodes[i];
+                if (hit_node == nullptr) { continue; }
+                if (!prune_rays || hit_nodes_set.insert(hit_node).second) {
+                    filtered_hit_ray_indices.push_back(hit_ray_indices[i]);
+                    filtered_hit_positions.push_back(hit_positions[i]);
+                    filtered_hit_nodes.push_back(hit_node);
+                    filtered_node_depths.push_back(node_depths[i]);
+                }
+            }
+
+            filtered_hit_ray_indices.shrink_to_fit();
+            filtered_hit_positions.shrink_to_fit();
+            filtered_hit_nodes.shrink_to_fit();
+            filtered_node_depths.shrink_to_fit();
+
+            std::swap(hit_ray_indices, filtered_hit_ray_indices);
+            std::swap(hit_positions, filtered_hit_positions);
+            std::swap(hit_nodes, filtered_hit_nodes);
+            std::swap(node_depths, filtered_node_depths);
+        }
+
+        void
+        CastRays(
+            const Eigen::Ref<const Eigen::Matrix3Xd>& positions,
+            const Eigen::Ref<const Eigen::Matrix3Xd>& directions,
+            bool ignore_unknown,
+            double max_range,
+            bool prune_rays,
+            bool parallel,
+            std::vector<long>& hit_ray_indices,
+            std::vector<Eigen::Vector3d>& hit_positions,
+            std::vector<const Node*>& hit_nodes,
+            std::vector<uint32_t>& node_depths) const {
+            long num_rays = 0;
+            if (positions.cols() != 1 && directions.cols() != 1) {
+                ERL_ASSERTM(positions.cols() == directions.cols(), "positions.cols() != directions.cols() when both are not 1.");
+                num_rays = positions.cols();
+                hit_positions.resize(num_rays);
+                hit_nodes.resize(num_rays, nullptr);
+                node_depths.resize(num_rays, 0);
+#pragma omp parallel for if (parallel) default(none) shared(num_rays, positions, directions, ignore_unknown, max_range, hit_positions, hit_nodes, node_depths)
+                for (long i = 0; i < num_rays; ++i) {
+                    hit_nodes[i] = CastRay(
+                        positions(0, i),
+                        positions(1, i),
+                        positions(2, i),
+                        directions(0, i),
+                        directions(1, i),
+                        directions(2, i),
+                        ignore_unknown,
+                        max_range,
+                        hit_positions[i](0),
+                        hit_positions[i](1),
+                        hit_positions[i](2),
+                        node_depths[i]);
+                }
+            }
+            if (positions.cols() == 1) {
+                num_rays = directions.cols();
+                hit_positions.resize(num_rays);
+                hit_nodes.resize(num_rays, nullptr);
+                node_depths.resize(num_rays, 0);
+#pragma omp parallel for if (parallel) default(none) shared(num_rays, positions, directions, ignore_unknown, max_range, hit_positions, hit_nodes, node_depths)
+                for (long i = 0; i < num_rays; ++i) {
+                    hit_nodes[i] = CastRay(
+                        positions(0, 0),
+                        positions(1, 0),
+                        positions(2, 0),
+                        directions(0, i),
+                        directions(1, i),
+                        directions(2, i),
+                        ignore_unknown,
+                        max_range,
+                        hit_positions[i](0),
+                        hit_positions[i](1),
+                        hit_positions[i](2),
+                        node_depths[i]);
+                }
+            }
+            if (directions.cols() == 1) {
+                num_rays = positions.cols();
+                hit_positions.resize(num_rays);
+                hit_nodes.resize(num_rays, nullptr);
+                node_depths.resize(num_rays, 0);
+#pragma omp parallel for if (parallel) default(none) shared(num_rays, positions, directions, ignore_unknown, max_range, hit_positions, hit_nodes, node_depths)
+                for (long i = 0; i < num_rays; ++i) {
+                    hit_nodes[i] = CastRay(
+                        positions(0, i),
+                        positions(1, i),
+                        positions(2, i),
+                        directions(0, 0),
+                        directions(1, 0),
+                        directions(2, 0),
+                        ignore_unknown,
+                        max_range,
+                        hit_positions[i](0),
+                        hit_positions[i](1),
+                        hit_positions[i](2),
+                        node_depths[i]);
+                }
+            }
+
+            if (num_rays == 0) { return; }
+
+            absl::flat_hash_set<const Node*> hit_nodes_set;
+
+            std::vector<long> filtered_hit_ray_indices;
+            std::vector<Eigen::Vector3d> filtered_hit_positions;
+            std::vector<const Node*> filtered_hit_nodes;
+            std::vector<uint32_t> filtered_node_depths;
+
+            filtered_hit_ray_indices.reserve(num_rays);
+            filtered_hit_positions.reserve(num_rays);
+            filtered_hit_nodes.reserve(num_rays);
+            filtered_node_depths.reserve(num_rays);
+
+            // remove rays that hit nothing or hit the same node if prune_rays is true
+            for (long i = 0; i < num_rays; ++i) {
+                const Node*& hit_node = hit_nodes[i];
+                if (hit_node == nullptr) { continue; }
+                if (!prune_rays || hit_nodes_set.insert(hit_node).second) {
+                    filtered_hit_ray_indices.push_back(i);
+                    filtered_hit_positions.push_back(hit_positions[i]);
+                    filtered_hit_nodes.push_back(hit_node);
+                    filtered_node_depths.push_back(node_depths[i]);
+                }
+            }
+
+            filtered_hit_ray_indices.shrink_to_fit();
+            filtered_hit_positions.shrink_to_fit();
+            filtered_hit_nodes.shrink_to_fit();
+            filtered_node_depths.shrink_to_fit();
+
+            std::swap(hit_ray_indices, filtered_hit_ray_indices);
+            std::swap(hit_positions, filtered_hit_positions);
+            std::swap(hit_nodes, filtered_hit_nodes);
+            std::swap(node_depths, filtered_node_depths);
+        }
+
         /**
          * Cast a ray starting from (px, py) along (vx, vy) and get the hit surface point (ex, ey) if the ray hits one.
          * @param px metric x coordinate of the start point
@@ -361,34 +571,48 @@ namespace erl::geometry {
          * @param vx x component of the ray direction
          * @param vy y component of the ray direction
          * @param vz z component of the ray direction
-         * @param ignore_unknown whether unknown cells are ignored, i.e. treated as free. If false, the ray casting aborts when an unknown cell is hit and returns false.
+         * @param ignore_unknown whether unknown cells are ignored, i.e. treated as free. If false, the ray casting aborts when an unknown cell is hit and
+         * returns false.
          * @param max_range maximum range after which the ray casting is aborted. Non-positive value means no limit.
          * @param ex metric x coordinate of the hit leaf cell
          * @param ey metric y coordinate of the hit leaf cell
          * @param ez metric z coordinate of the hit leaf cell
-         * @return true if the ray hits an occupied cell, false otherwise.
+         * @param depth depth of the hit leaf cell
+         * @return node pointer if the ray hits an occupied cell, nullptr otherwise.
          */
-        bool
-        CastRay(double px, double py, double pz, double vx, double vy, double vz, bool ignore_unknown, double max_range, double& ex, double& ey, double& ez)
-            const {
+        const Node*
+        CastRay(
+            double px,
+            double py,
+            double pz,
+            double vx,
+            double vy,
+            double vz,
+            bool ignore_unknown,
+            double max_range,
+            double& ex,
+            double& ey,
+            double& ez,
+            uint32_t& depth) const {
             // Similar to OctreeImpl::ComputeRayKeys, but with extra hitting checks
 
             OctreeKey current_key;
             if (!this->CoordToKeyChecked(px, py, pz, current_key)) {
                 ERL_WARN("Ray starting from (%f, %f, %f) is out of range.\n", px, py, pz);
-                return false;
+                return nullptr;
             }
 
             // initialization
-            std::shared_ptr<const Node> starting_node = this->Search(current_key);
+            depth = 0;
+            const Node* starting_node = this->Search(current_key, depth);
             if (starting_node != nullptr) {
                 if (this->IsNodeOccupied(starting_node)) {  // (px, py, pz) is in occupied
                     this->KeyToCoord(current_key, ex, ey, ez);
-                    return true;
+                    return starting_node;
                 }
             } else if (!ignore_unknown) {  // (px, py, pz) is in unknown
                 this->KeyToCoord(current_key, ex, ey, ez);
-                return false;
+                return nullptr;
             }
 
             double v_norm = std::sqrt(vx * vx + vy * vy + vz * vz);
@@ -422,7 +646,7 @@ namespace erl::geometry {
             }
             if (step[0] == 0 && step[1] == 0 && step[2] == 0) {
                 ERL_WARN("Ray casting in direction (0, 0, 0) is impossible!");
-                return false;
+                return nullptr;
             }
 
             // compute t_max and t_delta
@@ -455,20 +679,22 @@ namespace erl::geometry {
 
             // incremental phase
             double max_range_sq = max_range * max_range;
-            unsigned int max_key_val = (this->mk_TreeKeyOffset_ << 1) - 1;
+            long max_key_val = (this->mk_TreeKeyOffset_ << 1) - 1;
             while (true) {
                 int idx = 0;
                 if (t_max[1] < t_max[0]) { idx = 1; }
                 if (t_max[2] < t_max[idx]) { idx = 2; }
 
                 t_max[idx] += t_delta[idx];
-                current_key[idx] += step[idx];
+                long next_key_val = long(current_key[idx]) + step[idx];
                 // check overflow
-                if ((step[idx] < 0 && current_key[idx] == 0) || (step[idx] > 0 && current_key[idx] == max_key_val)) {
+                if ((step[idx] < 0 && next_key_val <= 0) || (step[idx] > 0 && next_key_val >= max_key_val)) {
                     ERL_DEBUG("coordinate hits boundary, aborting ray cast.");
+                    current_key[idx] = next_key_val < 0 ? 0 : max_key_val;  // set to boundary
                     this->KeyToCoord(current_key, ex, ey, ez);
-                    return false;
+                    return nullptr;
                 }
+                current_key[idx] = next_key_val;
 
                 // generate world coordinates from key
                 this->KeyToCoord(current_key, ex, ey, ez);
@@ -477,16 +703,15 @@ namespace erl::geometry {
                     double dx = ex - px;
                     double dy = ey - py;
                     double dz = ez - pz;
-                    if ((dx * dx + dy * dy + dz * dz) > max_range_sq) {
-                        return false;
-                    }
+                    if ((dx * dx + dy * dy + dz * dz) > max_range_sq) { return nullptr; }
                 }
                 // search node of the new key
-                std::shared_ptr<const Node> current_node = this->Search(current_key);
+                depth = 0;
+                const Node* current_node = this->Search(current_key, depth);
                 if (current_node != nullptr) {
-                    if (this->IsNodeOccupied(current_node)) { return true; }
+                    if (this->IsNodeOccupied(current_node)) { return current_node; }
                 } else if (!ignore_unknown) {
-                    return false;
+                    return nullptr;
                 }
             }
         }
@@ -508,8 +733,7 @@ namespace erl::geometry {
                 double max_range,
                 bool bidirectional,
                 const Self* tree,
-                unsigned int max_leaf_depth
-            )
+                uint32_t max_leaf_depth)
                 : Super(px, py, pz, vx, vy, vz, max_range, bidirectional, tree, max_leaf_depth) {
                 if (!this->m_stack_.empty() && !this->m_tree_->IsNodeOccupied(this->m_stack_.back().node)) { ++(*this); }
             }
@@ -541,8 +765,7 @@ namespace erl::geometry {
             double vz,
             double max_range = -1,
             bool bidirectional = false,
-            unsigned int max_leaf_depth = 0
-        ) const {
+            uint32_t max_leaf_depth = 0) const {
             return OccupiedLeafOnRayIterator(px, py, pz, vx, vy, vz, max_range, bidirectional, this, max_leaf_depth);
         }
 
@@ -551,9 +774,31 @@ namespace erl::geometry {
             return OccupiedLeafOnRayIterator();
         }
 
+        [[nodiscard]] inline OctreeKeyBoolMap::const_iterator
+        BeginChangedKey() const {
+            if (!m_use_change_detection_) {
+                ERL_WARN("use_change_detection is false in setting. No changes are tracked.");
+                return m_changed_keys_.end();
+            }
+            return m_changed_keys_.begin();
+        }
+
+        [[nodiscard]] inline OctreeKeyBoolMap::const_iterator
+        EndChangedKey() const {
+            return m_changed_keys_.end();
+        }
+
         //-- update nodes' occupancy
-        std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(double x, double y, double z, bool occupied, bool lazy_eval) override {
+        /**
+         * Update the node at the given key with the given log-odds delta.
+         * @param key of the node to update
+         * @param log_odds_delta to be added to the node's log-odds value
+         * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
+         * UpdateInnerOccupancy() after all updates are done.
+         * @return
+         */
+        inline Node*
+        UpdateNode(double x, double y, double z, bool occupied, bool lazy_eval) {
             OctreeKey key;
             if (!this->CoordToKeyChecked(x, y, z, key)) { return nullptr; }
             return UpdateNode(key, occupied, lazy_eval);
@@ -566,22 +811,22 @@ namespace erl::geometry {
          * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
          * UpdateInnerOccupancy() after all updates are done.
          */
-        std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(const OctreeKey& key, bool occupied, bool lazy_eval) override {
+        inline Node*
+        UpdateNode(const OctreeKey& key, bool occupied, bool lazy_eval) {
             float log_odds_delta = occupied ? this->m_log_odd_hit_ : this->m_log_odd_miss_;
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
-        std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(double x, double y, double z, float log_odds_delta, bool lazy_eval) override {
+        inline Node*
+        UpdateNode(double x, double y, double z, float log_odds_delta, bool lazy_eval) {
             OctreeKey key;
             if (!this->CoordToKeyChecked(x, y, z, key)) { return nullptr; }
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
-        std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(const OctreeKey& key, float log_odds_delta, bool lazy_eval) override {
-            auto leaf = std::static_pointer_cast<OccupancyOctreeNode>(this->Search(key));
+        Node*
+        UpdateNode(const OctreeKey& key, float log_odds_delta, bool lazy_eval) {
+            auto leaf = static_cast<Node*>(this->Search(key));
             auto log_odds_delta_ = double(log_odds_delta);
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
             if (leaf) {
@@ -590,97 +835,68 @@ namespace erl::geometry {
                 if (log_odds_delta_ <= 0 && leaf->GetLogOdds() <= this->m_log_odd_min_) { return leaf; }
             }
 
-            bool create_root = false;
-            if (this->m_root_ == nullptr) {
+            bool create_root = this->m_root_ == nullptr;
+            if (create_root) {
                 this->m_root_ = std::make_shared<Node>();
                 this->m_tree_size_++;
-                create_root = true;
             }
+            return static_cast<Node*>(UpdateNodeRecurs(this->m_root_.get(), create_root, key, 0, log_odds_delta_, lazy_eval));
+        }
 
-            struct StackElement {
-                std::shared_ptr<Node> node = nullptr;
-                bool node_just_created = false;
-                unsigned int depth = 0;
-                bool visited = false;
+    private:
+        Node*
+        UpdateNodeRecurs(Node* node, bool node_just_created, const OctreeKey& key, uint32_t depth, double log_odds_delta, bool lazy_eval) {
+            bool created_node = false;
+            ERL_DEBUG_ASSERT(node != nullptr, "node is nullptr.");
 
-                StackElement() = default;
-
-                StackElement(std::shared_ptr<Node> node, bool node_just_created, unsigned int depth, bool visited)
-                    : node(node),
-                      node_just_created(node_just_created),
-                      depth(depth),
-                      visited(visited) {}
-            };
-
-            std::shared_ptr<OccupancyOctreeNode> returned_node = nullptr;
-            std::list<StackElement> stack;
-            stack.emplace_back(this->m_root_, create_root, 0, false);
-            while (!stack.empty()) {
-                StackElement& s = stack.back();
-
-                if (s.visited) {  // inner node, re-visiting
-                    if (this->PruneNode(s.node)) {
-                        // returned node is pruned, current node is the parent of returned node
-                        returned_node = std::static_pointer_cast<OccupancyOctreeNode>(s.node);
+            if (depth < this->mk_TreeDepth_) {  // follow down to last level
+                int pos = OctreeKey::ComputeChildIndex(key, this->mk_TreeDepth_ - 1 - depth);
+                if (!node->HasChild(pos)) {                            // child node does not exist
+                    if (!node->HasAnyChild() && !node_just_created) {  // current node has no child and is not new
+                        this->ExpandNode(node);                        // expand pruned node
                     } else {
-                        UpdateInnerNodeOccupancy(s.node);
+                        this->CreateNodeChild(node, pos);
+                        created_node = true;
                     }
-                    stack.pop_back();
-                    continue;
                 }
 
-                bool created_node = false;
-                if (s.depth < this->mk_TreeDepth_) {  // follow down to last level
-
-                    unsigned int pos = OctreeKey::ComputeChildIndex(key, this->mk_TreeDepth_ - 1 - s.depth);
-                    if (!s.node->HasChild(pos)) {  // child node does not exist
-                        if (!s.node->HasAnyChild() && !s.node_just_created) {
-                            // current node does not have any child, and it is not a new node
-                            this->ExpandNode(s.node);
-                        } else {
-                            this->CreateNodeChild(s.node, pos);
-                            created_node = true;
-                        }
-                    }
-
-                    StackElement new_element(this->GetNodeChild(s.node, pos), created_node, s.depth + 1, false);
-                    if (lazy_eval) {
-                        stack.pop_back();  // we will not update inner node until UpdateInnerOccupancy() is called.
+                if (lazy_eval) {
+                    return UpdateNodeRecurs(this->GetNodeChild(node, pos), created_node, key, depth + 1, log_odds_delta, lazy_eval);
+                } else {
+                    Node* returned_node = UpdateNodeRecurs(this->GetNodeChild(node, pos), created_node, key, depth + 1, log_odds_delta, lazy_eval);
+                    if (this->PruneNode(node)) {
+                        returned_node = node;  // returned_node is pruned, return its parent instead
                     } else {
-                        s.visited = true;  // else: // will update inner node when it is re-visited.
+                        UpdateInnerNodeOccupancy(node);
                     }
-
-                    // add child node to the stack
-                    stack.push_back(new_element);
-                } else {  // we reach the last level
-                    if (m_use_change_detection_) {
-                        bool occ_before = this->IsNodeOccupied(s.node);
-                        UpdateNodeLogOdds(s.node, log_odds_delta_);
-
-                        if (s.node_just_created) {
-                            m_changed_keys_.emplace(key, true);
-                        } else if (occ_before != this->IsNodeOccupied(s.node)) {  // occupancy changed, track it
-                            auto it = m_changed_keys_.find(key);
-                            if (it == m_changed_keys_.end()) {  // not found
-                                m_changed_keys_.emplace(key, false);
-                            } else if (!it->second) {
-                                m_changed_keys_.erase(it);
-                            }
-                        }
-                    } else {
-                        UpdateNodeLogOdds(s.node, log_odds_delta_);
-                        returned_node = s.node;  // return the leaf node
-                    }
-                    stack.pop_back();
+                    return returned_node;
                 }
+            } else {  // last level
+                if (m_use_change_detection_) {
+                    bool occ_before = this->IsNodeOccupied(node);
+                    UpdateNodeLogOdds(node, log_odds_delta);
+                    if (node_just_created) {
+                        m_changed_keys_.emplace(key, true);
+                        // m_changed_keys_.insert(std::make_pair(key, true));
+                    } else if (occ_before != this->IsNodeOccupied(node)) {  // occupancy changed, track it
+                        auto it = m_changed_keys_.find(key);
+                        if (it == m_changed_keys_.end()) {  // not found
+                            m_changed_keys_.emplace(key, false);
+                            // m_changed_keys_.insert(std::make_pair(key, false));
+                        } else if (!it->second) {
+                            m_changed_keys_.erase(it);
+                        }
+                    }
+                } else {
+                    UpdateNodeLogOdds(node, log_odds_delta);
+                }
+                return node;
             }
-
-            return returned_node;
         }
 
     protected:
         void
-        UpdateNodeLogOdds(const std::shared_ptr<OccupancyOctreeNode>& node, const float& log_odd_delta) {
+        UpdateNodeLogOdds(Node* node, float log_odd_delta) {
             node->AddLogOdds(log_odd_delta);
             float l = node->GetLogOdds();
             if (l < this->m_log_odd_min_) {
@@ -696,52 +912,29 @@ namespace erl::geometry {
 
     public:
         void
-        UpdateInnerOccupancy() override {
+        UpdateInnerOccupancy() {
             if (this->m_root_ == nullptr) { return; }
-
-            // only update inner nodes
-            struct StackElement {
-                std::shared_ptr<Node> node = nullptr;
-                unsigned int depth = 0;
-                bool visited = false;
-
-                StackElement() = default;
-
-                StackElement(std::shared_ptr<Node> node, unsigned int depth, bool visited)
-                    : node(node),
-                      depth(depth),
-                      visited(visited) {}
-            };
-
-            std::list<StackElement> stack;
-            stack.emplace_back(std::static_pointer_cast<Node>(this->m_root_), 0, false);
-            while (!stack.empty()) {
-                auto& s = stack.back();
-
-                if (s.visited) {
-                    UpdateInnerNodeOccupancy(s.node);
-                    stack.pop_back();
-                    continue;
-                }
-
-                if (s.node->HasAnyChild()) {
-                    if (s.depth + 1 < this->mk_TreeDepth_) {  // the child is also inner node
-                        for (unsigned int i = 0; i < 8; ++i) {
-                            auto child = this->GetNodeChild(s.node, i);
-                            if (child == nullptr) { continue; }
-                            stack.emplace_back(child, s.depth + 1, false);
-                        }
-                    }
-                    s.visited = true;
-                } else {  // no child, drop it directly
-                    stack.pop_back();
-                }
-            }
+            UpdateInnerOccupancyRecurs(this->m_root_.get(), 0);
         }
 
     protected:
+        void
+        UpdateInnerOccupancyRecurs(Node* node, uint32_t depth) {
+            ERL_DEBUG_ASSERT(node != nullptr, "node is nullptr.");
+            if (!node->HasAnyChild()) { return; }
+            // only recurse and update for inner nodes
+            if (depth < this->mk_TreeDepth_) {
+                for (int i = 0; i < 8; ++i) {
+                    Node* child = this->GetNodeChild(node, i);
+                    if (child == nullptr) { continue; }
+                    UpdateInnerOccupancyRecurs(child, depth + 1);
+                }
+            }
+            UpdateInnerNodeOccupancy(node);
+        }
+
         inline void
-        UpdateInnerNodeOccupancy(std::shared_ptr<Node>& node) {
+        UpdateInnerNodeOccupancy(Node* node) {
             node->SetLogOdds(node->GetMaxChildLogOdds());
         }
 
@@ -752,11 +945,10 @@ namespace erl::geometry {
         void
         ToMaxLikelihood() override {
             if (this->m_root_ == nullptr) { return; }
-
-            std::vector<std::shared_ptr<Node>> stack;
-            stack.emplace_back(std::static_pointer_cast<Node>(this->m_root_));
+            std::list<Node*> stack;
+            stack.emplace_back(static_cast<Node*>(this->m_root_.get()));
             while (!stack.empty()) {
-                auto node = stack.back();
+                Node* node = stack.back();
                 stack.pop_back();
 
                 if (this->IsNodeOccupied(node)) {
@@ -766,7 +958,7 @@ namespace erl::geometry {
                 }
 
                 if (node->HasAnyChild()) {
-                    for (unsigned int i = 0; i < 8; ++i) {
+                    for (uint32_t i = 0; i < 8; ++i) {
                         auto child = this->GetNodeChild(node, i);
                         if (child == nullptr) { continue; }
                         stack.emplace_back(child);
@@ -775,6 +967,7 @@ namespace erl::geometry {
             }
         }
 
+    private:
         //--file IO
         std::istream&
         ReadBinaryData(std::istream& s) override {
@@ -787,12 +980,12 @@ namespace erl::geometry {
             this->m_tree_size_ = 1;
             uint16_t child_record;
 
-            std::vector<std::pair<std::shared_ptr<Node>, bool>> stack;  // node, is_new_node
-            stack.emplace_back(this->m_root_, true);
+            std::list<std::pair<Node*, bool>> stack;  // node, is_new_node
+            stack.emplace_back(this->m_root_.get(), true);
 
             while (!stack.empty()) {
                 auto& top = stack.back();
-                std::shared_ptr<Node> node = top.first;
+                Node* node = top.first;
                 bool& is_new_node = top.second;
 
                 if (!is_new_node) {
@@ -811,7 +1004,7 @@ namespace erl::geometry {
                     // 0b11: inner node
                     bool bit0 = child[i * 2];
                     bool bit1 = child[i * 2 + 1];
-                    std::shared_ptr<Node> child_node = nullptr;
+                    Node* child_node = nullptr;
                     if (bit0) {
                         if (bit1) {  // 0b11, inner node
                             child_node = this->CreateNodeChild(node, i);
@@ -846,16 +1039,16 @@ namespace erl::geometry {
                 return s;
             }
 
-            std::vector<std::shared_ptr<const Node>> nodes_stack;  // node
-            nodes_stack.emplace_back(this->m_root_);
+            std::list<const Node*> nodes_stack;  // node
+            nodes_stack.push_back(this->m_root_.get());
 
             while (!nodes_stack.empty()) {
-                auto node = nodes_stack.back();
+                const Node* node = nodes_stack.back();
                 nodes_stack.pop_back();
 
                 std::bitset<16> child;
                 for (int i = 7; i >= 0; --i) {
-                    auto child_node = this->GetNodeChild(node, i);
+                    const Node* child_node = this->GetNodeChild(node, i);
                     if (child_node == nullptr) {  // 0b00, unknown
                         child[i * 2] = false;
                         child[i * 2 + 1] = false;
@@ -865,7 +1058,7 @@ namespace erl::geometry {
                     if (child_node->HasAnyChild()) {  // 0b11, inner node
                         child[i * 2] = true;
                         child[i * 2 + 1] = true;
-                        nodes_stack.emplace_back(child_node);
+                        nodes_stack.push_back(child_node);
                         continue;
                     }
 
@@ -893,22 +1086,22 @@ namespace erl::geometry {
          * @param tree_depth
          * @param tree_key_offset
          */
-        OccupancyOctreeBase(double resolution, unsigned int tree_depth, unsigned int tree_key_offset)
+        OccupancyOctreeBase(double resolution, uint32_t tree_depth, uint32_t tree_key_offset)
             : OctreeImpl<Node, AbstractOccupancyOctree>(resolution, tree_depth, tree_key_offset) {}
     };
 }  // namespace erl::geometry
 
 namespace YAML {
-    template<typename Setting>
-    struct ConvertOccupancyOctreeBaseSetting {
+    template<>
+    struct convert<erl::geometry::OccupancyOctreeBaseSetting> {
         inline static Node
-        encode(const Setting& rhs) {
+        encode(const erl::geometry::OccupancyOctreeBaseSetting& rhs) {
             Node node;
             node["log_odd_min"] = rhs.log_odd_min;
             node["log_odd_max"] = rhs.log_odd_max;
             node["probability_hit"] = rhs.probability_hit;
             node["probability_miss"] = rhs.probability_miss;
-            node["probability_occupied"] = rhs.probability_occupied;
+            node["probability_occupied_threshold"] = rhs.probability_occupied_threshold;
             node["resolution"] = rhs.resolution;
             node["use_change_detection"] = rhs.use_change_detection;
             node["use_aabb_limit"] = rhs.use_aabb_limit;
@@ -917,13 +1110,13 @@ namespace YAML {
         }
 
         inline static bool
-        decode(const Node& node, Setting& rhs) {
+        decode(const Node& node, erl::geometry::OccupancyOctreeBaseSetting& rhs) {
             if (!node.IsMap()) { return false; }
             rhs.log_odd_min = node["log_odd_min"].as<float>();
             rhs.log_odd_max = node["log_odd_max"].as<float>();
             rhs.probability_hit = node["probability_hit"].as<float>();
             rhs.probability_miss = node["probability_miss"].as<float>();
-            rhs.probability_occupied = node["probability_occupied"].as<float>();
+            rhs.probability_occupied_threshold = node["probability_occupied_threshold"].as<float>();
             rhs.resolution = node["resolution"].as<double>();
             rhs.use_change_detection = node["use_change_detection"].as<bool>();
             rhs.use_aabb_limit = node["use_aabb_limit"].as<bool>();
@@ -932,15 +1125,14 @@ namespace YAML {
         }
     };
 
-    template<typename Setting>
-    Emitter&
-    PrintOccupancyOctreeBaseSetting(Emitter& out, const Setting& rhs) {
+    inline Emitter&
+    operator<<(Emitter& out, const erl::geometry::OccupancyOctreeBaseSetting& rhs) {
         out << BeginMap;
         out << Key << "log_odd_min" << Value << rhs.log_odd_min;
         out << Key << "log_odd_max" << Value << rhs.log_odd_max;
         out << Key << "probability_hit" << Value << rhs.probability_hit;
         out << Key << "probability_miss" << Value << rhs.probability_miss;
-        out << Key << "probability_occupied" << Value << rhs.probability_occupied;
+        out << Key << "probability_occupied_threshold" << Value << rhs.probability_occupied_threshold;
         out << Key << "resolution" << Value << rhs.resolution;
         out << Key << "use_change_detection" << Value << rhs.use_change_detection;
         out << Key << "use_aabb_limit" << Value << rhs.use_aabb_limit;

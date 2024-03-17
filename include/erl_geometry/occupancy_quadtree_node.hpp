@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include "quadtree_data_node.hpp"
 #include "logodd.hpp"
 
@@ -7,8 +8,13 @@ namespace erl::geometry {
 
     class OccupancyQuadtreeNode : public QuadtreeDataNode<float> {
     public:
-        OccupancyQuadtreeNode()
-            : QuadtreeDataNode<float>(0) {}
+        explicit OccupancyQuadtreeNode(float log_odds = 0)
+            : QuadtreeDataNode<float>(log_odds) {}
+
+        OccupancyQuadtreeNode(const OccupancyQuadtreeNode &other)
+            : QuadtreeDataNode<float>(other.m_value_) {
+            CopyChildren<OccupancyQuadtreeNode>(other);
+        }
 
         //-- node occupancy
         [[nodiscard]] inline double
@@ -16,7 +22,7 @@ namespace erl::geometry {
             return logodd::Probability(m_value_);
         }
 
-        [[nodiscard]] inline float
+        [[nodiscard]] inline const float &
         GetLogOdds() const {
             return m_value_;
         }
@@ -26,7 +32,7 @@ namespace erl::geometry {
             m_value_ = log_odds;
         }
 
-        virtual bool
+        virtual inline bool
         AllowUpdateLogOdds(double &delta) const {
             (void) delta;
             return true;
@@ -37,28 +43,27 @@ namespace erl::geometry {
             if (!HasAnyChild()) { return -std::numeric_limits<double>::infinity(); }  // log(0)
 
             double mean = 0;
-            uint8_t c = 0;
-            for (unsigned int i = 0; i < 4; ++i) {
-                auto &child = m_children_[i];
+            for (int i = 0; i < 4; ++i) {
+                auto child = static_cast<OccupancyQuadtreeNode *>(m_children_[i]);
                 if (child == nullptr) { continue; }
-                mean += std::static_pointer_cast<OccupancyQuadtreeNode>(child)->GetOccupancy();
-                ++c;
+                mean += child->GetOccupancy();
             }
+            mean /= double(m_num_children_);
 
-            mean /= double(c);
             return logodd::LogOdd(mean);
         }
 
         [[nodiscard]] inline float
         GetMaxChildLogOdds() const {
             float max = -std::numeric_limits<float>::max();
-            if (!HasAnyChild()) { return max; }
 
-            for (unsigned int i = 0; i < 4; ++i) {
-                auto &child = m_children_[i];
-                if (child == nullptr) { continue; }
-                float l = std::static_pointer_cast<OccupancyQuadtreeNode>(child)->GetLogOdds();
-                if (l > max) { max = l; }
+            if (m_num_children_ > 0) {
+                for (int i = 0; i < 4; ++i) {
+                    auto child = static_cast<OccupancyQuadtreeNode *>(m_children_[i]);
+                    if (child == nullptr) { continue; }
+                    float l = static_cast<OccupancyQuadtreeNode *>(child)->GetLogOdds();
+                    if (l > max) { max = l; }
+                }
             }
             return max;
         }

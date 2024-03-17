@@ -5,7 +5,7 @@
 
 namespace erl::geometry {
 
-    class RgbdFrame3D : protected LidarFrame3D {
+    class RgbdFrame3D : public LidarFrame3D {
     public:
         struct Setting : public common::OverrideYamlable<LidarFrame3D::Setting, Setting> {
             Eigen::Matrix4d camera_to_optical = Eigen::Matrix4d::Identity();  // used when camera frame is not aligned with optical frame
@@ -93,33 +93,6 @@ namespace erl::geometry {
             // clang-format on
             return intrinsic;
         }
-
-        // expose LidarFrame3D's public methods that are not overridden
-        using LidarFrame3D::ComputeClosestEndPoint;
-        using LidarFrame3D::ComputeRaysAt;
-        using LidarFrame3D::GetAzimuthAnglesInFrame;
-        using LidarFrame3D::GetElevationAnglesInFrame;
-        using LidarFrame3D::GetEndPointsInFrame;
-        using LidarFrame3D::GetEndPointsInWorld;
-        using LidarFrame3D::GetHitMask;
-        using LidarFrame3D::GetMaxValidRange;
-        using LidarFrame3D::GetNumAzimuthLines;
-        using LidarFrame3D::GetNumElevationLines;
-        using LidarFrame3D::GetNumHitRays;
-        using LidarFrame3D::GetNumRays;
-        using LidarFrame3D::GetPartitions;
-        using LidarFrame3D::GetPoseMatrix;
-        using LidarFrame3D::GetRanges;
-        using LidarFrame3D::GetRayDirectionsInFrame;
-        using LidarFrame3D::GetRayDirectionsInWorld;
-        using LidarFrame3D::GetRotationMatrix;
-        using LidarFrame3D::GetTranslationVector;
-        using LidarFrame3D::IsPartitioned;
-        using LidarFrame3D::IsValid;
-        using LidarFrame3D::Reset;
-        using LidarFrame3D::SampleAlongRays;
-        using LidarFrame3D::SampleInRegion;
-        using LidarFrame3D::SampleNearSurface;
     };
 }  // namespace erl::geometry
 

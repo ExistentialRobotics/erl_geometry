@@ -40,7 +40,7 @@ namespace erl::geometry {
         std::shared_ptr<Setting> m_setting_ = nullptr;
         std::shared_ptr<open3d::visualization::VisualizerWithKeyCallback> m_visualizer_ = nullptr;
         std::shared_ptr<open3d::geometry::TriangleMesh> m_axis_mesh_ = nullptr;
-        std::function<void(open3d::visualization::Visualizer *)> m_update_callback_ = nullptr;
+        std::function<void(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> m_update_callback_ = nullptr;
 
     public:
         explicit Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
@@ -61,7 +61,18 @@ namespace erl::geometry {
             return m_visualizer_;
         }
 
-        inline void Reset() {
+        inline void
+        SetUpdateCallback(std::function<void(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> callback) {
+            m_update_callback_ = std::move(callback);
+        }
+
+        inline void
+        AddGeometries(const std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) {
+            for (const auto &geometry: geometries) { m_visualizer_->AddGeometry(geometry); }
+        }
+
+        inline void
+        Reset() {
             m_visualizer_->ClearGeometries();
             m_visualizer_->AddGeometry(m_axis_mesh_);
         }
@@ -73,6 +84,7 @@ namespace erl::geometry {
                 m_visualizer_->BuildUtilities();
                 m_visualizer_->UpdateWindowTitle();
                 auto start_time = std::chrono::system_clock::now();
+                if (m_update_callback_) { m_update_callback_(this, m_visualizer_.get()); }
                 while (true) {
                     auto current_time = std::chrono::system_clock::now();
                     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time);
@@ -81,10 +93,10 @@ namespace erl::geometry {
                     m_visualizer_->UpdateRender();
                 }
             } else {
+                if (m_update_callback_) { m_update_callback_(this, m_visualizer_.get()); }
                 m_visualizer_->Run();  // blocking
             }
             m_visualizer_->DestroyVisualizerWindow();
-            Init();  // re-initialize
         }
 
     private:

@@ -85,9 +85,13 @@ namespace erl::geometry {
 
         // read header
         std::string id;
-        unsigned int size;
+        uint32_t size;
         double res;
         if (!ReadHeader(s, id, size, res)) { return false; }
+        if (id != GetTreeType()) {
+            ERL_WARN("Error reading Quadtree header, ID does not match: %s != %s", id.c_str(), GetTreeType().c_str());
+            return false;
+        }
 
         // read binary data
         Clear();

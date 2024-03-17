@@ -71,56 +71,24 @@ namespace erl::geometry {
         bool
         ReadBinary(std::istream& s);
 
+    private:
         virtual std::istream&
         ReadBinaryData(std::istream& s) = 0;
 
+    public:
         //-- occupancy queries
         [[nodiscard]] inline bool
-        IsNodeOccupied(const std::shared_ptr<const OccupancyOctreeNode>& node) const {
+        IsNodeOccupied(const OccupancyOctreeNode* node) const {
             return node->GetLogOdds() >= m_log_odd_occ_threshold_;
         }
 
         [[nodiscard]] inline bool
-        IsNodeOccupied(const OccupancyOctreeNode& node) const {
-            return node.GetLogOdds() >= m_log_odd_occ_threshold_;
-        }
-
-        [[nodiscard]] inline bool
-        IsNodeAtThreshold(const std::shared_ptr<const OccupancyOctreeNode>& node) const {
+        IsNodeAtThreshold(const OccupancyOctreeNode* node) const {
             float log_odds = node->GetLogOdds();
             return log_odds >= m_log_odd_max_ || log_odds <= m_log_odd_min_;
         }
 
-        [[nodiscard]] inline bool
-        IsNodeAtThreshold(const OccupancyOctreeNode& node) const {
-            float log_odds = node.GetLogOdds();
-            return log_odds >= m_log_odd_max_ || log_odds <= m_log_odd_min_;
-        }
-
         //-- update functions
-        /**
-         * Update the node at the given key with the given log-odds delta.
-         * @param key of the node to update
-         * @param log_odds_delta to be added to the node's log-odds value
-         * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
-         * UpdateInnerOccupancy() after all updates are done.
-         * @return
-         */
-        virtual std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(const OctreeKey& key, float log_odds_delta, bool lazy_eval) = 0;
-
-        virtual std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(double x, double y, double z, float log_odds_delta, bool lazy_eval) = 0;
-
-        virtual std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(const OctreeKey& key, bool occupied, bool lazy_eval) = 0;
-
-        virtual std::shared_ptr<OccupancyOctreeNode>
-        UpdateNode(double x, double y, double z, bool occupied, bool lazy_eval) = 0;
-
-        virtual void
-        UpdateInnerOccupancy() = 0;
-
         virtual void
         ToMaxLikelihood() = 0;
 
@@ -159,7 +127,7 @@ namespace erl::geometry {
         inline void
         SetProbabilityMiss(double p) {
             m_log_odd_miss_ = logodd::LogOdd(p);
-            ERL_ASSERTM(m_log_odd_miss_ < 0, "ProbabilityMiss must be < 0, but is %f", m_log_odd_miss_);
+            ERL_WARN_COND(m_log_odd_miss_ >= 0, "ProbabilityMiss should be < 0, but is %f", m_log_odd_miss_);
         }
 
         [[nodiscard]] inline double

@@ -303,9 +303,9 @@ namespace erl::geometry {
 
         Eigen::Vector2d r_inv = ray_direction.cwiseInverse();
         auto self = shared_from_this();
-        double dist;
+        double dist, dist2;
         bool intersected;
-        ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, self->m_area_.min(), self->m_area_.max(), dist, intersected);
+        ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, self->m_area_.min(), self->m_area_.max(), dist, dist2, intersected);
         if (!intersected) { return; }  // the ray does not intersect with the tree's area, won't check any descendants.
 
         struct Compare {
@@ -354,7 +354,7 @@ namespace erl::geometry {
             } else {
                 // keep the same order as the recursive version.
                 for (auto child = tree->m_children_.vector.rbegin(); child != tree->m_children_.vector.rend(); ++child) {
-                    ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, (*child)->m_area_.min(), (*child)->m_area_.max(), dist, intersected);
+                    ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, (*child)->m_area_.min(), (*child)->m_area_.max(), dist, dist2, intersected);
                     if (intersected && dist >= 0) {
                         tree_queue.emplace(dist, *child);
                         continue;
@@ -405,9 +405,9 @@ namespace erl::geometry {
 
         Eigen::Vector2d r_inv = ray_direction.cwiseInverse();
         auto self = shared_from_this();
-        double dist;
+        double dist, dist2;
         bool intersected;
-        ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, self->m_area_.min(), self->m_area_.max(), dist, intersected);
+        ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, self->m_area_.min(), self->m_area_.max(), dist, dist2, intersected);
         if (!intersected) { return; }  // the ray does not intersect with the tree's area, won't check any descendants.
 
         struct Compare {
@@ -456,7 +456,7 @@ namespace erl::geometry {
             } else {
                 // keep the same order as the recursive version.
                 for (auto child = tree->m_children_.vector.rbegin(); child != tree->m_children_.vector.rend(); ++child) {
-                    ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, (*child)->m_area_.min(), (*child)->m_area_.max(), dist, intersected);
+                    ComputeIntersectionBetweenRayAndAabb2D(ray_origin, r_inv, (*child)->m_area_.min(), (*child)->m_area_.max(), dist, dist2, intersected);
                     if (intersected && dist >= 0) {
                         tree_queue.emplace(dist, *child);
                         continue;

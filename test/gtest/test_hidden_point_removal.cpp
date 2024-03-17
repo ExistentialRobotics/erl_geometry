@@ -1,7 +1,3 @@
-#include "erl_geometry/hidden_point_removal.hpp"
-#include "erl_geometry/occupancy_quadtree.hpp"
-#include "erl_common/test_helper.hpp"
-
 #include <open3d/geometry/TriangleMesh.h>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
@@ -11,24 +7,27 @@
 #include <open3d/io/TriangleMeshIO.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 #include <open3d/visualization/utility/DrawGeometry.h>
-#include <octomap/OcTree.h>
 
-class OcTreeNode : public octomap::OcTreeNode {
+#include "erl_geometry/hidden_point_removal.hpp"
+#include "erl_geometry/occupancy_octree.hpp"
+#include "erl_common/test_helper.hpp"
+
+class OctreeNode : public erl::geometry::OccupancyOctreeNode {
 public:
     std::size_t geometry_id = -1;
     std::size_t vertex_id = -1;
 
-    OcTreeNode()
-        : octomap::OcTreeNode() {}
+    OctreeNode()
+        : erl::geometry::OccupancyOctreeNode() {}
 };
 
-class OcTree : public octomap::OccupancyOcTreeBase<OcTreeNode> {
+class Octree : public erl::geometry::OccupancyOctreeBase<OctreeNode> {
 
 public:
     /// Default constructor, sets resolution of leafs
-    explicit OcTree(double resolution)
-        : OccupancyOcTreeBase<OcTreeNode>(resolution) {
-        ocTreeMemberInit.ensureLinking();
+    explicit Octree(double resolution)
+        : erl::geometry::OccupancyOctreeBase<OctreeNode>(resolution) {
+        s_init_.EnsureLinking();
     }
 
     /**
@@ -36,23 +35,21 @@ public:
      * @param _filename
      *
      */
-    explicit OcTree(const std::string &_filename)
-        : OccupancyOcTreeBase<OcTreeNode>(0.1) {  // resolution will be set according to tree file
-        readBinary(_filename);
+    explicit Octree(const std::string &_filename)
+        : erl::geometry::OccupancyOctreeBase<OctreeNode>(0.1) {  // resolution will be set according to tree file
+        ReadBinary(_filename);
     }
-
-    ~OcTree() override = default;
 
     /// virtual constructor: creates a new object of same type
     /// (Covariant return type requires an up-to-date compiler)
-    OcTree *
-    create() const override {
-        return new OcTree(resolution);
+    std::shared_ptr<erl::geometry::AbstractOctree>
+    Create() const override {
+        return std::make_shared<Octree>(0.1);
     }
 
     std::string
-    getTreeType() const override {
-        return "OcTree";
+    GetTreeType() const override {
+        return "Octree";
     }
 
 protected:
@@ -66,9 +63,9 @@ protected:
     class StaticMemberInitializer {
     public:
         StaticMemberInitializer() {
-            auto *tree = new OcTree(0.1);
-            tree->clearKeyRays();
-            AbstractOcTree::registerTreeType(tree);
+            auto tree = std::make_shared<Octree>(0.1);
+            tree->ClearKeyRays();
+            AbstractOctree::RegisterTreeType(tree);
         }
 
         /**
@@ -77,11 +74,11 @@ protected:
          * Needs to be called from the constructor of this octree.
          */
         void
-        ensureLinking(){};
+        EnsureLinking(){};
     };
 
     /// to ensure static initialization (only once)
-    inline static StaticMemberInitializer ocTreeMemberInit;
+    inline static StaticMemberInitializer s_init_ = {};
 };
 
 TEST(ERL_GEOMETRY, HiddenPointRemoval) {
@@ -99,7 +96,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
     };
 
     try {
-        Mode mode = Mode::kOctomap_Raytracing;
+        Mode mode = Mode::kERL_HiddenPointRemoval;
         bool show_rays = true;
 
         auto camera_mesh = open3d::geometry::TriangleMesh::CreateSphere(0.005);
@@ -144,10 +141,10 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
         open3d::t::geometry::RaycastingScene scene;
         auto bunny_id = scene.AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*bunny_mesh));
 
-        OcTree octree(0.001);
+        Octree octree(0.001);
         for (std::size_t i = 0; i < bunny_mesh->vertices_.size(); ++i) {
             Eigen::Vector3d &vertex = bunny_mesh->vertices_[i];
-            OcTreeNode *node = octree.updateNode(vertex[0], vertex[1], vertex[2], 20.0f, true);
+            auto node = static_cast<OctreeNode*>(octree.UpdateNode(vertex[0], vertex[1], vertex[2], 20.0f, true));
             node->geometry_id = 0;
             node->vertex_id = i;
         }
@@ -247,23 +244,29 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                 }
                 case Mode::kOctomap_Raytracing: {
                     std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
-                    octomath::Vector3 origin;
-                    origin.x() = float(camera_position[0]);
-                    origin.y() = float(camera_position[1]);
-                    origin.z() = float(camera_position[2]);
-                    std::vector<octomath::Vector3> ends(bunny_mesh->vertices_.size());
+                    std::vector<Eigen::Vector3d> ends(bunny_mesh->vertices_.size());
                     std::vector<int> hits(bunny_mesh->vertices_.size(), -1);
-#pragma omp parallel for default(none) shared(bunny_mesh, octree, origin, ends, camera_position, hits)
+#pragma omp parallel for default(none) shared(bunny_mesh, octree, ends, camera_position, hits)
                     for (std::size_t i = 0; i < bunny_mesh->vertices_.size(); ++i) {
                         Eigen::Vector3d dir = bunny_mesh->vertices_[i] - camera_position;
                         dir.normalize();
-                        octomath::Vector3 direction;
-                        direction.x() = float(dir[0]);
-                        direction.y() = float(dir[1]);
-                        direction.z() = float(dir[2]);
-                        if (octree.castRay(origin, direction, ends[i], true, -1)) {
-                            octomap::OcTreeKey key = octree.coordToKey(ends[i]);
-                            OcTreeNode *node = octree.search(key);
+                        uint32_t depth = 0;
+                        if (octree.CastRay(
+                                camera_position[0],
+                                camera_position[1],
+                                camera_position[2],
+                                dir[0],
+                                dir[1],
+                                dir[2],
+                                true,
+                                -1,
+                                ends[i][0],
+                                ends[i][1],
+                                ends[i][2],
+                                depth
+                                )) {
+                            erl::geometry::OctreeKey key = octree.CoordToKey(ends[i][0], ends[i][1], ends[i][2]);
+                            auto node = octree.Search(key);
                             if (node->geometry_id == 0) {
                                 bunny_mesh->vertex_colors_[node->vertex_id] = Eigen::Vector3d(1, 0, 0);
                                 hits[i] = int(node->vertex_id);

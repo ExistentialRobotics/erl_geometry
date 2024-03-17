@@ -16,7 +16,7 @@ namespace erl::geometry {
         };
 
     private:
-        std::shared_ptr<Setting> m_setting_ = {};
+        std::shared_ptr<Setting> m_setting_ = nullptr;
         std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> m_draw_tree_ = {};
         std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)> m_draw_leaf_ = {};
 

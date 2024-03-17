@@ -68,8 +68,7 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Vector2d> &translation,
             Eigen::VectorXd angles,
             Eigen::VectorXd ranges,
-            bool partition_rays = false
-        );
+            bool partition_rays = false);
 
         [[nodiscard]] inline const std::shared_ptr<Setting> &
         GetSetting() const {
@@ -144,6 +143,16 @@ namespace erl::geometry {
             return m_end_pts_world_;
         }
 
+        [[nodiscard]] inline const Eigen::VectorXl &
+        GetHitRayIndices() const {
+            return m_hit_ray_indices_;
+        }
+
+        [[nodiscard]] inline const Eigen::Matrix2Xd &
+        GetHitPointsWorld() const {
+            return m_hit_points_world_;
+        }
+
         [[nodiscard]] inline double
         GetMaxValidRange() const {
             return m_max_valid_range_;
@@ -176,8 +185,7 @@ namespace erl::geometry {
             double sampled_rays_ratio,
             Eigen::Matrix2Xd &positions_world,
             Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances
-        ) const;
+            Eigen::VectorXd &distances) const;
 
         void
         SampleAlongRays(
@@ -186,8 +194,7 @@ namespace erl::geometry {
             double sampled_rays_ratio,
             Eigen::Matrix2Xd &positions_world,
             Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances
-        ) const;
+            Eigen::VectorXd &distances) const;
 
         void
         SampleNearSurface(
@@ -196,21 +203,24 @@ namespace erl::geometry {
             double sampled_rays_ratio,
             Eigen::Matrix2Xd &positions_world,
             Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances
-        ) const;
+            Eigen::VectorXd &distances) const;
 
         void
         SampleInRegion(
-            long num_samples, long num_samples_per_iter, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
-        ) const;
+            long num_positions,
+            long num_along_ray_samples_per_ray,
+            long num_near_surface_samples_per_ray,
+            double max_in_obstacle_dist,
+            Eigen::Matrix2Xd &positions_world,
+            Eigen::Matrix2Xd &directions_world,
+            Eigen::VectorXd &distances) const;
 
         void
         ComputeRaysAt(
             const Eigen::Ref<const Eigen::Vector2d> &position_world,
             Eigen::Matrix2Xd &directions_world,
             Eigen::VectorXd &distances,
-            std::vector<long> &visible_hit_point_indices
-        ) const;
+            std::vector<long> &visible_hit_point_indices) const;
 
     private:
         void

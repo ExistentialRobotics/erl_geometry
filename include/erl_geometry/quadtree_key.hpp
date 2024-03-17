@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <unordered_set>
-#include <unordered_map>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <vector>
 #include "erl_common/assert.hpp"
 
@@ -16,10 +16,25 @@ namespace erl::geometry {
     public:
         typedef uint16_t KeyType;
 
+        // Hash function for OctreeKey when used with absl containers.
+        template<typename H>
+        friend H
+        AbslHashValue(H h, const QuadtreeKey& key) {
+            return H::combine(std::move(h), key.m_k_[0], key.m_k_[1]);
+        }
+
+        // Hash function for OctreeKey when used with std hash containers.
         struct KeyHash {
             [[nodiscard]] inline std::size_t
             operator()(const QuadtreeKey& key) const {
                 return (std::size_t(key.m_k_[0]) << 16) | std::size_t(key.m_k_[1]);
+            }
+        };
+
+        struct KeyLessThan {
+            [[nodiscard]] inline bool
+            operator()(const QuadtreeKey& lhs, const QuadtreeKey& rhs) const {
+                return lhs.m_k_[0] < rhs.m_k_[0] || (lhs.m_k_[0] == rhs.m_k_[0] && lhs.m_k_[1] < rhs.m_k_[1]);
             }
         };
 
@@ -57,8 +72,8 @@ namespace erl::geometry {
          */
         inline static void
         ComputeChildKey(unsigned int pos, QuadtreeKey::KeyType center_offset_key, const QuadtreeKey& parent_key, QuadtreeKey& child_key) {
-            child_key[0] = parent_key[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key[1] = parent_key[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
         }
 
         /**
@@ -67,18 +82,20 @@ namespace erl::geometry {
          * @param level level=0 means the leaf level
          * @return
          */
-        inline static uint8_t
+        inline static int
         ComputeChildIndex(const QuadtreeKey& key, unsigned int level) {
-            uint8_t pos = 0;
-            if (key[0] & (1 << level)) { pos += 1; }
-            if (key[1] & (1 << level)) { pos += 2; }
+            int pos = 0;
+            if (key.m_k_[0] & (1 << level)) { pos += 1; }
+            if (key.m_k_[1] & (1 << level)) { pos += 2; }
             return pos;
         }
 
         inline static bool
         KeyInAabb(const QuadtreeKey& key, QuadtreeKey::KeyType center_offset_key, const QuadtreeKey& aabb_min_key, const QuadtreeKey& aabb_max_key) {
-            return (aabb_min_key[0] <= (key[0] + center_offset_key)) && (aabb_min_key[1] <= (key[1] + center_offset_key)) &&
-                   (aabb_max_key[0] >= (key[0] - center_offset_key)) && (aabb_max_key[1] >= (key[1] - center_offset_key));
+            return (aabb_min_key[0] <= (key[0] + center_offset_key)) &&  //
+                   (aabb_min_key[1] <= (key[1] + center_offset_key)) &&  //
+                   (aabb_max_key[0] >= (key[0] - center_offset_key)) &&  //
+                   (aabb_max_key[1] >= (key[1] - center_offset_key));
         }
 
     private:
@@ -88,24 +105,26 @@ namespace erl::geometry {
     /**
      * Data structure to efficiently compute the nodes to update from a scan insertion using a hash set.
      */
-    typedef std::unordered_set<QuadtreeKey, QuadtreeKey::KeyHash> QuadtreeKeySet;
+    typedef absl::flat_hash_set<QuadtreeKey> QuadtreeKeySet;
+    typedef absl::flat_hash_map<QuadtreeKey, std::vector<long>> QuadtreeKeyVectorMap;
+    typedef std::vector<QuadtreeKey> QuadtreeKeyVector;
 
     /**
      * Data structure to efficiently track changed nodes.
      */
-    typedef std::unordered_map<QuadtreeKey, bool, QuadtreeKey::KeyHash> QuadtreeKeyBoolMap;
+    typedef absl::flat_hash_map<QuadtreeKey, bool> QuadtreeKeyBoolMap;
 
     /**
      * Data structure for efficient ray casting.
      */
     class QuadtreeKeyRay {
     public:
-        typedef std::vector<QuadtreeKey>::iterator Iterator;
-        typedef std::vector<QuadtreeKey>::const_iterator ConstIterator;
-        typedef std::vector<QuadtreeKey>::reverse_iterator ReverseIterator;
+        typedef QuadtreeKeyVector::iterator Iterator;
+        typedef QuadtreeKeyVector::const_iterator ConstIterator;
+        typedef QuadtreeKeyVector::reverse_iterator ReverseIterator;
 
     private:
-        std::vector<QuadtreeKey> m_ray_ = {};
+        QuadtreeKeyVector m_ray_ = {};
         Iterator m_end_of_ray_ = m_ray_.begin();
 
     public:
@@ -127,7 +146,7 @@ namespace erl::geometry {
 
         inline void
         AddKey(const QuadtreeKey& k) {
-            ERL_ASSERTM(m_end_of_ray_ != m_ray_.end(), "Ray is full.");
+            ERL_DEBUG_ASSERT(m_end_of_ray_ != m_ray_.end(), "Ray is full.");
             *m_end_of_ray_ = k;
             ++m_end_of_ray_;
         }
@@ -172,9 +191,9 @@ namespace erl::geometry {
             return m_ray_.rend();
         }
 
-        [[nodiscard]] inline QuadtreeKey
+        [[nodiscard]] inline const QuadtreeKey&
         operator[](int idx) const {
-            ERL_ASSERTM(idx >= 0 && idx < int(size()), "Index out of bounds.");
+            ERL_DEBUG_ASSERT(idx >= 0 && idx < int(size()), "Index out of bounds.");
             return m_ray_[idx];
         }
     };

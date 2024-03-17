@@ -58,7 +58,7 @@ namespace erl::geometry {
         }
 
         std::string id;
-        unsigned int size;
+        uint32_t size;
         double res;
         if (!ReadHeader(s, id, size, res)) { return nullptr; }
 
@@ -68,6 +68,35 @@ namespace erl::geometry {
         if (size > 0) { tree->ReadData(s); }
         ERL_DEBUG("Done (%zu nodes).", tree->GetSize());
         return tree;
+    }
+
+    bool
+    AbstractOctree::LoadData(const std::string &filename) {
+        std::ifstream s(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+        if (!s.is_open()) {
+            ERL_WARN("Failed to open file: %s", filename.c_str());
+            return false;
+        }
+        bool success = LoadData(s);
+        s.close();
+        return success;
+    }
+
+    bool
+    AbstractOctree::LoadData(std::istream &s) {
+        std::string id;
+        uint32_t size;
+        double res;
+        if (!ReadHeader(s, id, size, res)) { return false; }
+        if (id != GetTreeType()) {
+            ERL_WARN("Error reading Octree header, ID does not match: %s != %s", id.c_str(), GetTreeType().c_str());
+            return false;
+        }
+        Clear();
+        SetResolution(res);
+        if (size > 0) { this->ReadData(s); }
+        ERL_DEBUG("Done (%zu nodes).", GetSize());
+        return GetSize() == size;
     }
 
     std::shared_ptr<AbstractOctree>
@@ -84,7 +113,7 @@ namespace erl::geometry {
     }
 
     bool
-    AbstractOctree::ReadHeader(std::istream &s, std::string &id, unsigned int &size, double &res) {
+    AbstractOctree::ReadHeader(std::istream &s, std::string &id, uint32_t &size, double &res) {
         // initialize output variables
         id = "";
         size = 0;

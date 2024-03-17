@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <unordered_set>
-#include <unordered_map>
+#include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <vector>
 #include "erl_common/assert.hpp"
 
@@ -16,10 +16,29 @@ namespace erl::geometry {
     public:
         typedef uint16_t KeyType;
 
+        // Hash function for OctreeKey when used with absl containers.
+        template<typename H>
+        friend H
+        AbslHashValue(H h, const OctreeKey& key) {
+            return H::combine(std::move(h), key.m_k_[0], key.m_k_[1], key.m_k_[2]);
+        }
+
+        // Hash function for OctreeKey when used with std hash containers.
         struct KeyHash {
             [[nodiscard]] inline std::size_t
             operator()(const OctreeKey& key) const {
+                // simple but more collision
+                // return static_cast<size_t>(key.m_k_[0]) + 1447 * static_cast<size_t>(key.m_k_[1]) + 345637 * static_cast<size_t>(key.m_k_[2]);
+                // less collision but causes more memory reallocation when used with absl::flat_hash_set or absl::flat_hash_map
                 return (std::size_t(key.m_k_[0]) << 32) | (std::size_t(key.m_k_[1]) << 16) | std::size_t(key.m_k_[2]);
+            }
+        };
+
+        struct KeyLessThan {
+            [[nodiscard]] inline bool
+            operator()(const OctreeKey& lhs, const OctreeKey& rhs) const {
+                return lhs.m_k_[0] < rhs.m_k_[0] || (lhs.m_k_[0] == rhs.m_k_[0] && lhs.m_k_[1] < rhs.m_k_[1]) ||
+                       (lhs.m_k_[0] == rhs.m_k_[0] && lhs.m_k_[1] == rhs.m_k_[1] && lhs.m_k_[2] < rhs.m_k_[2]);
             }
         };
 
@@ -57,9 +76,9 @@ namespace erl::geometry {
          */
         inline static void
         ComputeChildKey(unsigned int pos, OctreeKey::KeyType center_offset_key, const OctreeKey& parent_key, OctreeKey& child_key) {
-            child_key[0] = parent_key[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key[1] = parent_key[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key[2] = parent_key[2] + ((pos & 4) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[2] = parent_key.m_k_[2] + ((pos & 4) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
         }
 
         /**
@@ -68,20 +87,23 @@ namespace erl::geometry {
          * @param level level=0 means the leaf level
          * @return
          */
-        inline static uint8_t
+        inline static int
         ComputeChildIndex(const OctreeKey& key, unsigned int level) {
-            uint8_t pos = 0;
-            if (key[0] & (1 << level)) { pos += 1; }
-            if (key[1] & (1 << level)) { pos += 2; }
-            if (key[2] & (1 << level)) { pos += 4; }
+            int pos = 0;
+            if (key.m_k_[0] & (1 << level)) { pos += 1; }
+            if (key.m_k_[1] & (1 << level)) { pos += 2; }
+            if (key.m_k_[2] & (1 << level)) { pos += 4; }
             return pos;
         }
 
         inline static bool
         KeyInAabb(const OctreeKey& key, OctreeKey::KeyType center_offset_key, const OctreeKey& aabb_min_key, const OctreeKey& aabb_max_key) {
-            return (aabb_min_key[0] <= (key[0] + center_offset_key)) && (aabb_min_key[1] <= (key[1] + center_offset_key)) &&
-                   (aabb_min_key[2] <= (key[2] + center_offset_key)) && (aabb_max_key[0] >= (key[0] - center_offset_key)) &&
-                   (aabb_max_key[1] >= (key[1] - center_offset_key)) && (aabb_max_key[2] >= (key[2] - center_offset_key));
+            return (aabb_min_key.m_k_[0] <= (key.m_k_[0] + center_offset_key)) &&  //
+                   (aabb_min_key.m_k_[1] <= (key.m_k_[1] + center_offset_key)) &&  //
+                   (aabb_min_key.m_k_[2] <= (key.m_k_[2] + center_offset_key)) &&  //
+                   (aabb_max_key.m_k_[0] >= (key.m_k_[0] - center_offset_key)) &&  //
+                   (aabb_max_key.m_k_[1] >= (key.m_k_[1] - center_offset_key)) &&  //
+                   (aabb_max_key.m_k_[2] >= (key.m_k_[2] - center_offset_key));
         }
 
     private:
@@ -91,24 +113,26 @@ namespace erl::geometry {
     /**
      * Data structure to efficiently compute the nodes to update from a scan insertion using a hash set.
      */
-    typedef std::unordered_set<OctreeKey, OctreeKey::KeyHash> OctreeKeySet;
+    typedef absl::flat_hash_set<OctreeKey> OctreeKeySet;
+    typedef absl::flat_hash_map<OctreeKey, std::vector<long>> OctreeKeyVectorMap;
+    typedef std::vector<OctreeKey> OctreeKeyVector;
 
     /**
      * Data structure to efficiently track changed nodes.
      */
-    typedef std::unordered_map<OctreeKey, bool, OctreeKey::KeyHash> OctreeKeyBoolMap;
+    typedef absl::flat_hash_map<OctreeKey, bool> OctreeKeyBoolMap;
 
     /**
      * Data structure for efficient ray casting.
      */
     class OctreeKeyRay {
     public:
-        typedef std::vector<OctreeKey>::iterator Iterator;
-        typedef std::vector<OctreeKey>::const_iterator ConstIterator;
-        typedef std::vector<OctreeKey>::reverse_iterator ReverseIterator;
+        typedef OctreeKeyVector::iterator Iterator;
+        typedef OctreeKeyVector::const_iterator ConstIterator;
+        typedef OctreeKeyVector::reverse_iterator ReverseIterator;
 
     private:
-        std::vector<OctreeKey> m_ray_ = {};
+        OctreeKeyVector m_ray_ = {};
         Iterator m_end_of_ray_ = m_ray_.begin();
 
     public:
@@ -130,7 +154,7 @@ namespace erl::geometry {
 
         inline void
         AddKey(const OctreeKey& k) {
-            ERL_ASSERTM(m_end_of_ray_ != m_ray_.end(), "Ray is full.");
+            ERL_DEBUG_ASSERT(m_end_of_ray_ != m_ray_.end(), "Ray is full.");
             *m_end_of_ray_ = k;
             ++m_end_of_ray_;
         }
@@ -175,9 +199,9 @@ namespace erl::geometry {
             return m_ray_.rend();
         }
 
-        [[nodiscard]] inline OctreeKey
+        [[nodiscard]] inline const OctreeKey&
         operator[](int idx) const {
-            ERL_ASSERTM(idx >= 0 && idx < int(size()), "Index out of bounds.");
+            ERL_DEBUG_ASSERT(idx >= 0 && idx < int(size()), "Index out of bounds.");
             return m_ray_[idx];
         }
     };

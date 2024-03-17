@@ -283,16 +283,16 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
     // only one child exists
-    EXPECT_TRUE(parent_node->GetChild(0) != nullptr);
-    EXPECT_TRUE(parent_node->GetChild(1) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(2) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(3) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(0) != nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(1) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(2) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(3) == nullptr);
 
     // add another new node
     init_size = tree->GetSize();
     auto new_node_2 = tree->CreateNodeChild(parent_node, 3);
     EXPECT_TRUE(new_node_2 != nullptr);
-    EXPECT_EQ(parent_node->GetChild(3), new_node_2);
+    EXPECT_EQ(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(3), new_node_2);
     new_node_2->SetLogOdds(0.123);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     tree->Prune();
@@ -369,8 +369,8 @@ TEST(OccupancyQuadtree, Iterator) {
     EXPECT_EQ(tree->ComputeNumberOfLeafNodes(), num_iterated_leaf_nodes);
 
     std::size_t occupied_leaf_node_count = 0;
-    std::vector<std::shared_ptr<const erl::geometry::OccupancyQuadtreeNode>> stack;
-    stack.emplace_back(tree->GetRoot());
+    std::vector<const erl::geometry::OccupancyQuadtreeNode*> stack;
+    stack.emplace_back(tree->GetRoot().get());
     while (!stack.empty()) {
         auto node = stack.back();
         stack.pop_back();
@@ -417,7 +417,8 @@ TEST(OccupancyQuadtree, RayCasting) {
         double vx = std::cos(angle);
         double vy = std::sin(angle);
         double ex = 0, ey = 0;
-        if (tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
+        uint32_t depth = 0;
+        if (tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey, depth)) {
             hit++;
             double dx = ex - sx;
             double dy = ey - sy;

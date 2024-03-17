@@ -76,51 +76,17 @@ namespace erl::geometry {
 
         //-- occupancy queries
         [[nodiscard]] inline bool
-        IsNodeOccupied(const std::shared_ptr<const OccupancyQuadtreeNode>& node) const {
+        IsNodeOccupied(const OccupancyQuadtreeNode* node) const {
             return node->GetLogOdds() >= m_log_odd_occ_threshold_;
         }
 
         [[nodiscard]] inline bool
-        IsNodeOccupied(const OccupancyQuadtreeNode& node) const {
-            return node.GetLogOdds() >= m_log_odd_occ_threshold_;
-        }
-
-        [[nodiscard]] inline bool
-        IsNodeAtThreshold(const std::shared_ptr<const OccupancyQuadtreeNode>& node) const {
+        IsNodeAtThreshold(const OccupancyQuadtreeNode* node) const {
             float log_odds = node->GetLogOdds();
             return log_odds >= m_log_odd_max_ || log_odds <= m_log_odd_min_;
         }
 
-        [[nodiscard]] inline bool
-        IsNodeAtThreshold(const OccupancyQuadtreeNode& node) const {
-            float log_odds = node.GetLogOdds();
-            return log_odds >= m_log_odd_max_ || log_odds <= m_log_odd_min_;
-        }
-
         //-- update functions
-        /**
-         * Update the node at the given key with the given log-odds delta.
-         * @param key of the node to update
-         * @param log_odds_delta to be added to the node's log-odds value
-         * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
-         * UpdateInnerOccupancy() after all updates are done.
-         * @return
-         */
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(const QuadtreeKey& key, float log_odds_delta, bool lazy_eval) = 0;
-
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(double x, double y, float log_odds_delta, bool lazy_eval) = 0;
-
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(const QuadtreeKey& key, bool occupied, bool lazy_eval) = 0;
-
-        virtual std::shared_ptr<OccupancyQuadtreeNode>
-        UpdateNode(double x, double y, bool occupied, bool lazy_eval) = 0;
-
-        virtual void
-        UpdateInnerOccupancy() = 0;
-
         virtual void
         ToMaxLikelihood() = 0;
 

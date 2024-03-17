@@ -1,4 +1,5 @@
 #include "erl_common/opencv.hpp"
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
@@ -45,8 +46,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {255, 0, 0, 100}, cv::FILLED);
         // draw neighbors on west
         {
-            auto it = data->tree->BeginLeafNeighborOnWest(x, y);
-            auto end = data->tree->EndLeafNeighborOnWest();
+            auto it = data->tree->BeginWestLeafNeighbor(x, y);
+            auto end = data->tree->EndWestLeafNeighbor();
             for (; it != end; it++) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
@@ -58,8 +59,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         }
         // draw neighbors on east
         {
-            auto it = data->tree->BeginLeafNeighborOnEast(x, y);
-            auto end = data->tree->EndLeafNeighborOnEast();
+            auto it = data->tree->BeginEastLeafNeighbor(x, y);
+            auto end = data->tree->EndEastLeafNeighbor();
             for (; it != end; it++) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
@@ -71,8 +72,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         }
         // draw neighbors on north
         {
-            auto it = data->tree->BeginLeafNeighborOnNorth(x, y);
-            auto end = data->tree->EndLeafNeighborOnNorth();
+            auto it = data->tree->BeginNorthLeafNeighbor(x, y);
+            auto end = data->tree->EndNorthLeafNeighbor();
             for (; it != end; it++) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
@@ -84,8 +85,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         }
         // draw neighbors on south
         {
-            auto it = data->tree->BeginLeafNeighborOnSouth(x, y);
-            auto end = data->tree->EndLeafNeighborOnSouth();
+            auto it = data->tree->BeginSouthLeafNeighbor(x, y);
+            auto end = data->tree->EndSouthLeafNeighbor();
             for (; it != end; it++) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
@@ -99,11 +100,11 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     }
 }
 
-int
-main() {
+TEST(OccupancyQuadtree, FindNeighbors) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
-    ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.");
+    EXPECT_TRUE(data.tree->ReadBinary("square.bt"));
+
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;
     setting->border_color = cv::Scalar(255, 0, 0);
@@ -115,5 +116,4 @@ main() {
     cv::imshow(UserData::window_name, data.img);
     cv::setMouseCallback(UserData::window_name, MouseCallback, &data);
     cv::waitKey(0);
-    return 0;
 }

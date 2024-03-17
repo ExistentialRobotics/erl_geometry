@@ -1,15 +1,12 @@
 #include "erl_common/opencv.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
-#include "erl_geometry/occupancy_quadtree_drawer.hpp"
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/test_helper.hpp"
-
-using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geometry::OccupancyQuadtree>;
 
 struct UserData {
     inline static const char *window_name = "quadtree ray casting";
     std::shared_ptr<erl::geometry::OccupancyQuadtree> tree;
-    std::shared_ptr<OccupancyQuadtreeDrawer> drawer;
+    std::shared_ptr<erl::geometry::OccupancyQuadtree::Drawer> drawer;
     cv::Mat img;
 };
 
@@ -44,8 +41,9 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             double vy = std::sin(angles[i]);
             constexpr bool kIgnoreUnknown = false;
             double max_range = -1;
-            if (!data->tree->CastRay(x, y, vx, vy, kIgnoreUnknown, max_range, ex, ey)) {
-                if (!data->tree->CastRay(x, y, vx, vy, !kIgnoreUnknown, max_range, ex, ey)) {
+            uint32_t depth = 0;
+            if (!data->tree->CastRay(x, y, vx, vy, kIgnoreUnknown, max_range, ex, ey, depth)) {
+                if (!data->tree->CastRay(x, y, vx, vy, !kIgnoreUnknown, max_range, ex, ey, depth)) {
                     std::cout << "Fail to cast ray for angle " << erl::common::RadianToDegree(angles[i]) << std::endl;
                 }
             }
@@ -54,8 +52,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 cv::Point(mouse_x, mouse_y),
                 cv::Point(grid_map_info->MeterToGridForValue(ex, 0), grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(ey, 1)),
                 cv::Scalar(0, 0, 255, 255),
-                1
-            );
+                1);
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         std::cout << "Time: " << std::chrono::duration<double, std::milli>(t1 - t0).count() << " ms." << std::endl;
@@ -69,16 +66,15 @@ static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).p
 TEST(OccupancyQuadtree, RayCasting) {
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
-    // ERL_ASSERTM(data.tree->ReadBinary("square.bt"), "Fail to load the tree.");
-    std::string file = (g_test_data_dir / "house_expo_room_1451.bt").string();
-    ERL_ASSERTM(data.tree->ReadBinary(file), "Fail to load the tree.");
-    auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
+    std::string file = (g_test_data_dir / "house_expo_room_1451_2d.bt").string();
+    ASSERT_TRUE(data.tree->ReadBinary(file)) << "Fail to load the tree.";
+    auto setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
     setting->resolution = 0.0025;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
     data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
-    data.drawer = std::make_shared<OccupancyQuadtreeDrawer>(setting, data.tree);
+    data.drawer = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer>(setting, data.tree);
     data.drawer->DrawLeaves(data.img);
 
     cv::imshow(UserData::window_name, data.img);

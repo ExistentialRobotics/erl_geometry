@@ -30,7 +30,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_L, [this](open3d::visualization::Visualizer *vis) -> bool {  // roll+
@@ -43,7 +43,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_K, [this](open3d::visualization::Visualizer *vis) -> bool {  // pitch-
@@ -56,7 +56,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_I, [this](open3d::visualization::Visualizer *vis) -> bool {  // pitch+
@@ -69,7 +69,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_U, [this](open3d::visualization::Visualizer *vis) -> bool {  // yaw-
@@ -82,7 +82,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_O, [this](open3d::visualization::Visualizer *vis) -> bool {  // yaw+
@@ -95,7 +95,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_LEFT, [this](open3d::visualization::Visualizer *vis) -> bool {  // x-
@@ -108,7 +108,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_RIGHT, [this](open3d::visualization::Visualizer *vis) -> bool {  // x+
@@ -121,7 +121,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_DOWN, [this](open3d::visualization::Visualizer *vis) -> bool {  // y-
@@ -134,7 +134,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_UP, [this](open3d::visualization::Visualizer *vis) -> bool {  // y+
@@ -147,7 +147,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_PAGE_DOWN, [this](open3d::visualization::Visualizer *vis) -> bool {  // z-
@@ -160,7 +160,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_PAGE_UP, [this](open3d::visualization::Visualizer *vis) -> bool {  // z+
@@ -173,7 +173,7 @@ namespace erl::geometry {
                 m_setting_->roll,
                 m_setting_->pitch,
                 m_setting_->yaw);
-            if (m_update_callback_) { m_update_callback_(vis); }
+            if (m_update_callback_) { m_update_callback_(this, vis); }
             return true;
         });
         m_visualizer_->RegisterKeyActionCallback(GLFW_KEY_S, [this](open3d::visualization::Visualizer *vis, int action, int mod) -> bool {

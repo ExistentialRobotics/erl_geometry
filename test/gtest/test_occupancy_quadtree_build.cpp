@@ -10,7 +10,7 @@
 #include <boost/program_options.hpp>
 
 static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
-static std::string g_window_name = "ERL_GEOMETRY";
+static std::string g_window_name = "OccupancyQuadtree_Build";
 
 struct Options {
     std::string gazebo_train_file = (g_test_data_dir / "gazebo_train.dat").string();

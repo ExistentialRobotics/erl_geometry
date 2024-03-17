@@ -9,6 +9,9 @@ message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 if (NOT COMMAND erl_project_setup)
     find_package(erl_common REQUIRED)
 endif ()
+erl_project_setup(
+        ${PROJECT_NAME}
+        ERL_PACKAGES erl_common)
 
 erl_find_package(
         PACKAGE Qhull
@@ -28,18 +31,33 @@ erl_find_package(
 )
 get_target_property(Open3D_LIBRARIES Open3D::Open3D LOCATION)
 
-erl_find_package(
-        PACKAGE octomap
-        REQUIRED
-        COMMANDS UBUNTU_LINUX "try `sudo apt-get install liboctomap-dev`"
-        COMMANDS ARCH_LINUX "try `paru -S octomap`"
-)
-get_target_property(octomap_INCLUDE_DIRS octomap INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(octomap_LIBRARIES octomap LOCATION)
+if (ERL_BUILD_TEST_${PROJECT_NAME})
 
-erl_project_setup(
-        ${PROJECT_NAME}
-        ERL_PACKAGES erl_common)
+    add_library(octomap SHARED
+            test/gtest/octomap/src/math/Pose6D.cpp
+            test/gtest/octomap/src/math/Quaternion.cpp
+            test/gtest/octomap/src/math/Vector3.cpp
+            test/gtest/octomap/src/AbstractOccupancyOcTree.cpp
+            test/gtest/octomap/src/AbstractOcTree.cpp
+            test/gtest/octomap/src/ColorOcTree.cpp
+            test/gtest/octomap/src/CountingOcTree.cpp
+            test/gtest/octomap/src/OcTree.cpp
+            test/gtest/octomap/src/OcTreeNode.cpp
+            test/gtest/octomap/src/OcTreeStamped.cpp
+            test/gtest/octomap/src/Pointcloud.cpp
+            test/gtest/octomap/src/ScanGraph.cpp
+    )
+    target_include_directories(octomap PUBLIC test/gtest/octomap/include)
+
+    set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
+    erl_find_package(
+            PACKAGE CGAL
+            REQUIRED COMPONENTS Core
+            COMMANDS UBUNTU_LINUX "try `sudo apt-get install libcgal-dev`"
+            COMMANDS ARCH_LINUX "try `sudo pacman -S cgal`"
+    )
+endif ()
+
 erl_setup_ros()
 erl_catkin_package(
         INCLUDE_DIRS include
@@ -63,7 +81,7 @@ target_include_directories(${PROJECT_NAME}
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}
-        PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D octomap
+        PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
         PUBLIC ${catkin_LIBRARIES})
 
 ###################
@@ -85,7 +103,7 @@ erl_install(
 # TEST
 #######################################################################################################################
 erl_add_tests(
-        LIBRARIES ${PROJECT_NAME}
+        LIBRARIES ${PROJECT_NAME} CGAL::CGAL octomap
 )
 
 #######################################################################################################################

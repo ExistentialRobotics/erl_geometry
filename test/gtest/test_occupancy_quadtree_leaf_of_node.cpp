@@ -1,7 +1,7 @@
 #include "erl_common/opencv.hpp"
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
-#include <gtest/gtest.h>
 
 using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geometry::OccupancyQuadtree>;
 
@@ -71,9 +71,10 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 }
 
 TEST(OccupancyQuadtree, IterateLeafOfNode) {
+    GTEST_PREPARE_OUTPUT_DIR();
     UserData data;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
-    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451.bt"), "Fail to load the tree.");
+    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451_2d.bt"), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;
     setting->resolution = 0.01;

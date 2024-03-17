@@ -11,8 +11,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector2d> &translation,
         Eigen::VectorXd angles,
         Eigen::VectorXd ranges,
-        bool partition_rays
-    ) {
+        bool partition_rays) {
         m_rotation_ = rotation;
         m_translation_ = translation;
         m_angles_frame_ = std::move(angles);
@@ -101,8 +100,7 @@ namespace erl::geometry {
         double sampled_rays_ratio,
         Eigen::Matrix2Xd &positions_world,
         Eigen::Matrix2Xd &directions_world,
-        Eigen::VectorXd &distances
-    ) const {
+        Eigen::VectorXd &distances) const {
         std::vector<long> hit_ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
         auto n_rays = long(hit_ray_indices.size());
         long n_samples = n_rays * n_samples_per_ray;
@@ -138,8 +136,7 @@ namespace erl::geometry {
         double sampled_rays_ratio,
         Eigen::Matrix2Xd &positions_world,
         Eigen::Matrix2Xd &directions_world,
-        Eigen::VectorXd &distances
-    ) const {
+        Eigen::VectorXd &distances) const {
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
         auto n_rays = long(ray_indices.size());
         long num_samples = 0;
@@ -180,8 +177,7 @@ namespace erl::geometry {
         double sampled_rays_ratio,
         Eigen::Matrix2Xd &positions_world,
         Eigen::Matrix2Xd &directions_world,
-        Eigen::VectorXd &distances
-    ) const {
+        Eigen::VectorXd &distances) const {
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
         auto n_rays = long(ray_indices.size());
         long n_samples = num_samples_per_ray * n_rays;
@@ -206,49 +202,74 @@ namespace erl::geometry {
 
     void
     LidarFrame2D::SampleInRegion(
-        long num_samples, long num_samples_per_iter, Eigen::Matrix2Xd &positions_world, Eigen::Matrix2Xd &directions_world, Eigen::VectorXd &distances
-    ) const {
-        ERL_ASSERTM(num_samples > 0, "num_samples (%ld) must be positive.", num_samples);
-        if (num_samples_per_iter < 0) { num_samples_per_iter = num_samples; }
+        long num_positions,
+        long num_along_ray_samples_per_ray,
+        long num_near_surface_samples_per_ray,
+        double max_in_obstacle_dist,
+        Eigen::Matrix2Xd &positions_world,
+        Eigen::Matrix2Xd &directions_world,
+        Eigen::VectorXd &distances) const {
+        ERL_ASSERTM(num_positions > 0, "num_positions (%ld) must be positive.", num_positions);
 
-        std::uniform_real_distribution<double> distribution(-m_max_valid_range_, m_max_valid_range_);
-        positions_world.resize(2, num_samples);
-        directions_world.resize(2, num_samples);
-        distances.resize(num_samples);
+        std::uniform_int_distribution<long> uniform_int_dist(0, m_hit_points_world_.cols() - 1);
+        std::uniform_real_distribution<double> uniform_real_dist(0.1, 0.8);
+        std::uniform_real_distribution<double> uniform_ns(-max_in_obstacle_dist, max_in_obstacle_dist);
 
-        long collected_samples = 0;
-        Eigen::Vector2d position;
+        long max_num_samples = num_positions * m_hit_ray_indices_.cols() * (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
+        positions_world.resize(2, max_num_samples);
+        directions_world.resize(2, max_num_samples);
+        distances.resize(max_num_samples);
+
+        long sample_cnt = 0;
+        Eigen::Vector2d position_scan;
         Eigen::Matrix2Xd dirs;
         Eigen::VectorXd dists;
         std::vector<long> visible_hit_point_indices;
-        while (collected_samples < num_samples) {
-            position << distribution(common::g_random_engine) + m_translation_[0], distribution(common::g_random_engine) + m_translation_[1];
+        for (long position_idx = 0; position_idx < num_positions; ++position_idx) {
+            // synthesize a lidar scan
+            long hit_index = uniform_int_dist(common::g_random_engine);
+            long hit_ray_index = m_hit_ray_indices_[hit_index];
+            double r = uniform_real_dist(common::g_random_engine);
+            r *= m_ranges_[hit_ray_index];
+            position_scan = m_translation_ + r * m_dirs_world_.col(hit_ray_index);
+            ComputeRaysAt(position_scan, dirs, dists, visible_hit_point_indices);
 
-            ComputeRaysAt(position, dirs, dists, visible_hit_point_indices);
             auto num_rays = long(visible_hit_point_indices.size());
-            if (num_rays == 0) { continue; }
+            if (num_rays == 0) {
+                position_idx--;  // retry
+                continue;
+            }
 
-            long num_samples_to_collect = std::min(num_samples - collected_samples, num_samples_per_iter);
-            if (num_samples_to_collect < num_rays) {  // too many samples
-                std::vector<long> indices(num_rays);
-                std::iota(indices.begin(), indices.end(), 0);
-                std::shuffle(indices.begin(), indices.end(), common::g_random_engine);
-                for (long i = 0; i < num_samples_to_collect; ++i) {
-                    long &ray_idx = indices[i];
-                    positions_world.col(collected_samples) << position;
-                    directions_world.col(collected_samples) << dirs.col(ray_idx);
-                    distances(collected_samples++) = dists[ray_idx];
-                    if (collected_samples >= num_samples) { break; }
+            for (long ray_idx = 0; ray_idx < num_rays; ++ray_idx) {
+                auto dir = dirs.col(ray_idx);
+                double &range = dists[ray_idx];
+
+                // sample near surface with this lidar scan
+                for (long i = 0; i < num_near_surface_samples_per_ray; ++i) {
+                    double offset = uniform_ns(common::g_random_engine);
+                    positions_world.col(sample_cnt) << position_scan + (range + offset) * dir;
+                    directions_world.col(sample_cnt) << dir;
+                    distances[sample_cnt++] = -offset;
                 }
-            } else {
-                for (long ray_idx = 0; ray_idx < num_rays; ++ray_idx) {
-                    positions_world.col(collected_samples) << position;
-                    directions_world.col(collected_samples) << dirs.col(ray_idx);
-                    distances(collected_samples++) = dists[ray_idx];
-                    if (collected_samples >= num_samples) { break; }
+
+                // sample along rays with this lidar scan
+                positions_world.col(sample_cnt) << position_scan;
+                directions_world.col(sample_cnt) << dir;
+                distances[sample_cnt++] = range;
+                double range_step = (range + max_in_obstacle_dist) / double(num_along_ray_samples_per_ray);
+                Eigen::Vector2d shift = range_step * dir;
+                for (long i = 1; i < num_along_ray_samples_per_ray; ++i) {
+                    range -= range_step;
+                    positions_world.col(sample_cnt) << positions_world.col(sample_cnt - 1) + shift;
+                    directions_world.col(sample_cnt) << dir;
+                    distances[sample_cnt++] = range;
                 }
             }
         }
+
+        positions_world.conservativeResize(2, sample_cnt);
+        directions_world.conservativeResize(2, sample_cnt);
+        distances.conservativeResize(sample_cnt);
     }
 
     void
@@ -256,8 +277,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector2d> &position_world,
         Eigen::Matrix2Xd &directions_world,
         Eigen::VectorXd &distances,
-        std::vector<long> &visible_hit_point_indices
-    ) const {
+        std::vector<long> &visible_hit_point_indices) const {
         visible_hit_point_indices.clear();
         long max_num_rays = m_end_pts_world_.cols();
         Eigen::Matrix2Xd area_vertices(2, max_num_rays + 1);

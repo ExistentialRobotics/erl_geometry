@@ -24,16 +24,18 @@
 #include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
+#include "erl_geometry/point_occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/occupancy_octree_drawer.hpp"
-#include "erl_geometry/pybind11_occupancy_quadtree.hpp"
-#include "erl_geometry/pybind11_occupancy_quadtree_drawer.hpp"
-#include "erl_geometry/pybind11_occupancy_octree.hpp"
-#include "erl_geometry/pybind11_occupancy_octree_drawer.hpp"
+#include "erl_geometry/point_occupancy_octree.hpp"
 #include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/depth_camera_3d.hpp"
 #include "erl_geometry/lidar_frame_3d.hpp"
 #include "erl_geometry/rgbd_frame_3d.hpp"
+#include "erl_geometry/pybind11_occupancy_quadtree.hpp"
+#include "erl_geometry/pybind11_occupancy_quadtree_drawer.hpp"
+#include "erl_geometry/pybind11_occupancy_octree.hpp"
+#include "erl_geometry/pybind11_occupancy_octree_drawer.hpp"
 
 using namespace erl::common;
 using namespace erl::geometry;
@@ -75,10 +77,11 @@ BindAabb(py::module &m, const char *py_class_name) {
     ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_aabb, Cls, center);
     ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_aabb, Cls, half_sizes);
 
-    py_aabb.def(
-               "__contains__",
-               [](const Cls &aabb, const Eigen::Vector<Scalar, Dim> &point) { return aabb.contains(point); },
-               py::arg("point"))
+    py_aabb
+        .def(
+            "__contains__",
+            [](const Cls &aabb, const Eigen::Vector<Scalar, Dim> &point) { return aabb.contains(point); },
+            py::arg("point"))
         .def(
             "__contains__",
             [](const Cls &aabb_1, const Cls &aabb_2) { return aabb_1.contains(aabb_2); },
@@ -89,13 +92,13 @@ BindAabb(py::module &m, const char *py_class_name) {
 
 static void
 BindNode(py::module &m) {
-    py::class_<NodeData, std::shared_ptr<NodeData>>(m, ERL_AS_STRING(NodeData)).def("__str__", [](const NodeData &node_data) -> std::string {
+    py::class_<NodeData, std::shared_ptr<NodeData>>(m, "NodeData").def("__str__", [](const NodeData &node_data) -> std::string {
         std::stringstream ss;
         node_data.Print(ss);
         return ss.str();
     });
 
-    auto py_node = py::class_<Node, std::shared_ptr<Node>>(m, ERL_AS_STRING(Node))
+    auto py_node = py::class_<Node, std::shared_ptr<Node>>(m, "Node")
                        .def(py::init<int, Eigen::VectorXd, std::shared_ptr<NodeData>>(), py::arg("type"), py::arg("position"), py::arg("node_data") = nullptr)
                        .def_readwrite("position", &Node::position);
     ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_node, Node, node_data);
@@ -104,7 +107,7 @@ BindNode(py::module &m) {
 
 static void
 BindNodeContainer(py::module &m) {
-    py::class_<NodeContainer, std::shared_ptr<NodeContainer>>(m, ERL_AS_STRING(NodeContainer))
+    py::class_<NodeContainer, std::shared_ptr<NodeContainer>>(m, "NodeContainer")
         .def_property_readonly("node_types", &NodeContainer::GetNodeTypes)
         .def("node_type_name", &NodeContainer::GetNodeTypeName, py::arg("type"))
         .def("size", py::overload_cast<>(&NodeContainer::Size, py::const_))
@@ -343,7 +346,7 @@ BindOccupancyQuadtree(py::module &m) {
 
     py::class_<QuadtreeKeyRay>(m, "QuadtreeKeyRay").def("__len__", &QuadtreeKeyRay::size).def("__getitem__", &QuadtreeKeyRay::operator[], py::arg("idx"));
 
-    py::class_<OccupancyQuadtreeNode, std::shared_ptr<OccupancyQuadtreeNode>>(m, "OccupancyQuadtreeNode")
+    py::class_<OccupancyQuadtreeNode, py::raw_ptr_wrapper<OccupancyQuadtreeNode>>(m, "OccupancyQuadtreeNode")
         .def_property_readonly("occupancy", &OccupancyQuadtreeNode::GetOccupancy)
         .def_property_readonly("log_odds", &OccupancyQuadtreeNode::GetLogOdds)
         .def_property_readonly("mean_child_log_odds", &OccupancyQuadtreeNode::GetMeanChildLogOdds)
@@ -352,6 +355,16 @@ BindOccupancyQuadtree(py::module &m) {
         .def("add_log_odds", &OccupancyQuadtreeNode::AddLogOdds, py::arg("log_odds"));
     BindOccupancyQuadtree<OccupancyQuadtree, OccupancyQuadtreeNode>(m, "OccupancyQuadtree");
     BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<OccupancyQuadtree>, OccupancyQuadtree>(m, "OccupancyQuadtreeDrawer");
+
+    py::class_<PointOccupancyQuadtreeNode, OccupancyQuadtreeNode, py::raw_ptr_wrapper<PointOccupancyQuadtreeNode>>(m, "PointOccupancyQuadtreeNode")
+        .def_property_readonly("points", &PointOccupancyQuadtreeNode::GetPoints)
+        .def_property_readonly("num_points", &PointOccupancyQuadtreeNode::GetNumPoints);
+    {
+        auto pair = BindOccupancyQuadtree<PointOccupancyQuadtree, PointOccupancyQuadtreeNode>(m, "PointOccupancyQuadtree");
+        auto &setting = pair.second;
+        setting.def_readwrite("max_num_points_per_node", &PointOccupancyQuadtree::Setting::max_num_points_per_node);
+    }
+    BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<PointOccupancyQuadtree>, PointOccupancyQuadtree>(m, "PointOccupancyQuadtreeDrawer");
 }
 
 static void
@@ -363,7 +376,7 @@ BindOccupancyOctree(py::module &m) {
 
     py::class_<OctreeKeyRay>(m, "OctreeKeyRay").def("__len__", &OctreeKeyRay::size).def("__getitem__", &OctreeKeyRay::operator[], py::arg("idx"));
 
-    py::class_<OccupancyOctreeNode, std::shared_ptr<OccupancyOctreeNode>>(m, "OccupancyOctreeNode")
+    py::class_<OccupancyOctreeNode, py::raw_ptr_wrapper<OccupancyOctreeNode>>(m, "OccupancyOctreeNode")
         .def_property_readonly("occupancy", &OccupancyOctreeNode::GetOccupancy)
         .def_property_readonly("log_odds", &OccupancyOctreeNode::GetLogOdds)
         .def_property_readonly("mean_child_log_odds", &OccupancyOctreeNode::GetMeanChildLogOdds)
@@ -372,6 +385,16 @@ BindOccupancyOctree(py::module &m) {
         .def("add_log_odds", &OccupancyOctreeNode::AddLogOdds, py::arg("log_odds"));
     BindOccupancyOctree<OccupancyOctree, OccupancyOctreeNode>(m, "OccupancyOctree");
     BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<OccupancyOctree>, OccupancyOctree>(m, "OccupancyOctreeDrawer");
+
+    py::class_<PointOccupancyOctreeNode, OccupancyOctreeNode, py::raw_ptr_wrapper<PointOccupancyOctreeNode>>(m, "PointOccupancyOctreeNode")
+        .def_property_readonly("points", &PointOccupancyOctreeNode::GetPoints)
+        .def_property_readonly("num_points", &PointOccupancyOctreeNode::GetNumPoints);
+    {
+        auto pair = BindOccupancyOctree<PointOccupancyOctree, PointOccupancyOctreeNode>(m, "PointOccupancyOctree");
+        auto &setting = pair.second;
+        setting.def_readwrite("max_num_points_per_node", &PointOccupancyOctree::Setting::max_num_points_per_node);
+    }
+    BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<PointOccupancyOctree>, PointOccupancyOctree>(m, "PointOccupancyOctreeDrawer");
 }
 
 static void
@@ -639,6 +662,8 @@ BindLidarFrame2D(py::module &m) {
         .def_property_readonly("ray_directions_in_world", &LidarFrame2D::GetRayDirectionsInWorld)
         .def_property_readonly("end_points_in_frame", &LidarFrame2D::GetEndPointsInFrame)
         .def_property_readonly("end_points_in_world", &LidarFrame2D::GetEndPointsInWorld)
+        .def_property_readonly("hit_ray_indices", &LidarFrame2D::GetHitRayIndices)
+        .def_property_readonly("hit_points_world", &LidarFrame2D::GetHitPointsWorld)
         .def_property_readonly("max_valid_range", &LidarFrame2D::GetMaxValidRange)
         .def_property_readonly("partitions", &LidarFrame2D::GetPartitions)
         .def_property_readonly("is_partitioned", &LidarFrame2D::IsPartitioned)
@@ -705,19 +730,32 @@ BindLidarFrame2D(py::module &m) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_in_region",
-            [](const LidarFrame2D &self, long num_samples, long num_samples_per_iter) {
+            [](const LidarFrame2D &self,
+               long num_positions,
+               long num_along_ray_samples_per_ray,
+               long num_near_surface_samples_per_ray,
+               double max_in_obstacle_dist) {
                 Eigen::Matrix2Xd positions_world;
                 Eigen::Matrix2Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleInRegion(num_samples, num_samples_per_iter, positions_world, directions_world, distances);
+                self.SampleInRegion(
+                    num_positions,
+                    num_along_ray_samples_per_ray,
+                    num_near_surface_samples_per_ray,
+                    max_in_obstacle_dist,
+                    positions_world,
+                    directions_world,
+                    distances);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
                 out["distances"] = distances;
                 return out;
             },
-            py::arg("num_samples"),
-            py::arg("num_samples_per_iter"))
+            py::arg("num_positions"),
+            py::arg("num_along_ray_samples_per_ray"),
+            py::arg("num_near_surface_samples_per_ray"),
+            py::arg("max_in_obstacle_dist"))
         .def(
             "compute_rays_at",
             [](const LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position_world) {
@@ -1055,6 +1093,8 @@ BindLidarFrame3D(py::module &m) {
                 }
                 return out;
             })
+        .def_property_readonly("hit_ray_indices", &LidarFrame3D::GetHitRayIndices)
+        .def_property_readonly("hit_points_world", &LidarFrame3D::GetHitPointsWorld)
         .def_property_readonly("max_valid_range", &LidarFrame3D::GetMaxValidRange)
         .def_property_readonly("hit_mask", &LidarFrame3D::GetHitMask)
         .def_property_readonly("is_valid", &LidarFrame3D::IsValid)
@@ -1124,20 +1164,60 @@ BindLidarFrame3D(py::module &m) {
             py::arg("max_offset"),
             py::arg("sampled_rays_ratio"))
         .def(
-            "sample_in_region",
-            [](const LidarFrame3D &self, long num_samples, long num_samples_per_iter, bool parallel) -> py::dict {
+            "sample_in_region_hpr",
+            [](const LidarFrame3D &self,
+               long num_positions,
+               long num_near_surface_samples_per_ray,
+               long num_along_ray_samples_per_ray,
+               double max_in_obstacle_dist,
+               bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleInRegion(num_samples, num_samples_per_iter, positions_world, directions_world, distances, parallel);
+                self.SampleInRegionHpr(
+                    num_positions,
+                    num_near_surface_samples_per_ray,
+                    num_along_ray_samples_per_ray,
+                    max_in_obstacle_dist,
+                    positions_world,
+                    directions_world,
+                    distances,
+                    parallel);
+
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
                 out["distances"] = distances;
                 return out;
             },
-            py::arg("num_samples"),
-            py::arg("num_samples_per_iter"),
+            py::arg("num_positions"),
+            py::arg("num_near_surface_samples_per_ray"),
+            py::arg("num_along_ray_samples_per_ray"),
+            py::arg("max_in_obstacle_dist"),
+            py::arg("parallel"))
+        .def(
+            "sample_in_region_vrs",
+            [](const LidarFrame3D &self, long num_hit_points, long num_samples_per_azimuth_segment, long num_azimuth_segments, bool parallel) -> py::dict {
+                Eigen::Matrix3Xd positions_world;
+                Eigen::Matrix3Xd directions_world;
+                Eigen::VectorXd distances;
+                self.SampleInRegionVrs(
+                    num_hit_points,
+                    num_samples_per_azimuth_segment,
+                    num_azimuth_segments,
+                    positions_world,
+                    directions_world,
+                    distances,
+                    parallel);
+                py::dict out;
+                out["positions_world"] = positions_world;
+                out["directions_world"] = directions_world;
+                out["distances"] = distances;
+                return out;
+            },
+            py::arg("num_hit_points"),
+            py::arg("num_samples_per_azimuth_segment"),
+            py::arg("num_azimuth_segments"),
             py::arg("parallel"))
         .def(
             "compute_rays_at",
@@ -1258,6 +1338,8 @@ BindRgbdFrame3D(py::module &m) {
                 }
                 return out;
             })
+        .def_property_readonly("hit_ray_indices", &RgbdFrame3D::GetHitRayIndices)
+        .def_property_readonly("hit_points_world", &RgbdFrame3D::GetHitPointsWorld)
         .def_property_readonly("max_valid_range", [](const RgbdFrame3D &self) { return self.GetMaxValidRange(); })
         .def_property_readonly("hit_mask", [](const RgbdFrame3D &self) { return self.GetHitMask(); })
         .def_property_readonly("is_valid", [](const RgbdFrame3D &self) { return self.IsValid(); })
@@ -1327,20 +1409,60 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("max_offset"),
             py::arg("sampled_rays_ratio"))
         .def(
-            "sample_in_region",
-            [](const RgbdFrame3D &self, long num_samples, long num_samples_per_iter, bool parallel) -> py::dict {
+            "sample_in_region_hpr",
+            [](const RgbdFrame3D &self,
+               long num_positions,
+               long num_near_surface_samples_per_ray,
+               long num_along_ray_samples_per_ray,
+               double max_in_obstacle_dist,
+               bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
-                self.SampleInRegion(num_samples, num_samples_per_iter, positions_world, directions_world, distances, parallel);
+                self.SampleInRegionHpr(
+                    num_positions,
+                    num_near_surface_samples_per_ray,
+                    num_along_ray_samples_per_ray,
+                    max_in_obstacle_dist,
+                    positions_world,
+                    directions_world,
+                    distances,
+                    parallel);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
                 out["distances"] = distances;
                 return out;
             },
-            py::arg("num_samples"),
-            py::arg("num_samples_per_iter"),
+            py::arg("num_positions"),
+            py::arg("num_near_surface_samples_per_ray"),
+            py::arg("num_along_ray_samples_per_ray"),
+            py::arg("max_in_obstacle_dist"),
+            py::arg("parallel"))
+        .def(
+            "sample_in_region_vrs",
+            [](const RgbdFrame3D &self, long num_hit_points, long num_samples_per_azimuth_segment, long num_azimuth_segments, bool parallel) -> py::dict {
+                Eigen::Matrix3Xd positions_world;
+                Eigen::Matrix3Xd directions_world;
+                Eigen::VectorXd distances;
+                self.SampleInRegionVrs(
+                    num_hit_points,
+                    num_samples_per_azimuth_segment,
+                    num_azimuth_segments,
+                    positions_world,
+                    directions_world,
+                    distances,
+                    parallel);
+
+                py::dict out;
+                out["positions_world"] = positions_world;
+                out["directions_world"] = directions_world;
+                out["distances"] = distances;
+                return out;
+            },
+            py::arg("num_hit_points"),
+            py::arg("num_samples_per_azimuth_segment"),
+            py::arg("num_azimuth_segments"),
             py::arg("parallel"))
         .def(
             "compute_rays_at",
@@ -1358,8 +1480,8 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("position_world"));
 }
 
-PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
-    m.doc() = "Python 3 Interface of erl_geometry";
+static void
+BindUtils(py::module &m) {
     m.def("manually_set_seed", &ManuallySetSeed, py::arg("seed"))
         .def(
             "bresenham_2d",
@@ -1415,15 +1537,35 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
                const Eigen::Ref<const Eigen::Vector2d> &r,
                const Eigen::Ref<const Eigen::Vector2d> &box_min,
                const Eigen::Ref<const Eigen::Vector2d> &box_max) {
-                double d = 0;
+                double d1 = 0.0, d2 = 0.0;
                 bool intersected = false;
-                ComputeIntersectionBetweenRayAndAabb2D(p, r.cwiseInverse(), box_min, box_max, d, intersected);
-                return py::make_tuple(d, intersected);
+                ComputeIntersectionBetweenRayAndAabb2D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected);
+                return py::make_tuple(d1, d2, intersected);
             },
             py::arg("ray_start_point"),
             py::arg("ray_direction"),
             py::arg("aabb_min"),
-            py::arg("aabb_max"));
+            py::arg("aabb_max"))
+        .def(
+            "compute_intersection_between_ray_and_aabb_3d",
+            [](const Eigen::Ref<const Eigen::Vector3d> &p,
+               const Eigen::Ref<const Eigen::Vector3d> &r,
+               const Eigen::Ref<const Eigen::Vector3d> &box_min,
+               const Eigen::Ref<const Eigen::Vector3d> &box_max) {
+                double d1 = 0.0, d2 = 0.0;
+                bool intersected = false;
+                ComputeIntersectionBetweenRayAndAabb3D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected);
+                return py::make_tuple(d1, d2, intersected);
+            },
+            py::arg("ray_start_point"),
+            py::arg("ray_direction"),
+            py::arg("aabb_min"),
+            py::arg("aabb_max"))
+        .def("convert_path_2d_to_3d", &ConvertPath2dTo3d, py::arg("path_2d"), py::arg("z"));
+}
+
+PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
+    m.doc() = "Python 3 Interface of erl_geometry";
 
     BindAabb<double, 2>(m, "Aabb2D");
     BindAabb<double, 3>(m, "Aabb3D");
@@ -1444,4 +1586,5 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindDepthCamera3D(m);
     BindLidarFrame3D(m);
     BindRgbdFrame3D(m);
+    BindUtils(m);
 }

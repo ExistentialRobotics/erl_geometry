@@ -39,6 +39,7 @@ MouseCallback(int event, int x, int y, int flags, void *userdata) {
 
         cv::Mat new_image = image.clone();
         cv::Point2i ray_start(x, y);
+        double dist2;
         for (int i = 0; i < 360; ++i) {
             erl::geometry::ComputeIntersectionBetweenRayAndAabb2D(
                 ray_origin,
@@ -46,6 +47,7 @@ MouseCallback(int event, int x, int y, int flags, void *userdata) {
                 aabb.min(),
                 aabb.max(),
                 ray_travel_distances[i],
+                dist2,
                 intersected_flags[i]);
             if (intersected_flags[i] && ray_travel_distances[i] >= 0) {
                 // ERL_ASSERTM(ray_travel_distances[i] >= 0, "ray_travel_distances[i] = %f", ray_travel_distances[i]);

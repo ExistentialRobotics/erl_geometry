@@ -77,8 +77,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
 
 struct Options {
-    std::string tree_bt_file = (g_test_data_dir / "house_expo_room_1451.bt").string();
-    double resolution = 0.0025;
+    std::string tree_bt_file = (g_test_data_dir / "house_expo_room_1451_2d.bt").string();
+    double resolution = 0.01;
     int padding = 10;
 };
 

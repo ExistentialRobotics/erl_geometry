@@ -73,6 +73,12 @@ namespace erl::geometry {
         WriteData(std::ostream& s) const = 0;
 
         // Read from file
+        template<typename T>
+        static std::enable_if_t<std::is_base_of_v<AbstractQuadtree, T>, std::shared_ptr<T>>
+        ReadAs(const std::string& filename) {
+            return std::dynamic_pointer_cast<T>(Read(filename));
+        }
+
         static std::shared_ptr<AbstractQuadtree>
         Read(const std::string& filename);
         // Read from stream
@@ -83,6 +89,12 @@ namespace erl::geometry {
          */
         virtual std::istream&
         ReadData(std::istream& s) = 0;
+
+        bool
+        LoadData(const std::string& filename);
+
+        bool
+        LoadData(std::istream& s);
 
         /**
          * Create a new tree of the given type.

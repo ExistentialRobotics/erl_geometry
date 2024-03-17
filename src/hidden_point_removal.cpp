@@ -32,6 +32,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector3d> &camera_position,
         double radius,
         std::vector<long> &visible_point_indices,
+        bool fast,
         bool joggle_inputs) {
         ERL_ASSERTM(radius > 0.0, "radius (%f) should be positive.", radius);
 
@@ -47,7 +48,18 @@ namespace erl::geometry {
         long origin_index = num_points;
 
         // calculate convex hull of the projected points
-        ConvexHull(projected_points, visible_point_indices, joggle_inputs);
+        std::string qhull_options;
+        if (fast) {
+            qhull_options = "Q3 Q5 Q8";
+            if (joggle_inputs) { qhull_options += " QJ"; }
+        } else {
+            if (joggle_inputs) {
+                qhull_options = "QJ";
+            } else {
+                qhull_options = "Qt";
+            }
+        }
+        ConvexHull(projected_points, projected_points.cols(), visible_point_indices, qhull_options);
 
         // remove the index of the origin
         for (std::size_t i = 0; i < visible_point_indices.size(); ++i) {
@@ -66,6 +78,7 @@ namespace erl::geometry {
         Eigen::Matrix3Xl &mesh_triangles,
         Eigen::Matrix3Xd &mesh_vertices,
         std::vector<long> &visible_point_indices,
+        bool fast,
         bool joggle_inputs) {
         ERL_ASSERTM(radius > 0.0, "radius (%f) should be positive.", radius);
 
@@ -81,7 +94,18 @@ namespace erl::geometry {
         long origin_index = num_points;
 
         // calculate convex hull of the projected points
-        ConvexHull(projected_points, mesh_triangles, mesh_vertices, visible_point_indices, joggle_inputs);
+        std::string qhull_options;
+        if (fast) {
+            qhull_options = "Q3 Q5 Q8";
+            if (joggle_inputs) { qhull_options += " QJ"; }
+        } else {
+            if (joggle_inputs) {
+                qhull_options = "QJ";
+            } else {
+                qhull_options = "Qt";
+            }
+        }
+        ConvexHull(projected_points, projected_points.cols(), mesh_vertices, mesh_triangles, visible_point_indices, qhull_options);
 
         // restore original points
         bool origin_is_visible = false;

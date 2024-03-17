@@ -14,7 +14,7 @@ namespace erl::geometry {
     public:
         struct Setting : public common::Yamlable<Setting> {
             double valid_range_min = 0.0;
-            double valid_range_max = std::numeric_limits<double>::infinity();
+            double valid_range_max = std::numeric_limits<double>::max();
             double valid_azimuth_min = -M_PI;
             double valid_azimuth_max = M_PI;
             double valid_elevation_min = -M_PI / 2;
@@ -47,7 +47,7 @@ namespace erl::geometry {
         Eigen::Matrix2Xl m_hit_ray_indices_ = {};   // hit ray indices
         Eigen::Matrix3Xd m_hit_points_world_ = {};  // hit points in world
 
-        double m_max_valid_range_ = 0.0;
+        double m_max_valid_range_ = std::numeric_limits<double>::infinity();
         std::vector<LidarFramePartition3D> m_partitions_ = {};
         bool m_partitioned_ = false;
 
@@ -72,8 +72,7 @@ namespace erl::geometry {
             const Eigen::Ref<Eigen::VectorXd> &azimuths,
             const Eigen::Ref<Eigen::VectorXd> &elevations,
             Eigen::MatrixXd ranges,
-            bool partition_rays = false
-        );
+            bool partition_rays = false);
 
         [[nodiscard]] inline std::shared_ptr<Setting>
         GetSetting() const {
@@ -153,6 +152,16 @@ namespace erl::geometry {
             return m_end_pts_world_;
         }
 
+        [[nodiscard]] inline const Eigen::Matrix2Xl &
+        GetHitRayIndices() const {
+            return m_hit_ray_indices_;
+        }
+
+        [[nodiscard]] inline const Eigen::Matrix3Xd &
+        GetHitPointsWorld() const {
+            return m_hit_points_world_;
+        }
+
         [[nodiscard]] inline double
         GetMaxValidRange() const {
             return m_max_valid_range_;
@@ -185,8 +194,7 @@ namespace erl::geometry {
             long &end_point_azimuth_index,
             long &end_point_elevation_index,
             double &distance,
-            bool brute_force = false
-        ) const;
+            bool brute_force = false) const;
 
         void
         SampleAlongRays(
@@ -195,8 +203,7 @@ namespace erl::geometry {
             double sampled_rays_ratio,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances
-        ) const;
+            Eigen::VectorXd &distances) const;
 
         void
         SampleAlongRays(
@@ -205,8 +212,7 @@ namespace erl::geometry {
             double sampled_rays_ratio,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances
-        ) const;
+            Eigen::VectorXd &distances) const;
 
         void
         SampleNearSurface(
@@ -215,41 +221,61 @@ namespace erl::geometry {
             double sampled_rays_ratio,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances
-        ) const;
+            Eigen::VectorXd &distances) const;
 
         void
-        SampleInRegion(
-            long num_samples,
-            long num_samples_per_iter,
+        SampleInRegionHpr(  // HPR: hidden point removal
+            long num_positions,
+            long num_along_ray_samples_per_ray,
+            long num_near_surface_samples_per_ray,
+            double max_in_obstacle_dist,
             Eigen::Matrix3Xd &positions_world,
             Eigen::Matrix3Xd &directions_world,
             Eigen::VectorXd &distances,
-            bool parallel = false
-        ) const;
+            bool parallel = false) const;
+
+        void
+        SampleInRegionVrs(  // VRS: visible ray synthesis
+            long num_hit_points,
+            long num_samples_per_azimuth_segment,
+            long num_azimuth_segments,
+            Eigen::Matrix3Xd &positions_world,
+            Eigen::Matrix3Xd &directions_world,
+            Eigen::VectorXd &distances,
+            bool parallel = false) const;
 
         void
         ComputeRaysAt(
             const Eigen::Ref<const Eigen::Vector3d> &position_world,
             Eigen::Matrix3Xd &directions_world,
             Eigen::VectorXd &distances,
-            std::vector<long> &visible_hit_point_indices
-        ) const;
+            std::vector<long> &visible_hit_point_indices) const;
 
     protected:
         void
         PartitionRays();
 
         void
-        SampleInRegionThread(
+        SampleInRegionHprThread(
             uint64_t seed,
-            long num_samples,
-            long num_samples_per_iter,
+            long num_positions,
+            long num_along_ray_samples_per_ray,
+            long num_near_surface_samples_per_ray,
+            double max_in_obstacle_dist,
             Eigen::Matrix3Xd *positions_world_ptr,
             Eigen::Matrix3Xd *directions_world_ptr,
-            Eigen::VectorXd *distances_ptr,
-            long *iter_cnt_ptr
-        ) const;
+            Eigen::VectorXd *distances_ptr) const;
+
+        void
+        SampleInRegionVrsThread(
+            uint64_t seed,
+            const long *hit_point_index_start,
+            const long *hit_point_index_end,
+            long num_samples_per_azimuth_segment,
+            long num_azimuth_segments,
+            Eigen::Matrix3Xd *positions_world_ptr,
+            Eigen::Matrix3Xd *directions_world_ptr,
+            Eigen::VectorXd *distances_ptr) const;
     };
 
     class LidarFramePartition3D {

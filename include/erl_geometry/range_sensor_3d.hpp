@@ -56,6 +56,11 @@ namespace erl::geometry {
 
         virtual ~RangeSensor3D() = default;
 
+        [[nodiscard]] inline std::shared_ptr<open3d::t::geometry::RaycastingScene>
+        GetScene() const {
+            return m_scene_;
+        }
+
         [[nodiscard]] virtual Eigen::MatrixX<Eigen::Vector3d>
         GetRayDirectionsInFrame() const = 0;
 
@@ -64,8 +69,7 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Matrix3d> &orientation,
             const Eigen::Ref<const Eigen::Vector3d> &translation,
             bool add_noise = false,
-            double noise_stddev = 0.03
-        ) const;
+            double noise_stddev = 0.03) const;
     };
 
 }  // namespace erl::geometry

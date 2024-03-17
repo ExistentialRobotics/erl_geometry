@@ -159,23 +159,34 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                 if (show_region_samples && !region_samples_ready) {
                     Eigen::Matrix3Xd sampled_positions, sampled_directions;
                     Eigen::VectorXd sampled_distances;
-                    long num_samples = rgbd_frame_3d->GetNumRays() / 100;
-                    long num_samples_per_iter = num_samples / 20;
-                    std::cout << "============================" << std::endl
-                              << "num_samples: " << num_samples << std::endl
-                              << "num_samples_per_iter: " << num_samples_per_iter << std::endl;
+                    long num_positions = 20;
+                    long num_near_surface_samples_per_ray = 5;
+                    long num_along_ray_samples_per_ray = 10;
+                    double max_in_obstacle_dist = 0.05;
+                    std::cout << "num_samples: " << num_positions << std::endl
+                              << "num_near_surface_samples_per_ray: " << num_near_surface_samples_per_ray << std::endl
+                              << "num_along_ray_samples_per_ray: " << num_along_ray_samples_per_ray << std::endl
+                              << "max_in_obstacle_dist: " << max_in_obstacle_dist << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleInRegion(num_samples, num_samples_per_iter, sampled_positions, sampled_directions, sampled_distances, true);
+                    rgbd_frame_3d->SampleInRegionHpr(
+                        num_positions,
+                        num_near_surface_samples_per_ray,
+                        num_along_ray_samples_per_ray,
+                        max_in_obstacle_dist,
+                        sampled_positions,
+                        sampled_directions,
+                        sampled_distances,
+                        true);
                     auto toc = std::chrono::high_resolution_clock::now();
                     std::cout << "SampleInRegion: " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
                     region_samples_line_set->Clear();
-                    region_samples_line_set->points_.reserve(num_samples * 2);
-                    region_samples_line_set->lines_.reserve(num_samples);
-                    region_samples_line_set->colors_.reserve(num_samples);
+                    region_samples_line_set->points_.reserve(sampled_positions.cols() * 2);
+                    region_samples_line_set->lines_.reserve(sampled_positions.cols());
+                    region_samples_line_set->colors_.reserve(sampled_positions.cols());
                     region_samples_point_cloud->Clear();
-                    region_samples_point_cloud->points_.reserve(num_samples);
-                    region_samples_point_cloud->colors_.reserve(num_samples);
-                    for (long i = 0; i < num_samples; ++i) {
+                    region_samples_point_cloud->points_.reserve(sampled_positions.cols());
+                    region_samples_point_cloud->colors_.reserve(sampled_positions.cols());
+                    for (long i = 0; i < sampled_positions.cols(); ++i) {
                         region_samples_line_set->points_.emplace_back(sampled_positions.col(i));
                         region_samples_line_set->points_.emplace_back(sampled_positions.col(i) + sampled_directions.col(i) * sampled_distances[i]);
                         region_samples_line_set->lines_.emplace_back(i * 2, i * 2 + 1);

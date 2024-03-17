@@ -9,6 +9,7 @@
 #define SENSOR_ORIGIN_X 1.0
 #define SENSOR_ORIGIN_Y 0.0
 #define SENSOR_ORIGIN_Z 0.0
+#define VISUALIZER_SECONDS 1
 
 TEST(OccupancyOctree, IO) {
     erl::geometry::OccupancyOctree tree(0.1);
@@ -30,6 +31,8 @@ TEST(OccupancyOctree, IO) {
 }
 
 TEST(OccupancyOctree, InsertPointCloud) {
+    GTEST_PREPARE_OUTPUT_DIR();
+
     auto tree = std::make_shared<erl::geometry::OccupancyOctree>(0.05);
 
     double radius = SPHERE_RADIUS;
@@ -56,30 +59,90 @@ TEST(OccupancyOctree, InsertPointCloud) {
     bool parallel = false;
     bool lazy_eval = false;
     bool discretize = false;
-    erl::common::ReportTime<std::chrono::milliseconds>("InsertPointCloud", 1, true, [&]() {
+    erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&]() {
         tree->InsertPointCloud(points, sensor_origin, max_range, parallel, lazy_eval, discretize);
+//        uint64_t addr = 0x5555564be190;
+//        erl::geometry::OccupancyOctreeNode* node = reinterpret_cast<erl::geometry::OccupancyOctreeNode*>(addr);
+//        std::cout << "node->GetChild(0): " << node->GetChild<erl::geometry::OccupancyOctreeNode>(0) << std::endl;
     });
 
-    EXPECT_TRUE(tree->Write("sphere.ot"));  // not pruned, log odds tree
-    auto read_abstract_tree = erl::geometry::AbstractOctree::Read("sphere.ot");
+    EXPECT_TRUE(tree->Write((test_output_dir / "sphere.ot").string()));  // not pruned, log odds tree
+    auto read_abstract_tree = erl::geometry::AbstractOctree::Read((test_output_dir / "sphere.ot").string());
     EXPECT_TRUE(read_abstract_tree != nullptr);
     auto casted_tree = std::dynamic_pointer_cast<erl::geometry::OccupancyOctree>(read_abstract_tree);
     EXPECT_TRUE(casted_tree != nullptr);
     EXPECT_TRUE(*tree == *casted_tree);
 
-    EXPECT_TRUE(tree->WriteBinary("sphere.bt"));  // pruned, binary tree
+    EXPECT_TRUE(tree->WriteBinary((test_output_dir / "sphere.bt").string()));  // pruned, binary tree
     auto read_tree = std::make_shared<erl::geometry::OccupancyOctree>(0.1);
-    EXPECT_TRUE(read_tree->ReadBinary("sphere.bt"));
+    EXPECT_TRUE(read_tree->ReadBinary((test_output_dir / "sphere.bt").string()));
     EXPECT_EQ(tree->GetSize(), read_tree->GetSize());
 
     auto setting = std::make_shared<erl::geometry::OccupancyOctree::Drawer::Setting>();
     erl::geometry::OccupancyOctree::Drawer drawer(setting, tree);
     erl::geometry::Open3dVisualizerWrapper visualizer;
-    drawer.DrawLeaves(visualizer.GetVisualizer().get());
-    visualizer.Show(10);
+    std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries;
+    drawer.DrawLeaves(geometries);
+    visualizer.AddGeometries(geometries);
+    visualizer.Show(VISUALIZER_SECONDS);
+}
+
+TEST(OccupancyOctree, InsertPointCloudRays) {
+    GTEST_PREPARE_OUTPUT_DIR();
+
+    auto tree = std::make_shared<erl::geometry::OccupancyOctree>(0.05);
+
+    double radius = SPHERE_RADIUS;
+    long num_azimuths = NUM_AZIMUTHS;
+    long num_elevations = NUM_ELEVATIONS;
+    Eigen::VectorXd azimuths = Eigen::VectorXd::LinSpaced(num_azimuths, -M_PI, M_PI);
+    Eigen::VectorXd elevations = Eigen::VectorXd::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
+
+    long n = num_azimuths * num_elevations;
+    Eigen::Matrix3Xd points(3, n);
+    Eigen::Vector3d sensor_origin(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z);
+
+    for (long i = 0, k = 0; i < num_elevations; ++i) {
+        for (long j = 0; j < num_azimuths; ++j, ++k) {
+            // clang-format off
+            points.col(k) << std::cos(elevations[i]) * std::cos(azimuths[j]) * radius + sensor_origin.x(),
+                             std::cos(elevations[i]) * std::sin(azimuths[j]) * radius + sensor_origin.y(),
+                             std::sin(elevations[i]) * radius + sensor_origin.z();
+            // clang-format on
+        }
+    }
+
+    double max_range = -1.;
+    bool parallel = false;
+    bool lazy_eval = false;
+    erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&]() {
+        tree->InsertPointCloudRays(points, sensor_origin, max_range, parallel, lazy_eval);
+    });
+
+    EXPECT_TRUE(tree->Write((test_output_dir / "sphere.ot").string()));  // not pruned, log odds tree
+    auto read_abstract_tree = erl::geometry::AbstractOctree::Read((test_output_dir / "sphere.ot").string());
+    EXPECT_TRUE(read_abstract_tree != nullptr);
+    auto casted_tree = std::dynamic_pointer_cast<erl::geometry::OccupancyOctree>(read_abstract_tree);
+    EXPECT_TRUE(casted_tree != nullptr);
+    EXPECT_TRUE(*tree == *casted_tree);
+
+    EXPECT_TRUE(tree->WriteBinary((test_output_dir / "sphere.bt").string()));  // pruned, binary tree
+    auto read_tree = std::make_shared<erl::geometry::OccupancyOctree>(0.1);
+    EXPECT_TRUE(read_tree->ReadBinary((test_output_dir / "sphere.bt").string()));
+    EXPECT_EQ(tree->GetSize(), read_tree->GetSize());
+
+    auto setting = std::make_shared<erl::geometry::OccupancyOctree::Drawer::Setting>();
+    erl::geometry::OccupancyOctree::Drawer drawer(setting, tree);
+    erl::geometry::Open3dVisualizerWrapper visualizer;
+    std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries;
+    drawer.DrawLeaves(geometries);
+    visualizer.AddGeometries(geometries);
+    visualizer.Show(VISUALIZER_SECONDS);
 }
 
 TEST(OccupancyOctree, InsertRay) {
+    GTEST_PREPARE_OUTPUT_DIR();
+
     auto tree = std::make_shared<erl::geometry::OccupancyOctree>(0.05);
 
     double radius = SPHERE_RADIUS;
@@ -104,29 +167,31 @@ TEST(OccupancyOctree, InsertRay) {
 
     double max_range = -1.;
     bool lazy_eval = false;
-    erl::common::ReportTime<std::chrono::milliseconds>("InsertRay", 1, true, [&]() {
+    erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&]() {
         for (int i = 0; i < points.cols(); ++i) {
             tree->InsertRay(sensor_origin[0], sensor_origin[1], sensor_origin[2], points(0, i), points(1, i), points(2, i), max_range, lazy_eval);
         }
     });
 
-    EXPECT_TRUE(tree->Write("sphere.ot"));  // not pruned, log odds tree
-    auto read_abstract_tree = erl::geometry::AbstractOctree::Read("sphere.ot");
+    EXPECT_TRUE(tree->Write((test_output_dir / "sphere.ot").string()));  // not pruned, log odds tree
+    auto read_abstract_tree = erl::geometry::AbstractOctree::Read((test_output_dir / "sphere.ot").string());
     EXPECT_TRUE(read_abstract_tree != nullptr);
     auto casted_tree = std::dynamic_pointer_cast<erl::geometry::OccupancyOctree>(read_abstract_tree);
     EXPECT_TRUE(casted_tree != nullptr);
     EXPECT_TRUE(*tree == *casted_tree);
 
-    EXPECT_TRUE(tree->WriteBinary("sphere.bt"));  // pruned, binary tree
+    EXPECT_TRUE(tree->WriteBinary((test_output_dir / "sphere.bt").string()));  // pruned, binary tree
     auto read_tree = std::make_shared<erl::geometry::OccupancyOctree>(0.1);
-    EXPECT_TRUE(read_tree->ReadBinary("sphere.bt"));
+    EXPECT_TRUE(read_tree->ReadBinary((test_output_dir / "sphere.bt").string()));
     EXPECT_EQ(tree->GetSize(), read_tree->GetSize());
 
     auto setting = std::make_shared<erl::geometry::OccupancyOctree::Drawer::Setting>();
     erl::geometry::OccupancyOctree::Drawer drawer(setting, tree);
     erl::geometry::Open3dVisualizerWrapper visualizer;
-    drawer.DrawLeaves(visualizer.GetVisualizer().get());
-    visualizer.Show(2);
+    std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries;
+    drawer.DrawLeaves(geometries);
+    visualizer.AddGeometries(geometries);
+    visualizer.Show(VISUALIZER_SECONDS);
 }
 
 TEST(OccupancyOctree, CoordsAndKey) {
@@ -336,10 +401,6 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_TRUE(new_node != nullptr);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size + 16);
-    // if (visualize) {
-    //     drawer.DrawTree(visualizer.GetVisualizer().get());
-    //     visualizer.Show();
-    // }
 
     // find parent of newly inserted node
     unsigned int search_depth = tree->GetTreeDepth() - 1;
@@ -347,20 +408,20 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
     // only one child exists
-    EXPECT_TRUE(parent_node->GetChild(0) != nullptr);
-    EXPECT_TRUE(parent_node->GetChild(1) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(2) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(3) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(4) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(5) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(6) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild(7) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(0) != nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(1) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(2) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(3) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(4) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(5) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(6) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(7) == nullptr);
 
     // add another new node
     init_size = tree->GetSize();
     auto new_node_2 = tree->CreateNodeChild(parent_node, 3);
     EXPECT_TRUE(new_node_2 != nullptr);
-    EXPECT_EQ(parent_node->GetChild(3), new_node_2);
+    EXPECT_EQ(parent_node->GetChild<erl::geometry::OccupancyOctreeNode>(3), new_node_2);
     new_node_2->SetLogOdds(0.123);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     tree->Prune();
@@ -422,7 +483,9 @@ TEST(OccupancyOctree, Iterator) {
     EXPECT_EQ(num_iterated_nodes, 0);
 
     // iterate over non-empty tree
-    auto abstract_tree = erl::geometry::AbstractOctree::Read("sphere.ot");
+    std::string file = "OccupancyOctree/InsertPointCloud/sphere.ot";
+    EXPECT_TRUE(std::filesystem::exists(file)) << "File " << file << " does not exist. Run OccupancyOctree/InsertPointCloud first.";
+    auto abstract_tree = erl::geometry::AbstractOctree::Read(file);
     EXPECT_TRUE(abstract_tree != nullptr);
     tree = std::dynamic_pointer_cast<erl::geometry::OccupancyOctree>(abstract_tree);
     EXPECT_TRUE(tree != nullptr);
@@ -437,8 +500,8 @@ TEST(OccupancyOctree, Iterator) {
     EXPECT_EQ(tree->ComputeNumberOfLeafNodes(), num_iterated_leaf_nodes);
 
     std::size_t occupied_leaf_node_count = 0;
-    std::vector<std::shared_ptr<const erl::geometry::OccupancyOctreeNode>> stack;
-    stack.emplace_back(tree->GetRoot());
+    std::vector<const erl::geometry::OccupancyOctreeNode*> stack;
+    stack.emplace_back(tree->GetRoot().get());
     while (!stack.empty()) {
         auto node = stack.back();
         stack.pop_back();
@@ -457,7 +520,10 @@ TEST(OccupancyOctree, Iterator) {
 }
 
 TEST(OccupancyOctree, RayCasting) {
-    auto abstract_tree = erl::geometry::AbstractOctree::Read("sphere.ot");
+    std::string file = "OccupancyOctree/InsertPointCloud/sphere.ot";
+    EXPECT_TRUE(std::filesystem::exists(file)) << "File " << file << " does not exist. Run OccupancyOctree/InsertPointCloud first.";
+
+    auto abstract_tree = erl::geometry::AbstractOctree::Read(file);
     EXPECT_TRUE(abstract_tree != nullptr);
     auto tree = std::dynamic_pointer_cast<erl::geometry::OccupancyOctree>(abstract_tree);
     EXPECT_TRUE(tree != nullptr);
@@ -495,7 +561,8 @@ TEST(OccupancyOctree, RayCasting) {
 
     for (int i = 0; i < n; ++i) {
         double ex = 0, ey = 0, ez = 0;
-        if (tree->CastRay(sx, sy, sz, dirs(0, i), dirs(1, i), dirs(2, i), ignore_unknown, max_range, ex, ey, ez)) {
+        uint32_t depth = 0;
+        if (tree->CastRay(sx, sy, sz, dirs(0, i), dirs(1, i), dirs(2, i), ignore_unknown, max_range, ex, ey, ez, depth)) {
             hit++;
             double dx = ex - sx;
             double dy = ey - sy;

@@ -58,12 +58,23 @@ namespace erl::geometry {
         virtual void
         Prune() = 0;
 
-        // Write to file
+        /**
+         * Write the tree as raw data to a file.
+         * @param filename
+         * @return
+         */
         [[nodiscard]] bool
         Write(const std::string& filename) const;
-        // Write to stream
+
+        /**
+         * Write the tree as raw data to a stream.
+         * @param s
+         * @return
+         */
         [[nodiscard]] std::ostream&
         Write(std::ostream& s) const;
+
+    protected:
         /**
          * Write all nodes to the output stream (without file header) for a created tree. Pruning the tree first produces smaller files and faster loading.
          * @param s
@@ -72,20 +83,61 @@ namespace erl::geometry {
         virtual std::ostream&
         WriteData(std::ostream& s) const = 0;
 
-        // Read from file
+    public:
+        /**
+         * Read an octree from a file and cast it to the given type.
+         * @tparam T
+         * @param filename
+         * @return may return nullptr if the cast fails
+         */
+        template<typename T>
+        static std::enable_if_t<std::is_base_of_v<AbstractOctree, T>, std::shared_ptr<T>>
+        ReadAs(const std::string& filename) {
+            return std::dynamic_pointer_cast<T>(Read(filename));
+        }
+
+        /**
+         * Generic read function to read an octree from a file.
+         * @param filename
+         * @return An octree derived from AbstractOctree
+         */
         static std::shared_ptr<AbstractOctree>
         Read(const std::string& filename);
-        // Read from stream
+
+        /**
+         * Generic read function to read an octree from a stream.
+         * @param s
+         * @return An octree derived from AbstractOctree
+         */
         static std::shared_ptr<AbstractOctree>
         Read(std::istream& s);
+
+    protected:
         /**
          * Read all nodes from the input steam (without file header) for a created tree.
          */
         virtual std::istream&
         ReadData(std::istream& s) = 0;
 
+    public:
         /**
-         * Create a new tree of the given type.
+         * Load the tree data from a file, the tree type in the file has to match the actual tree type.
+         * @param filename
+         * @return
+         */
+        bool
+        LoadData(const std::string& filename);
+
+        /**
+         * Load the tree data from a stream, the tree type in the file has to match the actual tree type.
+         * @param s
+         * @return
+         */
+        bool
+        LoadData(std::istream& s);
+
+        /**
+         * Create a new tree of the given type and resolution.
          * @param id string of the tree type
          * @param res resolution of the tree
          * @return

@@ -23,8 +23,12 @@ namespace erl::geometry {
      */
     inline double
     ComputeNearestDistanceFromPointToLineSegment2D(
-        const double &x_0, const double &y_0, const double &x_1, const double &y_1, const double &x_2, const double &y_2
-    ) {
+        const double &x_0,
+        const double &y_0,
+        const double &x_1,
+        const double &y_1,
+        const double &x_2,
+        const double &y_2) {
 
         double dx_20 = x_2 - x_0;
         double dx_21 = x_2 - x_1;
@@ -63,8 +67,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector2d> &p_1,
         const Eigen::Ref<const Eigen::Vector2d> &p_2,
         double &lam,
-        double &dist
-    ) {
+        double &dist) {
 
         Eigen::Vector2d v_21 = p_2 - p_1;
         Eigen::Vector2d v_20 = p_2 - p_0;
@@ -85,7 +88,8 @@ namespace erl::geometry {
      * @param r_inv        1 / r considering performance of multiple computations with the same ray direction
      * @param box_min      box min point
      * @param box_max      box max point
-     * @param d            output distance from p to the intersection point
+     * @param d1           output distance from p to the first intersection point (closest one if p is outside the box, forward one if p is inside the box)
+     * @param d2           output distance from p to the second intersection point (farthest one if p is outside the box, backward one if p is inside the box)
      * @param intersected  output whether the ray intersects the box
      *
      * @refitem https://tavianator.com/fast-branchless-raybounding-box-intersections/
@@ -102,9 +106,9 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector2d> &r_inv,
         const Eigen::Ref<const Eigen::Vector2d> &box_min,
         const Eigen::Ref<const Eigen::Vector2d> &box_max,
-        double &d,
-        bool &intersected
-    ) {
+        double &d1,
+        double &d2,
+        bool &intersected) {
 
         double t_min, t_max;
 
@@ -136,30 +140,43 @@ namespace erl::geometry {
         t_max = std::min(t_max, std::max(ty_1, ty_2));
 
         intersected = t_max >= t_min;
-        d = std::numeric_limits<double>::infinity();
+        d1 = std::numeric_limits<double>::infinity();
+        d2 = std::numeric_limits<double>::infinity();
         if (intersected) {
             if (p[0] < box_min[0] || p[0] > box_max[0] || p[1] < box_min[1] || p[1] > box_max[1]) {  // ray start point is outside the box
-                d = t_min;                                                                           // may be negative
-                // if (t_min >= 0) {
-                //     d = t_min;
-                // } else {
-                //     intersected = false;  // ray start point is outside the box and the ray is pointing away from the box
-                // }
-            } else {
-                d = t_max;
+                if (t_min >= 0) {                                                                    // forward intersection
+                    d1 = t_min;                                                                      // first intersection point
+                    d2 = t_max;                                                                      // second intersection point
+                } else {                                                                             // backward intersection
+                    d1 = t_max;                                                                      // first intersection point
+                    d2 = t_min;                                                                      // second intersection point
+                }
+            } else {         // ray start point is inside the box
+                d1 = t_max;  // forward intersection
+                d2 = t_min;  // backward intersection
             }
         }
     }
 
+    /**
+     * find the intersection between ray [p, r] and axis-aligned bounding box [box_min, box_max]
+     * @param p            ray start point
+     * @param r_inv        1 / r considering performance of multiple computations with the same ray direction
+     * @param box_min      box min point
+     * @param box_max      box max point
+     * @param d1           output distance from p to the first intersection point (closest one if p is outside the box, forward one if p is inside the box)
+     * @param d2           output distance from p to the second intersection point (farthest one if p is outside the box, backward one if p is inside the box)
+     * @param intersected  output whether the ray intersects the box
+     */
     inline void
     ComputeIntersectionBetweenRayAndAabb3D(
         const Eigen::Ref<const Eigen::Vector3d> &p,
         const Eigen::Ref<const Eigen::Vector3d> &r_inv,
         const Eigen::Ref<const Eigen::Vector3d> &box_min,
         const Eigen::Ref<const Eigen::Vector3d> &box_max,
-        double &d,
-        bool &intersected
-    ) {
+        double &d1,
+        double &d2,
+        bool &intersected) {
 
         double t_min, t_max;
 
@@ -204,16 +221,40 @@ namespace erl::geometry {
         t_max = std::min(t_max, std::max(tz_1, tz_2));
 
         intersected = t_max >= t_min;
-        d = std::numeric_limits<double>::infinity();
+        d1 = std::numeric_limits<double>::infinity();
+        d2 = std::numeric_limits<double>::infinity();
         if (intersected) {
             if (p[0] < box_min[0] || p[0] > box_max[0] ||  // check x
                 p[1] < box_min[1] || p[1] > box_max[1] ||  // check y
                 p[2] < box_min[2] || p[2] > box_max[2]) {  // ray start point is outside the box
-                d = t_min;                                 // may be negative
-            } else {
-                d = t_max;
+                if (t_min >= 0) {                          // forward intersection
+                    d1 = t_min;                            // first intersection point
+                    d2 = t_max;                            // second intersection point
+                } else {                                   // backward intersection
+                    d1 = t_max;                            // first intersection point
+                    d2 = t_min;                            // second intersection point
+                }
+            } else {         // ray start point is inside the box
+                d1 = t_max;  // forward intersection
+                d2 = t_min;  // backward intersection
             }
         }
+    }
+
+    inline std::vector<Eigen::Matrix4d>
+    ConvertPath2dTo3d(const Eigen::Ref<const Eigen::Matrix3Xd> &path_2d, double z) {
+        std::vector<Eigen::Matrix4d> path_3d(path_2d.cols(), Eigen::Matrix4d::Identity());
+        for (long i = 0; i < path_2d.cols(); ++i) {
+            auto &mat = path_3d[i];
+            mat(0, 0) = std::cos(path_2d(2, i));
+            mat(0, 1) = -std::sin(path_2d(2, i));
+            mat(1, 0) = -mat(0, 1);
+            mat(1, 1) = mat(0, 0);
+            mat(0, 3) = path_2d(0, i);
+            mat(1, 3) = path_2d(1, i);
+            mat(2, 3) = z;
+        }
+        return path_3d;
     }
 
 }  // namespace erl::geometry
