@@ -81,16 +81,16 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::DepthCamera3D::Setting &rhs) {
-        out << BeginMap;
-        out << Key << "image_height" << Value << rhs.image_height;
-        out << Key << "image_width" << Value << rhs.image_width;
-        out << Key << "camera_fx" << Value << rhs.camera_fx;
-        out << Key << "camera_fy" << Value << rhs.camera_fy;
-        out << Key << "camera_cx" << Value << rhs.camera_cx;
-        out << Key << "camera_cy" << Value << rhs.camera_cy;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::DepthCamera3D::Setting &rhs) {
+//        out << BeginMap;
+//        out << Key << "image_height" << Value << rhs.image_height;
+//        out << Key << "image_width" << Value << rhs.image_width;
+//        out << Key << "camera_fx" << Value << rhs.camera_fx;
+//        out << Key << "camera_fy" << Value << rhs.camera_fy;
+//        out << Key << "camera_cx" << Value << rhs.camera_cx;
+//        out << Key << "camera_cy" << Value << rhs.camera_cy;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML

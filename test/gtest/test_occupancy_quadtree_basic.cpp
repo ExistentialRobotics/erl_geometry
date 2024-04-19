@@ -3,27 +3,33 @@
 #include "erl_common/test_helper.hpp"
 #include "erl_common/angle_utils.hpp"
 
+using namespace erl::geometry;
+
 TEST(OccupancyQuadtree, IO) {
-    erl::geometry::OccupancyQuadtree tree(0.1);
+    OccupancyQuadtree tree;
     EXPECT_EQ(tree.GetSize(), 0);
     EXPECT_TRUE(tree.WriteBinary("empty.bt"));
     EXPECT_TRUE(tree.Write("empty.ot"));
 
-    erl::geometry::OccupancyQuadtree empty_read_tree(0.2);
+    OccupancyQuadtree empty_read_tree;
     EXPECT_TRUE(empty_read_tree.ReadBinary("empty.bt"));
     EXPECT_EQ(empty_read_tree.GetSize(), 0);
     EXPECT_TRUE(tree == empty_read_tree);
 
-    auto read_tree_abstract = erl::geometry::AbstractQuadtree::Read("empty.ot");
+    auto read_tree_abstract = AbstractQuadtree::Read("empty.ot");
     EXPECT_TRUE(read_tree_abstract != nullptr);
-    auto occupancy_quadtree = std::dynamic_pointer_cast<erl::geometry::OccupancyQuadtree>(read_tree_abstract);
+    auto occupancy_quadtree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_tree_abstract);
     EXPECT_TRUE(occupancy_quadtree != nullptr);
     EXPECT_EQ(occupancy_quadtree->GetSize(), 0);
     EXPECT_TRUE(tree == *occupancy_quadtree);
 }
 
 TEST(OccupancyQuadtree, InsertPointCloud) {
-    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.05);
+    GTEST_PREPARE_OUTPUT_DIR();
+
+    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
+    tree_setting->resolution = 0.05;
+    auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
 
     long n = 720;
     Eigen::VectorXd angles = Eigen::VectorXd::LinSpaced(n, -M_PI, M_PI);
@@ -44,30 +50,34 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
         tree->InsertPointCloud(points, sensor_origin, max_range, parallel, lazy_eval, discretize);
     });
 
-    auto setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
+    auto setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
     setting->area_min << -3, -3;
     setting->area_max << 4, 4;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    erl::geometry::OccupancyQuadtree::Drawer drawer(setting, tree);
+    OccupancyQuadtree::Drawer drawer(setting, tree);
     drawer.DrawLeaves("test_insert_point_cloud_by_point_cloud.png");
 
     EXPECT_TRUE(tree->WriteBinary("circle.bt"));  // pruned, binary tree
     EXPECT_TRUE(tree->Write("circle.ot"));        // not pruned, log odds tree
 
-    auto read_tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
+    auto read_tree = std::make_shared<OccupancyQuadtree>();
     EXPECT_TRUE(read_tree->ReadBinary("circle.bt"));
     EXPECT_EQ(tree->GetSize(), read_tree->GetSize());
 
-    auto read_abstract_tree = erl::geometry::AbstractQuadtree::Read("circle.ot");
+    auto read_abstract_tree = AbstractQuadtree::Read("circle.ot");
     EXPECT_TRUE(read_abstract_tree != nullptr);
-    auto casted_tree = std::dynamic_pointer_cast<erl::geometry::OccupancyQuadtree>(read_abstract_tree);
+    auto casted_tree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_abstract_tree);
     EXPECT_TRUE(casted_tree != nullptr);
     EXPECT_TRUE(*tree == *casted_tree);
 }
 
 TEST(OccupancyQuadtree, InsertRay) {
-    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.05);
+    GTEST_PREPARE_OUTPUT_DIR();
+
+    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
+    tree_setting->resolution = 0.05;
+    auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
 
     long n = 180;
     Eigen::Matrix2Xd points(2, 4 * n);
@@ -89,32 +99,34 @@ TEST(OccupancyQuadtree, InsertRay) {
         for (int i = 0; i < points.cols(); ++i) { tree->InsertRay(sensor_origin[0], sensor_origin[1], points(0, i), points(1, i), max_range, lazy_eval); }
     });
 
-    auto setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
+    auto setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
     setting->area_min << -3, -3;
     setting->area_max << 4, 4;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    erl::geometry::OccupancyQuadtree::Drawer drawer(setting, tree);
+    OccupancyQuadtree::Drawer drawer(setting, tree);
     drawer.DrawLeaves("test_insert_point_cloud_by_ray.png");
 
     EXPECT_TRUE(tree->WriteBinary("square.bt"));
     EXPECT_TRUE(tree->Write("square.ot"));
 
-    auto read_tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
+    auto read_tree = std::make_shared<OccupancyQuadtree>();
     EXPECT_TRUE(read_tree->ReadBinary("square.bt"));
     EXPECT_EQ(tree->GetSize(), read_tree->GetSize());
 
-    auto read_abstract_tree = erl::geometry::AbstractQuadtree::Read("square.ot");
+    auto read_abstract_tree = AbstractQuadtree::Read("square.ot");
     EXPECT_TRUE(read_abstract_tree != nullptr);
-    auto casted_tree = std::dynamic_pointer_cast<erl::geometry::OccupancyQuadtree>(read_abstract_tree);
+    auto casted_tree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_abstract_tree);
     EXPECT_TRUE(casted_tree != nullptr);
     EXPECT_TRUE(*tree == *casted_tree);
 }
 
 TEST(OccupancyQuadtree, CoordsAndKey) {
-    erl::geometry::OccupancyQuadtree tree(0.05);
+    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
+    tree_setting->resolution = 0.05;
+    OccupancyQuadtree tree(tree_setting);
     double x = 0, y = 0;
-    erl::geometry::QuadtreeKey key;
+    QuadtreeKey key;
     EXPECT_TRUE(tree.CoordToKeyChecked(x, y, key));
     double x_inv = 0, y_inv = 0;
     tree.KeyToCoord(key, x_inv, y_inv);
@@ -124,7 +136,9 @@ TEST(OccupancyQuadtree, CoordsAndKey) {
 
 TEST(OccupancyQuadtree, Prune) {
     double resolution = 0.01;
-    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(resolution);
+    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
+    tree_setting->resolution = resolution;
+    auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
 
     // after pruning, empty tree is still empty
     EXPECT_EQ(tree->GetSize(), 0);
@@ -133,7 +147,7 @@ TEST(OccupancyQuadtree, Prune) {
 
     // single occupied cell should be found
     double x = -0.05, y = -0.02;
-    erl::geometry::QuadtreeKey single_key;
+    QuadtreeKey single_key;
     EXPECT_TRUE(tree->CoordToKeyChecked(x, y, single_key));
     bool occupied = true;
     bool lazy_eval = false;
@@ -142,7 +156,7 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(single_node, tree->Search(single_key));
 
     // neighboring nodes should not exist
-    erl::geometry::QuadtreeKey neighbor_key;
+    QuadtreeKey neighbor_key;
     for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1; ++neighbor_key[1]) {
         for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1; ++neighbor_key[0]) {
             if (neighbor_key != single_key) {
@@ -176,7 +190,7 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->GetSize(), 17);
 
     // create diagonal neighbor in same parent node
-    erl::geometry::QuadtreeKey diagonal_key;
+    QuadtreeKey diagonal_key;
     diagonal_key[0] = single_key[0] - 1;
     diagonal_key[1] = single_key[1] + 1;
     auto diagonal_node = tree->UpdateNode(diagonal_key, occupied, lazy_eval);
@@ -223,9 +237,9 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->GetSize(), 18);
 
     // fill the complete quadrant, should auto-prune
-    tree->UpdateNode(erl::geometry::QuadtreeKey(single_key[0], single_key[1] + 1), occupied, lazy_eval);
+    tree->UpdateNode(QuadtreeKey(single_key[0], single_key[1] + 1), occupied, lazy_eval);
     EXPECT_EQ(tree->GetSize(), 19);
-    auto pruned_node = tree->UpdateNode(erl::geometry::QuadtreeKey(single_key[0] - 1, single_key[1]), occupied, lazy_eval);  // should trigger auto-pruning
+    auto pruned_node = tree->UpdateNode(QuadtreeKey(single_key[0] - 1, single_key[1]), occupied, lazy_eval);  // should trigger auto-pruning
     EXPECT_EQ(tree->GetSize(), 16);
 
     // all queries should now end up at same parent node
@@ -283,16 +297,16 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
     // only one child exists
-    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(0) != nullptr);
-    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(1) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(2) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(3) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(0) != nullptr);
+    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(1) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(2) == nullptr);
+    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(3) == nullptr);
 
     // add another new node
     init_size = tree->GetSize();
     auto new_node_2 = tree->CreateNodeChild(parent_node, 3);
     EXPECT_TRUE(new_node_2 != nullptr);
-    EXPECT_EQ(parent_node->GetChild<erl::geometry::OccupancyQuadtreeNode>(3), new_node_2);
+    EXPECT_EQ(parent_node->GetChild<OccupancyQuadtreeNode>(3), new_node_2);
     new_node_2->SetLogOdds(0.123);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     tree->Prune();
@@ -320,9 +334,9 @@ TEST(OccupancyQuadtree, Prune) {
 }
 
 TEST(OccupancyQuadtree, DeleteTree) {
-    auto abstract_tree = erl::geometry::AbstractQuadtree::Read("prune.ot");
+    auto abstract_tree = AbstractQuadtree::Read("prune.ot");
     EXPECT_TRUE(abstract_tree != nullptr);
-    auto tree = std::dynamic_pointer_cast<erl::geometry::OccupancyQuadtree>(abstract_tree);
+    auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
     EXPECT_TRUE(tree != nullptr);
 
     tree->Clear();
@@ -332,7 +346,9 @@ TEST(OccupancyQuadtree, DeleteTree) {
 
 TEST(OccupancyQuadtree, Iterator) {
     // iterate over empty tree
-    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.05);
+    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
+    tree_setting->resolution = 0.05;
+    auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
     EXPECT_EQ(tree->GetSize(), 0);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), 0);
 
@@ -354,9 +370,9 @@ TEST(OccupancyQuadtree, Iterator) {
     EXPECT_EQ(num_iterated_nodes, 0);
 
     // iterate over non-empty tree
-    auto abstract_tree = erl::geometry::AbstractQuadtree::Read("circle.ot");
+    auto abstract_tree = AbstractQuadtree::Read("circle.ot");
     EXPECT_TRUE(abstract_tree != nullptr);
-    tree = std::dynamic_pointer_cast<erl::geometry::OccupancyQuadtree>(abstract_tree);
+    tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
     EXPECT_TRUE(tree != nullptr);
     std::size_t num_iterated_leaf_nodes = 0;
     std::size_t num_iterated_occupied_leaf_nodes = 0;
@@ -369,7 +385,7 @@ TEST(OccupancyQuadtree, Iterator) {
     EXPECT_EQ(tree->ComputeNumberOfLeafNodes(), num_iterated_leaf_nodes);
 
     std::size_t occupied_leaf_node_count = 0;
-    std::vector<const erl::geometry::OccupancyQuadtreeNode*> stack;
+    std::vector<const OccupancyQuadtreeNode *> stack;
     stack.emplace_back(tree->GetRoot().get());
     while (!stack.empty()) {
         auto node = stack.back();
@@ -381,7 +397,7 @@ TEST(OccupancyQuadtree, Iterator) {
         }
 
         for (int i = 0; i < 4; ++i) {
-            auto child = node->GetChild<erl::geometry::OccupancyQuadtreeNode>(i);
+            auto child = node->GetChild<OccupancyQuadtreeNode>(i);
             if (child != nullptr) { stack.emplace_back(child); }
         }
     }
@@ -389,17 +405,17 @@ TEST(OccupancyQuadtree, Iterator) {
 }
 
 TEST(OccupancyQuadtree, RayCasting) {
-    auto abstract_tree = erl::geometry::AbstractQuadtree::Read("circle.ot");
+    auto abstract_tree = AbstractQuadtree::Read("circle.ot");
     EXPECT_TRUE(abstract_tree != nullptr);
-    auto tree = std::dynamic_pointer_cast<erl::geometry::OccupancyQuadtree>(abstract_tree);
+    auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
     EXPECT_TRUE(tree != nullptr);
 
-    auto setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
+    auto setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
     setting->area_min << -4, -4;
     setting->area_max << 4, 4;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    erl::geometry::OccupancyQuadtree::Drawer drawer(setting, tree);
+    OccupancyQuadtree::Drawer drawer(setting, tree);
     drawer.DrawLeaves("read_circle.png");
 
     ERL_INFO("Casting rays in circle ...");
@@ -407,7 +423,9 @@ TEST(OccupancyQuadtree, RayCasting) {
     unsigned int miss = 0;
     unsigned int unknown = 0;
     double mean_dist = 0;
-    auto sampled_surface = std::make_shared<erl::geometry::OccupancyQuadtree>(0.05);
+    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
+    tree_setting->resolution = 0.05;
+    auto sampled_surface = std::make_shared<OccupancyQuadtree>(tree_setting);
     double sx = 1.0, sy = 0.;
     bool ignore_unknown = false;
     double max_range = 6;

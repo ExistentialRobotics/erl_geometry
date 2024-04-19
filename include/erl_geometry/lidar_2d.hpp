@@ -112,14 +112,14 @@ namespace YAML {
 
     template<>
     struct convert<erl::geometry::Lidar2D::Mode> {
-        static Node
+        inline static Node
         encode(const erl::geometry::Lidar2D::Mode &rhs) {
             Node node;
             node = erl::geometry::Lidar2D::GetModeName(rhs);
             return node;
         }
 
-        static bool
+        inline static bool
         decode(const Node &node, erl::geometry::Lidar2D::Mode &rhs) {
             if (!node.IsScalar()) { return false; }
             rhs = erl::geometry::Lidar2D::GetModeFromName(node.as<std::string>());
@@ -127,15 +127,15 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::Lidar2D::Mode &rhs) {
-        out << erl::geometry::Lidar2D::GetModeName(rhs);
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::Lidar2D::Mode &rhs) {
+//        out << erl::geometry::Lidar2D::GetModeName(rhs);
+//        return out;
+//    }
 
     template<>
     struct convert<erl::geometry::Lidar2D::Setting> {
-        static Node
+        inline static Node
         encode(const erl::geometry::Lidar2D::Setting &rhs) {
             Node node;
             node["min_angle"] = rhs.min_angle;
@@ -146,7 +146,7 @@ namespace YAML {
             return node;
         }
 
-        static bool
+        inline static bool
         decode(const Node &node, erl::geometry::Lidar2D::Setting &rhs) {
             if (!node.IsMap()) { return false; }
             rhs.min_angle = node["min_angle"].as<double>();
@@ -158,15 +158,15 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::Lidar2D::Setting &rhs) {
-        out << BeginMap;
-        out << Key << "min_angle" << Value << rhs.min_angle;
-        out << Key << "max_angle" << Value << rhs.max_angle;
-        out << Key << "num_lines" << Value << rhs.num_lines;
-        out << Key << "mode" << Value << rhs.mode;
-        out << Key << "sign_method" << Value << rhs.sign_method;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::Lidar2D::Setting &rhs) {
+//        out << BeginMap;
+//        out << Key << "min_angle" << Value << rhs.min_angle;
+//        out << Key << "max_angle" << Value << rhs.max_angle;
+//        out << Key << "num_lines" << Value << rhs.num_lines;
+//        out << Key << "mode" << Value << rhs.mode;
+//        out << Key << "sign_method" << Value << rhs.sign_method;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML

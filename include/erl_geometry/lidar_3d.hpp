@@ -75,7 +75,7 @@ namespace YAML {
     template<>
     struct convert<erl::geometry::Lidar3D::Setting> {
 
-        static Node
+        inline static Node
         encode(const erl::geometry::Lidar3D::Setting &rhs) {
             Node node;
             node["azimuth_min"] = rhs.azimuth_min;
@@ -87,7 +87,7 @@ namespace YAML {
             return node;
         }
 
-        static bool
+        inline static bool
         decode(const Node &node, erl::geometry::Lidar3D::Setting &rhs) {
             if (!node.IsMap()) { return false; }
             rhs.azimuth_min = node["azimuth_min"].as<double>();
@@ -99,18 +99,5 @@ namespace YAML {
             return true;
         }
     };
-
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::Lidar3D::Setting &rhs) {
-        out << BeginMap;
-        out << Key << "azimuth_min" << Value << rhs.azimuth_min;
-        out << Key << "azimuth_max" << Value << rhs.azimuth_max;
-        out << Key << "elevation_min" << Value << rhs.elevation_min;
-        out << Key << "elevation_max" << Value << rhs.elevation_max;
-        out << Key << "num_azimuth_lines" << Value << rhs.num_azimuth_lines;
-        out << Key << "num_elevation_lines" << Value << rhs.num_elevation_lines;
-        out << EndMap;
-        return out;
-    }
 
 }  // namespace YAML

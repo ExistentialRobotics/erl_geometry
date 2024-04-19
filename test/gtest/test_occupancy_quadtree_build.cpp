@@ -133,7 +133,9 @@ TEST(OccupancyQuadtree, Build) {
     }
 
     // initialize occupancy quadtree
-    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(g_options.quadtree_resolution);
+    auto tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
+    tree_setting->resolution = g_options.quadtree_resolution;
+    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(tree_setting);
     std::cout << "OccupancyQuadtree Setting:" << std::endl << tree->GetSetting() << std::endl;
 
     // setup visualization

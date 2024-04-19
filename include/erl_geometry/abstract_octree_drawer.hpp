@@ -42,7 +42,7 @@ namespace erl::geometry {
          */
         static std::vector<std::shared_ptr<open3d::geometry::Geometry>>
         GetBlankGeometries() {
-            auto boxes = std::make_shared<open3d::geometry::TriangleMesh>();
+            auto boxes = std::make_shared<open3d::geometry::VoxelGrid>();
             auto node_border = std::make_shared<open3d::geometry::LineSet>();
             return {boxes, node_border};
         }
@@ -65,9 +65,7 @@ namespace erl::geometry {
 
         void
         DrawLeaves(const std::string &filename) const {
-            auto boxes = std::make_shared<open3d::geometry::TriangleMesh>();
-            auto node_border = std::make_shared<open3d::geometry::LineSet>();
-            std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = {boxes, node_border};
+            std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = GetBlankGeometries();
             DrawLeaves(geometries);
 
             auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
@@ -105,14 +103,4 @@ namespace YAML {
             return true;
         }
     };
-
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::AbstractOctreeDrawer::Setting &rhs) {
-        out << BeginMap;
-        out << Key << "area_min" << Value << rhs.area_min;
-        out << Key << "area_max" << Value << rhs.area_max;
-        out << Key << "border_color" << Value << rhs.border_color;
-        out << EndMap;
-        return out;
-    }
 }  // namespace YAML

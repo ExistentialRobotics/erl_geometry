@@ -7,44 +7,42 @@
 namespace erl::geometry {
 
     class OccupancyOctree : public OccupancyOctreeBase<OccupancyOctreeNode> {
-
     public:
-        using Setting = OccupancyOctreeBaseSetting;
+        using Super = OccupancyOctreeBase<OccupancyOctreeNode>;
+        using Setting = Super::Setting;
+        typedef OccupancyOctreeDrawer<OccupancyOctree> Drawer;
 
-        explicit OccupancyOctree(double resolution);
-
-        explicit OccupancyOctree(const std::shared_ptr<Setting> &setting);
-
-        explicit OccupancyOctree(const std::string &filename);
-
-        [[nodiscard]] std::shared_ptr<AbstractOctree>
-        Create() const override {
-            return std::make_shared<OccupancyOctree>(0.1);
+        explicit OccupancyOctree(const std::shared_ptr<Setting> &setting)
+            : OccupancyOctreeBase<OccupancyOctreeNode>(setting) {
+            s_init_.EnsureLinking();
         }
 
-        [[nodiscard]] std::shared_ptr<Setting>
+        OccupancyOctree()
+            : OccupancyOctree(std::make_shared<Setting>()) {}
+
+        explicit OccupancyOctree(const std::string &filename)
+            : OccupancyOctree() {  // resolution will be set by LoadData
+            ERL_ASSERTM(this->LoadData(filename), "Failed to read %s from file: %s", GetTreeType().c_str(), filename.c_str());
+        }
+
+        OccupancyOctree(const OccupancyOctree &) = delete;  // no copy constructor
+
+        [[nodiscard]] inline std::shared_ptr<Setting>
         GetSetting() const {
-            auto setting = std::make_shared<Setting>();
-            setting->log_odd_min = this->GetLogOddMin();
-            setting->log_odd_max = this->GetLogOddMax();
-            setting->probability_hit = this->GetProbabilityHit();
-            setting->probability_miss = this->GetProbabilityMiss();
-            setting->probability_occupied_threshold = this->GetOccupancyThreshold();
-            setting->resolution = this->GetResolution();
-            setting->use_change_detection = this->m_use_change_detection_;
-            setting->use_aabb_limit = this->m_use_aabb_limit_;
-            setting->aabb = this->m_aabb_;
-            return setting;
+            return Super::m_setting_;
         }
 
-        [[nodiscard]] std::string
+        [[nodiscard]] inline std::string
         GetTreeType() const override {
             return "OccupancyOctree";
         }
 
-        typedef OccupancyOctreeDrawer<OccupancyOctree> Drawer;
-
     protected:
+        [[nodiscard]] inline std::shared_ptr<AbstractOctree>
+        Create() const override {
+            return std::make_shared<OccupancyOctree>();
+        }
+
         /**
          * Static member object which ensures that this OcTree's prototype ends up in the classIDMapping only once.
          * You need this as a static member in any derived octree class in order to read .ot files through the
@@ -53,7 +51,7 @@ namespace erl::geometry {
         class StaticMemberInitializer {
         public:
             StaticMemberInitializer() {
-                auto tree = std::make_shared<OccupancyOctree>(0.1);
+                auto tree = std::make_shared<OccupancyOctree>();
                 tree->ClearKeyRays();
                 AbstractOctree::RegisterTreeType(tree);
             }
@@ -63,7 +61,7 @@ namespace erl::geometry {
              * to register. Needs to be called from the constructor of this octree.
              */
             void
-            EnsureLinking(){};
+            EnsureLinking(){}
         };
 
         inline static StaticMemberInitializer s_init_ = {};
@@ -75,9 +73,4 @@ namespace YAML {
     template<>
     struct convert<erl::geometry::OccupancyOctree::Drawer::Setting>
         : public ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree::Drawer::Setting> {};
-
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::OccupancyOctree::Drawer::Setting &rhs) {
-        return PrintOccupancyOctreeDrawerSetting(out, rhs);
-    }
 }  // namespace YAML

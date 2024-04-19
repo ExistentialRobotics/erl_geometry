@@ -160,11 +160,19 @@ class CMakeBuild(build_ext):
             ]
             # add dependencies
             site_packages_dir = site.getsitepackages()[0]
+            user_site_packages_dir = site.getusersitepackages()
             for dependency in erl_dependencies:
-                cmake_dir = f"{site_packages_dir}/{dependency}/share/{dependency}/cmake"
-                if not os.path.exists(cmake_dir):
+                cmake_dirs = [
+                    f"{site_packages_dir}/{dependency}/share/{dependency}/cmake",
+                    f"{user_site_packages_dir}/{dependency}/share/{dependency}/cmake",
+                ]
+                cmake_dir = None
+                for cmake_dir in cmake_dirs:
+                    if os.path.exists(cmake_dir):
+                        break
+                if cmake_dir is None:
                     raise RuntimeError(f"dependency {dependency} is not installed")
-                cmake_args.append(f"-D{dependency}_DIR:PATH={site_packages_dir}/{dependency}/share/{dependency}/cmake")
+                cmake_args.append(f"-D{dependency}_DIR:PATH={cmake_dir}")
             # run cmake configure
             subprocess.check_call([cmake_path, ext.source_dir] + cmake_args, cwd=build_temp)
         # run cmake build and install

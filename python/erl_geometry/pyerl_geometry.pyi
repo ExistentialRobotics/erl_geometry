@@ -5,7 +5,6 @@ from typing import Optional
 from typing import Tuple
 from typing import TypedDict
 from typing import overload
-from typing import override
 
 import numpy as np
 import numpy.typing as npt
@@ -34,18 +33,18 @@ __all__ = [
     "NodeContainer",
     "NodeContainerMultiTypes",
     "IncrementalQuadtree",
+    "NdTreeSetting",
+    "OccupancyNdTreeSetting",
+    "OccupancyQuadtreeBaseSetting",
     "QuadtreeKey",
     "QuadtreeKeyRay",
     "OccupancyQuadtreeNode",
     "OccupancyQuadtree",
-    "PointOccupancyQuadtreeNode",
-    "PointOccupancyQuadtree",
+    "OccupancyOctreeBaseSetting",
     "OctreeKey",
     "OctreeKeyRay",
     "OccupancyOctreeNode",
     "OccupancyOctree",
-    "PointOccupancyOctreeNode",
-    "PointOccupancyOctree",
     "Surface2D",
     "Space2D",
     "Lidar2D",
@@ -113,6 +112,7 @@ class Aabb2D:
         kBottomRight = 1
         kTopLeft = 2
         kTopRight = 3
+
     def __init__(self: Aabb2D, center: np.ndarray, half_size: float): ...
     @property
     def center(self: Aabb2D) -> np.ndarray: ...
@@ -135,6 +135,7 @@ class Aabb3D:
         kBottomRightCeil = 5
         kTopLeftCeil = 6
         kTopRightCeil = 7
+
     def __init__(self: Aabb2D, center: np.ndarray, half_size: float): ...
     @property
     def center(self: Aabb2D) -> np.ndarray: ...
@@ -201,6 +202,7 @@ class IncrementalQuadtree:
             kSouthWest = 2
             kSouthEast = 3
             kRoot = 4
+
         def __getitem__(self: IncrementalQuadtree.Children, item: int) -> IncrementalQuadtree: ...
         def reset(self: IncrementalQuadtree.Children) -> None: ...
         def north_west(self: IncrementalQuadtree.Children) -> IncrementalQuadtree: ...
@@ -315,6 +317,28 @@ class IncrementalQuadtree:
     ) -> np.ndarray[np.uint8]: ...
     def __str__(self: IncrementalQuadtree) -> str: ...
 
+class NdTreeSetting(YamlableBase):
+    resolution: float
+    tree_depth: int
+    def __init__(self: NdTreeSetting) -> None: ...
+
+class OccupancyNdTreeSetting(NdTreeSetting):
+    log_odd_min: float
+    log_odd_max: float
+    log_odd_hit: float
+    log_odd_miss: float
+    log_odd_occ_threshold: float
+    probability_hit: float
+    probability_miss: float
+    probability_occupied_threshold: float
+    def __init__(self: OccupancyNdTreeSetting) -> None: ...
+
+class OccupancyQuadtreeBaseSetting(OccupancyNdTreeSetting):
+    use_change_detection: bool
+    use_aabb_limit: bool
+    aabb: Aabb2D
+    def __init__(self: OccupancyQuadtreeBaseSetting) -> None: ...
+
 class QuadtreeKey:
     def __eq__(self, other) -> bool: ...
     def __ne__(self, other) -> bool: ...
@@ -337,29 +361,21 @@ class OccupancyQuadtreeNode:
     def add_log_odds(self, log_odds: float) -> None: ...
 
 class OccupancyQuadtree:
-    class Setting(YamlableBase):
-        log_odd_min: float
-        log_odd_max: float
-        probability_hit: float
-        probability_miss: float
-        probability_occupied_threshold: float
-        resolution: float
-        use_change_detection: bool
-        use_aabb_limit: bool
-        aabb: Aabb2D
     @overload
-    def __init__(self, resolution: float) -> None: ...
+    def __init__(self) -> None: ...
     @overload
-    def __init__(self, setting: Setting) -> None: ...
+    def __init__(self, setting: OccupancyQuadtreeBaseSetting) -> None: ...
     @overload
     def __init__(self, filename: str, is_binary: bool) -> None: ...
+    def apply_setting(self) -> None: ...
+    def write_raw(self, filename: str) -> bool: ...
     def read_raw(self, filename: str) -> bool: ...
     def write_binary(self, filename: str, prune_at_first: bool) -> bool: ...
     def read_binary(self, filename: str) -> bool: ...
     @property
     def tree_type(self) -> str: ...
     @property
-    def setting(self) -> Setting: ...
+    def setting(self) -> OccupancyQuadtreeBaseSetting: ...
     @property
     def is_node_collapsible(self) -> bool: ...
     def insert_point_cloud(
@@ -441,7 +457,7 @@ class OccupancyQuadtree:
     def number_of_nodes(self) -> int: ...
     resolution: float
     @property
-    def max_tree_depth(self) -> int: ...
+    def tree_depth(self) -> int: ...
     @property
     def tree_key_offset(self) -> int: ...
     @property
@@ -643,349 +659,11 @@ class OccupancyQuadtree:
         max_leaf_depth: int = 0,
     ) -> OccupiedLeafOnRayIterator: ...
 
-class PointOccupancyQuadtreeNode(OccupancyQuadtreeNode):
-    @property
-    def num_points(self) -> int: ...
-    @property
-    def points(self) -> list[np.ndarray[np.float64]]: ...
-
-class PointOccupancyQuadtree:
-    class Setting(YamlableBase):
-        log_odd_min: float
-        log_odd_max: float
-        probability_hit: float
-        probability_miss: float
-        probability_occupied_threshold: float
-        resolution: float
-        use_change_detection: bool
-        use_aabb_limit: bool
-        aabb: Aabb2D
-        max_num_points_per_node: int
-    @overload
-    def __init__(self, resolution: float) -> None: ...
-    @overload
-    def __init__(self, setting: Setting) -> None: ...
-    @overload
-    def __init__(self, filename: str, is_binary: bool) -> None: ...
-    def read_raw(self, filename: str) -> bool: ...
-    def write_binary(self, filename: str, prune_at_first: bool) -> bool: ...
-    def read_binary(self, filename: str) -> bool: ...
-    @property
-    def tree_type(self) -> str: ...
-    @property
-    def setting(self) -> Setting: ...
-    @property
-    def is_node_collapsible(self) -> bool: ...
-    def insert_point_cloud(
-        self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
-        max_range: float,
-        parallel: bool,
-        lazy_eval: bool,
-        discretize: bool,
-    ) -> None: ...
-    def insert_point_cloud_rays(
-        self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
-        max_range: float,
-        parallel: bool,
-        lazy_eval: bool,
-    ) -> None: ...
-    def insert_ray(
-        self,
-        sx: float,
-        sy: float,
-        ex: float,
-        ey: float,
-        max_range: float,
-        lazy_eval: bool,
-    ) -> None: ...
-    def sample_positions(self, num_positions: int) -> list[np.ndarray]: ...
-    @overload
-    def cast_rays(
-        self,
-        position: np.ndarray,
-        rotation: np.ndarray,
-        angles: np.ndarray,
-        ignore_unknown: bool,
-        max_range: float,
-        prune_rays: bool,
-        parallel: bool,
-    ) -> TypedDict(
-        "returns",
-        {
-            "hit_ray_indices": np.ndarray,
-            "hit_positions": np.ndarray,
-            "hit_nodes": list[PointOccupancyQuadtreeNode],
-            "node_depths": list[int],
-        },
-    ): ...
-    @overload
-    def cast_rays(
-        self,
-        positions: np.ndarray,
-        directions: np.ndarray,
-        ignore_unknown: bool,
-        max_range: float,
-        prune_rays: bool,
-        parallel: bool,
-    ) -> TypedDict(
-        "returns",
-        {
-            "hit_ray_indices": np.ndarray,
-            "hit_positions": np.ndarray,
-            "hit_nodes": list[PointOccupancyQuadtreeNode],
-            "node_depths": list[int],
-        },
-    ): ...
-    def cast_ray(
-        self,
-        px: float,
-        py: float,
-        vx: float,
-        vy: float,
-        ignore_unknown: bool,
-        max_range: float,
-    ) -> Tuple[OccupancyQuadtreeNode, float, float, int]: ...
-    @overload
-    def update_node(self, x: float, y: float, occupied: bool, lazy_eval: bool) -> PointOccupancyQuadtreeNode: ...
-    @overload
-    def update_node(self, node_key: QuadtreeKey, occupied: bool, lazy_eval: bool) -> PointOccupancyQuadtreeNode: ...
-    @overload
-    def update_node(self, x: float, y: float, log_odds_delta: float, lazy_eval: bool) -> OccupancyQuadtreeNode: ...
-    @overload
-    def update_node(
-        self, node_key: QuadtreeKey, log_odds_delta: float, lazy_eval: bool
-    ) -> PointOccupancyQuadtreeNode: ...
-    def update_inner_occupancy(self) -> None: ...
-    def to_max_likelihood(self) -> None: ...
-    @property
-    def number_of_nodes(self) -> int: ...
-    resolution: float
-    @property
-    def max_tree_depth(self) -> int: ...
-    @property
-    def tree_key_offset(self) -> int: ...
-    @property
-    def metric_min(self) -> Tuple[float, float]: ...
-    @property
-    def metric_max(self) -> Tuple[float, float]: ...
-    @property
-    def metric_min_max(self) -> Tuple[Tuple[float, float], Tuple[float, float]]: ...
-    @property
-    def metric_size(self) -> Tuple[float, float]: ...
-    def get_node_size(self, depth: int) -> float: ...
-    @property
-    def number_of_leaf_nodes(self) -> int: ...
-    @property
-    def memory_usage(self) -> int: ...
-    @property
-    def memory_usage_per_node(self) -> int: ...
-    @overload
-    def coord_to_key(self, coordinate: float) -> int: ...
-    @overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int: ...
-    @overload
-    def coord_to_key(self, x: float, y: float) -> QuadtreeKey: ...
-    @overload
-    def coord_to_key(self, x: float, y: float, depth: int) -> QuadtreeKey: ...
-    @overload
-    def coord_to_key_checked(self, coordinate: float) -> Optional[int]: ...
-    @overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> Optional[int]: ...
-    @overload
-    def coord_to_key_checked(self, x: float, y: float) -> Optional[QuadtreeKey]: ...
-    @overload
-    def coord_to_key_checked(self, x: float, y: float, depth: int) -> Optional[QuadtreeKey]: ...
-    @overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int: ...
-    @overload
-    def adjust_key_to_depth(self, key: QuadtreeKey, depth: int) -> QuadtreeKey: ...
-    def compute_common_ancestor_key(self, key1: QuadtreeKey, key2: QuadtreeKey) -> Tuple[QuadtreeKey, int]: ...
-    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: int) -> Optional[QuadtreeKey]: ...
-    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: int) -> Optional[QuadtreeKey]: ...
-    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: int) -> Optional[QuadtreeKey]: ...
-    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: int) -> Optional[QuadtreeKey]: ...
-    def compute_top_neighbor_key(self, key: QuadtreeKey, depth: int) -> Optional[QuadtreeKey]: ...
-    def compute_bottom_neighbor_key(self, key: QuadtreeKey, depth: int) -> Optional[QuadtreeKey]: ...
-    @overload
-    def key_to_coord(self, key: int) -> float: ...
-    @overload
-    def key_to_coord(self, key: int, depth: int) -> float: ...
-    @overload
-    def key_to_coord(self, key: QuadtreeKey) -> Tuple[float, float]: ...
-    @overload
-    def key_to_coord(self, key: QuadtreeKey, depth: int) -> Tuple[float, float]: ...
-    def compute_ray_keys(self, sx: float, sy: float, ex: float, ey: float) -> Optional[QuadtreeKeyRay]: ...
-    def compute_ray_coords(
-        self,
-        sx: float,
-        sy: float,
-        ex: float,
-        ey: float,
-    ) -> Optional[list[Tuple[float, float, float]]]: ...
-    def create_node_child(self, node: PointOccupancyQuadtreeNode, child_index: int) -> PointOccupancyQuadtreeNode: ...
-    def delete_node_child(self, node: PointOccupancyQuadtreeNode, child_index: int) -> None: ...
-    def get_node_child(self, node: PointOccupancyQuadtreeNode, child_index: int) -> PointOccupancyQuadtreeNode: ...
-    def expand_node(self, node: PointOccupancyQuadtreeNode) -> None: ...
-    def prune_node(self, node: PointOccupancyQuadtreeNode) -> None: ...
-    @overload
-    def delete_node(self, x: float, y: float, depth: int) -> bool: ...
-    @overload
-    def delete_node(self, key: QuadtreeKey, depth: int) -> bool: ...
-    def clear(self) -> None: ...
-    def prune(self) -> None: ...
-    def expand(self) -> None: ...
-    @property
-    def root(self) -> PointOccupancyQuadtreeNode: ...
-    @overload
-    def search(self, x: float, y: float) -> Tuple[Optional[PointOccupancyQuadtreeNode], int]: ...
-    @overload
-    def search(self, key: QuadtreeKey) -> Tuple[Optional[PointOccupancyQuadtreeNode], int]: ...
-    @overload
-    def insert_node(self, x: float, y: float, depth: int) -> Optional[PointOccupancyQuadtreeNode]: ...
-    @overload
-    def insert_node(self, key: QuadtreeKey, depth: int) -> PointOccupancyQuadtreeNode: ...
-    def visualize(
-        self,
-        leaf_only: bool = False,
-        area_min: np.ndarray[np.float64] = None,
-        area_max: np.ndarray[np.float64] = None,
-        resolution: float = 0.1,
-        padding: int = 1,
-        bg_color: np.ndarray[np.float64] = np.array([128, 128, 128, 255]),
-        fg_color: np.ndarray[np.float64] = np.array([255, 255, 255, 255]),
-        occupied_color: np.ndarray[np.float64] = np.array([0, 0, 0, 255]),
-        free_color: np.ndarray[np.float64] = np.array([255, 255, 255, 255]),
-        border_color: np.ndarray[np.float64] = np.array([0, 0, 0, 255]),
-        border_thickness: int = 1,
-    ) -> np.ndarray[np.uint8]: ...
-
-    class IteratorBase:
-        def __eq__(self, other) -> bool: ...
-        def __ne__(self, other) -> bool: ...
-        def get(self) -> PointOccupancyQuadtreeNode: ...
-        @property
-        def x(self) -> float: ...
-        @property
-        def y(self) -> float: ...
-        @property
-        def node_size(self) -> float: ...
-        @property
-        def depth(self) -> int: ...
-        @property
-        def key(self) -> QuadtreeKey: ...
-        @property
-        def index_key(self) -> QuadtreeKey: ...
-        def next(self) -> None: ...
-        @property
-        def is_end(self) -> bool: ...
-
-    class TreeIterator(IteratorBase): ...
-    class TreeInAabbIterator(IteratorBase): ...
-    class LeafIterator(IteratorBase): ...
-    class LeafOfNodeIterator(IteratorBase): ...
-    class LeafInAabbIterator(IteratorBase): ...
-    class WestLeafNeighborIterator(IteratorBase): ...
-    class EastLeafNeighborIterator(IteratorBase): ...
-    class NorthLeafNeighborIterator(IteratorBase): ...
-    class SouthLeafNeighborIterator(IteratorBase): ...
-    class LeafOnRayIterator(IteratorBase): ...
-    class OccupiedLeafOnRayIterator(IteratorBase): ...
-
-    def iter_leaf(self, max_depth: int = 0) -> LeafIterator: ...
-    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: int, max_depth: int = 0) -> LeafOfNodeIterator: ...
-    @overload
-    def iter_leaf_in_aabb(
-        self,
-        aabb_min_x: float,
-        aabb_min_y: float,
-        aabb_max_x: float,
-        aabb_max_y: float,
-        max_depth: int = 0,
-    ) -> LeafInAabbIterator: ...
-    @overload
-    def iter_leaf_in_aabb(
-        self,
-        aabb_min_key: QuadtreeKey,
-        aabb_max_key: QuadtreeKey,
-        max_depth: int = 0,
-    ) -> LeafInAabbIterator: ...
-    def iter_node(self, max_depth: int = 0) -> TreeIterator: ...
-    @overload
-    def iter_node_in_aabb(
-        self,
-        aabb_min_x: float,
-        aabb_min_y: float,
-        aabb_max_x: float,
-        aabb_max_y: float,
-        max_depth: int = 0,
-    ) -> TreeInAabbIterator: ...
-    @overload
-    def iter_node_in_aabb(
-        self,
-        aabb_min_key: QuadtreeKey,
-        aabb_max_key: QuadtreeKey,
-        max_depth: int = 0,
-    ) -> TreeInAabbIterator: ...
-    @overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> WestLeafNeighborIterator: ...
-    @overload
-    def iter_west_leaf_neighbor(
-        self,
-        key: QuadtreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> WestLeafNeighborIterator: ...
-    @overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> EastLeafNeighborIterator: ...
-    @overload
-    def iter_east_leaf_neighbor(
-        self,
-        key: QuadtreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> EastLeafNeighborIterator: ...
-    @overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> NorthLeafNeighborIterator: ...
-    @overload
-    def iter_north_leaf_neighbor(
-        self,
-        key: QuadtreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> NorthLeafNeighborIterator: ...
-    @overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> SouthLeafNeighborIterator: ...
-    @overload
-    def iter_south_leaf_neighbor(
-        self,
-        key: QuadtreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> SouthLeafNeighborIterator: ...
-    def iter_leaf_on_ray(
-        self,
-        px: float,
-        py: float,
-        vx: float,
-        vy: float,
-        max_range: float = -1,
-        bidirectional: bool = False,
-        max_leaf_depth: int = 0,
-    ) -> LeafOnRayIterator: ...
-    def iter_occupied_leaf_on_ray(
-        self,
-        px: float,
-        py: float,
-        vx: float,
-        vy: float,
-        max_range: float = -1,
-        bidirectional: bool = False,
-        max_leaf_depth: int = 0,
-    ) -> OccupiedLeafOnRayIterator: ...
+class OccupancyOctreeBaseSetting(OccupancyNdTreeSetting):
+    use_change_detection: bool
+    use_aabb_limit: bool
+    aabb: Aabb3D
+    def __init__(self: OccupancyOctreeBaseSetting) -> None: ...
 
 class OctreeKey:
     def __eq__(self, other) -> bool: ...
@@ -1009,20 +687,10 @@ class OccupancyOctreeNode:
     def add_log_odds(self, log_odds: float) -> None: ...
 
 class OccupancyOctree:
-    class Setting(YamlableBase):
-        log_odd_min: float
-        log_odd_max: float
-        probability_hit: float
-        probability_miss: float
-        probability_occupied_threshold: float
-        resolution: float
-        use_change_detection: bool
-        use_aabb_limit: bool
-        aabb: Aabb3D
     @overload
-    def __init__(self, resolution: float) -> None: ...
+    def __init__(self) -> None: ...
     @overload
-    def __init__(self, setting: Setting) -> None: ...
+    def __init__(self, setting: OccupancyOctreeBaseSetting) -> None: ...
     @overload
     def __init__(self, filename: str, is_binary: bool) -> None: ...
     def read_raw(self, filename: str) -> bool: ...
@@ -1031,7 +699,7 @@ class OccupancyOctree:
     @property
     def tree_type(self) -> str: ...
     @property
-    def setting(self) -> Setting: ...
+    def setting(self) -> OccupancyOctreeBaseSetting: ...
     @property
     def is_node_collapsible(self) -> bool: ...
     def insert_point_cloud(
@@ -1133,7 +801,7 @@ class OccupancyOctree:
     def number_of_nodes(self) -> int: ...
     resolution: float
     @property
-    def max_tree_depth(self) -> int: ...
+    def tree_depth(self) -> int: ...
     @property
     def tree_key_offset(self) -> int: ...
     @property
@@ -1415,427 +1083,6 @@ class OccupancyOctree:
         max_leaf_depth: int = 0,
     ) -> OccupiedLeafOnRayIterator: ...
 
-class PointOccupancyOctreeNode(OccupancyOctreeNode):
-    @property
-    def num_points(self) -> int: ...
-    @property
-    def points(self) -> list[np.ndarray[np.float64]]: ...
-
-class PointOccupancyOctree:
-    class Setting(YamlableBase):
-        log_odd_min: float
-        log_odd_max: float
-        probability_hit: float
-        probability_miss: float
-        probability_occupied_threshold: float
-        resolution: float
-        use_change_detection: bool
-        use_aabb_limit: bool
-        aabb: Aabb3D
-        max_num_points_per_node: int
-    @overload
-    def __init__(self, resolution: float) -> None: ...
-    @overload
-    def __init__(self, setting: Setting) -> None: ...
-    @overload
-    def __init__(self, filename: str, is_binary: bool) -> None: ...
-    def read_raw(self, filename: str) -> bool: ...
-    def write_binary(self, filename: str, prune_at_first: bool) -> bool: ...
-    def read_binary(self, filename: str) -> bool: ...
-    @property
-    def tree_type(self) -> str: ...
-    @property
-    def setting(self) -> Setting: ...
-    @property
-    def is_node_collapsible(self) -> bool: ...
-    def insert_point_cloud(
-        self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
-        max_range: float,
-        parallel: bool,
-        lazy_eval: bool,
-        discretize: bool,
-    ) -> None: ...
-    def insert_point_cloud_rays(
-        self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
-        max_range: float,
-        parallel: bool,
-        lazy_eval: bool,
-    ) -> None: ...
-    def insert_ray(
-        self,
-        sx: float,
-        sy: float,
-        sz: float,
-        ex: float,
-        ey: float,
-        ez: float,
-        max_range: float,
-        lazy_eval: bool,
-    ) -> None: ...
-    def sample_positions(self, num_positions: int) -> list[np.ndarray]: ...
-    @overload
-    def cast_rays(
-        self,
-        position: np.ndarray,
-        rotation: np.ndarray,
-        azimuth_angles: np.ndarray,
-        elevation_angles: np.ndarray,
-        ignore_unknown: bool,
-        max_range: float,
-        prune_rays: bool,
-        parallel: bool,
-    ) -> TypedDict(
-        "returns",
-        {
-            "hit_ray_indices": list[tuple[int, int]],
-            "hit_positions": list[np.ndarray],
-            "hit_nodes": list[PointOccupancyOctreeNode],
-            "node_depths": list[int],
-        },
-    ): ...
-    @overload
-    def cast_rays(
-        self,
-        positions: np.ndarray,
-        directions: np.ndarray,
-        ignore_unknown: bool,
-        max_range: float,
-        prune_rays: bool,
-        parallel: bool,
-    ) -> TypedDict(
-        "returns",
-        {
-            "hit_ray_indices": list[int],
-            "hit_positions": np.ndarray,
-            "hit_nodes": list[PointOccupancyOctreeNode],
-            "node_depths": list[int],
-        },
-    ): ...
-    def cast_ray(
-        self,
-        px: float,
-        py: float,
-        pz: float,
-        vx: float,
-        vy: float,
-        vz: float,
-        ignore_unknown: bool,
-        max_range: float,
-    ) -> Tuple[OccupancyOctreeNode, float, float, int]: ...
-    @overload
-    def update_node(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        occupied: bool,
-        lazy_eval: bool,
-    ) -> PointOccupancyOctreeNode: ...
-    @overload
-    def update_node(self, node_key: OctreeKey, occupied: bool, lazy_eval: bool) -> PointOccupancyOctreeNode: ...
-    @overload
-    def update_node(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        log_odds_delta: float,
-        lazy_eval: bool,
-    ) -> OccupancyOctreeNode: ...
-    @overload
-    def update_node(self, node_key: OctreeKey, log_odds_delta: float, lazy_eval: bool) -> PointOccupancyOctreeNode: ...
-    def update_inner_occupancy(self) -> None: ...
-    def to_max_likelihood(self) -> None: ...
-    @property
-    def number_of_nodes(self) -> int: ...
-    resolution: float
-    @property
-    def max_tree_depth(self) -> int: ...
-    @property
-    def tree_key_offset(self) -> int: ...
-    @property
-    def metric_min(self) -> Tuple[float, float, float]: ...
-    @property
-    def metric_max(self) -> Tuple[float, float, float]: ...
-    @property
-    def metric_min_max(self) -> Tuple[Tuple[float, float, float], Tuple[float, float, float]]: ...
-    @property
-    def metric_size(self) -> Tuple[float, float, float]: ...
-    def get_node_size(self, depth: int) -> float: ...
-    @property
-    def number_of_leaf_nodes(self) -> int: ...
-    @property
-    def memory_usage(self) -> int: ...
-    @property
-    def memory_usage_per_node(self) -> int: ...
-    @overload
-    def coord_to_key(self, coordinate: float) -> int: ...
-    @overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int: ...
-    @overload
-    def coord_to_key(self, x: float, y: float, z: float) -> OctreeKey: ...
-    @overload
-    def coord_to_key(self, x: float, y: float, z: float, depth: int) -> OctreeKey: ...
-    @overload
-    def coord_to_key_checked(self, coordinate: float) -> Optional[int]: ...
-    @overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> Optional[int]: ...
-    @overload
-    def coord_to_key_checked(self, x: float, y: float, z: float) -> Optional[OctreeKey]: ...
-    @overload
-    def coord_to_key_checked(self, x: float, y: float, z: float, depth: int) -> Optional[OctreeKey]: ...
-    @overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int: ...
-    @overload
-    def adjust_key_to_depth(self, key: OctreeKey, depth: int) -> OctreeKey: ...
-    def compute_common_ancestor_key(self, key1: OctreeKey, key2: OctreeKey) -> Tuple[OctreeKey, int]: ...
-    def compute_west_neighbor_key(self, key: OctreeKey, depth: int) -> Optional[OctreeKey]: ...
-    def compute_east_neighbor_key(self, key: OctreeKey, depth: int) -> Optional[OctreeKey]: ...
-    def compute_north_neighbor_key(self, key: OctreeKey, depth: int) -> Optional[OctreeKey]: ...
-    def compute_south_neighbor_key(self, key: OctreeKey, depth: int) -> Optional[OctreeKey]: ...
-    def compute_top_neighbor_key(self, key: OctreeKey, depth: int) -> Optional[OctreeKey]: ...
-    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: int) -> Optional[OctreeKey]: ...
-    @overload
-    def key_to_coord(self, key: int) -> float: ...
-    @overload
-    def key_to_coord(self, key: int, depth: int) -> float: ...
-    @overload
-    def key_to_coord(self, key: OctreeKey) -> Tuple[float, float, float]: ...
-    @overload
-    def key_to_coord(self, key: OctreeKey, depth: int) -> Tuple[float, float, float]: ...
-    def compute_ray_keys(
-        self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float
-    ) -> Optional[OctreeKeyRay]: ...
-    def compute_ray_coords(
-        self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float
-    ) -> Optional[list[Tuple[float, float, float]]]: ...
-    def create_node_child(self, node: PointOccupancyOctreeNode, child_index: int) -> PointOccupancyOctreeNode: ...
-    def delete_node_child(self, node: PointOccupancyOctreeNode, child_index: int) -> None: ...
-    def get_node_child(self, node: PointOccupancyOctreeNode, child_index: int) -> PointOccupancyOctreeNode: ...
-    def expand_node(self, node: PointOccupancyOctreeNode) -> None: ...
-    def prune_node(self, node: PointOccupancyOctreeNode) -> None: ...
-    @overload
-    def delete_node(self, x: float, y: float, z: float, depth: int) -> bool: ...
-    @overload
-    def delete_node(self, key: OctreeKey, depth: int) -> bool: ...
-    def clear(self) -> None: ...
-    def prune(self) -> None: ...
-    def expand(self) -> None: ...
-    @property
-    def root(self) -> PointOccupancyOctreeNode: ...
-    @overload
-    def search(self, x: float, y: float, z: float) -> Tuple[Optional[PointOccupancyOctreeNode], int]: ...
-    @overload
-    def search(self, key: OctreeKey) -> Tuple[Optional[PointOccupancyOctreeNode], int]: ...
-    @overload
-    def insert_node(self, x: float, y: float, z: float, depth: int) -> Optional[PointOccupancyOctreeNode]: ...
-    @overload
-    def insert_node(self, key: OctreeKey, depth: int) -> PointOccupancyOctreeNode: ...
-    def visualize(
-        self,
-        leaf_only: bool = False,
-        occupied_color: np.ndarray[np.float64] = np.array([0.5, 0.5, 0.5]),
-        border_color: np.ndarray[np.float64] = np.array([0.0, 0.0, 0.0]),
-        window_width: int = 1920,
-        window_height: int = 1080,
-        window_left: int = 50,
-        window_top: int = 50,
-    ) -> np.ndarray[np.uint8]: ...
-
-    class IteratorBase:
-        def __eq__(self, other) -> bool: ...
-        def __ne__(self, other) -> bool: ...
-        def get(self) -> PointOccupancyOctreeNode: ...
-        @property
-        def x(self) -> float: ...
-        @property
-        def y(self) -> float: ...
-        @property
-        def z(self) -> float: ...
-        @property
-        def node_size(self) -> float: ...
-        @property
-        def depth(self) -> int: ...
-        @property
-        def key(self) -> OctreeKey: ...
-        @property
-        def index_key(self) -> OctreeKey: ...
-        def next(self) -> None: ...
-        @property
-        def is_end(self) -> bool: ...
-
-    class TreeIterator(IteratorBase): ...
-    class TreeInAabbIterator(IteratorBase): ...
-    class LeafIterator(IteratorBase): ...
-    class LeafOfNodeIterator(IteratorBase): ...
-    class LeafInAabbIterator(IteratorBase): ...
-    class WestLeafNeighborIterator(IteratorBase): ...
-    class EastLeafNeighborIterator(IteratorBase): ...
-    class NorthLeafNeighborIterator(IteratorBase): ...
-    class SouthLeafNeighborIterator(IteratorBase): ...
-    class TopLeafNeighborIterator(IteratorBase): ...
-    class BottomLeafNeighborIterator(IteratorBase): ...
-    class LeafOnRayIterator(IteratorBase): ...
-    class OccupiedLeafOnRayIterator(IteratorBase): ...
-
-    def iter_leaf(self, max_depth: int = 0) -> LeafIterator: ...
-    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: int, max_depth: int = 0) -> LeafOfNodeIterator: ...
-    @overload
-    def iter_leaf_in_aabb(
-        self,
-        aabb_min_x: float,
-        aabb_min_y: float,
-        aabb_min_z: float,
-        aabb_max_x: float,
-        aabb_max_y: float,
-        aabb_max_z: float,
-        max_depth: int = 0,
-    ) -> LeafInAabbIterator: ...
-    @overload
-    def iter_leaf_in_aabb(
-        self,
-        aabb_min_key: OctreeKey,
-        aabb_max_key: OctreeKey,
-        max_depth: int = 0,
-    ) -> LeafInAabbIterator: ...
-    def iter_node(self, max_depth: int = 0) -> TreeIterator: ...
-    @overload
-    def iter_node_in_aabb(
-        self,
-        aabb_min_x: float,
-        aabb_min_y: float,
-        aabb_min_z: float,
-        aabb_max_x: float,
-        aabb_max_y: float,
-        aabb_max_z: float,
-        max_depth: int = 0,
-    ) -> TreeInAabbIterator: ...
-    @overload
-    def iter_node_in_aabb(
-        self,
-        aabb_min_key: OctreeKey,
-        aabb_max_key: OctreeKey,
-        max_depth: int = 0,
-    ) -> TreeInAabbIterator: ...
-    @overload
-    def iter_west_leaf_neighbor(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        max_leaf_depth: int = 0,
-    ) -> WestLeafNeighborIterator: ...
-    @overload
-    def iter_west_leaf_neighbor(
-        self,
-        key: OctreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> WestLeafNeighborIterator: ...
-    @overload
-    def iter_east_leaf_neighbor(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        max_leaf_depth: int = 0,
-    ) -> EastLeafNeighborIterator: ...
-    @overload
-    def iter_east_leaf_neighbor(
-        self,
-        key: OctreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> EastLeafNeighborIterator: ...
-    @overload
-    def iter_north_leaf_neighbor(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        max_leaf_depth: int = 0,
-    ) -> NorthLeafNeighborIterator: ...
-    @overload
-    def iter_north_leaf_neighbor(
-        self,
-        key: OctreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> NorthLeafNeighborIterator: ...
-    @overload
-    def iter_south_leaf_neighbor(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        max_leaf_depth: int = 0,
-    ) -> SouthLeafNeighborIterator: ...
-    @overload
-    def iter_south_leaf_neighbor(
-        self,
-        key: OctreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> SouthLeafNeighborIterator: ...
-    @overload
-    def iter_top_leaf_neighbor(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        max_leaf_depth: int = 0,
-    ) -> TopLeafNeighborIterator: ...
-    @overload
-    def iter_top_leaf_neighbor(
-        self,
-        key: OctreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> TopLeafNeighborIterator: ...
-    @overload
-    def iter_bottom_leaf_neighbor(
-        self,
-        x: float,
-        y: float,
-        z: float,
-        max_leaf_depth: int = 0,
-    ) -> BottomLeafNeighborIterator: ...
-    @overload
-    def iter_bottom_leaf_neighbor(
-        self,
-        key: OctreeKey,
-        key_depth: int,
-        max_leaf_depth: int = 0,
-    ) -> BottomLeafNeighborIterator: ...
-    def iter_leaf_on_ray(
-        self,
-        px: float,
-        py: float,
-        pz: float,
-        vx: float,
-        vy: float,
-        vz: float,
-        max_range: float = -1,
-        bidirectional: bool = False,
-        max_leaf_depth: int = 0,
-    ) -> LeafOnRayIterator: ...
-    def iter_occupied_leaf_on_ray(
-        self,
-        px: float,
-        py: float,
-        pz: float,
-        vx: float,
-        vy: float,
-        vz: float,
-        max_range: float = -1,
-        bidirectional: bool = False,
-        max_leaf_depth: int = 0,
-    ) -> OccupiedLeafOnRayIterator: ...
-
 class Surface2D:
     @overload
     def __init__(
@@ -1879,6 +1126,7 @@ class Space2D:
         kPointNormal = 0
         kLineNormal = 1
         kPolygon = 2
+
     @overload
     def __init__(
         self: Space2D,
@@ -1984,6 +1232,7 @@ class Lidar2D:
         num_lines: int
         mode: Lidar2D.Mode
         sign_method: Space2D.SignMethod
+
     def __init__(self: Lidar2D, setting: Lidar2D.Setting, space2d: Space2D): ...
     @property
     def setting(self: Lidar2D) -> Lidar2D.Setting: ...
@@ -2013,6 +1262,7 @@ class LidarFrame2D:
         discontinuity_factor: float
         rolling_diff_discount: float
         min_partition_size: int
+
     def __init__(self: LidarFrame2D, setting: LidarFrame2D.Setting) -> None: ...
     def update(
         self,
@@ -2146,6 +1396,7 @@ class LogOddMap2D:
         use_cross_kernel: bool
         num_iters_for_cleaned_mask: int
         filter_obstacles_in_cleaned_mask: bool
+
     @overload
     def __init__(self: LogOddMap2D, setting: Setting, grid_map_info: GridMapInfo2D) -> None: ...
     @overload
@@ -2234,6 +1485,7 @@ class Lidar3D:
         elevation_max: float
         num_azimuth_lines: int
         num_elevation_lines: int
+
     @overload
     def __init__(self, setting: Setting, vertices: np.ndarray, triangles: np.ndarray) -> None: ...
     @overload
@@ -2262,6 +1514,7 @@ class DepthCamera3D:
         camera_fy: float
         camera_cx: float
         camera_cy: float
+
     @overload
     def __init__(self, setting: Setting, vertices: np.ndarray, triangles: np.ndarray) -> None: ...
     @overload
@@ -2291,6 +1544,7 @@ class LidarFrame3D:
         discontinuity_factor: float
         rolling_diff_discount: float
         min_partition_size: int
+
     def __init__(self: LidarFrame3D, setting: Setting) -> None: ...
     def reset(self) -> None: ...
     def update(
@@ -2424,6 +1678,7 @@ class RgbdFrame3D:
         camera_cx: float
         camera_cy: float
         depth_scale: float
+
     def __init__(self: RgbdFrame3D, setting: Setting) -> None: ...
     def reset(self) -> None: ...
     def resize(self, factor: float) -> Tuple[int, int]: ...

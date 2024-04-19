@@ -7,6 +7,7 @@ using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geom
 
 struct UserData {
     inline static const char *window_name = "quadtree leaf of node at level 6";
+    std::shared_ptr<erl::geometry::OccupancyQuadtree::Setting> tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
     std::shared_ptr<erl::geometry::OccupancyQuadtree> tree;
     std::shared_ptr<OccupancyQuadtreeDrawer> drawer;
     cv::Mat img;
@@ -73,7 +74,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 TEST(OccupancyQuadtree, IterateLeafOfNode) {
     GTEST_PREPARE_OUTPUT_DIR();
     UserData data;
-    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
+    data.tree_setting->resolution = 0.1;
+    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(data.tree_setting);
     ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451_2d.bt"), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;

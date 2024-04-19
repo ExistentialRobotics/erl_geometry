@@ -4,7 +4,7 @@
 #include "abstract_octree.hpp"
 #include "octree_key.hpp"
 #include "occupancy_octree_node.hpp"
-#include "logodd.hpp"
+#include "occupancy_nd_tree_setting.hpp"
 
 namespace erl::geometry {
 
@@ -12,35 +12,36 @@ namespace erl::geometry {
      * AbstractOccupancyOctree is a base class that implements generic occupancy quadtree functionality.
      */
     class AbstractOccupancyOctree : public AbstractOctree {
+    public:
+        using Setting = OccupancyNdTreeSetting;
 
     protected:
-        // occupancy parameters, stored in log-odds
-        float m_log_odd_min_ = -2;           // minimum log-odd value, =0.12 in probability
-        float m_log_odd_max_ = 3.5;          // maximum log-odd value, = 0.97 in probability
-        float m_log_odd_hit_ = 0.85;         // log-odd value to add when a cell is hit by a ray, =0.7 in probability
-        float m_log_odd_miss_ = -0.4;        // log-odd value to add when a cell is gone through by a ray, =0.4 in probability
-        float m_log_odd_occ_threshold_ = 0;  // threshold that is used to decide whether a cell is occupied or not, =0.5 in probability
-
-        // binary file header identifier
-        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";
+        std::shared_ptr<Setting> m_setting_ = std::make_shared<Setting>();
+        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";  // binary file header identifier
 
     public:
-        AbstractOccupancyOctree() = default;
+        AbstractOccupancyOctree() = delete;  // no default constructor
+
+        explicit AbstractOccupancyOctree(const std::shared_ptr<Setting>& setting)
+            : AbstractOctree(setting),
+              m_setting_(setting) {}
+
+        AbstractOccupancyOctree(const AbstractOccupancyOctree&) = delete;  // no copy constructor
 
         //--IO
         /**
-         * Write the tree to a binary file. Before writing, the tree is pruned.
+         * Write the tree as a binary sequence to file. Before writing, the tree is pruned.
          * @param filename
          * @return
          */
         bool
         WriteBinary(const std::string& filename);
         /**
-         * Write the tree to a binary stream. Before writing, the tree is pruned.
+         * Write the tree as a binary sequence to stream. Before writing, the tree is pruned.
          * @param s
          * @return
          */
-        bool
+        std::ostream&
         WriteBinary(std::ostream& s);
         /**
          * Write the tree to a binary file. The tree is not pruned before writing.
@@ -54,9 +55,8 @@ namespace erl::geometry {
          * @param s
          * @return
          */
-        bool
+        std::ostream&
         WriteBinary(std::ostream& s) const;
-
         /**
          * Write the actual tree data to a binary stream.
          * @param s
@@ -64,10 +64,18 @@ namespace erl::geometry {
          */
         virtual std::ostream&
         WriteBinaryData(std::ostream& s) const = 0;
-
+        /**
+         * Read the tree from a binary file.
+         * @param filename
+         * @return
+         */
         bool
         ReadBinary(const std::string& filename);
-
+        /**
+         * Read the tree from a binary stream.
+         * @param s
+         * @return
+         */
         bool
         ReadBinary(std::istream& s);
 
@@ -79,70 +87,17 @@ namespace erl::geometry {
         //-- occupancy queries
         [[nodiscard]] inline bool
         IsNodeOccupied(const OccupancyOctreeNode* node) const {
-            return node->GetLogOdds() >= m_log_odd_occ_threshold_;
+            return node->GetLogOdds() > m_setting_->log_odd_occ_threshold;
         }
 
         [[nodiscard]] inline bool
         IsNodeAtThreshold(const OccupancyOctreeNode* node) const {
             float log_odds = node->GetLogOdds();
-            return log_odds >= m_log_odd_max_ || log_odds <= m_log_odd_min_;
+            return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
         }
 
         //-- update functions
         virtual void
         ToMaxLikelihood() = 0;
-
-        //-- parameters for occupancy and sensor model
-        inline void
-        SetLogOddMin(float val) {
-            m_log_odd_min_ = val;
-        }
-
-        [[nodiscard]] inline float
-        GetLogOddMin() const {
-            return m_log_odd_min_;
-        }
-
-        inline void
-        SetLogOddMax(float val) {
-            m_log_odd_max_ = val;
-        }
-
-        [[nodiscard]] inline float
-        GetLogOddMax() const {
-            return m_log_odd_max_;
-        }
-
-        inline void
-        SetProbabilityHit(double p) {
-            m_log_odd_hit_ = logodd::LogOdd(p);
-            ERL_ASSERTM(m_log_odd_hit_ > 0, "ProbabilityHit must be > 0, but is %f", m_log_odd_hit_);
-        }
-
-        [[nodiscard]] inline double
-        GetProbabilityHit() const {
-            return logodd::Probability(m_log_odd_hit_);
-        }
-
-        inline void
-        SetProbabilityMiss(double p) {
-            m_log_odd_miss_ = logodd::LogOdd(p);
-            ERL_WARN_COND(m_log_odd_miss_ >= 0, "ProbabilityMiss should be < 0, but is %f", m_log_odd_miss_);
-        }
-
-        [[nodiscard]] inline double
-        GetProbabilityMiss() const {
-            return logodd::Probability(m_log_odd_miss_);
-        }
-
-        inline void
-        SetOccupancyThreshold(double p) {
-            m_log_odd_occ_threshold_ = logodd::LogOdd(p);
-        }
-
-        [[nodiscard]] inline double
-        GetOccupancyThreshold() const {
-            return logodd::Probability(m_log_odd_occ_threshold_);
-        }
     };
 }  // namespace erl::geometry

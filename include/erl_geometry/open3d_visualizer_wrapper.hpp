@@ -40,7 +40,8 @@ namespace erl::geometry {
         std::shared_ptr<Setting> m_setting_ = nullptr;
         std::shared_ptr<open3d::visualization::VisualizerWithKeyCallback> m_visualizer_ = nullptr;
         std::shared_ptr<open3d::geometry::TriangleMesh> m_axis_mesh_ = nullptr;
-        std::function<void(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> m_update_callback_ = nullptr;
+        std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> m_keyboard_callback_ = nullptr;
+        std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> m_animation_callback_ = nullptr;
 
     public:
         explicit Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
@@ -62,8 +63,21 @@ namespace erl::geometry {
         }
 
         inline void
-        SetUpdateCallback(std::function<void(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> callback) {
-            m_update_callback_ = std::move(callback);
+        SetKeyboardCallback(std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> callback) {
+            m_keyboard_callback_ = std::move(callback);
+        }
+
+        inline void
+        SetAnimationCallback(std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> callback) {
+            m_animation_callback_ = std::move(callback);
+            if (m_animation_callback_) {
+                m_visualizer_->RegisterAnimationCallback([this](open3d::visualization::Visualizer *) -> bool {
+                    if (m_animation_callback_) { return m_animation_callback_(this, m_visualizer_.get()); }
+                    return true;
+                });
+            } else {
+                m_visualizer_->RegisterAnimationCallback(nullptr);
+            }
         }
 
         inline void
@@ -72,7 +86,7 @@ namespace erl::geometry {
         }
 
         inline void
-        Reset() {
+        ClearGeometries() {
             m_visualizer_->ClearGeometries();
             m_visualizer_->AddGeometry(m_axis_mesh_);
         }
@@ -84,7 +98,7 @@ namespace erl::geometry {
                 m_visualizer_->BuildUtilities();
                 m_visualizer_->UpdateWindowTitle();
                 auto start_time = std::chrono::system_clock::now();
-                if (m_update_callback_) { m_update_callback_(this, m_visualizer_.get()); }
+                if (m_keyboard_callback_) { m_keyboard_callback_(this, m_visualizer_.get()); }
                 while (true) {
                     auto current_time = std::chrono::system_clock::now();
                     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time);
@@ -93,7 +107,7 @@ namespace erl::geometry {
                     m_visualizer_->UpdateRender();
                 }
             } else {
-                if (m_update_callback_) { m_update_callback_(this, m_visualizer_.get()); }
+                if (m_keyboard_callback_) { m_keyboard_callback_(this, m_visualizer_.get()); }
                 m_visualizer_->Run();  // blocking
             }
             m_visualizer_->DestroyVisualizerWindow();
@@ -153,23 +167,23 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::Open3dVisualizerWrapper::Setting &rhs) {
-        out << BeginMap;
-        out << Key << "window_name" << Value << rhs.window_name;
-        out << Key << "window_width" << Value << rhs.window_width;
-        out << Key << "window_height" << Value << rhs.window_height;
-        out << Key << "window_left" << Value << rhs.window_left;
-        out << Key << "window_top" << Value << rhs.window_top;
-        out << Key << "x" << Value << rhs.x;
-        out << Key << "y" << Value << rhs.y;
-        out << Key << "z" << Value << rhs.z;
-        out << Key << "roll" << Value << rhs.roll;
-        out << Key << "pitch" << Value << rhs.pitch;
-        out << Key << "yaw" << Value << rhs.yaw;
-        out << Key << "translate_step" << Value << rhs.translate_step;
-        out << Key << "angle_step" << Value << rhs.angle_step;
-        out << EndMap;
-        return out;
-    }
+    // inline Emitter &
+    // operator<<(Emitter &out, const erl::geometry::Open3dVisualizerWrapper::Setting &rhs) {
+    //     out << BeginMap;
+    //     out << Key << "window_name" << Value << rhs.window_name;
+    //     out << Key << "window_width" << Value << rhs.window_width;
+    //     out << Key << "window_height" << Value << rhs.window_height;
+    //     out << Key << "window_left" << Value << rhs.window_left;
+    //     out << Key << "window_top" << Value << rhs.window_top;
+    //     out << Key << "x" << Value << rhs.x;
+    //     out << Key << "y" << Value << rhs.y;
+    //     out << Key << "z" << Value << rhs.z;
+    //     out << Key << "roll" << Value << rhs.roll;
+    //     out << Key << "pitch" << Value << rhs.pitch;
+    //     out << Key << "yaw" << Value << rhs.yaw;
+    //     out << Key << "translate_step" << Value << rhs.translate_step;
+    //     out << Key << "angle_step" << Value << rhs.angle_step;
+    //     out << EndMap;
+    //     return out;
+    // }
 }  // namespace YAML

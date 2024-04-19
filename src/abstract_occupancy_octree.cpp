@@ -5,18 +5,25 @@ namespace erl::geometry {
 
     bool
     AbstractOccupancyOctree::WriteBinary(const std::string &filename) {
+        ERL_DEBUG("Writing Octree to file: %s", std::filesystem::absolute(filename).c_str());
         std::ofstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
             return false;
         }
 
-        bool success = WriteBinary(file);
+        WriteBinary(file);
+        bool success = file.good();
         file.close();
+        if (success) {
+            ERL_DEBUG("Successfully wrote Octree of type %s, size %zu", GetTreeType().c_str(), GetSize());
+        } else {
+            ERL_WARN("Failed to write Octree of type %s, size %zu", GetTreeType().c_str(), GetSize());
+        }
         return success;
     }
 
-    bool
+    std::ostream &
     AbstractOccupancyOctree::WriteBinary(std::ostream &s) {
         ToMaxLikelihood();
         Prune();
@@ -25,38 +32,39 @@ namespace erl::geometry {
 
     bool
     AbstractOccupancyOctree::WriteBinary(const std::string &filename) const {
+        ERL_DEBUG("Writing Octree to file: %s", std::filesystem::absolute(filename).c_str());
         std::ofstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
             return false;
         }
 
-        bool success = WriteBinary(file);
+        WriteBinary(file);
+        bool success = file.good();
         file.close();
+        if (success) {
+            ERL_DEBUG("Successfully wrote Octree of type %s, size %zu", GetTreeType().c_str(), GetSize());
+        } else {
+            ERL_WARN("Failed to write Octree of type %s, size %zu", GetTreeType().c_str(), GetSize());
+        }
         return success;
     }
 
-    bool
+    std::ostream &
     AbstractOccupancyOctree::WriteBinary(std::ostream &s) const {
-        // write header
-        s << sk_BinaryFileHeader_ << "\n# (feel free to add / change comments, but leave the first line as it is!)\n#\n"
+        s << sk_BinaryFileHeader_ << std::endl
+          << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
           << "id " << GetTreeType() << std::endl
           << "size " << GetSize() << std::endl
-          << "res " << GetResolution() << std::endl
-          << "data" << std::endl;
-
-        WriteBinaryData(s);
-        if (s.good()) {
-            ERL_DEBUG("Successfully wrote Octree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
-            return true;
-        } else {
-            ERL_WARN("Failed to write Octree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
-            return false;
-        }
+          << "setting" << std::endl;
+        WriteSetting(s);
+        s << "data" << std::endl;
+        return WriteBinaryData(s);
     }
 
     bool
     AbstractOccupancyOctree::ReadBinary(const std::string &filename) {
+        ERL_DEBUG("Reading Octree from file: %s", std::filesystem::absolute(filename).c_str());
         std::ifstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
@@ -79,30 +87,34 @@ namespace erl::geometry {
         std::string line;
         std::getline(s, line);
         if (line.compare(0, sk_BinaryFileHeader_.length(), sk_BinaryFileHeader_) != 0) {
-            ERL_WARN("First line of Octree file header does not start with \"%s\"", sk_FileHeader_.c_str());
+            ERL_WARN("First line of Octree file header does not start with \"%s\"", sk_BinaryFileHeader_.c_str());
             return false;
         }
 
         // read header
-        std::string id;
+        std::string tree_id;
         uint32_t size;
-        double res;
-        if (!ReadHeader(s, id, size, res)) { return false; }
-        if (id != GetTreeType()) {
-            ERL_WARN("Error reading Octree header, ID does not match: %s != %s", id.c_str(), GetTreeType().c_str());
+        if (!ReadHeader(s, tree_id, size)) { return false; }
+        if (tree_id != GetTreeType()) {
+            ERL_WARN("Error reading Octree header, ID does not match: %s != %s", tree_id.c_str(), GetTreeType().c_str());
+            return false;
+        }
+
+        // clear and read setting
+        Clear();
+        ReadSetting(s);
+        ApplySetting();
+
+        // check if the next line is "data"
+        std::getline(s, line);
+        if (line.compare(0, 4, "data") != 0) {
+            ERL_WARN("Expected 'data' keyword, got: %s", line.c_str());
             return false;
         }
 
         // read binary data
-        Clear();
-        SetResolution(res);
         if (size > 0) { ReadBinaryData(s); }
-        if (size != GetSize()) {
-            ERL_WARN("GetSize mismatch: %u != %zu", size, GetSize());
-            return false;
-        }
-
-        ERL_DEBUG("Successfully read Octree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
-        return true;
+        ERL_DEBUG("Done (%zu nodes).", GetSize());
+        return GetSize() == size;
     }
 }  // namespace erl::geometry

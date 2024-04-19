@@ -129,27 +129,27 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::RgbdFrame3D::Setting &rhs) {
-        out << BeginMap;
-        out << Key << "valid_range_min" << Value << rhs.valid_range_min;
-        out << Key << "valid_range_max" << Value << rhs.valid_range_max;
-        out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
-        out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
-        out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
-        out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
-        out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
-        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
-        out << Key << "min_partition_size" << Value << rhs.min_partition_size;
-        out << Key << "camera_to_optical" << Value << rhs.camera_to_optical;
-        out << Key << "image_height" << Value << rhs.image_height;
-        out << Key << "image_width" << Value << rhs.image_width;
-        out << Key << "camera_fx" << Value << rhs.camera_fx;
-        out << Key << "camera_fy" << Value << rhs.camera_fy;
-        out << Key << "camera_cx" << Value << rhs.camera_cx;
-        out << Key << "camera_cy" << Value << rhs.camera_cy;
-        out << Key << "depth_scale" << Value << rhs.depth_scale;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::RgbdFrame3D::Setting &rhs) {
+//        out << BeginMap;
+//        out << Key << "valid_range_min" << Value << rhs.valid_range_min;
+//        out << Key << "valid_range_max" << Value << rhs.valid_range_max;
+//        out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
+//        out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
+//        out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
+//        out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
+//        out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
+//        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
+//        out << Key << "min_partition_size" << Value << rhs.min_partition_size;
+//        out << Key << "camera_to_optical" << Value << rhs.camera_to_optical;
+//        out << Key << "image_height" << Value << rhs.image_height;
+//        out << Key << "image_width" << Value << rhs.image_width;
+//        out << Key << "camera_fx" << Value << rhs.camera_fx;
+//        out << Key << "camera_fy" << Value << rhs.camera_fy;
+//        out << Key << "camera_cx" << Value << rhs.camera_cx;
+//        out << Key << "camera_cy" << Value << rhs.camera_cy;
+//        out << Key << "depth_scale" << Value << rhs.depth_scale;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML

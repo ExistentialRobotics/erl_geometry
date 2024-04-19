@@ -86,7 +86,9 @@ Options options;
 
 TEST(OccupancyQuadtree, IterateOccupiedLeafOnRay) {
     UserData data;
-    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
+    auto tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
+    tree_setting->resolution = 0.1;
+    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(tree_setting);
     ERL_ASSERTM(data.tree->ReadBinary(options.tree_bt_file), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = options.resolution;

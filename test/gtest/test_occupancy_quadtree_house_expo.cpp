@@ -25,7 +25,9 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
         erl::common::LoadAndCastCsvFile<double>(traj_file_path.string().c_str(), [](const std::string &str) -> double { return std::stod(str); });
     long max_update_cnt = long(trajectory.size());
 
-    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.05);
+    auto tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
+    tree_setting->resolution = 0.05;
+    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(tree_setting);
     using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geometry::OccupancyQuadtree>;
     auto drawer_setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     drawer_setting->area_min = map_min;

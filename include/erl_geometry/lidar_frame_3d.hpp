@@ -288,7 +288,7 @@ namespace erl::geometry {
 namespace YAML {
     template<>
     struct convert<erl::geometry::LidarFrame3D::Setting> {
-        static Node
+        inline static Node
         encode(const erl::geometry::LidarFrame3D::Setting &rhs) {
             Node node;
             node["valid_range_min"] = rhs.valid_range_min;
@@ -303,7 +303,7 @@ namespace YAML {
             return node;
         }
 
-        static bool
+        inline static bool
         decode(const Node &node, erl::geometry::LidarFrame3D::Setting &rhs) {
             if (!node.IsMap()) { return false; }
             rhs.valid_range_min = node["valid_range_min"].as<double>();
@@ -319,19 +319,19 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::LidarFrame3D::Setting &rhs) {
-        out << BeginMap;
-        out << Key << "valid_range_min" << Value << rhs.valid_range_min;
-        out << Key << "valid_range_max" << Value << rhs.valid_range_max;
-        out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
-        out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
-        out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
-        out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
-        out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
-        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
-        out << Key << "min_partition_size" << Value << rhs.min_partition_size;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::LidarFrame3D::Setting &rhs) {
+//        out << BeginMap;
+//        out << Key << "valid_range_min" << Value << rhs.valid_range_min;
+//        out << Key << "valid_range_max" << Value << rhs.valid_range_max;
+//        out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
+//        out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
+//        out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
+//        out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
+//        out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
+//        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
+//        out << Key << "min_partition_size" << Value << rhs.min_partition_size;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML

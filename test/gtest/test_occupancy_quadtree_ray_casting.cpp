@@ -5,6 +5,7 @@
 
 struct UserData {
     inline static const char *window_name = "quadtree ray casting";
+    std::shared_ptr<erl::geometry::OccupancyQuadtree::Setting> tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
     std::shared_ptr<erl::geometry::OccupancyQuadtree> tree;
     std::shared_ptr<erl::geometry::OccupancyQuadtree::Drawer> drawer;
     cv::Mat img;
@@ -65,7 +66,8 @@ static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).p
 
 TEST(OccupancyQuadtree, RayCasting) {
     UserData data;
-    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
+    data.tree_setting->resolution = 0.1;
+    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(data.tree_setting);
     std::string file = (g_test_data_dir / "house_expo_room_1451_2d.bt").string();
     ASSERT_TRUE(data.tree->ReadBinary(file)) << "Fail to load the tree.";
     auto setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();

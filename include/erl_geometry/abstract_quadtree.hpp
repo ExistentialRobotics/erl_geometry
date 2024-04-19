@@ -3,6 +3,7 @@
 #include <memory>
 #include <map>
 #include <string>
+#include "nd_tree_setting.hpp"
 
 namespace erl::geometry {
 
@@ -10,23 +11,57 @@ namespace erl::geometry {
      * AbstractQuadtree is a base class for all quadtree implementations. It provides a common interface for factory pattern and file I/O.
      */
     class AbstractQuadtree {
+    protected:
+        std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
+        inline static std::map<std::string, std::shared_ptr<AbstractQuadtree>> s_class_id_mapping_ = {};
 
     public:
-        AbstractQuadtree() = default;
+        AbstractQuadtree() = delete;  // no default constructor
+
+        explicit AbstractQuadtree(const std::shared_ptr<NdTreeSetting>& setting)
+            : m_setting_(setting) {}
+
+        AbstractQuadtree(const AbstractQuadtree&) = delete;  // no copy constructor
+
         virtual ~AbstractQuadtree() = default;
 
-        [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>
-        Create() const = 0;
+        /**
+         * This function should be called after the tree is created or when the setting is changed.
+         */
+        virtual void
+        ApplySetting() = 0;
+
+        inline void
+        ReadSetting(std::istream& s) {
+            std::streamsize len;
+            s.read(reinterpret_cast<char*>(&len), sizeof(std::size_t));
+            std::string yaml_str(len, '\0');
+            s.read(yaml_str.data(), len);
+            m_setting_->FromYamlString(yaml_str);
+        }
+
+        inline void
+        WriteSetting(std::ostream& s) const {
+            std::string yaml_str = m_setting_->AsYamlString();
+            auto len = std::streamsize(yaml_str.size());
+            s.write(reinterpret_cast<const char*>(&len), sizeof(std::size_t));
+            s.write(yaml_str.data(), len);
+        }
 
         //-- get tree information
+        [[nodiscard]] uint32_t
+        GetTreeDepth() const {
+            return m_setting_->tree_depth;
+        }
+
+        [[nodiscard]] double
+        GetResolution() const {
+            return m_setting_->resolution;
+        }
 
         /// returns actual class name as string for identification
         [[nodiscard]] virtual std::string
         GetTreeType() const = 0;
-        [[nodiscard]] virtual double
-        GetResolution() const = 0;
-        virtual void
-        SetResolution(double res) = 0;
         [[nodiscard]] virtual std::size_t
         GetSize() const = 0;
         [[nodiscard]] virtual std::size_t
@@ -51,19 +86,26 @@ namespace erl::geometry {
         GetMetricSize(double& x, double& y) const = 0;
 
         //-- IO
-
         virtual void
         Clear() = 0;
-
         virtual void
         Prune() = 0;
-
-        // Write to file
+        /**
+         * Write the tree as raw data to a file.
+         * @param filename
+         * @return
+         */
         [[nodiscard]] bool
         Write(const std::string& filename) const;
-        // Write to stream
+        /**
+         * Write the tree as raw data to a stream.
+         * @param s
+         * @return
+         */
         [[nodiscard]] std::ostream&
         Write(std::ostream& s) const;
+
+    protected:
         /**
          * Write all nodes to the output stream (without file header) for a created tree. Pruning the tree first produces smaller files and faster loading.
          * @param s
@@ -72,47 +114,69 @@ namespace erl::geometry {
         virtual std::ostream&
         WriteData(std::ostream& s) const = 0;
 
-        // Read from file
+    public:
+        /**
+         * Read an octree from a file and cast it to the given type.
+         * @tparam T
+         * @param filename
+         * @return may return nullptr if the cast fails
+         */
         template<typename T>
         static std::enable_if_t<std::is_base_of_v<AbstractQuadtree, T>, std::shared_ptr<T>>
         ReadAs(const std::string& filename) {
             return std::dynamic_pointer_cast<T>(Read(filename));
         }
 
+        /**
+         * Generic read function to read an octree from a file.
+         * @param filename
+         * @return An octree derived from AbstractOctree
+         */
         static std::shared_ptr<AbstractQuadtree>
         Read(const std::string& filename);
-        // Read from stream
+        /**
+         * Generic read function to read an octree from a stream.
+         * @param s
+         * @return An octree derived from AbstractOctree
+         */
         static std::shared_ptr<AbstractQuadtree>
         Read(std::istream& s);
+
+    protected:
         /**
          * Read all nodes from the input steam (without file header) for a created tree.
          */
         virtual std::istream&
         ReadData(std::istream& s) = 0;
 
+    public:
+        /**
+         * Load the tree data from a file, the tree type in the file has to match the actual tree type.
+         * @param filename
+         * @return
+         */
         bool
         LoadData(const std::string& filename);
 
+        /**
+         * Load the tree data from a stream, the tree type in the file has to match the actual tree type.
+         * @param s
+         * @return
+         */
         bool
         LoadData(std::istream& s);
 
-        /**
-         * Create a new tree of the given type.
-         * @param id string of the tree type
-         * @param res resolution of the tree
-         * @return
-         */
-        static std::shared_ptr<AbstractQuadtree>
-        CreateTree(const std::string& id, double res);
-
-    private:
-        inline static std::map<std::string, std::shared_ptr<AbstractQuadtree>> s_class_id_mapping_ = {};
-
     protected:
         static bool
-        ReadHeader(std::istream& s, std::string& id, unsigned int& size, double& res);
+        ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
         static void
         RegisterTreeType(const std::shared_ptr<AbstractQuadtree>& tree);
         inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractQuadtree";
+
+        //-- factory pattern
+        [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>
+        Create() const = 0;
+        static std::shared_ptr<AbstractQuadtree>
+        CreateTree(const std::string& tree_id);
     };
 }  // namespace erl::geometry

@@ -11,20 +11,10 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    py::class_<typename Quadtree::Setting, YamlableBase, std::shared_ptr<typename Quadtree::Setting>> setting(tree, "Setting", py::module_local());
-    setting.def(py::init<>())
-        .def_readwrite("log_odd_min", &Quadtree::Setting::log_odd_min)
-        .def_readwrite("log_odd_max", &Quadtree::Setting::log_odd_max)
-        .def_readwrite("probability_hit", &Quadtree::Setting::probability_hit)
-        .def_readwrite("probability_miss", &Quadtree::Setting::probability_miss)
-        .def_readwrite("probability_occupied_threshold", &Quadtree::Setting::probability_occupied_threshold)
-        .def_readwrite("resolution", &Quadtree::Setting::resolution)
-        .def_readwrite("use_change_detection", &Quadtree::Setting::use_change_detection)
-        .def_readwrite("use_aabb_limit", &Quadtree::Setting::use_aabb_limit)
-        .def_readwrite("aabb", &Quadtree::Setting::aabb);
-
     // AbstractQuadtree methods
-    tree.def("read_raw", [](Quadtree &self, const std::string &filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
+    tree.def("apply_setting", &Quadtree::ApplySetting, "apply the latest setting to the tree")
+        .def("write_raw", [](Quadtree &self, const std::string &filename) -> bool { return self.Write(filename); }, py::arg("filename"))
+        .def("read_raw", [](Quadtree &self, const std::string &filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
 
     // AbstractOccupancyQuadtree methods
     tree.def(
@@ -41,7 +31,7 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
         .def("read_binary", [](Quadtree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); }, py::arg("filename"));
 
     // OccupancyQuadtreeBase methods, except iterators
-    tree.def(py::init<>([](double resolution) { return std::make_shared<Quadtree>(resolution); }), py::arg("resolution"))
+    tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Quadtree::Setting> &setting) { return std::make_shared<Quadtree>(setting); }), py::arg("setting"))
         .def(py::init<>([](const std::string &filename, bool is_binary) {
             if (is_binary) {
@@ -196,9 +186,8 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
 
     // QuadtreeImpl methods
     tree.def_property_readonly("number_of_nodes", &Quadtree::GetSize)
-        .def_property("resolution", &Quadtree::GetResolution, &Quadtree::SetResolution)
-        .def_property_readonly("max_tree_depth", &Quadtree::GetTreeDepth)
-        .def_property_readonly("tree_key_offset", &Quadtree::GetTreeKeyOffset)
+        .def_property_readonly("resolution", &Quadtree::GetResolution)
+        .def_property_readonly("tree_depth", &Quadtree::GetTreeDepth)
         .def_property_readonly(
             "metric_min",
             [](Quadtree &self) {
@@ -671,5 +660,5 @@ BindOccupancyQuadtree(py::module &m, const char *name) {
             py::arg("max_range") = -1,
             py::arg("bidirectional") = false,
             py::arg("max_leaf_depth") = 0);
-    return std::make_pair(tree, setting);
+    return tree;
 }

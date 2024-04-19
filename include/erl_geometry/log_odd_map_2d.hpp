@@ -312,20 +312,20 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::LogOddMap2D::Setting &setting) {
-        out << BeginMap;
-        out << Key << "sensor_min_range" << Value << setting.sensor_min_range;
-        out << Key << "sensor_max_range" << Value << setting.sensor_max_range;
-        out << Key << "measurement_certainty" << Value << setting.measurement_certainty;
-        out << Key << "max_log_odd" << Value << setting.max_log_odd;
-        out << Key << "min_log_odd" << Value << setting.min_log_odd;
-        out << Key << "threshold_occupied" << Value << setting.threshold_occupied;
-        out << Key << "threshold_free" << Value << setting.threshold_free;
-        out << Key << "use_cross_kernel" << Value << setting.use_cross_kernel;
-        out << Key << "num_iters_for_cleaned_mask" << Value << setting.num_iters_for_cleaned_mask;
-        out << Key << "filter_obstacles_in_cleaned_mask" << Value << setting.filter_obstacles_in_cleaned_mask;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::LogOddMap2D::Setting &setting) {
+//        out << BeginMap;
+//        out << Key << "sensor_min_range" << Value << setting.sensor_min_range;
+//        out << Key << "sensor_max_range" << Value << setting.sensor_max_range;
+//        out << Key << "measurement_certainty" << Value << setting.measurement_certainty;
+//        out << Key << "max_log_odd" << Value << setting.max_log_odd;
+//        out << Key << "min_log_odd" << Value << setting.min_log_odd;
+//        out << Key << "threshold_occupied" << Value << setting.threshold_occupied;
+//        out << Key << "threshold_free" << Value << setting.threshold_free;
+//        out << Key << "use_cross_kernel" << Value << setting.use_cross_kernel;
+//        out << Key << "num_iters_for_cleaned_mask" << Value << setting.num_iters_for_cleaned_mask;
+//        out << Key << "filter_obstacles_in_cleaned_mask" << Value << setting.filter_obstacles_in_cleaned_mask;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML

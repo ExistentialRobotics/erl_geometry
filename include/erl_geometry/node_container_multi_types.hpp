@@ -235,13 +235,13 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::NodeContainerMultiTypes::Setting &setting) {
-        out << BeginMap;
-        out << Key << "num_node_types" << Value << setting.num_node_types;
-        out << Key << "node_type_capacity" << Value << setting.node_type_capacity;
-        out << Key << "node_type_min_squared_distance" << Value << setting.node_type_min_squared_distance;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::NodeContainerMultiTypes::Setting &setting) {
+//        out << BeginMap;
+//        out << Key << "num_node_types" << Value << setting.num_node_types;
+//        out << Key << "node_type_capacity" << Value << setting.node_type_capacity;
+//        out << Key << "node_type_min_squared_distance" << Value << setting.node_type_min_squared_distance;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML

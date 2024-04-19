@@ -7,6 +7,7 @@ using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geom
 
 struct UserData {
     inline static const char *window_name = "quadtree find neighbors";
+    std::shared_ptr<erl::geometry::OccupancyQuadtree::Setting> tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
     std::shared_ptr<erl::geometry::OccupancyQuadtree> tree;
     std::shared_ptr<OccupancyQuadtreeDrawer> drawer;
     cv::Mat img;
@@ -102,7 +103,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 
 TEST(OccupancyQuadtree, FindNeighbors) {
     UserData data;
-    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(0.1);
+    data.tree_setting->resolution = 0.1;
+    data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(data.tree_setting);
     EXPECT_TRUE(data.tree->ReadBinary("square.bt"));
 
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();

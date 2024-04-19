@@ -24,35 +24,25 @@ public:
 class Octree : public erl::geometry::OccupancyOctreeBase<OctreeNode> {
 
 public:
-    /// Default constructor, sets resolution of leafs
-    explicit Octree(double resolution)
-        : erl::geometry::OccupancyOctreeBase<OctreeNode>(resolution) {
+    using Super = erl::geometry::OccupancyOctreeBase<OctreeNode>;
+    using Setting = Super::Setting;
+
+    Octree(const std::shared_ptr<Setting> &setting)
+        : erl::geometry::OccupancyOctreeBase<OctreeNode>(setting) {
         s_init_.EnsureLinking();
     }
 
-    /**
-     * Reads an OcTree from a binary file
-     * @param _filename
-     *
-     */
-    explicit Octree(const std::string &_filename)
-        : erl::geometry::OccupancyOctreeBase<OctreeNode>(0.1) {  // resolution will be set according to tree file
-        ReadBinary(_filename);
-    }
-
-    /// virtual constructor: creates a new object of same type
-    /// (Covariant return type requires an up-to-date compiler)
-    std::shared_ptr<erl::geometry::AbstractOctree>
-    Create() const override {
-        return std::make_shared<Octree>(0.1);
-    }
-
-    std::string
+    [[nodiscard]] inline std::string
     GetTreeType() const override {
         return "Octree";
     }
 
 protected:
+    [[nodiscard]] inline std::shared_ptr<erl::geometry::AbstractOctree>
+    Create() const override {
+        return std::make_shared<Octree>(std::make_shared<Setting>());
+    }
+
     /**
      * Static member object which ensures that this OcTree's prototype
      * ends up in the classIDMapping only once. You need this as a
@@ -63,7 +53,7 @@ protected:
     class StaticMemberInitializer {
     public:
         StaticMemberInitializer() {
-            auto tree = std::make_shared<Octree>(0.1);
+            auto tree = std::make_shared<Octree>(std::make_shared<Setting>());
             tree->ClearKeyRays();
             AbstractOctree::RegisterTreeType(tree);
         }
@@ -74,7 +64,7 @@ protected:
          * Needs to be called from the constructor of this octree.
          */
         void
-        EnsureLinking(){};
+        EnsureLinking(){}
     };
 
     /// to ensure static initialization (only once)
@@ -141,10 +131,12 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
         open3d::t::geometry::RaycastingScene scene;
         auto bunny_id = scene.AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*bunny_mesh));
 
-        Octree octree(0.001);
+        auto octree_setting = std::make_shared<Octree::Setting>();
+        octree_setting->resolution = 0.001;
+        Octree octree(octree_setting);
         for (std::size_t i = 0; i < bunny_mesh->vertices_.size(); ++i) {
             Eigen::Vector3d &vertex = bunny_mesh->vertices_[i];
-            auto node = static_cast<OctreeNode*>(octree.UpdateNode(vertex[0], vertex[1], vertex[2], 20.0f, true));
+            auto node = static_cast<OctreeNode *>(octree.UpdateNode(vertex[0], vertex[1], vertex[2], 20.0f, true));
             node->geometry_id = 0;
             node->vertex_id = i;
         }
@@ -263,8 +255,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                                 ends[i][0],
                                 ends[i][1],
                                 ends[i][2],
-                                depth
-                                )) {
+                                depth)) {
                             erl::geometry::OctreeKey key = octree.CoordToKey(ends[i][0], ends[i][1], ends[i][2]);
                             auto node = octree.Search(key);
                             if (node->geometry_id == 0) {

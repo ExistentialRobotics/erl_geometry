@@ -554,7 +554,6 @@ namespace erl::geometry {
         std::uniform_real_distribution<double> uniform_range_ratio(0.1, 0.9);
 
         struct RayInfo {
-            // long i = 0, j = 0;
             double ray_azimuth = 0.0;
             double ray_elevation = 0.0;
             double end_point_elevation = 0.0;
@@ -588,8 +587,6 @@ namespace erl::geometry {
                     if (m_dirs_world_(i, j).dot(kViewingDir) <= 0.0) { continue; }  // behind the viewing position
 
                     RayInfo ray_info;
-                    // ray_info.i = i;
-                    // ray_info.j = j;
                     ray_info.range = m_ranges_(i, j);
                     ray_info.dir_world << m_dirs_world_(i, j);
                     // 1.

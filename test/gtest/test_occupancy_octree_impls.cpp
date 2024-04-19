@@ -13,7 +13,7 @@ static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).p
 struct Options {
     std::string mesh_file = (g_test_data_dir / "house_expo_room_1451.ply").string();
     std::string traj_file = (g_test_data_dir / "house_expo_room_1451.csv").string();
-    double octree_resolution = 0.01;
+    std::shared_ptr<erl::geometry::OccupancyOctree::Setting> octree_setting = std::make_shared<erl::geometry::OccupancyOctree::Setting>();
 };
 
 static Options g_options;
@@ -34,7 +34,8 @@ TEST(OccupancyOctree, ErlImpl) {
     Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
 
-    auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_resolution);
+    g_options.octree_setting->resolution = 0.01;
+    auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_setting);
 
     double dt_erl = 0;
     std::size_t pose_idx = 0;
@@ -89,7 +90,8 @@ TEST(OccupancyOctree, Erl_ComputeUpdate) {
     Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
 
-    auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_resolution);
+    g_options.octree_setting->resolution = 0.01;
+    auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_setting);
 
     double dt_erl = 0;
     std::size_t pose_idx = 0;
@@ -146,7 +148,8 @@ TEST(OccupancyOctree, OctomapImpl) {
     std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
 
-    auto octomap_octree = std::make_shared<octomap::OcTree>(g_options.octree_resolution);
+    g_options.octree_setting->resolution = 0.01;
+    auto octomap_octree = std::make_shared<octomap::OcTree>(g_options.octree_setting->resolution);
 
     double dt_octomap = 0;
     std::size_t pose_idx = 0;
@@ -201,7 +204,7 @@ TEST(OccupancyOctree, Octomap_ComputeUpdate) {
     std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
 
-    auto octomap_octree = std::make_shared<octomap::OcTree>(g_options.octree_resolution);
+    auto octomap_octree = std::make_shared<octomap::OcTree>(g_options.octree_setting->resolution);
 
     double dt_octomap = 0;
     std::size_t pose_idx = 0;

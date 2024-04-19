@@ -26,14 +26,16 @@ erl_find_package(
 )
 get_target_property(Open3D_LIBRARIES Open3D::Open3D LOCATION)
 
-erl_find_package(
-        PACKAGE octomap
-        REQUIRED
-        COMMANDS UBUNTU_LINUX "try `sudo apt-get install liboctomap-dev`"
-        COMMANDS ARCH_LINUX "try `paru -S octomap`"
-)
-get_target_property(octomap_INCLUDE_DIRS octomap INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(octomap_LIBRARIES octomap LOCATION)
+if (ERL_BUILD_TEST_${PROJECT_NAME})
+    erl_find_package(
+            PACKAGE octomap
+            REQUIRED
+            COMMANDS UBUNTU_LINUX "try `sudo apt-get install liboctomap-dev`"
+            COMMANDS ARCH_LINUX "try `paru -S octomap`"
+    )
+    get_target_property(octomap_INCLUDE_DIRS octomap INTERFACE_INCLUDE_DIRECTORIES)
+    get_target_property(octomap_LIBRARIES octomap LOCATION)
+endif ()
 
 erl_project_setup(
     @PROJECT_NAME@

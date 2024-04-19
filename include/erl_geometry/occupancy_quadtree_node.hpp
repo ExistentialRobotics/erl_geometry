@@ -11,7 +11,7 @@ namespace erl::geometry {
         explicit OccupancyQuadtreeNode(float log_odds = 0)
             : QuadtreeDataNode<float>(log_odds) {}
 
-        OccupancyQuadtreeNode(const OccupancyQuadtreeNode &other)
+        OccupancyQuadtreeNode(const OccupancyQuadtreeNode &other)  // NOLINT(*-copy-constructor-init, *-no-recursion)
             : QuadtreeDataNode<float>(other.m_value_) {
             CopyChildren<OccupancyQuadtreeNode>(other);
         }

@@ -31,13 +31,6 @@ namespace erl::geometry {
             }
         };
 
-        struct KeyLessThan {
-            [[nodiscard]] inline bool
-            operator()(const QuadtreeKey& lhs, const QuadtreeKey& rhs) const {
-                return lhs.m_k_[0] < rhs.m_k_[0] || (lhs.m_k_[0] == rhs.m_k_[0] && lhs.m_k_[1] < rhs.m_k_[1]);
-            }
-        };
-
         QuadtreeKey() = default;
 
         QuadtreeKey(KeyType a, KeyType b)
@@ -61,6 +54,31 @@ namespace erl::geometry {
         [[nodiscard]] inline const KeyType&
         operator[](unsigned int i) const {
             return m_k_[i];
+        }
+
+        [[nodiscard]] inline bool
+        operator<(const QuadtreeKey& other) const {
+            return m_k_[0] < other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] < other.m_k_[1]);
+        }
+
+        [[nodiscard]] inline bool
+        operator<=(const QuadtreeKey& other) const {
+            return m_k_[0] < other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] <= other.m_k_[1]);
+        }
+
+        [[nodiscard]] inline bool
+        operator>(const QuadtreeKey& other) const {
+            return m_k_[0] > other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] > other.m_k_[1]);
+        }
+
+        [[nodiscard]] inline bool
+        operator>=(const QuadtreeKey& other) const {
+            return m_k_[0] > other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] >= other.m_k_[1]);
+        }
+
+        [[nodiscard]] inline explicit
+        operator std::string() const {
+            return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]);
         }
 
         /**

@@ -189,21 +189,21 @@ namespace erl::geometry {
 namespace YAML {
     template<>
     struct convert<erl::geometry::Space2D::SignMethod> {
-        static Node
+        inline static Node
         encode(const erl::geometry::Space2D::SignMethod &rhs) {
             return Node(erl::geometry::Space2D::GetSignMethodName(rhs));
         }
 
-        static bool
+        inline static bool
         decode(const Node &node, erl::geometry::Space2D::SignMethod &rhs) {
             rhs = erl::geometry::Space2D::GetSignMethodFromName(node.as<std::string>());
             return true;
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::Space2D::SignMethod &rhs) {
-        out << erl::geometry::Space2D::GetSignMethodName(rhs);
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::Space2D::SignMethod &rhs) {
+//        out << erl::geometry::Space2D::GetSignMethodName(rhs);
+//        return out;
+//    }
 }  // namespace YAML

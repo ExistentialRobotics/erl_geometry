@@ -2,7 +2,7 @@
 ==============
 This CMake project provides `erl_geometry` which is a C++ library for geometry processing.
 
-- [Axis Aligned Bounding Box (AABB)](include/erl_geometry/aabb.hpp): Axis Aligned Bounding Box (AABB), derived
+- [Axis Aligned Bounding Box (Aabb)](include/erl_geometry/aabb.hpp): Axis Aligned Bounding Box (Aabb), derived
   from `Eigen::AlignedBox`.
 - [KdTree](include/erl_geometry/kdtree_eigen_adaptor.hpp): create kd-tree from Eigen matrix.
 - [Incremental Quadtree](include/erl_geometry/incremental_quadtree.hpp): support incremental construction, keep the

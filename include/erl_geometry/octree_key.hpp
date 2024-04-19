@@ -34,14 +34,6 @@ namespace erl::geometry {
             }
         };
 
-        struct KeyLessThan {
-            [[nodiscard]] inline bool
-            operator()(const OctreeKey& lhs, const OctreeKey& rhs) const {
-                return lhs.m_k_[0] < rhs.m_k_[0] || (lhs.m_k_[0] == rhs.m_k_[0] && lhs.m_k_[1] < rhs.m_k_[1]) ||
-                       (lhs.m_k_[0] == rhs.m_k_[0] && lhs.m_k_[1] == rhs.m_k_[1] && lhs.m_k_[2] < rhs.m_k_[2]);
-            }
-        };
-
         OctreeKey() = default;
 
         OctreeKey(KeyType a, KeyType b, KeyType c)
@@ -65,6 +57,39 @@ namespace erl::geometry {
         [[nodiscard]] inline const KeyType&
         operator[](unsigned int i) const {
             return m_k_[i];
+        }
+
+        [[nodiscard]] inline bool
+        operator<(const OctreeKey& other) const {
+            return m_k_[0] < other.m_k_[0] ||                                //
+                   (m_k_[0] == other.m_k_[0] && (m_k_[1] < other.m_k_[1] ||  //
+                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] < other.m_k_[2])));
+        }
+
+        [[nodiscard]] inline bool
+        operator<=(const OctreeKey& other) const {
+            return m_k_[0] < other.m_k_[0] ||                                //
+                   (m_k_[0] == other.m_k_[0] && (m_k_[1] < other.m_k_[1] ||  //
+                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] <= other.m_k_[2])));
+        }
+
+        [[nodiscard]] inline bool
+        operator>(const OctreeKey& other) const {
+            return m_k_[0] > other.m_k_[0] ||                                //
+                   (m_k_[0] == other.m_k_[0] && (m_k_[1] > other.m_k_[1] ||  //
+                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] > other.m_k_[2])));
+        }
+
+        [[nodiscard]] inline bool
+        operator>=(const OctreeKey& other) const {
+            return m_k_[0] > other.m_k_[0] ||                                //
+                   (m_k_[0] == other.m_k_[0] && (m_k_[1] > other.m_k_[1] ||  //
+                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] >= other.m_k_[2])));
+        }
+
+        [[nodiscard]] inline explicit
+        operator std::string() const {
+            return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]) + "," + std::to_string(m_k_[2]);
         }
 
         /**

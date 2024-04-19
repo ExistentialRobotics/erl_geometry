@@ -409,7 +409,7 @@ namespace YAML {
 
     template<>
     struct convert<erl::geometry::IncrementalQuadtree::Setting> {
-        static Node
+        inline static Node
         encode(const erl::geometry::IncrementalQuadtree::Setting &setting) {
             Node node;
             node["cluster_half_area_size"] = setting.cluster_half_area_size;
@@ -418,7 +418,7 @@ namespace YAML {
             return node;
         }
 
-        static bool
+        inline static bool
         decode(const Node &node, erl::geometry::IncrementalQuadtree::Setting &setting) {
             if (!node.IsMap()) { return false; }
             setting.cluster_half_area_size = node["cluster_half_area_size"].as<double>();
@@ -428,13 +428,13 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::IncrementalQuadtree::Setting &setting) {
-        out << BeginMap;
-        out << Key << "cluster_half_area_size" << Value << setting.cluster_half_area_size;
-        out << Key << "max_half_area_size" << Value << setting.max_half_area_size;
-        out << Key << "min_half_area_size" << Value << setting.min_half_area_size;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::IncrementalQuadtree::Setting &setting) {
+//        out << BeginMap;
+//        out << Key << "cluster_half_area_size" << Value << setting.cluster_half_area_size;
+//        out << Key << "max_half_area_size" << Value << setting.max_half_area_size;
+//        out << Key << "min_half_area_size" << Value << setting.min_half_area_size;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML

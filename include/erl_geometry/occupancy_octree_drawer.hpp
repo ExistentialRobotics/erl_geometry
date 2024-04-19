@@ -11,7 +11,9 @@ namespace erl::geometry {
     public:
         struct Setting : public common::OverrideYamlable<AbstractOctreeDrawer::Setting, Setting> {
             bool occupied_only = false;
-            Eigen::Vector3d occupied_color = {0.5, 0.5, 0.5};  // gray
+            Eigen::Vector3d occupied_color = {0.67, 0.33, 0.0};  // brown
+            bool draw_node_boxes = true;
+            bool draw_node_borders = true;
         };
 
         typedef std::function<void(
@@ -61,20 +63,14 @@ namespace erl::geometry {
 
         void
         DrawTree(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override {
-            std::shared_ptr<open3d::geometry::TriangleMesh> boxes;
+            std::shared_ptr<open3d::geometry::VoxelGrid> boxes;
             std::shared_ptr<open3d::geometry::LineSet> node_border;
-            if (geometries.empty()) {
-                boxes = std::make_shared<open3d::geometry::TriangleMesh>();
-                node_border = std::make_shared<open3d::geometry::LineSet>();
-                geometries.push_back(boxes);
-                geometries.push_back(node_border);
-            } else {
-                ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
-                boxes = std::dynamic_pointer_cast<open3d::geometry::TriangleMesh>(geometries[0]);
-                ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
-                node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
-                ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
-            }
+            if (geometries.empty()) { geometries = GetBlankGeometries(); }
+            ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
+            boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+            ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
+            node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
+            ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
 
             if (m_occupancy_octree_ == nullptr) {
                 ERL_WARN("no occupancy octree is set.");
@@ -84,6 +80,8 @@ namespace erl::geometry {
             // draw
             boxes->Clear();
             node_border->Clear();
+            boxes->voxel_size_ = m_occupancy_octree_->GetResolution();
+            boxes->origin_ = (m_setting_->area_max + m_setting_->area_min) / 2.0;
             auto it = m_occupancy_octree_->BeginTreeInAabb(
                 m_setting_->area_min[0],
                 m_setting_->area_min[1],
@@ -104,61 +102,61 @@ namespace erl::geometry {
                 double z = it.GetZ();
                 bool occupied = m_occupancy_octree_->IsNodeOccupied(*it);
 
-                if (!it->HasAnyChild() && occupied) {                                                       // occupied leaf node
-                    auto box = open3d::geometry::TriangleMesh::CreateBox(node_size, node_size, node_size);  // min is (0, 0, 0)
-                    box->Translate(Eigen::Vector3d(x - half_size, y - half_size, z - half_size));           // move to (x, y, z)
-                    *boxes += *box;
+                if (!it->HasAnyChild() && occupied && m_setting_->draw_node_boxes) {  // occupied leaf node
+                    // auto box = open3d::geometry::TriangleMesh::CreateBox(node_size, node_size, node_size);  // min is (0, 0, 0)
+                    // box->Translate(Eigen::Vector3d(x - half_size, y - half_size, z - half_size));           // move to (x, y, z)
+                    // *boxes += *box;
+                    Eigen::Vector3i voxel_index(
+                        std::floor((x - boxes->origin_[0]) / boxes->voxel_size_),   // x
+                        std::floor((y - boxes->origin_[1]) / boxes->voxel_size_),   // y
+                        std::floor((z - boxes->origin_[2]) / boxes->voxel_size_));  // z
+                    boxes->AddVoxel(open3d::geometry::Voxel(voxel_index, m_setting_->occupied_color));
+                }
+
+                if (m_setting_->draw_node_borders) {
+                    auto n = int(node_border->points_.size());
+                    node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
+                    node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
+                    node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
+                    node_border->points_.emplace_back(x - half_size, y + half_size, z - half_size);
+                    node_border->points_.emplace_back(x - half_size, y - half_size, z + half_size);
+                    node_border->points_.emplace_back(x + half_size, y - half_size, z + half_size);
+                    node_border->points_.emplace_back(x + half_size, y + half_size, z + half_size);
+                    node_border->points_.emplace_back(x - half_size, y + half_size, z + half_size);
+                    node_border->lines_.emplace_back(n + 0, n + 1);
+                    node_border->lines_.emplace_back(n + 1, n + 2);
+                    node_border->lines_.emplace_back(n + 2, n + 3);
+                    node_border->lines_.emplace_back(n + 3, n + 0);
+                    node_border->lines_.emplace_back(n + 4, n + 5);
+                    node_border->lines_.emplace_back(n + 5, n + 6);
+                    node_border->lines_.emplace_back(n + 6, n + 7);
+                    node_border->lines_.emplace_back(n + 7, n + 4);
+                    node_border->lines_.emplace_back(n + 0, n + 4);
+                    node_border->lines_.emplace_back(n + 1, n + 5);
+                    node_border->lines_.emplace_back(n + 2, n + 6);
+                    node_border->lines_.emplace_back(n + 3, n + 7);
                 }
 
                 if (m_setting_->occupied_only) {
                     if (m_draw_tree_) { m_draw_tree_(this, geometries, it); }
                     continue;
                 }
-
-                auto n = int(node_border->points_.size());
-                node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
-                node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
-                node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
-                node_border->points_.emplace_back(x - half_size, y + half_size, z - half_size);
-                node_border->points_.emplace_back(x - half_size, y - half_size, z + half_size);
-                node_border->points_.emplace_back(x + half_size, y - half_size, z + half_size);
-                node_border->points_.emplace_back(x + half_size, y + half_size, z + half_size);
-                node_border->points_.emplace_back(x - half_size, y + half_size, z + half_size);
-                node_border->lines_.emplace_back(n + 0, n + 1);
-                node_border->lines_.emplace_back(n + 1, n + 2);
-                node_border->lines_.emplace_back(n + 2, n + 3);
-                node_border->lines_.emplace_back(n + 3, n + 0);
-                node_border->lines_.emplace_back(n + 4, n + 5);
-                node_border->lines_.emplace_back(n + 5, n + 6);
-                node_border->lines_.emplace_back(n + 6, n + 7);
-                node_border->lines_.emplace_back(n + 7, n + 4);
-                node_border->lines_.emplace_back(n + 0, n + 4);
-                node_border->lines_.emplace_back(n + 1, n + 5);
-                node_border->lines_.emplace_back(n + 2, n + 6);
-                node_border->lines_.emplace_back(n + 3, n + 7);
-
                 if (m_draw_tree_) { m_draw_tree_(this, geometries, it); }
             }
-            boxes->PaintUniformColor(m_setting_->occupied_color);
+            // boxes->PaintUniformColor(m_setting_->occupied_color);
             node_border->PaintUniformColor(m_setting_->border_color);
         }
 
         void
         DrawLeaves(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override {
-            std::shared_ptr<open3d::geometry::TriangleMesh> boxes;
+            std::shared_ptr<open3d::geometry::VoxelGrid> boxes;
             std::shared_ptr<open3d::geometry::LineSet> node_border;
-            if (geometries.empty()) {
-                boxes = std::make_shared<open3d::geometry::TriangleMesh>();
-                node_border = std::make_shared<open3d::geometry::LineSet>();
-                geometries.push_back(boxes);
-                geometries.push_back(node_border);
-            } else {
-                ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
-                boxes = std::dynamic_pointer_cast<open3d::geometry::TriangleMesh>(geometries[0]);
-                ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
-                node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
-                ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
-            }
+            if (geometries.empty()) { geometries = GetBlankGeometries(); }
+            ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
+            boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+            ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
+            node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
+            ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
 
             std::shared_ptr<const OccupancyOctreeType> octree = std::static_pointer_cast<const OccupancyOctreeType>(m_octree_);
             if (octree == nullptr) {
@@ -176,6 +174,8 @@ namespace erl::geometry {
             auto end = octree->EndLeafInAabb();
 
             boxes->Clear();
+            boxes->voxel_size_ = octree->GetResolution();
+            boxes->origin_.setZero();
             node_border->Clear();
             for (; it != end; ++it) {
                 ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!");
@@ -187,41 +187,48 @@ namespace erl::geometry {
                 double z = it.GetZ();
                 bool occupied = octree->IsNodeOccupied(*it);
 
-                if (occupied) {
-                    auto box = open3d::geometry::TriangleMesh::CreateBox(node_size, node_size, node_size);  // min is (0, 0, 0)
-                    box->Translate(Eigen::Vector3d(x - half_size, y - half_size, z - half_size));           // move to (x, y, z)
-                    *boxes += *box;
+                if (occupied && m_setting_->draw_node_boxes) {
+                    // auto box = open3d::geometry::TriangleMesh::CreateBox(node_size, node_size, node_size);  // min is (0, 0, 0)
+                    // box->Translate(Eigen::Vector3d(x - half_size, y - half_size, z - half_size));           // move to (x, y, z)
+                    // *boxes += *box;
+                    Eigen::Vector3i voxel_index(
+                        std::floor(x / boxes->voxel_size_),   // x
+                        std::floor(y / boxes->voxel_size_),   // y
+                        std::floor(z / boxes->voxel_size_));  // z
+                    boxes->AddVoxel(open3d::geometry::Voxel(voxel_index, m_setting_->occupied_color));
+                }
+
+                if (m_setting_->draw_node_borders) {
+                    auto n = int(node_border->points_.size());
+                    node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
+                    node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
+                    node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
+                    node_border->points_.emplace_back(x - half_size, y + half_size, z - half_size);
+                    node_border->points_.emplace_back(x - half_size, y - half_size, z + half_size);
+                    node_border->points_.emplace_back(x + half_size, y - half_size, z + half_size);
+                    node_border->points_.emplace_back(x + half_size, y + half_size, z + half_size);
+                    node_border->points_.emplace_back(x - half_size, y + half_size, z + half_size);
+                    node_border->lines_.emplace_back(n + 0, n + 1);
+                    node_border->lines_.emplace_back(n + 1, n + 2);
+                    node_border->lines_.emplace_back(n + 2, n + 3);
+                    node_border->lines_.emplace_back(n + 3, n + 0);
+                    node_border->lines_.emplace_back(n + 4, n + 5);
+                    node_border->lines_.emplace_back(n + 5, n + 6);
+                    node_border->lines_.emplace_back(n + 6, n + 7);
+                    node_border->lines_.emplace_back(n + 7, n + 4);
+                    node_border->lines_.emplace_back(n + 0, n + 4);
+                    node_border->lines_.emplace_back(n + 1, n + 5);
+                    node_border->lines_.emplace_back(n + 2, n + 6);
+                    node_border->lines_.emplace_back(n + 3, n + 7);
                 }
 
                 if (m_setting_->occupied_only) {
-                    if (m_draw_tree_) { m_draw_leaf_(this, geometries, it); }
+                    if (m_draw_leaf_) { m_draw_leaf_(this, geometries, it); }
                     continue;
                 }
-
-                auto n = int(node_border->points_.size());
-                node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
-                node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
-                node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
-                node_border->points_.emplace_back(x - half_size, y + half_size, z - half_size);
-                node_border->points_.emplace_back(x - half_size, y - half_size, z + half_size);
-                node_border->points_.emplace_back(x + half_size, y - half_size, z + half_size);
-                node_border->points_.emplace_back(x + half_size, y + half_size, z + half_size);
-                node_border->points_.emplace_back(x - half_size, y + half_size, z + half_size);
-                node_border->lines_.emplace_back(n + 0, n + 1);
-                node_border->lines_.emplace_back(n + 1, n + 2);
-                node_border->lines_.emplace_back(n + 2, n + 3);
-                node_border->lines_.emplace_back(n + 3, n + 0);
-                node_border->lines_.emplace_back(n + 4, n + 5);
-                node_border->lines_.emplace_back(n + 5, n + 6);
-                node_border->lines_.emplace_back(n + 6, n + 7);
-                node_border->lines_.emplace_back(n + 7, n + 4);
-                node_border->lines_.emplace_back(n + 0, n + 4);
-                node_border->lines_.emplace_back(n + 1, n + 5);
-                node_border->lines_.emplace_back(n + 2, n + 6);
-                node_border->lines_.emplace_back(n + 3, n + 7);
                 if (m_draw_leaf_) { m_draw_leaf_(this, geometries, it); }
             }
-            boxes->PaintUniformColor(m_setting_->occupied_color);
+            // boxes->PaintUniformColor(m_setting_->occupied_color);
             node_border->PaintUniformColor(m_setting_->border_color);
         }
     };
@@ -235,6 +242,8 @@ namespace YAML {
             Node node = convert<erl::geometry::AbstractOctreeDrawer::Setting>::encode(rhs);
             node["occupied_only"] = rhs.occupied_only;
             node["occupied_color"] = rhs.occupied_color;
+            node["draw_node_boxes"] = rhs.draw_node_boxes;
+            node["draw_node_borders"] = rhs.draw_node_borders;
             return node;
         }
 
@@ -244,20 +253,9 @@ namespace YAML {
             if (!convert<erl::geometry::AbstractOctreeDrawer::Setting>::decode(node, rhs)) { return false; }
             rhs.occupied_only = node["occupied_only"].template as<bool>();
             rhs.occupied_color = node["occupied_color"].template as<Eigen::Vector3d>();
+            rhs.draw_node_boxes = node["draw_node_boxes"].template as<bool>();
+            rhs.draw_node_borders = node["draw_node_borders"].template as<bool>();
             return true;
         }
     };
-
-    template<typename Setting>
-    Emitter &
-    PrintOccupancyOctreeDrawerSetting(Emitter &out, const Setting &rhs) {
-        out << BeginMap;
-        out << Key << "area_min" << Value << rhs.area_min;
-        out << Key << "area_max" << Value << rhs.area_max;
-        out << Key << "border_color" << Value << rhs.border_color;
-        out << Key << "occupied_only" << Value << rhs.occupied_only;
-        out << Key << "occupied_color" << Value << rhs.occupied_color;
-        out << EndMap;
-        return out;
-    }
 }  // namespace YAML

@@ -204,12 +204,12 @@ namespace YAML {
         }
     };
 
-    inline Emitter &
-    operator<<(Emitter &out, const erl::geometry::NodeContainerSingleType::Setting &setting) {
-        out << BeginMap;
-        out << Key << "capacity" << Value << setting.capacity;
-        out << Key << "min_squared_distance" << Value << setting.min_squared_distance;
-        out << EndMap;
-        return out;
-    }
+//    inline Emitter &
+//    operator<<(Emitter &out, const erl::geometry::NodeContainerSingleType::Setting &setting) {
+//        out << BeginMap;
+//        out << Key << "capacity" << Value << setting.capacity;
+//        out << Key << "min_squared_distance" << Value << setting.min_squared_distance;
+//        out << EndMap;
+//        return out;
+//    }
 }  // namespace YAML
