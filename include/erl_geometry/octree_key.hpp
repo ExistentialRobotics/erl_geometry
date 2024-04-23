@@ -16,20 +16,21 @@ namespace erl::geometry {
     public:
         typedef uint16_t KeyType;
 
+    private:
+        KeyType m_k_[3] = {0, 0, 0};
+
+    public:
         // Hash function for OctreeKey when used with absl containers.
         template<typename H>
-        friend H
+        [[maybe_unused]] friend H
         AbslHashValue(H h, const OctreeKey& key) {
             return H::combine(std::move(h), key.m_k_[0], key.m_k_[1], key.m_k_[2]);
         }
 
         // Hash function for OctreeKey when used with std hash containers.
-        struct KeyHash {
+        struct [[maybe_unused]] KeyHash {
             [[nodiscard]] inline std::size_t
             operator()(const OctreeKey& key) const {
-                // simple but more collision
-                // return static_cast<size_t>(key.m_k_[0]) + 1447 * static_cast<size_t>(key.m_k_[1]) + 345637 * static_cast<size_t>(key.m_k_[2]);
-                // less collision but causes more memory reallocation when used with absl::flat_hash_set or absl::flat_hash_map
                 return (std::size_t(key.m_k_[0]) << 32) | (std::size_t(key.m_k_[1]) << 16) | std::size_t(key.m_k_[2]);
             }
         };
@@ -38,6 +39,30 @@ namespace erl::geometry {
 
         OctreeKey(KeyType a, KeyType b, KeyType c)
             : m_k_{a, b, c} {}
+
+        OctreeKey(const OctreeKey& other)
+            : m_k_{other.m_k_[0], other.m_k_[1], other.m_k_[2]} {}
+
+        OctreeKey&
+        operator=(const OctreeKey& other) {
+            if (this == &other) { return *this; }
+            m_k_[0] = other.m_k_[0];
+            m_k_[1] = other.m_k_[1];
+            m_k_[2] = other.m_k_[2];
+            return *this;
+        }
+
+        OctreeKey(OctreeKey&& other) noexcept
+            : m_k_{std::exchange(other.m_k_[0], 0), std::exchange(other.m_k_[1], 0), std::exchange(other.m_k_[2], 0)} {}
+
+        OctreeKey&
+        operator=(OctreeKey&& other) noexcept {
+            if (this == &other) { return *this; }
+            m_k_[0] = std::exchange(other.m_k_[0], 0);
+            m_k_[1] = std::exchange(other.m_k_[1], 0);
+            m_k_[2] = std::exchange(other.m_k_[2], 0);
+            return *this;
+        }
 
         [[nodiscard]] inline bool
         operator==(const OctreeKey& other) const {
@@ -113,11 +138,12 @@ namespace erl::geometry {
          * @return
          */
         inline static int
-        ComputeChildIndex(const OctreeKey& key, unsigned int level) {
+        ComputeChildIndex(const OctreeKey& key, uint32_t level) {
             int pos = 0;
-            if (key.m_k_[0] & (1 << level)) { pos += 1; }
-            if (key.m_k_[1] & (1 << level)) { pos += 2; }
-            if (key.m_k_[2] & (1 << level)) { pos += 4; }
+            OctreeKey::KeyType mask = 1 << level;
+            if (key.m_k_[0] & mask) { pos += 1; }
+            if (key.m_k_[1] & mask) { pos += 2; }
+            if (key.m_k_[2] & mask) { pos += 4; }
             return pos;
         }
 
@@ -130,9 +156,6 @@ namespace erl::geometry {
                    (aabb_max_key.m_k_[1] >= (key.m_k_[1] - center_offset_key)) &&  //
                    (aabb_max_key.m_k_[2] >= (key.m_k_[2] - center_offset_key));
         }
-
-    private:
-        KeyType m_k_[3] = {0, 0, 0};
     };
 
     /**
@@ -166,11 +189,9 @@ namespace erl::geometry {
             Reset();
         }
 
-        OctreeKeyRay(const OctreeKeyRay& other) {
-            m_ray_ = other.m_ray_;
-            auto size = other.end() - other.begin();
-            m_end_of_ray_ = m_ray_.begin() + size;
-        }
+        OctreeKeyRay(const OctreeKeyRay& other)
+            : m_ray_(other.m_ray_),
+              m_end_of_ray_(m_ray_.begin() + (other.end() - other.begin())) {}
 
         inline void
         Reset() {

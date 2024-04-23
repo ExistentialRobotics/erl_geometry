@@ -6,14 +6,13 @@
 
 namespace erl::geometry {
 
-    class OccupancyQuadtree : public OccupancyQuadtreeBase<OccupancyQuadtreeNode> {
+    class OccupancyQuadtree : public OccupancyQuadtreeBase<OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting> {
     public:
-        using Super = OccupancyQuadtreeBase<OccupancyQuadtreeNode>;
         using Setting = OccupancyQuadtreeBaseSetting;
         typedef OccupancyQuadtreeDrawer<OccupancyQuadtree> Drawer;
 
-        explicit OccupancyQuadtree(const std::shared_ptr<Setting> &setting)
-            : OccupancyQuadtreeBase<OccupancyQuadtreeNode>(setting) {
+        explicit OccupancyQuadtree(const std::shared_ptr<OccupancyQuadtreeBaseSetting> &setting)
+            : OccupancyQuadtreeBase<OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>(setting) {
             s_init_.EnsureLinking();
         }
 
@@ -22,15 +21,10 @@ namespace erl::geometry {
 
         explicit OccupancyQuadtree(const std::string &filename)
             : OccupancyQuadtree() {  // resolution will be set by LoadData
-            ERL_ASSERTM(this->LoadData(filename), "Failed to read %s from file: %s", GetTreeType().c_str(), filename.c_str());
+            ERL_ASSERTM(this->LoadData(filename), "Failed to read OccupancyQuadtree from file: %s", filename.c_str());
         }
 
         OccupancyQuadtree(const OccupancyQuadtree &) = delete;  // no copy constructor
-
-        [[nodiscard]] inline std::shared_ptr<Setting>
-        GetSetting() const {
-            return Super::m_setting_;
-        }
 
         [[nodiscard]] inline std::string
         GetTreeType() const override {

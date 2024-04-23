@@ -26,7 +26,6 @@ namespace erl::geometry {
             return !(*this == rhs);
         }
     };
-
 }  // namespace erl::geometry
 
 namespace YAML {

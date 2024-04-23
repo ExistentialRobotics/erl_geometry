@@ -16,9 +16,13 @@ namespace erl::geometry {
     public:
         typedef uint16_t KeyType;
 
+    private:
+        KeyType m_k_[2] = {0, 0};
+
+    public:
         // Hash function for OctreeKey when used with absl containers.
         template<typename H>
-        friend H
+        [[maybe_unused]] friend H
         AbslHashValue(H h, const QuadtreeKey& key) {
             return H::combine(std::move(h), key.m_k_[0], key.m_k_[1]);
         }
@@ -35,6 +39,28 @@ namespace erl::geometry {
 
         QuadtreeKey(KeyType a, KeyType b)
             : m_k_{a, b} {}
+
+        QuadtreeKey(const QuadtreeKey& other)
+            : m_k_{other.m_k_[0], other.m_k_[1]} {}
+
+        QuadtreeKey&
+        operator=(const QuadtreeKey& other) {
+            if (this == &other) { return *this; }
+            m_k_[0] = other.m_k_[0];
+            m_k_[1] = other.m_k_[1];
+            return *this;
+        }
+
+        QuadtreeKey(QuadtreeKey&& other) noexcept
+            : m_k_{std::exchange(other.m_k_[0], 0), std::exchange(other.m_k_[1], 0)} {}
+
+        QuadtreeKey&
+        operator=(QuadtreeKey&& other) noexcept {
+            if (this == &other) { return *this; }
+            m_k_[0] = std::exchange(other.m_k_[0], 0);
+            m_k_[1] = std::exchange(other.m_k_[1], 0);
+            return *this;
+        }
 
         [[nodiscard]] inline bool
         operator==(const QuadtreeKey& other) const {
@@ -103,8 +129,9 @@ namespace erl::geometry {
         inline static int
         ComputeChildIndex(const QuadtreeKey& key, unsigned int level) {
             int pos = 0;
-            if (key.m_k_[0] & (1 << level)) { pos += 1; }
-            if (key.m_k_[1] & (1 << level)) { pos += 2; }
+            QuadtreeKey::KeyType mask = 1 << level;
+            if (key.m_k_[0] & mask) { pos += 1; }
+            if (key.m_k_[1] & mask) { pos += 2; }
             return pos;
         }
 
@@ -115,9 +142,6 @@ namespace erl::geometry {
                    (aabb_max_key[0] >= (key[0] - center_offset_key)) &&  //
                    (aabb_max_key[1] >= (key[1] - center_offset_key));
         }
-
-    private:
-        KeyType m_k_[2] = {0, 0};
     };
 
     /**
@@ -151,11 +175,9 @@ namespace erl::geometry {
             Reset();
         }
 
-        QuadtreeKeyRay(const QuadtreeKeyRay& other) {
-            m_ray_ = other.m_ray_;
-            auto size = other.end() - other.begin();
-            m_end_of_ray_ = m_ray_.begin() + size;
-        }
+        QuadtreeKeyRay(const QuadtreeKeyRay& other)
+            : m_ray_(other.m_ray_),
+              m_end_of_ray_(m_ray_.begin() + (other.end() - other.begin())) {}
 
         inline void
         Reset() {

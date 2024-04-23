@@ -64,6 +64,7 @@ namespace erl::geometry {
 
     bool
     AbstractOccupancyQuadtree::ReadBinary(const std::string &filename) {
+        ERL_DEBUG("Reading Quadtree from file: %s", std::filesystem::absolute(filename).c_str());
         std::ifstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
@@ -86,7 +87,7 @@ namespace erl::geometry {
         std::string line;
         std::getline(s, line);
         if (line.compare(0, sk_BinaryFileHeader_.length(), sk_BinaryFileHeader_) != 0) {
-            ERL_WARN("First line of Quadtree file header does not start with \"%s\"", sk_FileHeader_.c_str());
+            ERL_WARN("First line of Quadtree file header does not start with \"%s\"", sk_BinaryFileHeader_.c_str());
             return false;
         }
 

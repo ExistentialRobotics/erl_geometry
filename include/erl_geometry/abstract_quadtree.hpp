@@ -13,7 +13,7 @@ namespace erl::geometry {
     class AbstractQuadtree {
     protected:
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
-        inline static std::map<std::string, std::shared_ptr<AbstractQuadtree>> s_class_id_mapping_ = {};
+        inline static std::map<std::string, std::shared_ptr<AbstractQuadtree>> s_class_id_mapping_ = {};  // cppcheck-suppress unusedStructMember
 
     public:
         AbstractQuadtree() = delete;  // no default constructor
@@ -21,9 +21,15 @@ namespace erl::geometry {
         explicit AbstractQuadtree(const std::shared_ptr<NdTreeSetting>& setting)
             : m_setting_(setting) {}
 
-        AbstractQuadtree(const AbstractQuadtree&) = delete;  // no copy constructor
+        AbstractQuadtree(const AbstractQuadtree&) = delete;
 
         virtual ~AbstractQuadtree() = default;
+
+        template<typename T>
+        inline std::shared_ptr<T>
+        GetSetting() const {
+            return std::reinterpret_pointer_cast<T>(m_setting_);
+        }
 
         /**
          * This function should be called after the tree is created or when the setting is changed.
@@ -48,6 +54,15 @@ namespace erl::geometry {
             s.write(yaml_str.data(), len);
         }
 
+        //-- comparison
+        [[nodiscard]] virtual bool
+        operator==(const AbstractQuadtree& other) const = 0;
+
+        [[nodiscard]] inline bool
+        operator!=(const AbstractQuadtree& other) const {
+            return !(*this == other);
+        }
+
         //-- get tree information
         [[nodiscard]] uint32_t
         GetTreeDepth() const {
@@ -64,9 +79,9 @@ namespace erl::geometry {
         GetTreeType() const = 0;
         [[nodiscard]] virtual std::size_t
         GetSize() const = 0;
-        [[nodiscard]] virtual std::size_t
+        [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsage() const = 0;
-        [[nodiscard]] virtual std::size_t
+        [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsagePerNode() const = 0;
         virtual void
         GetMetricMin(double& x, double& y) = 0;
@@ -171,7 +186,7 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
         static void
         RegisterTreeType(const std::shared_ptr<AbstractQuadtree>& tree);
-        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractQuadtree";
+        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractQuadtree";  // cppcheck-suppress unusedStructMember
 
         //-- factory pattern
         [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>

@@ -64,7 +64,7 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             py::arg("filename"),
             py::arg("is_binary"))
         .def_property_readonly("tree_type", &Octree::GetTreeType)
-        .def_property_readonly("setting", &Octree::GetSetting)
+        .def_property_readonly("setting", &Octree::template GetSetting<typename Octree::Setting>)
         .def(
             "insert_point_cloud",
             &Octree::InsertPointCloud,
@@ -172,7 +172,12 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             [](const Octree &self, double px, double py, double pz, double vx, double vy, double vz, bool ignore_unknown, double max_range) {
                 double ex, ey, ez;
                 const Node *hit_node = self.CastRay(px, py, pz, vx, vy, vz, ignore_unknown, max_range, ex, ey, ez);
-                return std::make_tuple(hit_node, ex, ey, ez);
+                py::dict result;
+                result["hit_node"] = hit_node;
+                result["ex"] = ex;
+                result["ey"] = ey;
+                result["ez"] = ez;
+                return result;
             },
             py::arg("px"),
             py::arg("py"),
@@ -217,6 +222,9 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
     tree.def_property_readonly("number_of_nodes", &Octree::GetSize)
         .def_property_readonly("resolution", &Octree::GetResolution)
         .def_property_readonly("tree_depth", &Octree::GetTreeDepth)
+        .def_property_readonly("tree_center", &Octree::GetTreeCenter)
+        .def_property_readonly("tree_center_key", &Octree::GetTreeCenterKey)
+        .def_property_readonly("tree_max_half_size", &Octree::GetTreeMaxHalfSize)
         .def_property_readonly(
             "metric_min",
             [](Octree &self) {
@@ -429,11 +437,11 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def(
             "compute_ray_coords",
             [](const Octree &self, double sx, double sy, double sz, double ex, double ey, double ez) {
-                std::vector<std::array<double, 3>> ray;
+                std::vector<Eigen::Vector3d> ray;
                 if (self.ComputeRayCoords(sx, sy, sz, ex, ey, ez, ray)) {
-                    return std::optional<std::vector<std::array<double, 3>>>(ray);
+                    return std::optional<std::vector<Eigen::Vector3d>>(ray);
                 } else {
-                    return std::optional<std::vector<std::array<double, 3>>>();
+                    return std::optional<std::vector<Eigen::Vector3d>>();
                 }
             },
             py::arg("sx"),
@@ -443,7 +451,7 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             py::arg("ey"),
             py::arg("ez"))
         .def("create_node_child", &Octree::CreateNodeChild, py::arg("node"), py::arg("child_idx"))
-        .def("delete_node_child", &Octree::DeleteNodeChild, py::arg("node"), py::arg("child_idx"))
+        .def("delete_node_child", &Octree::DeleteNodeChild, py::arg("node"), py::arg("child_idx"), py::arg("key"))
         .def("get_node_child", py::overload_cast<Node *, uint32_t>(&Octree::GetNodeChild), py::arg("node"), py::arg("child_idx"))
         .def("is_node_collapsible", &Octree::IsNodeCollapsible, py::arg("node"))
         .def("expand_node", &Octree::ExpandNode, py::arg("node"))
@@ -466,12 +474,8 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             py::arg("x"),
             py::arg("y"),
             py::arg("z"),
-            py::arg("depth") = 0)
-        .def(
-            "search",
-            py::overload_cast<const OctreeKey &, uint32_t>(&Octree::Search, py::const_),
-            py::arg("key"),
-            py::arg("depth") = 0)
+            py::arg("max_depth") = 0)
+        .def("search", py::overload_cast<const OctreeKey &, uint32_t>(&Octree::Search, py::const_), py::arg("key"), py::arg("max_depth") = 0)
         .def(
             "insert_node",
             py::overload_cast<double, double, double, uint32_t>(&Octree::InsertNode),
@@ -534,6 +538,7 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def_property_readonly("y", &Octree::IteratorBase::GetY)
         .def_property_readonly("z", &Octree::IteratorBase::GetZ)
         .def_property_readonly("node_size", &Octree::IteratorBase::GetNodeSize)
+        .def_property_readonly("node_aabb", &Octree::IteratorBase::GetNodeAabb)
         .def_property_readonly("key", &Octree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Octree::IteratorBase::GetIndexKey);
 
@@ -593,17 +598,10 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             return self == typename Octree::BottomLeafNeighborIterator();
         });
 
-    py::class_<typename Octree::LeafOnRayIterator, typename Octree::IteratorBase>(tree, "LeafOnRayIterator")
-        .def_property_readonly("distance", &Octree::LeafOnRayIterator::GetDistance)
-        .def("next", [](typename Octree::LeafOnRayIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::LeafOnRayIterator &self) { return self == typename Octree::LeafOnRayIterator(); });
-
-    // Iterators defined in OccupancyOctreeBase
-    py::class_<typename Octree::OccupiedLeafOnRayIterator, typename Octree::IteratorBase>(tree, "OccupiedLeafOnRayIterator")
-        .def("next", [](typename Octree::OccupiedLeafOnRayIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::OccupiedLeafOnRayIterator &self) {
-            return self == typename Octree::OccupiedLeafOnRayIterator();
-        });
+    py::class_<typename Octree::NodeOnRayIterator, typename Octree::IteratorBase>(tree, "NodeOnRayIterator")
+        .def_property_readonly("distance", &Octree::NodeOnRayIterator::GetDistance)
+        .def("next", [](typename Octree::NodeOnRayIterator &self) { return ++self; })
+        .def_property_readonly("is_end", [](const typename Octree::NodeOnRayIterator &self) { return self == typename Octree::NodeOnRayIterator(); });
 
     tree.def("iter_leaf", &Octree::BeginLeaf, py::arg("max_depth") = 0)
         .def("iter_leaf_of_node", &Octree::BeginLeafOfNode, py::arg("node_key"), py::arg("node_depth"), py::arg("max_depth") = 0)
@@ -719,8 +717,8 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
-            "iter_leaf_on_ray",
-            &Octree::BeginLeafOnRay,
+            "iter_node_on_ray",
+            &Octree::BeginNodeOnRay,
             py::arg("px"),
             py::arg("py"),
             py::arg("pz"),
@@ -729,18 +727,8 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             py::arg("vz"),
             py::arg("max_range") = -1,
             py::arg("bidirectional") = false,
-            py::arg("max_leaf_depth") = 0)
-        .def(
-            "iter_occupied_leaf_on_ray",
-            &Octree::BeginOccupiedLeafOnRay,
-            py::arg("px"),
-            py::arg("py"),
-            py::arg("pz"),
-            py::arg("vx"),
-            py::arg("vy"),
-            py::arg("vz"),
-            py::arg("max_range") = -1,
-            py::arg("bidirectional") = false,
-            py::arg("max_leaf_depth") = 0);
+            py::arg("leaf_only") = true,
+            py::arg("min_node_depth") = 0,
+            py::arg("max_node_depth") = 0);
     return std::make_pair(tree, node);
 }

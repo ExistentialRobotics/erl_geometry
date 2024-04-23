@@ -27,7 +27,7 @@ namespace erl::geometry {
 
         (void) Write(file);
         file.close();
-        ERL_INFO("Successfully wrote Octree of type %s, size %zu", GetTreeType().c_str(), GetSize());
+        ERL_INFO("Successfully wrote Octree of type %s, size %zu", this->GetTreeType().c_str(), this->GetSize());
         return true;
     }
 
@@ -36,13 +36,13 @@ namespace erl::geometry {
         // write header
         s << sk_FileHeader_ << std::endl
           << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
-          << "id " << GetTreeType() << std::endl
-          << "size " << GetSize() << std::endl
+          << "id " << this->GetTreeType() << std::endl
+          << "size " << this->GetSize() << std::endl
           << "setting" << std::endl;
-        WriteSetting(s);
+        this->WriteSetting(s);
         s << "data" << std::endl;
         // write the actual tree data
-        return WriteData(s);
+        return this->WriteData(s);
     }
 
     std::shared_ptr<AbstractOctree>
@@ -54,7 +54,7 @@ namespace erl::geometry {
             return nullptr;
         }
 
-        auto tree = Read(file);
+        auto tree = AbstractOctree::Read(file);
         file.close();
         return tree;
     }
@@ -140,8 +140,8 @@ namespace erl::geometry {
             ERL_WARN("Expected 'data' keyword, got: %s", line.c_str());
             return false;
         }
-        if (size > 0) { ReadData(s); }
-        ERL_DEBUG("Done (%zu nodes).", GetSize());
+        if (size > 0) { this->ReadData(s); }
+        ERL_DEBUG("Done (%zu nodes).", this->GetSize());
         return GetSize() == size;
     }
 

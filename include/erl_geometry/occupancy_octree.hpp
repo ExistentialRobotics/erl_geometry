@@ -6,30 +6,29 @@
 
 namespace erl::geometry {
 
-    class OccupancyOctree : public OccupancyOctreeBase<OccupancyOctreeNode> {
+    class OccupancyOctree : public OccupancyOctreeBase<OccupancyOctreeNode, OccupancyOctreeBaseSetting> {
     public:
-        using Super = OccupancyOctreeBase<OccupancyOctreeNode>;
-        using Setting = Super::Setting;
+        using Setting = OccupancyOctreeBaseSetting;
         typedef OccupancyOctreeDrawer<OccupancyOctree> Drawer;
 
-        explicit OccupancyOctree(const std::shared_ptr<Setting> &setting)
-            : OccupancyOctreeBase<OccupancyOctreeNode>(setting) {
+        explicit OccupancyOctree(const std::shared_ptr<OccupancyOctreeBaseSetting> &setting)
+            : OccupancyOctreeBase<OccupancyOctreeNode, OccupancyOctreeBaseSetting>(setting) {
             s_init_.EnsureLinking();
         }
 
+        OccupancyOctree(const OccupancyOctree &other) = default;
+        OccupancyOctree &
+        operator=(const OccupancyOctree &other) = default;
+        OccupancyOctree(OccupancyOctree &&other) = default;
+        OccupancyOctree &
+        operator=(OccupancyOctree &&other) = default;
+
         OccupancyOctree()
-            : OccupancyOctree(std::make_shared<Setting>()) {}
+            : OccupancyOctree(std::make_shared<OccupancyOctreeBaseSetting>()) {}
 
         explicit OccupancyOctree(const std::string &filename)
             : OccupancyOctree() {  // resolution will be set by LoadData
-            ERL_ASSERTM(this->LoadData(filename), "Failed to read %s from file: %s", GetTreeType().c_str(), filename.c_str());
-        }
-
-        OccupancyOctree(const OccupancyOctree &) = delete;  // no copy constructor
-
-        [[nodiscard]] inline std::shared_ptr<Setting>
-        GetSetting() const {
-            return Super::m_setting_;
+            ERL_ASSERTM(this->LoadData(filename), "Failed to read OccupancyOctree from file: %s", filename.c_str());
         }
 
         [[nodiscard]] inline std::string
@@ -61,7 +60,7 @@ namespace erl::geometry {
              * to register. Needs to be called from the constructor of this octree.
              */
             void
-            EnsureLinking(){}
+            EnsureLinking() {}
         };
 
         inline static StaticMemberInitializer s_init_ = {};

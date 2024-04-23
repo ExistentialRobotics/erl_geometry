@@ -12,19 +12,15 @@ namespace erl::geometry {
      * AbstractOccupancyOctree is a base class that implements generic occupancy quadtree functionality.
      */
     class AbstractOccupancyOctree : public AbstractOctree {
-    public:
-        using Setting = OccupancyNdTreeSetting;
-
     protected:
-        std::shared_ptr<Setting> m_setting_ = std::make_shared<Setting>();
-        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";  // binary file header identifier
+        // binary file header identifier
+        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";  // cppcheck-suppress unusedStructMember
 
     public:
         AbstractOccupancyOctree() = delete;  // no default constructor
 
-        explicit AbstractOccupancyOctree(const std::shared_ptr<Setting>& setting)
-            : AbstractOctree(setting),
-              m_setting_(setting) {}
+        explicit AbstractOccupancyOctree(const std::shared_ptr<OccupancyNdTreeSetting>& setting)
+            : AbstractOctree(setting) {}
 
         AbstractOccupancyOctree(const AbstractOccupancyOctree&) = delete;  // no copy constructor
 
@@ -87,13 +83,14 @@ namespace erl::geometry {
         //-- occupancy queries
         [[nodiscard]] inline bool
         IsNodeOccupied(const OccupancyOctreeNode* node) const {
-            return node->GetLogOdds() > m_setting_->log_odd_occ_threshold;
+            return node->GetLogOdds() > reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get())->log_odd_occ_threshold;
         }
 
-        [[nodiscard]] inline bool
+        [[maybe_unused]] [[nodiscard]] inline bool
         IsNodeAtThreshold(const OccupancyOctreeNode* node) const {
             float log_odds = node->GetLogOdds();
-            return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
+            const auto* setting = reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get());
+            return log_odds >= setting->log_odd_max || log_odds <= setting->log_odd_min;
         }
 
         //-- update functions

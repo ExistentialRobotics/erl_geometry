@@ -433,7 +433,8 @@ TEST(OccupancyOctree, Prune) {
 
     // find parent of newly inserted node
     unsigned int search_depth = tree->GetTreeDepth() - 1;
-    auto* parent_node = const_cast<OccupancyOctreeNode*>(tree->Search(-0.2, -0.2, -0.2, search_depth));
+    OctreeKey parent_key = tree->CoordToKey(-0.2, -0.2, -0.2);
+    auto* parent_node = const_cast<OccupancyOctreeNode*>(tree->Search(parent_key, search_depth));
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
     // only one child exists
@@ -458,8 +459,8 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_EQ(tree->GetSize(), init_size + 1);
 
     // delete them
-    tree->DeleteNodeChild(parent_node, 0);
-    tree->DeleteNodeChild(parent_node, 3);
+    tree->DeleteNodeChild(parent_node, 0, parent_key);
+    tree->DeleteNodeChild(parent_node, 3, parent_key);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size - 1);
     tree->Prune();
@@ -477,6 +478,19 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_TRUE(tree->Write("prune.ot"));
 }
 
+TEST(OccupancyOctree, CopyTree) {
+    auto tree1 = AbstractOctree::ReadAs<OccupancyOctree>("prune.ot");
+    OccupancyOctree tree2 = *tree1;
+    EXPECT_NE(tree1->GetSetting<OccupancyOctree::Setting>(), tree2.GetSetting<OccupancyOctree::Setting>());  // the setting pointers should be different
+    EXPECT_TRUE(*tree1 == tree2);                                                                            // the content should be the same
+    auto itr_tree1 = tree1->BeginTree();
+    auto itr_tree2 = tree2.BeginTree();
+    for (; itr_tree1 != tree1->EndTree(); ++itr_tree1, ++itr_tree2) {
+        EXPECT_NE(*itr_tree1, *itr_tree2);    // the pointers should be different
+        EXPECT_EQ(**itr_tree1, **itr_tree2);  // the content should be the same
+    }
+}
+
 TEST(OccupancyOctree, DeleteTree) {
     auto abstract_tree = AbstractOctree::Read("prune.ot");
     EXPECT_TRUE(abstract_tree != nullptr);
@@ -486,6 +500,23 @@ TEST(OccupancyOctree, DeleteTree) {
     tree->Clear();
     EXPECT_EQ(tree->GetSize(), 0);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
+}
+
+TEST(OccupancyOctree, DeleteNodeChild) {
+    auto abstract_tree = AbstractOctree::Read("prune.ot");
+    EXPECT_TRUE(abstract_tree != nullptr);
+    auto tree = std::dynamic_pointer_cast<OccupancyOctree>(abstract_tree);
+    EXPECT_TRUE(tree != nullptr);
+
+    uint32_t cnt_node_deleted = tree->DeleteNodeChild(tree->GetRoot().get(), 0, tree->GetTreeCenterKey());
+    EXPECT_GT(cnt_node_deleted, 0);
+}
+
+TEST(OccupancyOctree, DeleteNode) {
+    auto tree = AbstractOctree::ReadAs<OccupancyOctree>("prune.ot");
+    EXPECT_TRUE(tree != nullptr);
+    uint32_t cnt_node_deleted = tree->DeleteNode(-0.2, -0.2, -0.2);
+    EXPECT_GT(cnt_node_deleted, 0);
 }
 
 TEST(OccupancyOctree, Iterator) {

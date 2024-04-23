@@ -13,19 +13,23 @@ namespace erl::geometry {
     class AbstractOctree {
     protected:
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
-        inline static std::map<std::string, std::shared_ptr<AbstractOctree>> s_class_id_mapping_ = {};
+        inline static std::map<std::string, std::shared_ptr<AbstractOctree>> s_class_id_mapping_ = {};  // cppcheck-suppress unusedStructMember
 
     public:
-        using Setting = NdTreeSetting;
-
         AbstractOctree() = delete;  // no default constructor
 
         explicit AbstractOctree(const std::shared_ptr<NdTreeSetting>& setting)
             : m_setting_(setting) {}
 
-        AbstractOctree(const AbstractOctree&) = delete;  // no copy constructor
+        AbstractOctree(const AbstractOctree&) = delete;
 
         virtual ~AbstractOctree() = default;
+
+        template<typename T>
+        inline std::shared_ptr<T>
+        GetSetting() const {
+            return std::reinterpret_pointer_cast<T>(m_setting_);
+        }
 
         /**
          * This function should be called after the tree is created or when the setting is changed.
@@ -50,6 +54,15 @@ namespace erl::geometry {
             s.write(yaml_str.data(), len);
         }
 
+        //-- comparison
+        [[nodiscard]] virtual bool
+        operator==(const AbstractOctree& other) const = 0;
+
+        [[nodiscard]] inline bool
+        operator!=(const AbstractOctree& other) const {
+            return !(*this == other);
+        }
+
         //-- get tree information
         [[nodiscard]] uint32_t
         GetTreeDepth() const {
@@ -66,9 +79,9 @@ namespace erl::geometry {
         GetTreeType() const = 0;
         [[nodiscard]] virtual std::size_t
         GetSize() const = 0;
-        [[nodiscard]] virtual std::size_t
+        [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsage() const = 0;
-        [[nodiscard]] virtual std::size_t
+        [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsagePerNode() const = 0;
         virtual void
         GetMetricMin(double& x, double& y, double& z) = 0;
@@ -153,7 +166,7 @@ namespace erl::geometry {
 
     public:
         /**
-         * Load the tree data from a file into the tree, the tree type in the file has to match the actual tree type.
+         * Load the tree data from a file, the tree type in the file has to match the actual tree type.
          * @param filename
          * @return
          */
@@ -161,7 +174,7 @@ namespace erl::geometry {
         LoadData(const std::string& filename);
 
         /**
-         * Load the tree data from a stream into the tree, the tree type in the file has to match the actual tree type.
+         * Load the tree data from a stream, the tree type in the file has to match the actual tree type.
          * @param s
          * @return
          */
@@ -173,7 +186,7 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
         static void
         RegisterTreeType(const std::shared_ptr<AbstractOctree>& tree);
-        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractOctree";
+        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractOctree";  // cppcheck-suppress unusedStructMember
 
         //-- factory pattern
         [[nodiscard]] virtual std::shared_ptr<AbstractOctree>

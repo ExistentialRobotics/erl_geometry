@@ -18,6 +18,7 @@ namespace erl::geometry {
 
     bool
     AbstractQuadtree::Write(const std::string &filename) const {
+        ERL_INFO("Writing quadtree to file: %s", std::filesystem::absolute(filename).string().c_str());
         std::ofstream file(filename.c_str(), std::ios_base::out | std::ios_base::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
@@ -26,7 +27,7 @@ namespace erl::geometry {
 
         (void) Write(file);
         file.close();
-        ERL_DEBUG("Successfully wrote Quadtree of type %s, size %zu, resolution %f", GetTreeType().c_str(), GetSize(), GetResolution());
+        ERL_INFO("Successfully wrote Quadtree of type %s, size %zu", this->GetTreeType().c_str(), this->GetSize());
         return true;
     }
 
@@ -35,24 +36,25 @@ namespace erl::geometry {
         // write header
         s << sk_FileHeader_ << std::endl
           << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
-          << "id " << GetTreeType() << std::endl
-          << "size " << GetSize() << std::endl
-          << "setting " << std::endl;
-        WriteSetting(s);
+          << "id " << this->GetTreeType() << std::endl
+          << "size " << this->GetSize() << std::endl
+          << "setting" << std::endl;
+        this->WriteSetting(s);
         s << "data" << std::endl;
         // write the actual tree data
-        return WriteData(s);
+        return this->WriteData(s);
     }
 
     std::shared_ptr<AbstractQuadtree>
     AbstractQuadtree::Read(const std::string &filename) {
+        ERL_INFO("Reading octree from file: %s", std::filesystem::absolute(filename).string().c_str());
         std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
             return nullptr;
         }
 
-        auto tree = Read(file);
+        auto tree = AbstractQuadtree::Read(file);
         file.close();
         return tree;
     }
@@ -90,12 +92,13 @@ namespace erl::geometry {
 
         // read the actual tree data
         if (size > 0) { tree->ReadData(s); }
-        ERL_DEBUG("Done (%zu nodes).", tree->GetSize());
+        ERL_INFO("Done (%zu nodes).", tree->GetSize());
         return tree;
     }
 
     bool
     AbstractQuadtree::LoadData(const std::string &filename) {
+        ERL_INFO("Loading data from file: %s", std::filesystem::absolute(filename).string().c_str());
         std::ifstream s(filename.c_str(), std::ios_base::in | std::ios_base::binary);
         if (!s.is_open()) {
             ERL_WARN("Failed to open file: %s", filename.c_str());
@@ -152,7 +155,7 @@ namespace erl::geometry {
         bool header_read = false;
         while (s.good() && !header_read) {
             s >> token;
-            if (token == "setting") {  // reach the data section
+            if (token == "setting") {  // reach the setting section
                 header_read = true;    // header read successfully
                 // skip forward until end of line
                 char c;

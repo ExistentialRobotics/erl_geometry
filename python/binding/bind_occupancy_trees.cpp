@@ -39,14 +39,7 @@ BindOccupancyTrees(py::module &m) {
         .def_readwrite("aabb", &OccupancyOctreeBaseSetting::aabb);
 
     // quadtree
-    py::class_<OccupancyQuadtreeNode, py::raw_ptr_wrapper<OccupancyQuadtreeNode>>(m, "OccupancyQuadtreeNode")
-        .def_property_readonly("occupancy", &OccupancyQuadtreeNode::GetOccupancy)
-        .def_property_readonly("log_odds", &OccupancyQuadtreeNode::GetLogOdds)
-        .def_property_readonly("mean_child_log_odds", &OccupancyQuadtreeNode::GetMeanChildLogOdds)
-        .def_property_readonly("max_child_log_odds", &OccupancyQuadtreeNode::GetMaxChildLogOdds)
-        .def("allow_update_log_odds", &OccupancyQuadtreeNode::AllowUpdateLogOdds, py::arg("delta"))
-        .def("add_log_odds", &OccupancyQuadtreeNode::AddLogOdds, py::arg("log_odds"));
-    BindOccupancyQuadtree<OccupancyQuadtree, OccupancyQuadtreeNode>(m, "OccupancyQuadtree");
+    BindOccupancyQuadtree<OccupancyQuadtree, OccupancyQuadtreeNode>(m, "OccupancyQuadtree", "OccupancyQuadtreeNode");
     BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<OccupancyQuadtree>, OccupancyQuadtree>(m, "OccupancyQuadtreeDrawer");
 
     BindOccupancyOctree<OccupancyOctree, OccupancyOctreeNode>(m, "OccupancyOctree", "OccupancyOctreeNode");

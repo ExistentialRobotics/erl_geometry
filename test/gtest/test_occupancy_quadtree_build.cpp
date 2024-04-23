@@ -21,7 +21,6 @@ struct Options {
     bool use_gazebo_data = false;
     bool use_house_expo_data = false;
     bool use_ros_bag_data = true;
-    bool visualize = false;
     bool hold = false;
     int stride = 1;
     double quadtree_resolution = 0.05;
@@ -54,18 +53,20 @@ TEST(OccupancyQuadtree, Build) {
             points.col(cnt) = global_pt;
             cnt++;
 
-            double &x = global_pt[0];
-            double &y = global_pt[1];
-            if (x < map_min[0]) { map_min[0] = x; }
-            if (x > map_max[0]) { map_max[0] = x; }
-            if (y < map_min[1]) { map_min[1] = y; }
-            if (y > map_max[1]) { map_max[1] = y; }
+            const double &kX = global_pt[0];
+            const double &kY = global_pt[1];
+            if (kX < map_min[0]) { map_min[0] = kX; }
+            if (kX > map_max[0]) { map_max[0] = kX; }
+            if (kY < map_min[1]) { map_min[1] = kY; }
+            if (kY > map_max[1]) { map_max[1] = kY; }
         }
         points.conservativeResize(2, cnt);
         return points;
     };
 
+    std::string tree_name;
     if (g_options.use_gazebo_data) {
+        tree_name = "gazebo";
         // load raw data
         auto train_data_loader = erl::geometry::GazeboRoom::TrainDataLoader(g_options.gazebo_train_file.c_str());
         // prepare buffer
@@ -84,6 +85,7 @@ TEST(OccupancyQuadtree, Build) {
         }
         trajectory.conservativeResize(2, j);
     } else if (g_options.use_house_expo_data) {
+        tree_name = std::filesystem::path(g_options.house_expo_map_file).stem().filename().string() + "_2d";
         // load raw data
         erl::geometry::HouseExpoMap house_expo_map(g_options.house_expo_map_file.c_str(), 0.2);
         auto caster = [](const std::string &str) -> double { return std::stod(str); };
@@ -112,6 +114,7 @@ TEST(OccupancyQuadtree, Build) {
         }
         trajectory.conservativeResize(2, j);
     } else {
+        tree_name = "ros_bag";
         Eigen::MatrixXd ros_bag_data = erl::common::LoadEigenMatrixFromBinaryFile<double, Eigen::Dynamic, Eigen::Dynamic>(g_options.ros_bag_dat_file);
         // prepare buffer
         max_update_cnt = long(ros_bag_data.rows()) / g_options.stride + 1;
@@ -136,7 +139,7 @@ TEST(OccupancyQuadtree, Build) {
     auto tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
     tree_setting->resolution = g_options.quadtree_resolution;
     auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(tree_setting);
-    std::cout << "OccupancyQuadtree Setting:" << std::endl << tree->GetSetting() << std::endl;
+    std::cout << "OccupancyQuadtree Setting:" << std::endl << tree->GetSetting<erl::geometry::OccupancyQuadtree::Setting>() << std::endl;
 
     // setup visualization
     auto drawer_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
@@ -176,6 +179,8 @@ TEST(OccupancyQuadtree, Build) {
         cv::imshow(g_window_name, img);
         cv::waitKey(10);
     }
+    EXPECT_TRUE(tree->Write(g_test_data_dir / (tree_name + ".ot")));
+    EXPECT_TRUE(tree->WriteBinary(g_test_data_dir / (tree_name + ".bt")));
     std::cout << "Press any key to exit immediately. Test will exist in 10 seconds." << std::endl;
     cv::waitKey(10000);  // 10 seconds
 }
@@ -196,7 +201,6 @@ main(int argc, char *argv[]) {
             ("quadtree-resolution", po::value<double>(&g_options.quadtree_resolution)->default_value(g_options.quadtree_resolution), "Quadtree resolution")
             ("quadtree-lazy-eval", po::bool_switch(&g_options.quadtree_lazy_eval)->default_value(g_options.quadtree_lazy_eval), "Quadtree lazy evaluation")
             ("map-resolution", po::value<double>(&g_options.map_resolution)->default_value(g_options.map_resolution), "Map resolution")
-            ("visualize", po::bool_switch(&g_options.visualize)->default_value(g_options.visualize), "Visualize the mapping")
             ("hold", po::bool_switch(&g_options.hold)->default_value(g_options.hold), "Hold the test until a key is pressed")
             (
                 "house-expo-map-file",

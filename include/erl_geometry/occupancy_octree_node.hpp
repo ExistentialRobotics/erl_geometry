@@ -68,7 +68,7 @@ namespace erl::geometry {
         Expand() override {
             if (m_children_ == nullptr) { m_children_ = new AbstractOctreeNode *[8]; }
             for (int i = 0; i < 8; ++i) {
-                auto child = AllocateChildPtr(i);  // make sure child type is correct if this class is inherited
+                auto child = this->AllocateChildPtr(i);  // make sure child type is correct if this class is inherited
                 m_children_[i] = child;
                 reinterpret_cast<OccupancyOctreeNode *>(child)->m_log_odds_ = m_log_odds_;
             }
@@ -97,13 +97,13 @@ namespace erl::geometry {
             return true;
         }
 
-        [[nodiscard]] inline double
+        [[maybe_unused]] [[nodiscard]] inline double
         GetMeanChildLogOdds() const {
             if (!HasAnyChild()) { return -std::numeric_limits<double>::infinity(); }  // log(0)
 
             double mean = 0;
             for (int i = 0; i < 8; ++i) {
-                auto child = reinterpret_cast<OccupancyOctreeNode *>(m_children_[i]);
+                const auto *child = reinterpret_cast<OccupancyOctreeNode *>(m_children_[i]);
                 if (child == nullptr) { continue; }
                 mean += child->GetOccupancy();
             }
@@ -118,7 +118,7 @@ namespace erl::geometry {
 
             if (m_num_children_ > 0) {
                 for (int i = 0; i < 8; ++i) {
-                    auto child = reinterpret_cast<OccupancyOctreeNode *>(m_children_[i]);  // dynamic_cast causes high overhead
+                    const auto *child = reinterpret_cast<OccupancyOctreeNode *>(m_children_[i]);  // dynamic_cast causes high overhead
                     if (child == nullptr) { continue; }
                     float l = child->GetLogOdds();
                     if (l > max) { max = l; }
@@ -134,8 +134,8 @@ namespace erl::geometry {
 
     private:
         inline AbstractOctreeNode *
-        AllocateChildPtr(uint32_t index) override {
-            return new OccupancyOctreeNode(m_depth_ + 1, int(index), 0);
+        AllocateChildPtr(uint32_t child_index) override {
+            return new OccupancyOctreeNode(m_depth_ + 1, int(child_index), 0);
         }
     };
 }  // namespace erl::geometry
