@@ -154,22 +154,4 @@ namespace YAML {
             return true;
         }
     };
-
-    template<typename Setting>
-    Emitter &
-    PrintOccupancyQuadtreeDrawerSetting(Emitter &out, const Setting &rhs) {
-        out << BeginMap;
-        out << Key << "area_min" << Value << rhs.area_min;
-        out << Key << "area_max" << Value << rhs.area_max;
-        out << Key << "resolution" << Value << rhs.resolution;
-        out << Key << "padding" << Value << rhs.padding;
-        out << Key << "bg_color" << Value << rhs.bg_color;
-        out << Key << "fg_color" << Value << rhs.fg_color;
-        out << Key << "border_color" << Value << rhs.border_color;
-        out << Key << "border_thickness" << Value << rhs.border_thickness;
-        out << Key << "occupied_color" << Value << rhs.occupied_color;
-        out << Key << "free_color" << Value << rhs.free_color;
-        out << EndMap;
-        return out;
-    }
 }  // namespace YAML
