@@ -1,12 +1,13 @@
 #pragma once
 
 #include "erl_common/eigen.hpp"
-#include "erl_common/assert.hpp"
-#include "libqhullcpp/PointCoordinates.h"
-#include "libqhullcpp/Qhull.h"
-#include "libqhullcpp/QhullFacetList.h"
-#include "libqhullcpp/QhullFacet.h"
-#include "libqhullcpp/QhullVertexSet.h"
+#include "erl_common/logging.hpp"
+
+#include <libqhullcpp/PointCoordinates.h>
+#include <libqhullcpp/Qhull.h>
+#include <libqhullcpp/QhullFacetList.h>
+#include <libqhullcpp/QhullFacet.h>
+#include <libqhullcpp/QhullVertexSet.h>
 
 namespace erl::geometry {
 
@@ -27,15 +28,14 @@ namespace erl::geometry {
 
         // convert e.g. Eigen::Matrix3Xd to orgQhull::PointCoordinates
         orgQhull::PointCoordinates qhull_points(3, "");
-        qhull_points.append(int(num_points * 3), reinterpret_cast<const double *>(points.data()));
+        qhull_points.append(static_cast<int>(num_points * 3), reinterpret_cast<const double *>(points.data()));
 
         // calculate convex hull
         orgQhull::Qhull qhull;
         qhull.runQhull(qhull_points.comment().c_str(), qhull_points.dimension(), qhull_points.count(), qhull_points.coordinates(), options.c_str());
 
-        hull_pt_map.clear();
-        hull_pt_map.reserve(qhull.vertexCount());
-        for (const orgQhull::QhullVertex &kVertex: qhull.vertexList()) { hull_pt_map.push_back(kVertex.point().id()); }
+        hull_pt_map.resize(qhull.vertexCount());
+        std::transform(qhull.vertexList().begin(), qhull.vertexList().end(), hull_pt_map.begin(), [](const auto &kVertex) { return kVertex.point().id(); });
     }
 
     /**
@@ -63,7 +63,7 @@ namespace erl::geometry {
         // convert Eigen::Matrix3Xd to orgQhull::PointCoordinates
         orgQhull::PointCoordinates qhull_points(3, "");
         auto point_data = reinterpret_cast<const double *>(points.data());
-        qhull_points.append(int(num_points * 3), point_data);
+        qhull_points.append(static_cast<int>(num_points * 3), point_data);
 
         // calculate convex hull
         orgQhull::Qhull qhull;
@@ -71,8 +71,8 @@ namespace erl::geometry {
 
         // load result from qhull
         orgQhull::QhullFacetList facets = qhull.facetList();
-        mesh_triangles.resize(3, long(facets.size()));
-        mesh_vertices.resize(3, long(facets.size() * 3));
+        mesh_triangles.resize(3, static_cast<long>(facets.size()));
+        mesh_vertices.resize(3, static_cast<long>(facets.size() * 3));
         std::unordered_map<long, long> indices_map;
         long triangle_index = 0;
         Eigen::Vector3d hull_center(0.0, 0.0, 0.0);
@@ -87,8 +87,8 @@ namespace erl::geometry {
             for (const orgQhull::QhullVertex &vertex: vertices) {
                 long point_id = vertex.point().id();  // index of the point in the original point cloud
                 mesh_triangles(triangle_subscript, triangle_index) = point_id;
-                if (indices_map.try_emplace(point_id, long(indices_map.size())).second) {  // the point is first seen
-                    mesh_vertices.col(long(indices_map.size() - 1)) = point3_data[point_id];
+                if (indices_map.try_emplace(point_id, static_cast<long>(indices_map.size())).second) {  // the point is first seen
+                    mesh_vertices.col(static_cast<long>(indices_map.size() - 1)) = point3_data[point_id];
                     hull_pt_map.push_back(point_id);       // store the index of the point
                     hull_center += point3_data[point_id];  // update the center of the convex hull
                 }
@@ -97,8 +97,8 @@ namespace erl::geometry {
 
             triangle_index++;
         }
-        auto num_hull_points = long(indices_map.size());
-        hull_center /= double(num_hull_points);
+        auto num_hull_points = static_cast<long>(indices_map.size());
+        hull_center /= static_cast<double>(num_hull_points);
         hull_pt_map.shrink_to_fit();
         mesh_triangles.conservativeResize(3, triangle_index);
         mesh_vertices.conservativeResize(3, num_hull_points);

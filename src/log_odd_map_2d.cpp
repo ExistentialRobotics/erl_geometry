@@ -1,13 +1,10 @@
 #include "erl_geometry/log_odd_map_2d.hpp"
-
-#include <opencv2/imgproc.hpp>
-#include <utility>
-#include <opencv2/highgui.hpp>
-#include "erl_common/assert.hpp"
+#include "erl_common/logging.hpp"
 #include "erl_common/angle_utils.hpp"
 #include "erl_geometry/bresenham_2d.hpp"
 
-// #include "erl_geometry/utils.hpp"
+#include <opencv2/imgproc.hpp>
+#include <utility>
 
 namespace erl::geometry {
     LogOddMap2D::LogOddMap2D(std::shared_ptr<Setting> setting, std::shared_ptr<common::GridMapInfo2D> grid_map_info)
@@ -119,14 +116,14 @@ namespace erl::geometry {
 
         ERL_ASSERTM(
             possibility_map.rows() == m_grid_map_info_->Shape(0) && possibility_map.cols() == m_grid_map_info_->Shape(1),
-            "External log odd map has wrong shape. Expected: (%d, %d), Actual: (%ld, %ld)",
+            "External log odd map has wrong shape. Expected: ({:d}, {:d}), Actual: ({:d}, {:d})",
             m_grid_map_info_->Shape(0),
             m_grid_map_info_->Shape(1),
             possibility_map.rows(),
             possibility_map.cols());
 
-        auto n_rows = int(possibility_map.rows());
-        auto n_cols = int(possibility_map.cols());
+        auto n_rows = static_cast<int>(possibility_map.rows());
+        auto n_cols = static_cast<int>(possibility_map.cols());
         m_num_unexplored_cells_ = 0;
         m_num_occupied_cells_ = 0;
         m_num_free_cells_ = 0;
@@ -149,7 +146,7 @@ namespace erl::geometry {
                     unexplored_mask_value = 1;
                     m_num_unexplored_cells_++;
                 } else {
-                    possibility_value = double(possibility_map(i, j)) / 100.;
+                    possibility_value = static_cast<double>(possibility_map(i, j)) / 100.;
                     log_odd_value = std::log(possibility_value / (1. - possibility_value));
                     if (possibility_value > m_setting_->threshold_occupied) {
                         occupancy_value = CellType::kOccupied;
@@ -287,7 +284,7 @@ namespace erl::geometry {
             auto &contour = contours[i];
             auto &frontier = frontiers[i];
 
-            auto m = long(contour.size());
+            auto m = static_cast<long>(contour.size());
             frontier.resize(2, m);
             for (long j = 0; j < m; ++j) {
                 frontier(0, j) = contour[j].y;  // OpenCV uses (y, x) for the coordinate system
@@ -346,7 +343,6 @@ namespace erl::geometry {
         mask->occupied_grids.conservativeResize(2, num_obstacle_grids);
 
         // compute the boundary of the in-map lidar scan area
-        double distance;
         std::vector<std::vector<cv::Point>> lidar_area_contours(1);
         auto &contour = lidar_area_contours[0];
         int start_x = m_grid_map_info_->MeterToGridForValue(position[0], 0);
@@ -361,7 +357,7 @@ namespace erl::geometry {
         for (int i = 0; i < num_rays; ++i) {
             Eigen::Vector2d direction(std::cos(angles[i]), std::sin(angles[i]));
             if (ray_mode) { contour.emplace_back(start_y, start_x); }
-            distance = clipped_ranges[i];
+            const double &distance = clipped_ranges[i];
             // if (distance > clipped_ranges[i]) { distance = clipped_ranges[i]; }
             int x = m_grid_map_info_->MeterToGridForValue(position[0] + direction[0] * distance, 0);
             int y = m_grid_map_info_->MeterToGridForValue(position[1] + direction[1] * distance, 1);
@@ -384,8 +380,11 @@ namespace erl::geometry {
         // draw the free grids
         int n_rows = mask->x_grid_max - mask->x_grid_min + 1;
         int n_cols = mask->y_grid_max - mask->y_grid_min + 1;
-        ERL_DEBUG_ASSERT(n_rows >= 0 && n_cols >= 0, "n_rows: %d, n_cols: %d", n_rows, n_cols);
-        if (n_rows == 0 || n_cols == 0) { return old_mask == nullptr ? mask : old_mask; }
+        ERL_DEBUG_ASSERT(n_rows >= 0 && n_cols >= 0, "n_rows: {:d}, n_cols: {:d}", n_rows, n_cols);
+        if (n_rows == 0 || n_cols == 0) {
+            if (old_mask == nullptr) { return mask; }
+            return mask;
+        }
 
         mask->mask = cv::Mat(n_rows, n_cols, CV_8UC1, cv::Scalar(CellType::kUnexplored));  // cv::Mat(rows, cols, type, value)
         if (old_mask != nullptr) {
@@ -401,8 +400,8 @@ namespace erl::geometry {
         cv::drawContours(mask->mask, lidar_area_contours, 0, CellType::kFree, cv::FILLED, cv::LINE_8);
 
         // if (old_mask != nullptr) {
-        //     ERL_INFO("old_mask size: \n%d, %d", old_mask->mask.rows, old_mask->mask.cols);
-        //     ERL_INFO("new_mask size: \n%d, %d", mask->mask.rows, mask->mask.cols);
+        //     ERL_INFO("old_mask size: \n{:d}, {:d}", old_mask->mask.rows, old_mask->mask.cols);
+        //     ERL_INFO("new_mask size: \n{:d}, {:d}", mask->mask.rows, mask->mask.cols);
         //     cv::Mat old_mask_image;
         //     old_mask->mask.copyTo(old_mask_image);
         //     cv::transpose(old_mask_image, old_mask_image);
@@ -455,7 +454,7 @@ namespace erl::geometry {
             ERL_DEBUG_ASSERT(kRanges.size() > 1, "kRanges.size() <= 1.");
             ERL_DEBUG_ASSERT(
                 lidar_angles_body.size() == kRanges.size(),
-                "angles_body and ranges have different sizes: %ld vs %ld.",
+                "angles_body and ranges have different sizes: {:d} vs {:d}.",
                 lidar_angles_body.size(),
                 kRanges.size());
 
@@ -474,7 +473,7 @@ namespace erl::geometry {
                 } else {  // the ray hit an obstacle
                     clipped_range = kRange;
                     // clang-format off
-                double &angle = angles[j];
+                const double &angle = angles[j];
                 mask->occupied_grids.col(num_obstacle_grids++) <<
                     m_grid_map_info_->MeterToGridForValue(kX + kRange * std::cos(angle), 0),
                     m_grid_map_info_->MeterToGridForValue(kY + kRange * std::sin(angle), 1);
@@ -483,7 +482,6 @@ namespace erl::geometry {
             }
 
             // compute the boundary of the lidar scan area
-            double distance;
             auto &contour = lidar_area_contours[i];
             int start_x = m_grid_map_info_->MeterToGridForValue(kX, 0);
             int start_y = m_grid_map_info_->MeterToGridForValue(kY, 1);
@@ -503,7 +501,7 @@ namespace erl::geometry {
             for (int j = 0; j < num_rays; ++j) {
                 Eigen::Vector2d direction(std::cos(angles[j]), std::sin(angles[j]));
                 // if (ray_mode) { contour.emplace_back(start_y, start_x); }
-                distance = clipped_ranges[j];
+                double distance = clipped_ranges[j];
                 int x = m_grid_map_info_->MeterToGridForValue(kX + direction[0] * distance, 0);
                 int y = m_grid_map_info_->MeterToGridForValue(kY + direction[1] * distance, 1);
                 contour.emplace_back(y, x);
@@ -529,13 +527,16 @@ namespace erl::geometry {
         // draw the free grids
         int n_rows = mask->x_grid_max - mask->x_grid_min + 1;
         int n_cols = mask->y_grid_max - mask->y_grid_min + 1;
-        ERL_DEBUG_ASSERT(n_rows >= 0 && n_cols >= 0, "n_rows: %d, n_cols: %d", n_rows, n_cols);
-        if (n_rows == 0 || n_cols == 0) { return old_mask == nullptr ? mask : old_mask; }
+        ERL_DEBUG_ASSERT(n_rows >= 0 && n_cols >= 0, "n_rows: {:d}, n_cols: {:d}", n_rows, n_cols);
+        if (n_rows == 0 || n_cols == 0) {
+            if (old_mask == nullptr) { return mask; }
+            return mask;
+        }
 
         mask->mask = cv::Mat(n_rows, n_cols, CV_8UC1, cv::Scalar(CellType::kUnexplored));  // cv::Mat(rows, cols, type, value)
         if (old_mask != nullptr) {
-            ERL_INFO("old_mask size: %d, %d", old_mask->mask.rows, old_mask->mask.cols);
-            ERL_INFO("new_mask size: %d, %d", mask->mask.rows, mask->mask.cols);
+            ERL_INFO("old_mask size: {:d}, {:d}", old_mask->mask.rows, old_mask->mask.cols);
+            ERL_INFO("new_mask size: {:d}, {:d}", mask->mask.rows, mask->mask.cols);
             old_mask->mask.copyTo(mask->mask(
                 cv::Rect(old_mask->y_grid_min - mask->y_grid_min, old_mask->x_grid_min - mask->x_grid_min, old_mask->mask.cols, old_mask->mask.rows)));
         }
@@ -554,7 +555,7 @@ namespace erl::geometry {
                 point.x -= mask->y_grid_min;
                 point.y -= mask->x_grid_min;
             }
-            cv::drawContours(mask->mask, lidar_area_contours, int(i), CellType::kFree, cv::FILLED, cv::LINE_8);
+            cv::drawContours(mask->mask, lidar_area_contours, static_cast<int>(i), CellType::kFree, cv::FILLED, cv::LINE_8);
             // cv::drawContours(image, lidar_area_contours, int(i), cv::Scalar(0, 255 - s * int(i / d), s * int(i / d)), cv::FILLED, cv::LINE_8);
         }
         // cv::drawContours(mask.mask, lidar_area_contours, 0, CellType::kFree, cv::FILLED, cv::LINE_8);

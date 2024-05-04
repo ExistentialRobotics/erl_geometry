@@ -1,6 +1,5 @@
 #pragma once
 
-#include "erl_common/assert.hpp"
 #include "abstract_quadtree.hpp"
 #include "quadtree_key.hpp"
 #include "occupancy_quadtree_node.hpp"
@@ -12,9 +11,6 @@ namespace erl::geometry {
      * AbstractOccupancyQuadtree is a base class that implements generic occupancy quadtree functionality.
      */
     class AbstractOccupancyQuadtree : public AbstractQuadtree {
-    public:
-        using Setting = OccupancyNdTreeSetting;
-
     protected:
         // binary file header identifier
         inline static const std::string sk_BinaryFileHeader_ = "# OccupancyQuadtree binary file";  // cppcheck-suppress unusedStructMember
@@ -22,10 +18,15 @@ namespace erl::geometry {
     public:
         AbstractOccupancyQuadtree() = delete;  // no default constructor
 
-        explicit AbstractOccupancyQuadtree(const std::shared_ptr<Setting>& setting)
+        explicit AbstractOccupancyQuadtree(const std::shared_ptr<OccupancyNdTreeSetting>& setting)
             : AbstractQuadtree(setting) {}
 
-        AbstractOccupancyQuadtree(const AbstractOccupancyQuadtree&) = delete;  // no copy constructor
+        AbstractOccupancyQuadtree(const AbstractOccupancyQuadtree& other) = default;
+        AbstractOccupancyQuadtree&
+        operator=(const AbstractOccupancyQuadtree& other) = default;
+        AbstractOccupancyQuadtree(AbstractOccupancyQuadtree&& other) = default;
+        AbstractOccupancyQuadtree&
+        operator=(AbstractOccupancyQuadtree&& other) = default;
 
         //--IO
         /**
@@ -84,12 +85,12 @@ namespace erl::geometry {
 
     public:
         //-- occupancy queries
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsNodeOccupied(const OccupancyQuadtreeNode* node) const {
             return node->GetLogOdds() >= reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get())->log_odd_occ_threshold;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsNodeAtThreshold(const OccupancyQuadtreeNode* node) const {
             float log_odds = node->GetLogOdds();
             const auto* setting = reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get());

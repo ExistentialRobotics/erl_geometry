@@ -21,20 +21,15 @@ public:
         : erl::geometry::OccupancyOctreeNode() {}
 };
 
-class Octree : public erl::geometry::OccupancyOctreeBase<OctreeNode> {
+class Octree : public erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting> {
 
 public:
-    using Super = erl::geometry::OccupancyOctreeBase<OctreeNode>;
-    using Setting = Super::Setting;
+    using Super = erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>;
+    using Setting = erl::geometry::OccupancyOctreeBaseSetting;
 
-    Octree(const std::shared_ptr<Setting> &setting)
-        : erl::geometry::OccupancyOctreeBase<OctreeNode>(setting) {
+    explicit Octree(const std::shared_ptr<Setting> &setting)
+        : erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>(setting) {
         s_init_.EnsureLinking();
-    }
-
-    [[nodiscard]] inline std::string
-    GetTreeType() const override {
-        return "Octree";
     }
 
 protected:
@@ -45,7 +40,7 @@ protected:
 
     /**
      * Static member object which ensures that this OcTree's prototype
-     * ends up in the classIDMapping only once. You need this as a
+     * ends up in the s_class_id_mapping_ only once. You need this as a
      * static member in any derived octree class in order to read .ot
      * files through the AbstractOcTree factory. You should also call
      * ensureLinking() once from the constructor.
@@ -64,7 +59,7 @@ protected:
          * Needs to be called from the constructor of this octree.
          */
         void
-        EnsureLinking(){}
+        EnsureLinking() {}
     };
 
     /// to ensure static initialization (only once)
@@ -242,7 +237,6 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                     for (std::size_t i = 0; i < bunny_mesh->vertices_.size(); ++i) {
                         Eigen::Vector3d dir = bunny_mesh->vertices_[i] - camera_position;
                         dir.normalize();
-                        uint32_t depth = 0;
                         if (octree.CastRay(
                                 camera_position[0],
                                 camera_position[1],
@@ -254,8 +248,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                                 -1,
                                 ends[i][0],
                                 ends[i][1],
-                                ends[i][2],
-                                depth)) {
+                                ends[i][2])) {
                             erl::geometry::OctreeKey key = octree.CoordToKey(ends[i][0], ends[i][1], ends[i][2]);
                             auto node = octree.Search(key);
                             if (node->geometry_id == 0) {

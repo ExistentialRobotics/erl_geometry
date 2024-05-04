@@ -1,12 +1,11 @@
+#include "erl_geometry/house_expo_map.hpp"
+#include "erl_geometry/polygon_to_mesh.hpp"
+
 #include <open3d/core/Tensor.h>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/t/geometry/LineSet.h>
 #include <open3d/t/geometry/TriangleMesh.h>
 #include <open3d/visualization/utility/DrawGeometry.h>
-#include <open3d/io/TriangleMeshIO.h>
-
-#include "erl_geometry/house_expo_map.hpp"
-#include "erl_geometry/polygon_to_mesh.hpp"
 
 namespace erl::geometry {
 
@@ -15,7 +14,7 @@ namespace erl::geometry {
         std::cout << "Loading " << file << "..." << std::flush;
         std::ifstream ifs;
         ifs.open(file);
-        if (!ifs.is_open()) { ERL_ASSERTM("Failed to open %s when current path is %s.", file, std::filesystem::current_path().c_str()); }
+        if (!ifs.is_open()) { ERL_ASSERTM("Failed to open {} when current path is {}.", file, std::filesystem::current_path()); }
         nlohmann::json data = nlohmann::json::parse(ifs);
         FromJson(data, *this);
         ifs.close();
@@ -25,7 +24,7 @@ namespace erl::geometry {
     HouseExpoMap::HouseExpoMap(const char *file, double wall_thickness)
         : HouseExpoMap(file) {
         ERL_ASSERTM(wall_thickness >= 0.1, "Wall thickness must be >= 0.1.");
-        ERL_INFO("Changing wall thickness to %f ...", wall_thickness);
+        ERL_INFO("Changing wall thickness to {:f} ...", wall_thickness);
 #if defined(NDEBUG)
         double free_threshold = (wall_thickness - 0.1) / 2;  // 0.1 is the default thickness of the wall
         if (std::abs(free_threshold) < 1.e-6) {

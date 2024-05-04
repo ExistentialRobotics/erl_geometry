@@ -117,13 +117,13 @@ TEST(OccupancyOctree, Build) {
             long cnt_points = 0;
             for (long i = 0; i < ranges.rows(); ++i) {
                 for (long j = 0; j < ranges.cols(); ++j) {
-                    double &range = ranges(i, j);
-                    if (std::isinf(range) || std::isnan(range)) { continue; }
-                    Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
+                    const double &kRange = ranges(i, j);
+                    if (std::isinf(kRange) || std::isnan(kRange)) { continue; }
+                    Eigen::Vector3d point = sensor_origin + kRange * orientation * ray_directions(i, j);
                     points.col(cnt_points++) = point;
                     point_cloud->points_.emplace_back(point);
                     line_set_rays->points_.emplace_back(point);
-                    line_set_rays->lines_.emplace_back(0, long(line_set_rays->points_.size()) - 1);
+                    line_set_rays->lines_.emplace_back(0, static_cast<long>(line_set_rays->points_.size()) - 1);
                 }
             }
             points.conservativeResize(3, cnt_points);
@@ -196,8 +196,8 @@ TEST(OccupancyOctree, BuildProfiling) {
     auto octree = std::make_shared<OccupancyOctree>(octree_setting);
 
     std::size_t num_cores = std::thread::hardware_concurrency();
-    double max_duration = 600.0 * 32 / double(num_cores);
-    double max_mean_duration = 500.0 * 32 / double(num_cores);
+    double max_duration = 600.0 * 32 / static_cast<double>(num_cores);
+    double max_mean_duration = 500.0 * 32 / static_cast<double>(num_cores);
 
     std::size_t pose_idx = 0;
     Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
@@ -215,9 +215,9 @@ TEST(OccupancyOctree, BuildProfiling) {
         long cnt_points = 0;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                double &range = ranges(i, j);
-                if (std::isinf(range) || std::isnan(range)) { continue; }
-                Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
+                const double &kRange = ranges(i, j);
+                if (std::isinf(kRange) || std::isnan(kRange)) { continue; }
+                Eigen::Vector3d point = sensor_origin + kRange * orientation * ray_directions(i, j);
                 points.col(cnt_points++) = point;
             }
         }
@@ -237,4 +237,6 @@ TEST(OccupancyOctree, BuildProfiling) {
     mean_duration /= n;
     std::cout << "Mean Insert time: " << mean_duration << " ms." << std::endl;
     EXPECT_LE(mean_duration, max_mean_duration);
+    // 14900K: ~480ms
+    // 13700K: ~550ms
 }

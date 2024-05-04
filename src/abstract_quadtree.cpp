@@ -1,6 +1,8 @@
-#include <fstream>
 #include "erl_geometry/abstract_quadtree.hpp"
-#include "erl_common/assert.hpp"
+#include "erl_common/logging.hpp"
+
+#include <fstream>
+#include <filesystem>
 
 namespace erl::geometry {
 
@@ -8,26 +10,25 @@ namespace erl::geometry {
     AbstractQuadtree::CreateTree(const std::string &tree_id) {
         auto it = s_class_id_mapping_.find(tree_id);
         if (it == s_class_id_mapping_.end()) {
-            ERL_WARN("Unknown Quadtree type: %s", tree_id.c_str());
+            ERL_WARN("Unknown Quadtree type: {}", tree_id);
             return nullptr;
         }
 
-        auto tree = it->second->Create();
-        return tree;
+        return it->second->Create();
     }
 
     bool
     AbstractQuadtree::Write(const std::string &filename) const {
-        ERL_INFO("Writing quadtree to file: %s", std::filesystem::absolute(filename).string().c_str());
-        std::ofstream file(filename.c_str(), std::ios_base::out | std::ios_base::binary);
+        ERL_INFO("Writing quadtree to file: {}", std::filesystem::absolute(filename));
+        std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
         if (!file.is_open()) {
-            ERL_WARN("Failed to open file: %s", filename.c_str());
+            ERL_WARN("Failed to open file: {}", filename);
             return false;
         }
 
         (void) Write(file);
         file.close();
-        ERL_INFO("Successfully wrote Quadtree of type %s, size %zu", this->GetTreeType().c_str(), this->GetSize());
+        ERL_INFO("Successfully wrote Quadtree of type {}, size {:d}", this->GetTreeType(), this->GetSize());
         return true;
     }
 
@@ -47,14 +48,14 @@ namespace erl::geometry {
 
     std::shared_ptr<AbstractQuadtree>
     AbstractQuadtree::Read(const std::string &filename) {
-        ERL_INFO("Reading octree from file: %s", std::filesystem::absolute(filename).string().c_str());
-        std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+        ERL_INFO("Reading octree from file: {}", std::filesystem::absolute(filename));
+        std::ifstream file(filename, std::ios_base::in | std::ios_base::binary);
         if (!file.is_open()) {
-            ERL_WARN("Failed to open file: %s", filename.c_str());
+            ERL_WARN("Failed to open file: {}", filename);
             return nullptr;
         }
 
-        auto tree = AbstractQuadtree::Read(file);
+        auto tree = Read(file);
         file.close();
         return tree;
     }
@@ -70,7 +71,7 @@ namespace erl::geometry {
         std::string line;
         std::getline(s, line);
         if (line.compare(0, sk_FileHeader_.length(), sk_FileHeader_) != 0) {
-            ERL_WARN("First line of Quadtree file header does not start with \"%s\"", sk_FileHeader_.c_str());
+            ERL_WARN("First line of Quadtree file header does not start with \"{}\"", sk_FileHeader_);
             return nullptr;
         }
 
@@ -78,7 +79,7 @@ namespace erl::geometry {
         uint32_t size;
         if (!ReadHeader(s, tree_id, size)) { return nullptr; }
 
-        ERL_DEBUG("Reading Quadtree of type %s, size %u", tree_id.c_str(), size);
+        ERL_DEBUG("Reading Quadtree of type {}, size {:d}", tree_id, size);
         auto tree = CreateTree(tree_id);
         if (!tree) { return nullptr; }
         tree->ReadSetting(s);
@@ -92,19 +93,19 @@ namespace erl::geometry {
 
         // read the actual tree data
         if (size > 0) { tree->ReadData(s); }
-        ERL_INFO("Done (%zu nodes).", tree->GetSize());
+        ERL_INFO("Done ({:d} nodes).", tree->GetSize());
         return tree;
     }
 
     bool
     AbstractQuadtree::LoadData(const std::string &filename) {
-        ERL_INFO("Loading data from file: %s", std::filesystem::absolute(filename).string().c_str());
-        std::ifstream s(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+        ERL_INFO("Loading data from file: {}", std::filesystem::absolute(filename));
+        std::ifstream s(filename, std::ios_base::in | std::ios_base::binary);
         if (!s.is_open()) {
-            ERL_WARN("Failed to open file: %s", filename.c_str());
+            ERL_WARN("Failed to open file: {}", filename);
             return false;
         }
-        bool success = LoadData(s);
+        const bool success = LoadData(s);
         s.close();
         return success;
     }
@@ -119,7 +120,7 @@ namespace erl::geometry {
         std::string line;
         std::getline(s, line);
         if (line.compare(0, sk_FileHeader_.length(), sk_FileHeader_) != 0) {  // check if the first line is valid
-            ERL_WARN("First line of Octree file header does not start with \"%s\"", sk_FileHeader_.c_str());
+            ERL_WARN("First line of Octree file header does not start with \"{}\"", sk_FileHeader_.c_str());
             return false;
         }
 
@@ -128,7 +129,7 @@ namespace erl::geometry {
         if (!ReadHeader(s, tree_id, size)) { return false; }
 
         if (tree_id != GetTreeType()) {
-            ERL_WARN("Error reading Quadtree header, ID does not match: %s != %s", tree_id.c_str(), GetTreeType().c_str());
+            ERL_WARN("Error reading Quadtree header, ID does not match: {} != {}", tree_id.c_str(), GetTreeType().c_str());
             return false;
         }
         Clear();
@@ -137,11 +138,11 @@ namespace erl::geometry {
 
         std::getline(s, line);  // check if the next line is "data"
         if (line.compare(0, 4, "data") != 0) {
-            ERL_WARN("Expected 'data' keyword, got: %s", line.c_str());
+            ERL_WARN("Expected 'data' keyword, got: {}", line.c_str());
             return false;
         }
         if (size > 0) { this->ReadData(s); }
-        ERL_DEBUG("Done (%zu nodes).", this->GetSize());
+        ERL_DEBUG("Done ({:d} nodes).", this->GetSize());
         return GetSize() == size;
     }
 
@@ -159,19 +160,19 @@ namespace erl::geometry {
                 header_read = true;    // header read successfully
                 // skip forward until end of line
                 char c;
-                do { c = (char) s.get(); } while (s.good() && (c != '\n'));
+                do { c = static_cast<char>(s.get()); } while (s.good() && (c != '\n'));
             } else if (token.compare(0, 1, "#") == 0) {
                 // comment line, skip forward until end of line
                 char c;
-                do { c = (char) s.get(); } while (s.good() && (c != '\n'));
+                do { c = static_cast<char>(s.get()); } while (s.good() && (c != '\n'));
             } else if (token == "id") {
                 s >> tree_id;
             } else if (token == "size") {
                 s >> size;
             } else {
-                ERL_WARN("Unknown keyword in Quadtree header, skipping: %s", token.c_str());
+                ERL_WARN("Unknown keyword in Quadtree header, skipping: {}", token.c_str());
                 char c;
-                do { c = (char) s.get(); } while (s.good() && (c != '\n'));
+                do { c = static_cast<char>(s.get()); } while (s.good() && (c != '\n'));
             }
         }
 
@@ -187,10 +188,4 @@ namespace erl::geometry {
 
         return true;
     }
-
-    void
-    AbstractQuadtree::RegisterTreeType(const std::shared_ptr<AbstractQuadtree> &tree) {
-        s_class_id_mapping_[tree->GetTreeType()] = tree;
-    }
-
 }  // namespace erl::geometry

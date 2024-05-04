@@ -1,7 +1,6 @@
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 #include "erl_common/test_helper.hpp"
-#include "erl_common/angle_utils.hpp"
 
 using namespace erl::geometry;
 
@@ -251,7 +250,7 @@ TEST(OccupancyQuadtree, Prune) {
     // test larger volume pruning
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->UpdateNode(double(i) * resolution + 0.001, double(j) * resolution + 0.001, occupied, lazy_eval);
+            auto node = tree->UpdateNode(static_cast<double>(i) * resolution + 0.001, static_cast<double>(j) * resolution + 0.001, occupied, lazy_eval);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -265,7 +264,7 @@ TEST(OccupancyQuadtree, Prune) {
     // test expansion
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->Search(double(i) * resolution + 0.001, double(j) * resolution + 0.001);
+            auto node = tree->Search(static_cast<double>(i) * resolution + 0.001, static_cast<double>(j) * resolution + 0.001);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -276,7 +275,7 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_TRUE(tree->UpdateNode(single_key, occupied, lazy_eval));
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->Search(double(i) * resolution + 0.001, double(j) * resolution + 0.001);
+            auto node = tree->Search(static_cast<double>(i) * resolution + 0.001, static_cast<double>(j) * resolution + 0.001);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -293,7 +292,7 @@ TEST(OccupancyQuadtree, Prune) {
 
     // find parent of newly inserted node
     unsigned int search_depth = tree->GetTreeDepth() - 1;
-    auto parent_node = tree->Search(-2., -2., search_depth);
+    auto parent_node = const_cast<OccupancyQuadtreeNode *>(tree->Search(-2., -2., search_depth));
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
     // only one child exists
@@ -314,8 +313,8 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->GetSize(), init_size + 1);
 
     // delete them
-    tree->DeleteNodeChild(parent_node, 0);
-    tree->DeleteNodeChild(parent_node, 3);
+    tree->DeleteNodeChild(parent_node, 0, tree->CoordToKey(-2, -2, 0));
+    tree->DeleteNodeChild(parent_node, 3, tree->CoordToKey(-2, -2, 0));
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size - 1);
     tree->Prune();
@@ -431,12 +430,11 @@ TEST(OccupancyQuadtree, RayCasting) {
     double max_range = 6;
     int n = 10000;
     for (int i = 0; i < n; ++i) {
-        double angle = double(i) / 1000 * 2 * M_PI - M_PI;
+        double angle = static_cast<double>(i) / 1000 * 2 * M_PI - M_PI;
         double vx = std::cos(angle);
         double vy = std::sin(angle);
         double ex = 0, ey = 0;
-        uint32_t depth = 0;
-        if (tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey, depth)) {
+        if (tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
             hit++;
             double dx = ex - sx;
             double dy = ey - sy;
@@ -457,6 +455,6 @@ TEST(OccupancyQuadtree, RayCasting) {
     EXPECT_EQ(hit, n);
     EXPECT_EQ(miss, 0);
     EXPECT_EQ(unknown, 0);
-    mean_dist /= double(hit);
+    mean_dist /= static_cast<double>(hit);
     EXPECT_NEAR(mean_dist, 2.0, 0.01);
 }

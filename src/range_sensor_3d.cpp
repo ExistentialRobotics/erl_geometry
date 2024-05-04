@@ -29,9 +29,9 @@ namespace erl::geometry {
                 rays_ptr[base1 + 2] = ray_start[2];
 
                 // may not be normalized, e.g. depth camera uses camera normalized coordinates.
-                rays_ptr[base1 + 3] = float(direction[0] / scale);
-                rays_ptr[base1 + 4] = float(direction[1] / scale);
-                rays_ptr[base1 + 5] = float(direction[2] / scale);
+                rays_ptr[base1 + 3] = static_cast<float>(direction[0] / scale);
+                rays_ptr[base1 + 4] = static_cast<float>(direction[1] / scale);
+                rays_ptr[base1 + 5] = static_cast<float>(direction[2] / scale);
             }
         }
 
@@ -43,7 +43,7 @@ namespace erl::geometry {
             if (geometry_ids[i] == invalid_id) {
                 ranges[i] = std::numeric_limits<float>::infinity();
             } else {
-                ranges[i] /= float(scales.data()[i]);  // scale back
+                ranges[i] /= static_cast<float>(scales.data()[i]);  // scale back
             }
         }
 

@@ -1,5 +1,7 @@
 #pragma once
-#include "erl_common/assert.hpp"
+
+#include "erl_common/logging.hpp"
+
 #include <open3d/t/geometry/RaycastingScene.h>
 
 namespace erl::geometry {
@@ -32,14 +34,14 @@ namespace erl::geometry {
 
         RangeSensor3D(const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles)
             : m_scene_(std::make_shared<open3d::t::geometry::RaycastingScene>()) {
-            auto num_vertices = long(vertices.size());
+            auto num_vertices = static_cast<long>(vertices.size());
             open3d::core::Tensor vertices_tensor({num_vertices, 3}, open3d::core::Dtype::Float32);
             for (long i = 0; i < num_vertices; ++i) {
                 vertices_tensor[i][0] = vertices[i][0];
                 vertices_tensor[i][1] = vertices[i][1];
                 vertices_tensor[i][2] = vertices[i][2];
             }
-            auto num_triangles = long(triangles.size());
+            auto num_triangles = static_cast<long>(triangles.size());
             open3d::core::Tensor triangles_tensor({num_triangles, 3}, open3d::core::Dtype::UInt32);
             for (long i = 0; i < num_triangles; ++i) {
                 triangles_tensor[i][0] = triangles[i][0];

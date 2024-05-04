@@ -95,7 +95,7 @@ TEST(ERL_GEOMETRY, ConvexHull3DImpls) {
     std::vector<std::pair<double, double>> timings;
     for (auto &num_point: num_points) {
         auto point_cloud = o3d_mesh->SamplePointsUniformly(num_point);
-        ERL_INFO("num_points: %ld", num_point);
+        ERL_INFO("num_points: {:d}", num_point);
         double t_cgal = erl::common::ReportTime<std::chrono::milliseconds>("CGAL", 5, false, [&]() { run_cgal_impl(point_cloud->points_); });
         double t_qhull = erl::common::ReportTime<std::chrono::milliseconds>("QHull", 5, false, [&]() { run_qhull_impl(point_cloud->points_); });
         timings.emplace_back(t_cgal, t_qhull);

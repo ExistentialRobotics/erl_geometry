@@ -1,9 +1,10 @@
+#include "erl_geometry/polygon_to_mesh.hpp"
+#include "erl_common/logging.hpp"
+
 #include <vector>
 #include <numeric>
 #include <open3d/visualization/utility/DrawGeometry.h>
 #include <open3d/io/TriangleMeshIO.h>
-#include "erl_geometry/polygon_to_mesh.hpp"
-#include "erl_common/assert.hpp"
 
 namespace erl::geometry {
 
@@ -13,7 +14,8 @@ namespace erl::geometry {
         ERL_ASSERTM(triangles_vertex_indices.size() % 3 == 0, "Wrong earcut result: the number of triangles vertex indices is not a multiple of 3.");
 
         std::vector<std::size_t> num_vertices_per_polygon;
-        for (const auto &polygon_i: polygon) { num_vertices_per_polygon.push_back(polygon_i.size()); }
+        num_vertices_per_polygon.reserve(polygon.size());
+        std::transform(polygon.begin(), polygon.end(), std::back_inserter(num_vertices_per_polygon), [](const auto &polygon_i) { return polygon_i.size(); });
         std::vector<std::size_t> cum_sum_num_vertices_per_polygon(num_vertices_per_polygon.size());
         std::partial_sum(num_vertices_per_polygon.begin(), num_vertices_per_polygon.end(), cum_sum_num_vertices_per_polygon.begin());
 
@@ -30,9 +32,9 @@ namespace erl::geometry {
         mesh->ComputeVertexNormals();
         mesh->ComputeTriangleNormals();
         double sign = upward_normal ? 1 : -1;
-        for (auto &vertex_normal: mesh->vertex_normals_) {
+        std::for_each(mesh->vertex_normals_.begin(), mesh->vertex_normals_.end(), [sign](auto &vertex_normal) {
             if (vertex_normal[2] * sign < 0) { vertex_normal *= -1; }
-        }
+        });
         for (std::size_t i = 0; i < mesh->triangles_.size(); ++i) {
             if (mesh->triangle_normals_[i][2] * sign < 0) {
                 std::swap(mesh->triangles_[i][0], mesh->triangles_[i][1]);

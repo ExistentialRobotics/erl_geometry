@@ -93,7 +93,7 @@ VisualizerUpdateCallback(Open3dVisualizerWrapper *visualizer, open3d::visualizat
     }
     auto t1 = std::chrono::high_resolution_clock::now();
     double duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-    ERL_INFO("ray casting takes %f ms", duration);
+    ERL_INFO("ray casting takes {:f} ms", duration);
     g_user_data.rays->points_.clear();
     g_user_data.rays->lines_.clear();
     g_user_data.rays->points_.emplace_back(px, py, pz);

@@ -1,15 +1,16 @@
 #include "erl_geometry/euler_angle.hpp"
+#include "erl_common/logging.hpp"
 
 namespace erl::geometry {
 
     EulerAngleOrder
     GetEulerAngleOrder(const std::string& euler_order) {
-        auto s = char(std::tolower(euler_order.c_str()[0]));
-        auto x = char(std::tolower(euler_order.c_str()[1]));
-        auto y = char(std::tolower(euler_order.c_str()[2]));
-        auto z = char(std::tolower(euler_order.c_str()[3]));
+        auto s = static_cast<char>(std::tolower(euler_order.c_str()[0]));
+        auto x = static_cast<char>(std::tolower(euler_order.c_str()[1]));
+        auto y = static_cast<char>(std::tolower(euler_order.c_str()[2]));
+        auto z = static_cast<char>(std::tolower(euler_order.c_str()[3]));
 
-        ERL_ASSERTM(x != y && y != z, "Invalid Euler angle order: %s", euler_order.c_str());
+        ERL_ASSERTM(x != y && y != z, "Invalid Euler angle order: {}", euler_order.c_str());
 
         int order = 0;
 
@@ -33,12 +34,12 @@ namespace erl::geometry {
             order |= 0b000010;
         }
 
-        return EulerAngleOrder(order);
+        return static_cast<EulerAngleOrder>(order);
     }
 
     Eigen::Matrix3d
     EulerToRotation3D(double a, double b, double c, EulerAngleOrder euler_angle_order) {
-        auto order = int(euler_angle_order);
+        auto order = static_cast<int>(euler_angle_order);
 
         /*
          * rzyx (sxyz): yaw = a, pitch = b, roll = c, i = 0, j = 1, k = 2, cross(x, y) = z --> right-handed
@@ -118,8 +119,7 @@ namespace erl::geometry {
         axis_vec_a[i] = 1;
         axis_vec_b[j] = 1;
         axis_vec_c[k] = 1;
-        bool left_handed = axis_vec_a.cross(axis_vec_b).dot(axis_vec_c) < 0;
-        if (left_handed) {
+        if (axis_vec_a.cross(axis_vec_b).dot(axis_vec_c) < 0) {
             a = -a;
             b = -b;
             c = -c;

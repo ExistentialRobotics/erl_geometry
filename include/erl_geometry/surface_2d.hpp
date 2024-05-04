@@ -1,7 +1,6 @@
 #pragma once
 
-#include "erl_common//eigen.hpp"
-#include "erl_common/assert.hpp"
+#include "erl_common/eigen.hpp"
 
 namespace erl::geometry {
 

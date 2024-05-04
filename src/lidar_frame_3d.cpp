@@ -27,8 +27,8 @@ namespace erl::geometry {
 
         long num_azimuths = GetNumAzimuthLines();
         long num_elevations = GetNumElevationLines();
-        ERL_ASSERTM(num_azimuths == m_ranges_.rows(), "num of azimuths (%ld) does not match rows of ranges (%ld).", num_azimuths, m_ranges_.rows());
-        ERL_ASSERTM(num_elevations == m_ranges_.cols(), "num of elevations (%ld) does not match cols of ranges (%ld).", num_elevations, m_ranges_.cols());
+        ERL_ASSERTM(num_azimuths == m_ranges_.rows(), "num of azimuths ({:d}) does not match rows of ranges ({:d}).", num_azimuths, m_ranges_.rows());
+        ERL_ASSERTM(num_elevations == m_ranges_.cols(), "num of elevations ({:d}) does not match cols of ranges ({:d}).", num_elevations, m_ranges_.cols());
         ERL_ASSERTM(num_azimuths > 0, "no azimuth angle.");
         ERL_ASSERTM(num_elevations > 0, "no elevation angle.");
 
@@ -247,7 +247,7 @@ namespace erl::geometry {
         Eigen::Matrix3Xd &directions_world,
         Eigen::VectorXd &distances,
         bool parallel) const {
-        ERL_ASSERTM(num_positions > 0, "num_positions (%ld) must be positive.", num_positions);
+        ERL_ASSERTM(num_positions > 0, "num_positions ({:d}) must be positive.", num_positions);
 
         if (parallel) {
             uint32_t num_threads = std::thread::hardware_concurrency();
@@ -301,7 +301,7 @@ namespace erl::geometry {
                 &directions_world,
                 &distances);
         }
-        ERL_DEBUG("%ld positions, %ld samples collected.", num_positions, positions_world.cols());
+        ERL_DEBUG("{:d} positions, {:d} samples collected.", num_positions, positions_world.cols());
     }
 
     void
@@ -314,7 +314,7 @@ namespace erl::geometry {
         Eigen::VectorXd &distances,
         bool parallel) const {
 
-        ERL_ASSERTM(num_hit_points > 0, "num_hit_points (%ld) must be positive.", num_hit_points);
+        ERL_ASSERTM(num_hit_points > 0, "num_hit_points ({:d}) must be positive.", num_hit_points);
 
         std::vector<long> selected_hit_ray_indices(m_hit_ray_indices_.cols());
         std::iota(selected_hit_ray_indices.begin(), selected_hit_ray_indices.end(), 0);
@@ -324,6 +324,7 @@ namespace erl::geometry {
             selected_hit_ray_indices.resize(num_hit_points);
         }
 
+        // TODO: rewrite parallelism with OpenMP, example: OccupancyOctreeBase::ComputeUpdateForPointCloud, which lets OpenMP handle batch processing
         if (parallel) {
             uint32_t num_threads = std::thread::hardware_concurrency();
             long num_positions_per_thread = num_hit_points / num_threads;

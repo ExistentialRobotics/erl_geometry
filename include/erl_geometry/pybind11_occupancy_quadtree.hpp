@@ -638,5 +638,5 @@ BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_nam
             py::arg("leaf_only") = false,
             py::arg("min_node_depth") = 0,
             py::arg("max_node_depth") = 0);
-    return tree;
+    return std::pair(tree, node);
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "erl_common/assert.hpp"
 #include "abstract_octree.hpp"
 #include "octree_key.hpp"
 #include "occupancy_octree_node.hpp"
@@ -22,7 +21,12 @@ namespace erl::geometry {
         explicit AbstractOccupancyOctree(const std::shared_ptr<OccupancyNdTreeSetting>& setting)
             : AbstractOctree(setting) {}
 
-        AbstractOccupancyOctree(const AbstractOccupancyOctree&) = delete;  // no copy constructor
+        AbstractOccupancyOctree(const AbstractOccupancyOctree&) = default;
+        AbstractOccupancyOctree&
+        operator=(const AbstractOccupancyOctree&) = default;
+        AbstractOccupancyOctree(AbstractOccupancyOctree&&) = default;
+        AbstractOccupancyOctree&
+        operator=(AbstractOccupancyOctree&&) = default;
 
         //--IO
         /**
@@ -81,12 +85,12 @@ namespace erl::geometry {
 
     public:
         //-- occupancy queries
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsNodeOccupied(const OccupancyOctreeNode* node) const {
             return node->GetLogOdds() > reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get())->log_odd_occ_threshold;
         }
 
-        [[maybe_unused]] [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsNodeAtThreshold(const OccupancyOctreeNode* node) const {
             float log_odds = node->GetLogOdds();
             const auto* setting = reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get());

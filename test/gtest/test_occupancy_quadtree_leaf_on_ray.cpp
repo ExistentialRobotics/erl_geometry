@@ -35,9 +35,8 @@ Draw(UserData *data) {
     double vy = std::sin(data->angle);
     double max_range = 10;
     int ex1 = 0, ey1 = 0, ex2 = 0, ey2 = 0;
-    auto it = data->tree->BeginNodeOnRay(x, y, vx, vy, max_range, data->bidirectional, /*leaf_only*/true);
-    auto end = data->tree->EndNodeOnRay();
-    for (; it != end; ++it) {
+    for (auto it = data->tree->BeginNodeOnRay(x, y, vx, vy, max_range, data->bidirectional, /*leaf_only*/ true), end = data->tree->EndNodeOnRay(); it != end;
+         ++it) {
         if (data->occupied_only && !data->tree->IsNodeOccupied(*it)) { continue; }
         double node_x = it.GetX();
         double node_y = it.GetY();
@@ -65,7 +64,7 @@ Draw(UserData *data) {
 void
 MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     (void) flags;
-    auto data = reinterpret_cast<UserData *>(userdata);
+    auto data = static_cast<UserData *>(userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) {
         std::cout << "Left button of the mouse is clicked - position (" << mouse_x << ", " << mouse_y << ")" << std::endl;

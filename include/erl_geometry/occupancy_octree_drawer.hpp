@@ -1,8 +1,10 @@
 #pragma once
 
-#include <functional>
 #include "erl_common/yaml.hpp"
 #include "abstract_octree_drawer.hpp"
+
+#include <functional>
+#include <open3d/geometry/VoxelGrid.h>
 
 namespace erl::geometry {
 
@@ -16,16 +18,14 @@ namespace erl::geometry {
             bool draw_node_borders = true;
         };
 
-        typedef std::function<void(
+        using DrawTreeCallback = std::function<void(
             const OccupancyOctreeDrawer *,                               // this
             std::vector<std::shared_ptr<open3d::geometry::Geometry>> &,  // geometries
-            typename OccupancyOctreeType::TreeInAabbIterator &)>
-            DrawTreeCallback;
-        typedef std::function<void(
+            typename OccupancyOctreeType::TreeInAabbIterator &)>;
+        using DrawLeafCallback = std::function<void(
             const OccupancyOctreeDrawer *,                               // this
             std::vector<std::shared_ptr<open3d::geometry::Geometry>> &,  // geometries
-            typename OccupancyOctreeType::LeafInAabbIterator &)>
-            DrawLeafCallback;
+            typename OccupancyOctreeType::LeafInAabbIterator &)>;
 
     private:
         std::shared_ptr<Setting> m_setting_ = {};
@@ -34,7 +34,8 @@ namespace erl::geometry {
         DrawLeafCallback m_draw_leaf_ = {};
 
     public:
-        explicit OccupancyOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyOctreeType> octree = nullptr)
+        explicit
+        OccupancyOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyOctreeType> octree = nullptr)
             : AbstractOctreeDrawer(std::static_pointer_cast<AbstractOctreeDrawer::Setting>(setting), octree),
               m_setting_(std::move(setting)),
               m_occupancy_octree_(std::move(octree)) {
@@ -114,7 +115,7 @@ namespace erl::geometry {
                 }
 
                 if (m_setting_->draw_node_borders) {
-                    auto n = int(node_border->points_.size());
+                    auto n = static_cast<int>(node_border->points_.size());
                     node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
@@ -199,7 +200,7 @@ namespace erl::geometry {
                 }
 
                 if (m_setting_->draw_node_borders) {
-                    auto n = int(node_border->points_.size());
+                    auto n = static_cast<int>(node_border->points_.size());
                     node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
@@ -251,10 +252,10 @@ namespace YAML {
         decode(const Node &node, Setting &rhs) {
             if (!node.IsMap()) { return false; }
             if (!convert<erl::geometry::AbstractOctreeDrawer::Setting>::decode(node, rhs)) { return false; }
-            rhs.occupied_only = node["occupied_only"].template as<bool>();
-            rhs.occupied_color = node["occupied_color"].template as<Eigen::Vector3d>();
-            rhs.draw_node_boxes = node["draw_node_boxes"].template as<bool>();
-            rhs.draw_node_borders = node["draw_node_borders"].template as<bool>();
+            rhs.occupied_only = node["occupied_only"].as<bool>();
+            rhs.occupied_color = node["occupied_color"].as<Eigen::Vector3d>();
+            rhs.draw_node_boxes = node["draw_node_boxes"].as<bool>();
+            rhs.draw_node_borders = node["draw_node_borders"].as<bool>();
             return true;
         }
     };

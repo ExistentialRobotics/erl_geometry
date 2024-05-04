@@ -19,10 +19,10 @@ namespace erl::geometry {
         ssize_t n_lines = 0;
         for (ssize_t i = 0; i < n_obj; ++i) {
             auto n = ordered_object_vertices[i].cols();
-            ERL_ASSERTM(n >= 3, "#vertices(%ld) should >= 3 for object %ld.", n, i);
+            ERL_ASSERTM(n >= 3, "#vertices({:d}) should >= 3 for object {:d}.", n, i);
 
             auto m = ordered_object_normals[i].cols();
-            ERL_ASSERTM(m == n, "#vertices (%ld) != #normals (%ld).", n, m);
+            ERL_ASSERTM(m == n, "#vertices ({:d}) != #normals ({:d}).", n, m);
 
             n_vtx += n;
             n_lines += n;
@@ -68,13 +68,13 @@ namespace erl::geometry {
         bool parallel) {
 
         auto n_obj = (ssize_t) ordered_object_vertices.size();
-        ERL_ASSERTM(outside_flags.size() == n_obj, "#outside_flags(%ld) != #objects(%ld).", outside_flags.size(), n_obj);
+        ERL_ASSERTM(outside_flags.size() == n_obj, "#outside_flags({:d}) != #objects({:d}).", outside_flags.size(), n_obj);
 
         ssize_t n_vtx = 0;
         ssize_t n_lines = 0;
         for (ssize_t i = 0; i < n_obj; ++i) {
             auto n = ordered_object_vertices[i].cols();
-            ERL_ASSERTM(n >= 3, "#vertices(%ld) should >= 3 for object %ld.", n, i);
+            ERL_ASSERTM(n >= 3, "#vertices({:d}) should >= 3 for object {:d}.", n, i);
             n_vtx += n;
             n_lines += n;
         }
@@ -294,7 +294,7 @@ namespace erl::geometry {
 
         ERL_ASSERTM(
             query_points.cols() == query_directions.cols(),
-            "#query_points(%ld) != #query_directions(%ld).",
+            "#query_points({:d}) != #query_directions({:d}).",
             query_points.cols(),
             query_directions.cols());
 
@@ -347,7 +347,7 @@ namespace erl::geometry {
 
         ERL_ASSERTM(
             query_points.cols() == query_directions.cols(),
-            "#query_points(%ld) != #query_directions(%ld).",
+            "#query_points({:d}) != #query_directions({:d}).",
             query_points.cols(),
             query_directions.cols());
 
@@ -403,7 +403,7 @@ namespace erl::geometry {
 
         ERL_ASSERTM(
             query_points.cols() == query_directions.cols(),
-            "#query_points(%ld) != #query_directions(%ld).",
+            "#query_points({:d}) != #query_directions({:d}).",
             query_points.cols(),
             query_directions.cols());
 

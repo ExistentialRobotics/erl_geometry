@@ -690,7 +690,7 @@ namespace erl::geometry {
         ERL_DEBUG_ASSERT(
             current_root_child_type == Children::Type::kNorthWest || current_root_child_type == Children::Type::kNorthEast ||
                 current_root_child_type == Children::Type::kSouthWest || current_root_child_type == Children::Type::kSouthEast,
-            "current_root_child_type must be one of kNorthWest, kNorthEast, kSouthWest, kSouthEast. Not %s.\n",
+            "current_root_child_type must be one of kNorthWest, kNorthEast, kSouthWest, kSouthEast. Not {}.\n",
             Children::GetTypeName(current_root_child_type));
 
         if (!IsExpandable()) { return nullptr; }
@@ -719,12 +719,12 @@ namespace erl::geometry {
         ERL_DEBUG_ASSERT(
             child_type == Children::Type::kNorthWest || child_type == Children::Type::kNorthEast || child_type == Children::Type::kSouthWest ||
                 child_type == Children::Type::kSouthEast,
-            "child_type must be one of kNorthWest, kNorthEast, kSouthWest, kSouthEast. Not %s.\n",
+            "child_type must be one of kNorthWest, kNorthEast, kSouthWest, kSouthEast. Not {}.\n",
             Children::GetTypeName(child_type));
         ERL_DEBUG_ASSERT(m_children_[static_cast<int>(child_type)] != nullptr, "No existing child to replace.");
         ERL_DEBUG_ASSERT(
             std::fabs(child->m_area_.half_sizes[0] * 2 - m_area_.half_sizes[0]) < 1e-6,
-            "incompatible child half length: %f for this parent of half length: %f.\n",
+            "incompatible child half length: {:f} for this parent of half length: {:f}.\n",
             child->m_area_.half_sizes[0],
             m_area_.half_sizes[0]);
         m_children_[static_cast<int>(child_type)] = child;

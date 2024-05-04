@@ -1,9 +1,12 @@
 #pragma once
 
-#include "erl_common/assert.hpp"
+#include "erl_common/logging.hpp"
+#include "erl_common/string_utils.hpp"
 
 #include <cstdint>
-#include <typeinfo>
+#include <string>
+#include <map>
+#include <memory>
 
 namespace erl::geometry {
     /**
@@ -15,6 +18,7 @@ namespace erl::geometry {
         int m_child_index_ = -1;
         AbstractOctreeNode **m_children_ = nullptr;
         uint32_t m_num_children_ = 0;
+        inline static std::map<std::string, std::shared_ptr<AbstractOctreeNode>> s_class_id_mapping_ = {};
 
     public:
         // rules of five: https://www.youtube.com/watch?v=juAZDfsaMvY
@@ -25,9 +29,19 @@ namespace erl::geometry {
 
         explicit AbstractOctreeNode(uint32_t depth, int child_index = -1)
             : m_depth_(depth),
-              m_child_index_(child_index) {}
+              m_child_index_(child_index) {
+            ERL_DEBUG_WARN_ONCE_COND(
+                typeid(*this) != typeid(AbstractOctreeNode) && s_class_id_mapping_.find(GetNodeType()) == s_class_id_mapping_.end(),
+                "Tree type {} not registered, do you forget to use ERL_REGISTER_OCTREE_NODE({})?",
+                GetNodeType(),
+                GetNodeType());
+        }
 
-        // copy constructor
+        /**
+         * copy constructor, deep copy. If you want to do shallow copy, please wrap it in a smart pointer. AbstractOctreeNode uses raw pointers internally and
+         * is responsible for memory management. So, shallow copy is impossible, which will lead to double free.
+         * @param other
+         */
         AbstractOctreeNode(const AbstractOctreeNode &other)
             : m_depth_(other.m_depth_),
               m_child_index_(other.m_child_index_),
@@ -40,7 +54,7 @@ namespace erl::geometry {
                 if (child == nullptr) { continue; }
                 m_children_[i] = child->Clone();
             }
-        };
+        }
 
         // copy assignment
         AbstractOctreeNode &
@@ -96,17 +110,49 @@ namespace erl::geometry {
         // destructor
         virtual ~AbstractOctreeNode() { this->DeleteChildrenPtr(); }
 
+        //-- factory pattern
+        [[nodiscard]] std::string
+        GetNodeType() const {
+            return demangle(typeid(*this).name());
+        }
+
+        /**
+         * Implemented by derived classes to create a new node of the same type.
+         * @return a new node of the same type of node.
+         */
+        [[nodiscard]] virtual AbstractOctreeNode *
+        Create(uint32_t depth, int child_index) const = 0;
+
+        static AbstractOctreeNode *
+        CreateNode(const std::string &node_type, uint32_t depth, int child_index) {
+            const auto it = s_class_id_mapping_.find(node_type);
+            if (it == s_class_id_mapping_.end()) {
+                ERL_WARN("Unknown Octree node type: {}", node_type);
+                return nullptr;
+            }
+            return it->second->Create(depth, child_index);
+        }
+
+        static void
+        RegisterNodeType(const std::shared_ptr<AbstractOctreeNode> &node) {
+            s_class_id_mapping_[node->GetNodeType()] = node;
+        }
+
+        /**
+         * Deep copy of the node. Used for copy constructor and copy assignment.
+         * @return deep copy of the node.
+         */
         [[nodiscard]] virtual AbstractOctreeNode *
         Clone() const = 0;
 
         //-- attributes
 
-        [[nodiscard]] inline const uint32_t &
+        [[nodiscard]] const uint32_t &
         GetDepth() const {
             return m_depth_;
         }
 
-        [[nodiscard]] inline const int &
+        [[nodiscard]] const int &
         GetChildIndex() const {
             return m_child_index_;
         }
@@ -120,8 +166,7 @@ namespace erl::geometry {
 
         //-- comparison
 
-        [[nodiscard]]
-        virtual bool
+        [[nodiscard]] virtual bool
         operator==(const AbstractOctreeNode &other) const {  // NOLINT(*-no-recursion)
             // we don't do polymorphic check because it is expensive to do so here.
             // polymorphic check should be done by the tree: if two trees are the same type, their nodes should be the same type.
@@ -131,26 +176,26 @@ namespace erl::geometry {
             for (int i = 0; i < 8; ++i) {
                 if (m_children_[i] == nullptr && other.m_children_[i] == nullptr) { continue; }
                 if (m_children_[i] == nullptr || other.m_children_[i] == nullptr) { return false; }
-                if (!(*m_children_[i] == *other.m_children_[i])) { return false; }
+                if (*m_children_[i] != *other.m_children_[i]) { return false; }
             }
             return true;
         }
 
         bool
-        operator!=(const AbstractOctreeNode &other) const {
+        operator!=(const AbstractOctreeNode &other) const {  // NOLINT(*-no-recursion)
             return !(*this == other);
         }
 
         //-- children
 
-        inline void
+        void
         AllocateChildrenPtr() {
             if (m_children_ != nullptr) { return; }
             m_children_ = new AbstractOctreeNode *[8];
             for (int i = 0; i < 8; ++i) { m_children_[i] = nullptr; }
         }
 
-        inline void
+        void
         DeleteChildrenPtr() {
             if (m_children_ == nullptr) { return; }
             if (m_num_children_ > 0) {
@@ -163,37 +208,34 @@ namespace erl::geometry {
             m_children_ = nullptr;
         }
 
-        [[nodiscard]] inline uint32_t
+        [[nodiscard]] uint32_t
         GetNumChildren() const {
             return m_num_children_;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         HasAnyChild() const {
             return m_num_children_ > 0;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         HasChild(uint32_t index) const {
             if (m_children_ == nullptr) { return false; }
             ERL_DEBUG_ASSERT(index < 8, "Index must be in [0, 7], but got %u.", index);
             return m_children_[index] != nullptr;
         }
 
-        template<typename Derived>
-        [[nodiscard]] inline Derived *
+        [[nodiscard]] AbstractOctreeNode *
         CreateChild(uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u already exists.", child_index);
-            AbstractOctreeNode *child = AllocateChildPtr(child_index);
-            ERL_DEBUG_ASSERT(typeid(*child) == typeid(Derived), "AllocateChildPtr(child_index) must return a pointer of the correct type.");
-            ERL_DEBUG_ASSERT(child->m_depth_ == m_depth_ + 1, "Child depth is not set correctly by AllocateChildPtr(child_index).");
+            AbstractOctreeNode *child = this->Create(m_depth_ + 1, static_cast<int>(child_index));
             m_children_[child_index] = child;
             m_num_children_++;
-            return static_cast<Derived *>(child);
+            return child;
         }
 
-        inline void
+        void
         RemoveChild(uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "Child %u does not exist.", child_index);
@@ -203,26 +245,26 @@ namespace erl::geometry {
         }
 
         template<typename Derived>
-        inline Derived *
+        Derived *
         GetChild(uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             return static_cast<Derived *>(m_children_[child_index]);
         }
 
         template<typename Derived>
-        [[nodiscard]] inline const Derived *
+        [[nodiscard]] const Derived *
         GetChild(uint32_t child_index) const {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             return static_cast<const Derived *>(m_children_[child_index]);
         }
 
-        [[nodiscard]] virtual inline bool
+        [[nodiscard]] virtual bool
         AllowMerge(const AbstractOctreeNode *other) const {
             (void) other;
             return m_num_children_ == 0;
         }
 
-        virtual inline void
+        virtual void
         Prune() {
             ERL_DEBUG_ASSERT(m_num_children_ == 8, "Prune() can only be called when all children are present.");
             for (int i = 0; i < 8; ++i) {
@@ -232,16 +274,19 @@ namespace erl::geometry {
             m_num_children_ = 0;
         }
 
-        virtual inline void
+        virtual void
         Expand() {
             ERL_DEBUG_ASSERT(m_num_children_ == 0, "Expand() can only be called when no children are present.");
             if (m_children_ == nullptr) { m_children_ = new AbstractOctreeNode *[8]; }
-            for (int i = 0; i < 8; ++i) { m_children_[i] = AllocateChildPtr(i); }
+            for (int i = 0; i < 8; ++i) { m_children_[i] = this->Create(m_depth_ + 1, i); }
             m_num_children_ = 8;
         }
-
-    private:
-        virtual AbstractOctreeNode *
-        AllocateChildPtr(uint32_t child_index) = 0;
     };
+
+#define ERL_REGISTER_OCTREE_NODE(node_type)                                                 \
+    inline const volatile bool kRegistered##node_type = []() {                              \
+        erl::geometry::AbstractOctreeNode::RegisterNodeType(std::make_shared<node_type>()); \
+        ERL_DEBUG(#node_type " is registered.");                                            \
+        return true;                                                                        \
+    }()
 }  // namespace erl::geometry

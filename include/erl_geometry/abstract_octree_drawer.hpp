@@ -1,10 +1,12 @@
 #pragma once
 
-#include <utility>
-#include "erl_common/grid_map_info.hpp"
 #include "erl_common/yaml.hpp"
 #include "abstract_octree.hpp"
 #include "open3d_visualizer_wrapper.hpp"
+
+#include <utility>
+#include <open3d/geometry/VoxelGrid.h>
+#include <open3d/geometry/LineSet.h>
 
 namespace erl::geometry {
 
@@ -81,26 +83,23 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
+template<>
+struct YAML::convert<erl::geometry::AbstractOctreeDrawer::Setting> {
+    static Node
+    encode(const erl::geometry::AbstractOctreeDrawer::Setting &rhs) {
+        Node node;
+        node["area_min"] = rhs.area_min;
+        node["area_max"] = rhs.area_max;
+        node["border_color"] = rhs.border_color;
+        return node;
+    }
 
-    template<>
-    struct convert<erl::geometry::AbstractOctreeDrawer::Setting> {
-        inline static Node
-        encode(const erl::geometry::AbstractOctreeDrawer::Setting &rhs) {
-            Node node;
-            node["area_min"] = rhs.area_min;
-            node["area_max"] = rhs.area_max;
-            node["border_color"] = rhs.border_color;
-            return node;
-        }
-
-        inline static bool
-        decode(const Node &node, erl::geometry::AbstractOctreeDrawer::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.area_min = node["area_min"].as<Eigen::Vector3d>();
-            rhs.area_max = node["area_max"].as<Eigen::Vector3d>();
-            rhs.border_color = node["border_color"].as<Eigen::Vector3d>();
-            return true;
-        }
-    };
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::AbstractOctreeDrawer::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.area_min = node["area_min"].as<Eigen::Vector3d>();
+        rhs.area_max = node["area_max"].as<Eigen::Vector3d>();
+        rhs.border_color = node["border_color"].as<Eigen::Vector3d>();
+        return true;
+    }
+};  // namespace YAML

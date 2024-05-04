@@ -1,19 +1,14 @@
 #pragma once
 
+#include "erl_common/yaml.hpp"
+
 #include <functional>
-#include <map>
 #include <open3d/geometry/Geometry.h>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
 #include <open3d/geometry/TriangleMesh.h>
-#include <open3d/geometry/VoxelGrid.h>
-#include <open3d/geometry/Octree.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 #include <open3d/visualization/visualizer/VisualizerWithKeyCallback.h>
-#include <open3d/visualization/utility/DrawGeometry.h>
-#include "erl_common/yaml.hpp"
-#include "erl_common/angle_utils.hpp"
-#include "erl_common/assert.hpp"
 
 namespace erl::geometry {
     class Open3dVisualizerWrapper {
@@ -44,7 +39,8 @@ namespace erl::geometry {
         std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> m_animation_callback_ = nullptr;
 
     public:
-        explicit Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
+        explicit
+        Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
             : m_setting_(std::move(setting)) {
             if (!m_setting_) { m_setting_ = std::make_shared<Setting>(); }
             Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
@@ -57,7 +53,7 @@ namespace erl::geometry {
             return m_setting_;
         }
 
-        [[nodiscard]] std::shared_ptr<open3d::visualization::VisualizerWithKeyCallback>
+        [[maybe_unused]] [[nodiscard]] std::shared_ptr<open3d::visualization::VisualizerWithKeyCallback>
         GetVisualizer() const {
             return m_visualizer_;
         }
@@ -80,18 +76,18 @@ namespace erl::geometry {
             }
         }
 
-        inline void
-        AddGeometries(const std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) {
+        void
+        AddGeometries(const std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const {
             for (const auto &geometry: geometries) { m_visualizer_->AddGeometry(geometry); }
         }
 
-        inline void
-        ClearGeometries() {
+        void
+        ClearGeometries() const {
             m_visualizer_->ClearGeometries();
             m_visualizer_->AddGeometry(m_axis_mesh_);
         }
 
-        inline void
+        void
         Show(int wait_time_seconds = -1) {
 
             if (wait_time_seconds > 0) {
@@ -125,65 +121,43 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
-    template<>
-    struct convert<erl::geometry::Open3dVisualizerWrapper::Setting> {
-        inline static Node
-        encode(const erl::geometry::Open3dVisualizerWrapper::Setting &rhs) {
-            Node node;
-            node["window_name"] = rhs.window_name;
-            node["window_width"] = rhs.window_width;
-            node["window_height"] = rhs.window_height;
-            node["window_left"] = rhs.window_left;
-            node["window_top"] = rhs.window_top;
-            node["x"] = rhs.x;
-            node["y"] = rhs.y;
-            node["z"] = rhs.z;
-            node["roll"] = rhs.roll;
-            node["pitch"] = rhs.pitch;
-            node["yaw"] = rhs.yaw;
-            node["translate_step"] = rhs.translate_step;
-            node["angle_step"] = rhs.angle_step;
-            return node;
-        }
+template<>
+struct YAML::convert<erl::geometry::Open3dVisualizerWrapper::Setting> {
+    static Node
+    encode(const erl::geometry::Open3dVisualizerWrapper::Setting &rhs) {
+        Node node;
+        node["window_name"] = rhs.window_name;
+        node["window_width"] = rhs.window_width;
+        node["window_height"] = rhs.window_height;
+        node["window_left"] = rhs.window_left;
+        node["window_top"] = rhs.window_top;
+        node["x"] = rhs.x;
+        node["y"] = rhs.y;
+        node["z"] = rhs.z;
+        node["roll"] = rhs.roll;
+        node["pitch"] = rhs.pitch;
+        node["yaw"] = rhs.yaw;
+        node["translate_step"] = rhs.translate_step;
+        node["angle_step"] = rhs.angle_step;
+        return node;
+    }
 
-        inline static bool
-        decode(const Node &node, erl::geometry::Open3dVisualizerWrapper::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.window_name = node["window_name"].as<std::string>();
-            rhs.window_width = node["window_width"].as<int>();
-            rhs.window_height = node["window_height"].as<int>();
-            rhs.window_left = node["window_left"].as<int>();
-            rhs.window_top = node["window_top"].as<int>();
-            rhs.x = node["x"].as<double>();
-            rhs.y = node["y"].as<double>();
-            rhs.z = node["z"].as<double>();
-            rhs.roll = node["roll"].as<double>();
-            rhs.pitch = node["pitch"].as<double>();
-            rhs.yaw = node["yaw"].as<double>();
-            rhs.translate_step = node["translate_step"].as<double>();
-            rhs.angle_step = node["angle_step"].as<double>();
-            return true;
-        }
-    };
-
-    // inline Emitter &
-    // operator<<(Emitter &out, const erl::geometry::Open3dVisualizerWrapper::Setting &rhs) {
-    //     out << BeginMap;
-    //     out << Key << "window_name" << Value << rhs.window_name;
-    //     out << Key << "window_width" << Value << rhs.window_width;
-    //     out << Key << "window_height" << Value << rhs.window_height;
-    //     out << Key << "window_left" << Value << rhs.window_left;
-    //     out << Key << "window_top" << Value << rhs.window_top;
-    //     out << Key << "x" << Value << rhs.x;
-    //     out << Key << "y" << Value << rhs.y;
-    //     out << Key << "z" << Value << rhs.z;
-    //     out << Key << "roll" << Value << rhs.roll;
-    //     out << Key << "pitch" << Value << rhs.pitch;
-    //     out << Key << "yaw" << Value << rhs.yaw;
-    //     out << Key << "translate_step" << Value << rhs.translate_step;
-    //     out << Key << "angle_step" << Value << rhs.angle_step;
-    //     out << EndMap;
-    //     return out;
-    // }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::Open3dVisualizerWrapper::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.window_name = node["window_name"].as<std::string>();
+        rhs.window_width = node["window_width"].as<int>();
+        rhs.window_height = node["window_height"].as<int>();
+        rhs.window_left = node["window_left"].as<int>();
+        rhs.window_top = node["window_top"].as<int>();
+        rhs.x = node["x"].as<double>();
+        rhs.y = node["y"].as<double>();
+        rhs.z = node["z"].as<double>();
+        rhs.roll = node["roll"].as<double>();
+        rhs.pitch = node["pitch"].as<double>();
+        rhs.yaw = node["yaw"].as<double>();
+        rhs.translate_step = node["translate_step"].as<double>();
+        rhs.angle_step = node["angle_step"].as<double>();
+        return true;
+    }
+};

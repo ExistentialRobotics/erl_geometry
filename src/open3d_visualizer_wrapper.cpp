@@ -1,3 +1,5 @@
+#include "erl_common/angle_utils.hpp"
+#include "erl_common/logging.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
 
 namespace erl::geometry {
@@ -24,7 +26,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_J, [this](open3d::visualization::Visualizer *vis) -> bool {  // roll-
             m_setting_->roll = common::WrapAnglePi(m_setting_->roll - m_setting_->angle_step);
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -37,7 +39,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_L, [this](open3d::visualization::Visualizer *vis) -> bool {  // roll+
             m_setting_->roll = common::WrapAnglePi(m_setting_->roll + m_setting_->angle_step);
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -50,7 +52,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_K, [this](open3d::visualization::Visualizer *vis) -> bool {  // pitch-
             m_setting_->pitch = common::WrapAnglePi(m_setting_->pitch - m_setting_->angle_step);
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -63,7 +65,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_I, [this](open3d::visualization::Visualizer *vis) -> bool {  // pitch+
             m_setting_->pitch = common::WrapAnglePi(m_setting_->pitch + m_setting_->angle_step);
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -76,7 +78,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_U, [this](open3d::visualization::Visualizer *vis) -> bool {  // yaw-
             m_setting_->yaw = common::WrapAnglePi(m_setting_->yaw - m_setting_->angle_step);
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -89,7 +91,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_O, [this](open3d::visualization::Visualizer *vis) -> bool {  // yaw+
             m_setting_->yaw = common::WrapAnglePi(m_setting_->yaw + m_setting_->angle_step);
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -102,7 +104,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_LEFT, [this](open3d::visualization::Visualizer *vis) -> bool {  // x-
             m_setting_->x -= m_setting_->translate_step;
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -115,7 +117,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_RIGHT, [this](open3d::visualization::Visualizer *vis) -> bool {  // x+
             m_setting_->x += m_setting_->translate_step;
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -128,7 +130,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_DOWN, [this](open3d::visualization::Visualizer *vis) -> bool {  // y-
             m_setting_->y -= m_setting_->translate_step;
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -141,7 +143,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_UP, [this](open3d::visualization::Visualizer *vis) -> bool {  // y+
             m_setting_->y += m_setting_->translate_step;
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -154,7 +156,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_PAGE_DOWN, [this](open3d::visualization::Visualizer *vis) -> bool {  // z-
             m_setting_->z -= m_setting_->translate_step;
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,
@@ -167,7 +169,7 @@ namespace erl::geometry {
         m_visualizer_->RegisterKeyCallback(GLFW_KEY_PAGE_UP, [this](open3d::visualization::Visualizer *vis) -> bool {  // z+
             m_setting_->z += m_setting_->translate_step;
             ERL_INFO(
-                "xyz: (%.3f, %.3f, %.3f), rpy: (%.3f, %.3f, %.3f)",
+                "xyz: ({:.3f}, {:.3f}, {:.3f}), rpy: ({:.3f}, {:.3f}, {:.3f})",
                 m_setting_->x,
                 m_setting_->y,
                 m_setting_->z,

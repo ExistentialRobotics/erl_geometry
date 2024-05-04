@@ -13,8 +13,8 @@ namespace erl::geometry {
     template<typename ScalarType, int Dim>
     struct Aabb : public Eigen::AlignedBox<ScalarType, Dim>, public AabbBase {
 
-        typedef ScalarType Scalar;
-        typedef Eigen::Vector<Scalar, Dim> Point;
+        using Scalar = ScalarType;
+        using Point = Eigen::Vector<Scalar, Dim>;
 
         Point center = {};
         Point half_sizes = {};
@@ -42,8 +42,8 @@ namespace erl::geometry {
         }
     };
 
-    typedef Aabb<double, 2> Aabb2D;
-    typedef Aabb<double, 3> Aabb3D;
+    using Aabb2D = Aabb<double, 2>;
+    using Aabb3D = Aabb<double, 3>;
 }  // namespace erl::geometry
 
 namespace YAML {
@@ -51,7 +51,7 @@ namespace YAML {
     struct ConvertAabb {
         static_assert(std::is_base_of_v<erl::geometry::AabbBase, AABB>, "AABB must be derived from AabbBase");
 
-        inline static Node
+        static Node
         encode(const AABB &rhs) {
             Node node;
             node["center"] = rhs.center;
@@ -59,7 +59,7 @@ namespace YAML {
             return node;
         }
 
-        inline static bool
+        static bool
         decode(const Node &node, AABB &rhs) {
             if (!node.IsMap()) { return false; }
             rhs.center = node["center"].as<typename AABB::Point>();

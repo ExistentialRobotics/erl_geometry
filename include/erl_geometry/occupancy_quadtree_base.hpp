@@ -15,7 +15,7 @@ namespace erl::geometry {
         bool use_aabb_limit = false;
         Aabb2D aabb = {};
 
-        inline bool
+        bool
         operator==(const NdTreeSetting& rhs) const override {
             if (OccupancyNdTreeSetting::operator==(rhs)) {
                 auto that = reinterpret_cast<const OccupancyQuadtreeBaseSetting&>(rhs);
@@ -42,50 +42,25 @@ namespace erl::geometry {
         explicit OccupancyQuadtreeBase(const std::shared_ptr<Setting>& setting)
             : QuadtreeImpl<Node, AbstractOccupancyQuadtree, Setting>(setting) {}
 
-        OccupancyQuadtreeBase(const OccupancyQuadtreeBase& other)
-            : OccupancyQuadtreeBase(std::make_shared<OccupancyQuadtreeBaseSetting>(*other.m_setting_)) {
-            if (other.m_root_ != nullptr) {
-                this->m_root_ = std::make_shared<OccupancyQuadtreeNode>(*other.m_root_);
-                this->m_tree_size_ = other.m_tree_size_;
-                this->m_size_changed_ = other.m_size_changed_;
-            }
-        }
-
+        OccupancyQuadtreeBase(const OccupancyQuadtreeBase& other) = default;
         OccupancyQuadtreeBase&
-        operator=(const OccupancyQuadtreeBase& other) {
-            if (this == &other) { return *this; }
-            AbstractQuadtree::m_setting_ = std::make_shared<OccupancyQuadtreeBaseSetting>(*other.m_setting_);
-            this->ApplySetting();
-            if (other.m_root_ == nullptr) {
-                this->Clear();
-                return *this;
-            }
-            this->m_root_ = std::make_shared<OccupancyQuadtreeNode>(*other.m_root_);
-            this->m_tree_size_ = other.m_tree_size_;
-            this->m_size_changed_ = other.m_size_changed_;
-            return *this;
-        }
-
-        OccupancyQuadtreeBase(OccupancyQuadtreeBase&& other) noexcept
-            : OccupancyQuadtreeBase(other.m_setting_) {
-            this->m_root_ = std::move(other.m_root_);
-            this->m_tree_size_ = other.m_tree_size_;
-            this->m_size_changed_ = other.m_size_changed_;
-        }
-
+        operator=(const OccupancyQuadtreeBase& other) = default;
+        OccupancyQuadtreeBase(OccupancyQuadtreeBase&& other) noexcept = default;
         OccupancyQuadtreeBase&
-        operator=(OccupancyQuadtreeBase&& other) noexcept {
-            if (this == &other) { return *this; }
-            AbstractQuadtree::m_setting_ = std::move(other.m_setting_);
-            this->ApplySetting();
-            this->m_root_ = std::move(other.m_root_);
-            this->m_tree_size_ = other.m_tree_size_;
-            this->m_size_changed_ = other.m_size_changed_;
-            return *this;
+        operator=(OccupancyQuadtreeBase&& other) noexcept = default;
+
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree>
+        Clone() const override {
+            std::shared_ptr<AbstractQuadtree> tree = QuadtreeImpl<Node, AbstractOccupancyQuadtree, Setting>::Clone();
+            std::shared_ptr<OccupancyQuadtreeBase> occupancy_tree = std::dynamic_pointer_cast<OccupancyQuadtreeBase>(tree);
+            occupancy_tree->m_changed_keys_ = m_changed_keys_;
+            occupancy_tree->m_discrete_end_point_mapping_ = m_discrete_end_point_mapping_;
+            occupancy_tree->m_end_point_mapping_ = m_end_point_mapping_;
+            return tree;
         }
 
         //-- implement abstract methods
-        inline void
+        void
         OnDeleteNodeChild(Node* node, Node* child, const QuadtreeKey& /*key*/) override {
             node->SetLogOdds(std::max(node->GetLogOdds(), child->GetLogOdds()));  // update log odds
         }
@@ -169,10 +144,10 @@ namespace erl::geometry {
                 const auto& kP = points.col(i);
                 QuadtreeKey key = this->CoordToKey(kP[0], kP[1]);
                 auto& indices = m_discrete_end_point_mapping_[key];
-                if (indices.empty()) { new_points.col(long(m_discrete_end_point_mapping_.size()) - 1) << kP; }  // new end point!
+                if (indices.empty()) { new_points.col(static_cast<long>(m_discrete_end_point_mapping_.size()) - 1) << kP; }  // new end point!
                 indices.push_back(i);
             }
-            new_points.conservativeResize(2, long(m_discrete_end_point_mapping_.size()));
+            new_points.conservativeResize(2, static_cast<long>(m_discrete_end_point_mapping_.size()));
             this->ComputeUpdateForPointCloud(new_points, sensor_origin, max_range, parallel, free_cells, occupied_cells);
         }
 
@@ -557,24 +532,24 @@ namespace erl::geometry {
             }
 
             // compute t_max and t_delta
-            const double& kResolution = this->m_setting_->resolution;
+            const double& resolution = this->m_setting_->resolution;
             double t_max[2];
             double t_delta[2];
             if (step[0] == 0) {
                 t_max[0] = std::numeric_limits<double>::infinity();
                 t_delta[0] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = this->KeyToCoord(current_key[0]) + double(step[0]) * 0.5 * kResolution;
+                double voxel_border = this->KeyToCoord(current_key[0]) + static_cast<double>(step[0]) * 0.5 * resolution;
                 t_max[0] = (voxel_border - px) / vx;
-                t_delta[0] = kResolution / std::abs(vx);
+                t_delta[0] = resolution / std::abs(vx);
             }
             if (step[1] == 0) {
                 t_max[1] = std::numeric_limits<double>::infinity();
                 t_delta[1] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = this->KeyToCoord(current_key[1]) + double(step[1]) * 0.5 * kResolution;
+                double voxel_border = this->KeyToCoord(current_key[1]) + static_cast<double>(step[1]) * 0.5 * resolution;
                 t_max[1] = (voxel_border - py) / vy;
-                t_delta[1] = kResolution / std::abs(vy);
+                t_delta[1] = resolution / std::abs(vy);
             }
 
             // incremental phase
@@ -583,19 +558,18 @@ namespace erl::geometry {
             while (true) {
                 if (t_max[0] < t_max[1]) {
                     t_max[0] += t_delta[0];
-                    long next_key_val = long(current_key[0]) + step[0];
+                    const long next_key_val = static_cast<long>(current_key[0]) + step[0];
                     // check overflow
                     if ((step[0] < 0 && next_key_val <= 0) || (step[0] > 0 && next_key_val >= max_key_val)) {
                         ERL_DEBUG("x coordinate hits boundary, aborting ray cast.");
                         current_key[0] = next_key_val < 0 ? 0 : max_key_val;  // set to boundary
                         this->KeyToCoord(current_key, ex, ey);
                         return nullptr;
-                    } else {
-                        current_key[0] = next_key_val;
                     }
+                    current_key[0] = next_key_val;
                 } else {
                     t_max[1] += t_delta[1];
-                    long next_key_val = long(current_key[1]) + step[1];
+                    long next_key_val = static_cast<long>(current_key[1]) + step[1];
                     // check overflow
                     if ((step[1] < 0 && next_key_val <= 0) || (step[1] > 0 && next_key_val >= max_key_val)) {
                         ERL_DEBUG("y coordinate hits boundary, aborting ray cast.");
@@ -626,7 +600,7 @@ namespace erl::geometry {
         }
 
         //-- trace ray
-        [[maybe_unused]] [[nodiscard]] inline QuadtreeKeyBoolMap::const_iterator
+        [[maybe_unused]] [[nodiscard]] QuadtreeKeyBoolMap::const_iterator
         BeginChangedKey() const {
             if (!reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get())->use_change_detection) {
                 ERL_WARN("use_change_detection is false in setting. No changes are tracked.");
@@ -635,12 +609,12 @@ namespace erl::geometry {
             return m_changed_keys_.begin();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline QuadtreeKeyBoolMap::const_iterator
+        [[maybe_unused]] [[nodiscard]] QuadtreeKeyBoolMap::const_iterator
         EndChangedKey() const {
             return m_changed_keys_.end();
         }
 
-        [[maybe_unused]] inline void
+        [[maybe_unused]] void
         ClearChangedKeys() {
             m_changed_keys_.clear();
         }
@@ -648,13 +622,14 @@ namespace erl::geometry {
         //-- update nodes' occupancy
         /**
          * Update the node at the given key with the given log-odds delta.
-         * @param key of the node to update
-         * @param log_odds_delta to be added to the node's log-odds value
+         * @param x
+         * @param y
+         * @param occupied
          * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
          * UpdateInnerOccupancy() after all updates are done.
          * @return
          */
-        inline Node*
+        Node*
         UpdateNode(double x, double y, bool occupied, bool lazy_eval) {
             QuadtreeKey key;
             if (!this->CoordToKeyChecked(x, y, key)) { return nullptr; }
@@ -668,14 +643,14 @@ namespace erl::geometry {
          * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
          * UpdateInnerOccupancy() after all updates are done.
          */
-        inline Node*
+        Node*
         UpdateNode(const QuadtreeKey& key, bool occupied, bool lazy_eval) {
             const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
             float log_odds_delta = occupied ? setting->log_odd_hit : setting->log_odd_miss;
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
-        inline Node*
+        Node*
         UpdateNode(double x, double y, float log_odds_delta, bool lazy_eval) {
             QuadtreeKey key;
             if (!this->CoordToKeyChecked(x, y, key)) { return nullptr; }
@@ -685,22 +660,22 @@ namespace erl::geometry {
         Node*
         UpdateNode(const QuadtreeKey& key, float log_odds_delta, bool lazy_eval) {
             auto leaf = const_cast<Node*>(this->Search(key));
-            auto log_odds_delta_ = double(log_odds_delta);
+            auto log_odds_delta_double = static_cast<double>(log_odds_delta);
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
             if (leaf) {
-                if (!leaf->AllowUpdateLogOdds(log_odds_delta_)) { return leaf; }
+                if (!leaf->AllowUpdateLogOdds(log_odds_delta_double)) { return leaf; }
                 const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-                if (log_odds_delta_ >= 0 && leaf->GetLogOdds() >= setting->log_odd_max) { return leaf; }
-                if (log_odds_delta_ <= 0 && leaf->GetLogOdds() <= setting->log_odd_min) { return leaf; }
+                if (log_odds_delta_double >= 0 && leaf->GetLogOdds() >= setting->log_odd_max) { return leaf; }
+                if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= setting->log_odd_min) { return leaf; }
             }
 
             bool create_root = this->m_root_ == nullptr;
             if (create_root) {
                 this->m_root_ = std::make_shared<Node>();
-                this->m_tree_size_++;
+                ++this->m_tree_size_;
                 ERL_DEBUG_ASSERT(this->m_tree_size_ == 1, "tree size is not 1 after root creation.");
             }
-            return static_cast<Node*>(this->UpdateNodeRecurs(this->m_root_.get(), create_root, key, log_odds_delta_, lazy_eval));
+            return static_cast<Node*>(this->UpdateNodeRecurs(this->m_root_.get(), create_root, key, log_odds_delta_double, lazy_eval));
         }
 
     private:
@@ -708,11 +683,10 @@ namespace erl::geometry {
         UpdateNodeRecurs(Node* node, bool node_just_created, const QuadtreeKey& key, double log_odds_delta, bool lazy_eval) {
             ERL_DEBUG_ASSERT(node != nullptr, "node is nullptr.");
 
-            uint32_t depth = node->GetDepth();
-            const uint32_t& kTreeDepth = this->m_setting_->tree_depth;
-            if (depth < kTreeDepth) {  // follow down to last level
+            const uint32_t depth = node->GetDepth();
+            if (const uint32_t& tree_depth = this->m_setting_->tree_depth; depth < tree_depth) {  // follow down to last level
                 bool created_node = false;
-                int pos = QuadtreeKey::ComputeChildIndex(key, kTreeDepth - 1 - depth);
+                int pos = QuadtreeKey::ComputeChildIndex(key, tree_depth - 1 - depth);
                 if (!node->HasChild(pos)) {                            // child node does not exist
                     if (!node->HasAnyChild() && !node_just_created) {  // current node has no child and is not new
                         this->ExpandNode(node);                        // expand pruned node
@@ -722,55 +696,49 @@ namespace erl::geometry {
                     }
                 }
 
-                if (lazy_eval) {
-                    return this->UpdateNodeRecurs(this->GetNodeChild(node, pos), created_node, key, log_odds_delta, lazy_eval);
+                if (lazy_eval) { return this->UpdateNodeRecurs(this->GetNodeChild(node, pos), created_node, key, log_odds_delta, lazy_eval); }
+                Node* returned_node = this->UpdateNodeRecurs(this->GetNodeChild(node, pos), created_node, key, log_odds_delta, lazy_eval);
+                if (this->PruneNode(node)) {
+                    returned_node = node;  // returned_node is pruned, return its parent instead
                 } else {
-                    Node* returned_node = this->UpdateNodeRecurs(this->GetNodeChild(node, pos), created_node, key, log_odds_delta, lazy_eval);
-                    if (this->PruneNode(node)) {
-                        returned_node = node;  // returned_node is pruned, return its parent instead
-                    } else {
-                        this->UpdateInnerNodeOccupancy(node);
-                    }
-                    return returned_node;
+                    this->UpdateInnerNodeOccupancy(node);
                 }
-            } else {  // last level
-                if (reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get())->use_change_detection) {
-                    bool occ_before = this->IsNodeOccupied(node);
-                    UpdateNodeLogOdds(node, log_odds_delta);
-                    if (node_just_created) {
-                        m_changed_keys_.emplace(key, true);
-                    } else if (occ_before != this->IsNodeOccupied(node)) {  // occupancy changed, track it
-                        auto it = m_changed_keys_.find(key);
-                        if (it == m_changed_keys_.end()) {  // not found
-                            m_changed_keys_.emplace(key, false);
-                        } else if (!it->second) {
-                            m_changed_keys_.erase(it);
-                        }
-                    }
-                } else {
-                    UpdateNodeLogOdds(node, log_odds_delta);
-                }
-                return node;
+                return returned_node;
             }
+            // last level
+            if (reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get())->use_change_detection) {
+                bool occ_before = this->IsNodeOccupied(node);
+                UpdateNodeLogOdds(node, log_odds_delta);
+                if (node_just_created) {
+                    m_changed_keys_.emplace(key, true);
+                } else if (occ_before != this->IsNodeOccupied(node)) {  // occupancy changed, track it
+                    auto it = m_changed_keys_.find(key);
+                    if (it == m_changed_keys_.end()) {  // not found
+                        m_changed_keys_.emplace(key, false);
+                    } else if (!it->second) {
+                        m_changed_keys_.erase(it);
+                    }
+                }
+            } else {
+                UpdateNodeLogOdds(node, log_odds_delta);
+            }
+            return node;
         }
 
     protected:
         void
         UpdateNodeLogOdds(Node* node, float log_odd_delta) {
             node->AddLogOdds(log_odd_delta);
-            float l = node->GetLogOdds();
+            const float l = node->GetLogOdds();
             const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const double& kLogOddMin = setting->log_odd_min;
-            const double& kLogOddMax = setting->log_odd_max;
-            if (l < kLogOddMin) {
-                node->SetLogOdds(kLogOddMin);
+            const double& log_odd_min = setting->log_odd_min;
+            const double& log_odd_max = setting->log_odd_max;
+            if (l < log_odd_min) {
+                node->SetLogOdds(log_odd_min);
                 return;
             }
 
-            if (l > kLogOddMax) {
-                node->SetLogOdds(kLogOddMax);
-                return;
-            }
+            if (l > log_odd_max) { node->SetLogOdds(log_odd_max); }
         }
 
     public:
@@ -850,8 +818,8 @@ namespace erl::geometry {
             stack.emplace_back(this->m_root_.get(), true);
 
             const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const double& kLogOddMin = setting->log_odd_min;
-            const double& kLogOddMax = setting->log_odd_max;
+            const double& log_odd_min = setting->log_odd_min;
+            const double& log_odd_max = setting->log_odd_max;
 
             while (!stack.empty()) {
                 auto& top = stack.back();
@@ -866,7 +834,7 @@ namespace erl::geometry {
 
                 is_new_node = false;
                 s.read(&child_record, sizeof(char));
-                std::bitset<8> child((unsigned long long) child_record);
+                std::bitset<8> child(static_cast<unsigned long long>(child_record));
                 bool has_inner_node_child = false;
                 for (int i = 3; i >= 0; --i) {
                     // 0b10: free leaf
@@ -883,11 +851,11 @@ namespace erl::geometry {
                             stack.emplace_back(child_node, true);
                         } else {  // 0b01, occupied leaf
                             child_node = this->CreateNodeChild(node, i);
-                            child_node->SetLogOdds(kLogOddMax);
+                            child_node->SetLogOdds(log_odd_max);
                         }
                     } else if (bit1) {  // 0b10, free leaf
                         child_node = this->CreateNodeChild(node, i);
-                        child_node->SetLogOdds(kLogOddMin);
+                        child_node->SetLogOdds(log_odd_min);
                     }
                     // else: 0b00, child is unknown, we leave it uninitialized
                 }
@@ -895,7 +863,6 @@ namespace erl::geometry {
                 if (!has_inner_node_child) {
                     node->SetLogOdds(node->GetMaxChildLogOdds());
                     stack.pop_back();
-                    continue;
                 }
             }
 
@@ -942,7 +909,7 @@ namespace erl::geometry {
                     child[i * 2] = false;
                     child[i * 2 + 1] = true;
                 }
-                char child_record = (char) child.to_ulong();
+                char child_record = static_cast<char>(child.to_ulong());
                 s.write(&child_record, sizeof(char));
             }
 
@@ -951,26 +918,24 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
-    template<>
-    struct convert<erl::geometry::OccupancyQuadtreeBaseSetting> {
-        inline static Node
-        encode(const erl::geometry::OccupancyQuadtreeBaseSetting& rhs) {
-            Node node = convert<erl::geometry::OccupancyNdTreeSetting>::encode(rhs);
-            node["use_change_detection"] = rhs.use_change_detection;
-            node["use_aabb_limit"] = rhs.use_aabb_limit;
-            node["aabb"] = rhs.aabb;
-            return node;
-        }
+template<>
+struct YAML::convert<erl::geometry::OccupancyQuadtreeBaseSetting> {
+    static Node
+    encode(const erl::geometry::OccupancyQuadtreeBaseSetting& rhs) {
+        Node node = convert<erl::geometry::OccupancyNdTreeSetting>::encode(rhs);
+        node["use_change_detection"] = rhs.use_change_detection;
+        node["use_aabb_limit"] = rhs.use_aabb_limit;
+        node["aabb"] = rhs.aabb;
+        return node;
+    }
 
-        inline static bool
-        decode(const Node& node, erl::geometry::OccupancyQuadtreeBaseSetting& rhs) {
-            if (!node.IsMap()) { return false; }
-            if (!convert<erl::geometry::OccupancyNdTreeSetting>::decode(node, rhs)) { return false; }
-            rhs.use_change_detection = node["use_change_detection"].as<bool>();
-            rhs.use_aabb_limit = node["use_aabb_limit"].as<bool>();
-            rhs.aabb = node["aabb"].as<erl::geometry::Aabb2D>();
-            return true;
-        }
-    };
-}  // namespace YAML
+    static bool
+    decode(const Node& node, erl::geometry::OccupancyQuadtreeBaseSetting& rhs) {
+        if (!node.IsMap()) { return false; }
+        if (!convert<erl::geometry::OccupancyNdTreeSetting>::decode(node, rhs)) { return false; }
+        rhs.use_change_detection = node["use_change_detection"].as<bool>();
+        rhs.use_aabb_limit = node["use_aabb_limit"].as<bool>();
+        rhs.aabb = node["aabb"].as<erl::geometry::Aabb2D>();
+        return true;
+    }
+};  // namespace YAML

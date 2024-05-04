@@ -18,7 +18,7 @@ namespace erl::geometry {
         GetCellTypeName(CellType type) {
             static const char *names[] = {"kOccupied", "kUnexplored", "kFree"};
 
-            int i = (int(type) + 1) / 128;
+            int i = (static_cast<int>(type) + 1) / 128;
             return names[i];
         }
 
@@ -106,6 +106,8 @@ namespace erl::geometry {
 
         /**
          * @brief Load external possibility map where -1 means unexplored, 0 ~ 100 means occupancy possibility, i.e. 0 means free, 100 means occupied.
+         * @param position
+         * @param theta
          * @param possibility_map
          */
         void
@@ -124,8 +126,8 @@ namespace erl::geometry {
             int &num_unexplored_cells,
             int &num_out_of_map_cells) const {
 
-            const bool kRayMode = false;
-            const bool kInMapOnly = false;
+            constexpr bool kRayMode = false;
+            constexpr bool kInMapOnly = false;
             auto new_mask = ComputeLidarFrameMask(position, theta, angles_body, ranges, clip_ranges, kRayMode, kInMapOnly, old_mask);
             ComputeStatisticsOfLidarFrameMask(new_mask, num_occupied_cells, num_free_cells, num_unexplored_cells, num_out_of_map_cells);
             return new_mask;
@@ -275,57 +277,37 @@ namespace erl::geometry {
 
 }  // namespace erl::geometry
 
-namespace YAML {
+template<>
+struct YAML::convert<erl::geometry::LogOddMap2D::Setting> {
+    static Node
+    encode(const erl::geometry::LogOddMap2D::Setting &setting) {
+        Node node;
+        node["sensor_min_range"] = setting.sensor_min_range;
+        node["sensor_max_range"] = setting.sensor_max_range;
+        node["measurement_certainty"] = setting.measurement_certainty;
+        node["max_log_odd"] = setting.max_log_odd;
+        node["min_log_odd"] = setting.min_log_odd;
+        node["threshold_occupied"] = setting.threshold_occupied;
+        node["threshold_free"] = setting.threshold_free;
+        node["use_cross_kernel"] = setting.use_cross_kernel;
+        node["num_iters_for_cleaned_mask"] = setting.num_iters_for_cleaned_mask;
+        node["filter_obstacles_in_cleaned_mask"] = setting.filter_obstacles_in_cleaned_mask;
+        return node;
+    }
 
-    template<>
-    struct convert<erl::geometry::LogOddMap2D::Setting> {
-        inline static Node
-        encode(const erl::geometry::LogOddMap2D::Setting &setting) {
-            Node node;
-            node["sensor_min_range"] = setting.sensor_min_range;
-            node["sensor_max_range"] = setting.sensor_max_range;
-            node["measurement_certainty"] = setting.measurement_certainty;
-            node["max_log_odd"] = setting.max_log_odd;
-            node["min_log_odd"] = setting.min_log_odd;
-            node["threshold_occupied"] = setting.threshold_occupied;
-            node["threshold_free"] = setting.threshold_free;
-            node["use_cross_kernel"] = setting.use_cross_kernel;
-            node["num_iters_for_cleaned_mask"] = setting.num_iters_for_cleaned_mask;
-            node["filter_obstacles_in_cleaned_mask"] = setting.filter_obstacles_in_cleaned_mask;
-            return node;
-        }
-
-        inline static bool
-        decode(const Node &node, erl::geometry::LogOddMap2D::Setting &setting) {
-            if (!node.IsMap()) { return false; }
-            setting.sensor_min_range = node["sensor_min_range"].as<double>();
-            setting.sensor_max_range = node["sensor_max_range"].as<double>();
-            setting.measurement_certainty = node["measurement_certainty"].as<double>();
-            setting.max_log_odd = node["max_log_odd"].as<double>();
-            setting.min_log_odd = node["min_log_odd"].as<double>();
-            setting.threshold_occupied = node["threshold_occupied"].as<double>();
-            setting.threshold_free = node["threshold_free"].as<double>();
-            setting.use_cross_kernel = node["use_cross_kernel"].as<bool>();
-            setting.num_iters_for_cleaned_mask = node["num_iters_for_cleaned_mask"].as<int>();
-            setting.filter_obstacles_in_cleaned_mask = node["filter_obstacles_in_cleaned_mask"].as<bool>();
-            return true;
-        }
-    };
-
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::LogOddMap2D::Setting &setting) {
-//        out << BeginMap;
-//        out << Key << "sensor_min_range" << Value << setting.sensor_min_range;
-//        out << Key << "sensor_max_range" << Value << setting.sensor_max_range;
-//        out << Key << "measurement_certainty" << Value << setting.measurement_certainty;
-//        out << Key << "max_log_odd" << Value << setting.max_log_odd;
-//        out << Key << "min_log_odd" << Value << setting.min_log_odd;
-//        out << Key << "threshold_occupied" << Value << setting.threshold_occupied;
-//        out << Key << "threshold_free" << Value << setting.threshold_free;
-//        out << Key << "use_cross_kernel" << Value << setting.use_cross_kernel;
-//        out << Key << "num_iters_for_cleaned_mask" << Value << setting.num_iters_for_cleaned_mask;
-//        out << Key << "filter_obstacles_in_cleaned_mask" << Value << setting.filter_obstacles_in_cleaned_mask;
-//        out << EndMap;
-//        return out;
-//    }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::LogOddMap2D::Setting &setting) {
+        if (!node.IsMap()) { return false; }
+        setting.sensor_min_range = node["sensor_min_range"].as<double>();
+        setting.sensor_max_range = node["sensor_max_range"].as<double>();
+        setting.measurement_certainty = node["measurement_certainty"].as<double>();
+        setting.max_log_odd = node["max_log_odd"].as<double>();
+        setting.min_log_odd = node["min_log_odd"].as<double>();
+        setting.threshold_occupied = node["threshold_occupied"].as<double>();
+        setting.threshold_free = node["threshold_free"].as<double>();
+        setting.use_cross_kernel = node["use_cross_kernel"].as<bool>();
+        setting.num_iters_for_cleaned_mask = node["num_iters_for_cleaned_mask"].as<int>();
+        setting.filter_obstacles_in_cleaned_mask = node["filter_obstacles_in_cleaned_mask"].as<bool>();
+        return true;
+    }
+};  // namespace YAML

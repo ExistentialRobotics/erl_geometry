@@ -7,7 +7,6 @@
 #include "aabb.hpp"
 #include <omp.h>
 #include <stack>
-#include <tuple>
 #include <bitset>
 #include <utility>
 
@@ -20,8 +19,8 @@ namespace erl::geometry {
      */
     template<class Node, class Interface, class InterfaceSetting>
     class OctreeImpl : public Interface {
-        static_assert(std::is_base_of<AbstractOctreeNode, Node>::value, "Node must be derived from AbstractOctreeNode");
-        static_assert(std::is_base_of<AbstractOctree, Interface>::value, "Interface must be derived from AbstractOctree");
+        static_assert(std::is_base_of_v<AbstractOctreeNode, Node>, "Node must be derived from AbstractOctreeNode");
+        static_assert(std::is_base_of_v<AbstractOctree, Interface>, "Interface must be derived from AbstractOctree");
 
     protected:
         std::shared_ptr<Node> m_root_ = nullptr;  // root node of the quadtree, nullptr if the quadtree is empty
@@ -37,7 +36,7 @@ namespace erl::geometry {
                                    std::numeric_limits<double>::max(),
                                    std::numeric_limits<double>::max(),
                                    std::numeric_limits<double>::max()};
-        std::vector<double> m_size_lookup_table_;  // the size of a quadrant at depth i (0: root node, m_setting_->tree_depth: smallest leaf node)
+        std::vector<double> m_size_lookup_table_;  // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
         std::vector<OctreeKeyRay> m_key_rays_;     // data structure for parallel ray casting
 
     public:
@@ -45,10 +44,47 @@ namespace erl::geometry {
 
         explicit OctreeImpl(const std::shared_ptr<InterfaceSetting> &setting)
             : Interface(setting) {
-            this->ApplySetting();
+            this->ApplySettingToOctreeImpl();
         }
 
-        OctreeImpl(const OctreeImpl &) = delete;  // no copy constructor
+        OctreeImpl(const OctreeImpl &other) = default;
+
+        OctreeImpl &
+        operator=(const OctreeImpl &other) = default;
+
+        OctreeImpl(OctreeImpl &&other) noexcept = default;
+
+        OctreeImpl &
+        operator=(OctreeImpl &&other) noexcept = default;
+
+        /**
+         * deep copy the octree
+         * @return cloned octree
+         */
+        [[nodiscard]] virtual std::shared_ptr<AbstractOctree>
+        Clone() const {
+            std::shared_ptr<AbstractOctree> tree = this->Create();  // create a new tree
+            std::shared_ptr<OctreeImpl> tree_impl = std::dynamic_pointer_cast<OctreeImpl>(tree);
+            *tree_impl->m_setting_ = *this->m_setting_;  // copy the setting
+            tree_impl->m_resolution_inv_ = m_resolution_inv_;
+            tree_impl->m_tree_key_offset_ = m_tree_key_offset_;
+            tree_impl->m_tree_size_ = m_tree_size_;
+            tree_impl->m_size_changed_ = m_size_changed_;
+            tree_impl->m_metric_max_[0] = m_metric_max_[0];
+            tree_impl->m_metric_max_[1] = m_metric_max_[1];
+            tree_impl->m_metric_max_[2] = m_metric_max_[2];
+            tree_impl->m_metric_min_[0] = m_metric_min_[0];
+            tree_impl->m_metric_min_[1] = m_metric_min_[1];
+            tree_impl->m_metric_min_[2] = m_metric_min_[2];
+            tree_impl->m_size_lookup_table_ = m_size_lookup_table_;
+            tree_impl->m_key_rays_ = m_key_rays_;
+            if (m_root_ == nullptr) {
+                tree_impl->m_root_ = nullptr;
+            } else {
+                tree_impl->m_root_ = std::make_shared<Node>(*m_root_);
+            }
+            return tree;
+        }
 
         //-- comparison operators
         [[nodiscard]] bool
@@ -63,17 +99,13 @@ namespace erl::geometry {
         }
 
         //-- get tree info
-        [[nodiscard]] std::string
-        GetTreeType() const override {
-            return "OctreeImpl";
-        }
 
         [[nodiscard]] std::size_t
         GetSize() const override {
             return m_tree_size_;
         }
 
-        [[maybe_unused]] [[nodiscard]] inline Eigen::Vector3d
+        [[maybe_unused]] [[nodiscard]] Eigen::Vector3d
         GetTreeCenter() const {
             double x = this->KeyToCoord(m_tree_key_offset_);
             return {x, x, x};
@@ -85,7 +117,7 @@ namespace erl::geometry {
             return {key, key, key};
         }
 
-        [[maybe_unused]] [[nodiscard]] inline Eigen::Vector3d
+        [[maybe_unused]] [[nodiscard]] Eigen::Vector3d
         GetTreeMaxHalfSize() const {
             double size = -this->KeyToCoord(0);
             return {size, size, size};
@@ -93,25 +125,35 @@ namespace erl::geometry {
 
         void
         ApplySetting() override {
-            const double &kResolution = this->m_setting_->resolution;
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
-            m_resolution_inv_ = 1.0 / kResolution;
-            m_tree_key_offset_ = 1 << (kTreeDepth - 1);
+            this->ApplySettingToOctreeImpl();
+        }
+
+    protected:
+        void
+        ApplySettingToOctreeImpl() {
+            const double &resolution = this->m_setting_->resolution;
+            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            m_resolution_inv_ = 1.0 / resolution;
+            m_tree_key_offset_ = 1 << (tree_depth - 1);
 
             // init node size lookup table
-            m_size_lookup_table_.resize(kTreeDepth + 1);
-            for (uint32_t i = 0; i <= kTreeDepth; ++i) { m_size_lookup_table_[i] = kResolution * double(1 << (kTreeDepth - i)); }
+            m_size_lookup_table_.resize(tree_depth + 1);
+            for (uint32_t i = 0; i <= tree_depth; ++i) { m_size_lookup_table_[i] = resolution * static_cast<double>(1 << (tree_depth - i)); }
             m_size_changed_ = true;
 
             // do it on the main thread only
 #pragma omp parallel default(none) shared(m_key_rays_)
 #pragma omp critical
             {
-                if (omp_get_thread_num() == 0) { m_key_rays_.resize(omp_get_num_threads()); }
+                if (omp_get_thread_num() == 0) {
+                    m_key_rays_.resize(omp_get_num_threads());
+                    for (auto &key_ray: m_key_rays_) { key_ray.reserve(100000); }
+                }
             }
         }
 
-        inline void
+    public:
+        void
         GetMetricMin(double &min_x, double &min_y, double &min_z) override {
             ComputeMinMax();
             min_x = m_metric_min_[0];
@@ -135,17 +177,17 @@ namespace erl::geometry {
 
             min_x = min_y = min_z = std::numeric_limits<double>::infinity();
             for (auto it = this->begin(), end = this->end(); it != end; ++it) {
-                double half_size = it.GetNodeSize() / 2.;
-                double node_min_x = it.GetX() - half_size;
-                double node_min_y = it.GetY() - half_size;
-                double node_min_z = it.GetZ() - half_size;
+                const double half_size = it.GetNodeSize() / 2.;
+                const double node_min_x = it.GetX() - half_size;
+                const double node_min_y = it.GetY() - half_size;
+                const double node_min_z = it.GetZ() - half_size;
                 if (node_min_x < min_x) { min_x = node_min_x; }
                 if (node_min_y < min_y) { min_y = node_min_y; }
                 if (node_min_z < min_z) { min_z = node_min_z; }
             }
         }
 
-        inline void
+        void
         GetMetricMax(double &max_x, double &max_y, double &max_z) override {
             this->ComputeMinMax();
             max_x = m_metric_max_[0];
@@ -179,7 +221,7 @@ namespace erl::geometry {
             }
         }
 
-        inline void
+        void
         GetMetricMinMax(double &min_x, double &min_y, double &min_z, double &max_x, double &max_y, double &max_z) override {
             this->ComputeMinMax();
             min_x = m_metric_min_[0];
@@ -210,14 +252,14 @@ namespace erl::geometry {
             min_x = min_y = min_z = std::numeric_limits<double>::infinity();
             max_x = max_y = max_z = -std::numeric_limits<double>::infinity();
             for (auto it = this->begin(), end = this->end(); it != end; ++it) {
-                double size = it.GetNodeSize();
-                double half_size = size / 2.;
-                double node_max_x = it.GetX() + half_size;
-                double node_max_y = it.GetY() + half_size;
-                double node_max_z = it.GetZ() + half_size;
-                double node_min_x = node_max_x - size;
-                double node_min_y = node_max_y - size;
-                double node_min_z = node_max_z - size;
+                const double size = it.GetNodeSize();
+                const double half_size = size / 2.;
+                const double node_max_x = it.GetX() + half_size;
+                const double node_max_y = it.GetY() + half_size;
+                const double node_max_z = it.GetZ() + half_size;
+                const double node_min_x = node_max_x - size;
+                const double node_min_y = node_max_y - size;
+                const double node_min_z = node_max_z - size;
                 if (node_max_x > max_x) { max_x = node_max_x; }
                 if (node_max_y > max_y) { max_y = node_max_y; }
                 if (node_max_z > max_z) { max_z = node_max_z; }
@@ -227,7 +269,7 @@ namespace erl::geometry {
             }
         }
 
-        inline void
+        void
         GetMetricSize(double &x, double &y, double &z) override {
             double min_x, min_y, min_z, max_x, max_y, max_z;
             GetMetricMinMax(min_x, min_y, min_z, max_x, max_y, max_z);
@@ -250,9 +292,8 @@ namespace erl::geometry {
                 return;
             }
 
-            double min_x, min_y, min_z, max_x, max_y, max_z;
-            min_x = min_y = min_z = std::numeric_limits<double>::infinity();
-            max_x = max_y = max_z = -std::numeric_limits<double>::infinity();
+            double min_x = std::numeric_limits<double>::infinity(), min_y = min_x, min_z = min_x;
+            double max_x = -std::numeric_limits<double>::infinity(), max_y = max_x, max_z = max_x;
             for (auto it = this->begin(), end = this->end(); it != end; ++it) {
                 double size = it.GetNodeSize();
                 double half_size = size / 2.;
@@ -274,13 +315,13 @@ namespace erl::geometry {
             z = max_z - min_z;
         }
 
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         GetNodeSize(uint32_t depth) const {
             ERL_DEBUG_ASSERT(depth <= this->m_setting_->tree_depth, "Depth must be in [0, %u], but got %u.\n", this->m_setting_->tree_depth, depth);
             return m_size_lookup_table_[depth];
         }
 
-        [[nodiscard]] inline std::size_t
+        [[nodiscard]] std::size_t
         ComputeNumberOfLeafNodes() const {
             if (m_root_ == nullptr) { return 0; }
 
@@ -303,7 +344,7 @@ namespace erl::geometry {
             return num_leaf_nodes;
         }
 
-        [[nodiscard]] inline std::size_t
+        [[maybe_unused]] [[nodiscard]] std::size_t
         GetMemoryUsage() const override {
             std::size_t number_of_leaf_nodes = this->ComputeNumberOfLeafNodes();
             std::size_t number_of_inner_nodes = m_tree_size_ - number_of_leaf_nodes;
@@ -311,12 +352,12 @@ namespace erl::geometry {
             return sizeof(OctreeImpl) + this->GetMemoryUsagePerNode() * m_tree_size_ + number_of_inner_nodes * sizeof(Node *) * 8;
         }
 
-        [[nodiscard]] inline std::size_t
+        [[nodiscard]] std::size_t
         GetMemoryUsagePerNode() const override {
             return sizeof(Node);
         }
 
-        [[nodiscard]] inline std::size_t
+        [[nodiscard]] std::size_t
         ComputeNumberOfNodes() const {
             if (m_root_ == nullptr) { return 0; }
 
@@ -338,7 +379,6 @@ namespace erl::geometry {
             return num_nodes;
         }
 
-    public:
         //-- key / coordinate operations
         // ref: https://www.tandfonline.com/doi/abs/10.1080/10867651.2002.10487560?journalCode=ujgt19
         /**
@@ -346,9 +386,9 @@ namespace erl::geometry {
          * @param coordinate
          * @return
          */
-        [[nodiscard]] inline OctreeKey::KeyType
+        [[nodiscard]] OctreeKey::KeyType
         CoordToKey(double coordinate) const {
-            return uint32_t(std::floor(coordinate * m_resolution_inv_)) + m_tree_key_offset_;
+            return static_cast<uint32_t>(std::floor(coordinate * m_resolution_inv_)) + m_tree_key_offset_;
         }
 
         /**
@@ -357,14 +397,24 @@ namespace erl::geometry {
          * @param depth
          * @return
          */
-        [[nodiscard]] inline OctreeKey::KeyType
+        [[nodiscard]] OctreeKey::KeyType
         CoordToKey(double coordinate, uint32_t depth) const {
-            auto &tree_depth = this->m_setting_->tree_depth;
+            const uint32_t &tree_depth = this->m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
             uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
             uint32_t diff = tree_depth - depth;
             if (!diff) { return keyval + m_tree_key_offset_; }
             return ((keyval >> diff) << diff) + (1 << (diff - 1)) + m_tree_key_offset_;
+        }
+
+        [[nodiscard]] OctreeKey
+        CoordToKey(const Eigen::Ref<const Eigen::Vector3d> &coord) const {
+            return {CoordToKey(coord[0]), CoordToKey(coord[1]), CoordToKey(coord[2])};
+        }
+
+        [[nodiscard]] OctreeKey
+        CoordToKey(const Eigen::Ref<const Eigen::Vector3d> &coord, uint32_t depth) const {
+            return {CoordToKey(coord[0], depth), CoordToKey(coord[1], depth), CoordToKey(coord[2], depth)};
         }
 
         /**
@@ -374,7 +424,7 @@ namespace erl::geometry {
          * @param z
          * @return
          */
-        [[nodiscard]] inline OctreeKey
+        [[nodiscard]] OctreeKey
         CoordToKey(double x, double y, double z) const {
             return {CoordToKey(x), CoordToKey(y), CoordToKey(z)};
         }
@@ -387,7 +437,7 @@ namespace erl::geometry {
          * @param depth
          * @return
          */
-        [[nodiscard]] inline OctreeKey
+        [[nodiscard]] OctreeKey
         CoordToKey(double x, double y, double z, uint32_t depth) const {
             if (depth == this->m_setting_->tree_depth) { return CoordToKey(x, y, z); }
             return {CoordToKey(x, depth), CoordToKey(y, depth), CoordToKey(z, depth)};
@@ -399,10 +449,10 @@ namespace erl::geometry {
          * @param key
          * @return
          */
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         CoordToKeyChecked(double coordinate, OctreeKey::KeyType &key) const {
-            int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
-            if ((scaled_coord >= 0) && ((uint32_t) scaled_coord) < (m_tree_key_offset_ << 1)) {
+            const int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
+            if ((scaled_coord >= 0) && static_cast<uint32_t>(scaled_coord) < (m_tree_key_offset_ << 1)) {
                 key = scaled_coord;
                 return true;
             }
@@ -416,14 +466,24 @@ namespace erl::geometry {
          * @param key
          * @return
          */
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         CoordToKeyChecked(double coordinate, uint32_t depth, OctreeKey::KeyType &key) const {
             int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
-            if ((scaled_coord >= 0) && ((uint32_t) scaled_coord) < (m_tree_key_offset_ << 1)) {
-                key = AdjustKeyToDepth((OctreeKey::KeyType) scaled_coord, depth);
+            if ((scaled_coord >= 0) && static_cast<uint32_t>(scaled_coord) < (m_tree_key_offset_ << 1)) {
+                key = AdjustKeyToDepth(static_cast<OctreeKey::KeyType>(scaled_coord), depth);
                 return true;
             }
             return false;
+        }
+
+        [[nodiscard]] bool
+        CoordToKeyChecked(const Eigen::Ref<const Eigen::Vector3d> &coord, OctreeKey &key) const {
+            return CoordToKeyChecked(coord[0], coord[1], coord[2], key);
+        }
+
+        [[nodiscard]] bool
+        CoordToKeyChecked(const Eigen::Ref<const Eigen::Vector3d> &coord, uint32_t depth, OctreeKey &key) const {
+            return CoordToKeyChecked(coord[0], coord[1], coord[2], depth, key);
         }
 
         /**
@@ -434,7 +494,7 @@ namespace erl::geometry {
          * @param key
          * @return
          */
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         CoordToKeyChecked(double x, double y, double z, OctreeKey &key) const {
             if (!CoordToKeyChecked(x, key[0])) { return false; }
             if (!CoordToKeyChecked(y, key[1])) { return false; }
@@ -451,7 +511,7 @@ namespace erl::geometry {
          * @param key
          * @return
          */
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         CoordToKeyChecked(double x, double y, double z, uint32_t depth, OctreeKey &key) const {
             ERL_DEBUG_ASSERT(depth != 0, "When depth = 0, key is 0x0, which is useless!");
             if (depth == this->m_setting_->tree_depth) { return CoordToKeyChecked(x, y, z, key); }
@@ -467,11 +527,11 @@ namespace erl::geometry {
          * @param depth the target depth
          * @return
          */
-        [[nodiscard]] inline OctreeKey::KeyType
+        [[nodiscard]] OctreeKey::KeyType
         AdjustKeyToDepth(OctreeKey::KeyType key, uint32_t depth) const {
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
-            ERL_DEBUG_ASSERT(depth <= kTreeDepth, "Depth must be in [0, %u], but got %u.\n", kTreeDepth, depth);
-            uint32_t diff = kTreeDepth - depth;
+            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
+            uint32_t diff = tree_depth - depth;
             if (!diff) { return key; }
             return (((key - m_tree_key_offset_) >> diff) << diff) + (1 << (diff - 1)) + m_tree_key_offset_;
         }
@@ -482,16 +542,16 @@ namespace erl::geometry {
          * @param depth the target depth
          * @return
          */
-        [[nodiscard]] inline OctreeKey
+        [[nodiscard]] OctreeKey
         AdjustKeyToDepth(const OctreeKey &key, uint32_t depth) const {
             if (depth == this->m_setting_->tree_depth) { return key; }
             return {AdjustKeyToDepth(key[0], depth), AdjustKeyToDepth(key[1], depth), AdjustKeyToDepth(key[2], depth)};
         }
 
-        inline void
+        void
         ComputeCommonAncestorKey(const OctreeKey &key1, const OctreeKey &key2, OctreeKey &ancestor_key, uint32_t &ancestor_depth) const {
             OctreeKey::KeyType mask = (key1[0] ^ key2[0]) | (key1[1] ^ key2[1]) | (key1[2] ^ key2[2]);  // 0: same bit, 1: different bit
-            const auto &kTreeDepth = this->m_setting_->tree_depth;
+            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
             if (!mask) {  // keys are identical
                 ancestor_key = key1;
                 ancestor_depth = kTreeDepth;
@@ -513,7 +573,7 @@ namespace erl::geometry {
          * @param depth 0 means root
          * @param neighbor_key
          */
-        inline bool
+        bool
         ComputeWestNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const {
             OctreeKey::KeyType offset = 1 << (this->m_setting_->tree_depth - depth);
             if (key[0] < offset) { return false; }  // no west neighbor
@@ -523,29 +583,29 @@ namespace erl::geometry {
             return true;
         }
 
-        inline bool
+        bool
         ComputeEastNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const {
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
-            OctreeKey::KeyType offset = 1 << (kTreeDepth - depth);
-            if ((1 << kTreeDepth) - key[0] <= offset) { return false; }  // no east neighbor (key[0] + offset >= 2^max_depth)
+            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const OctreeKey::KeyType offset = 1 << (tree_depth - depth);
+            if ((1 << tree_depth) - key[0] <= offset) { return false; }  // no east neighbor (key[0] + offset >= 2^max_depth)
             neighbor_key[0] = key[0] + offset;
             neighbor_key[1] = key[1];
             neighbor_key[2] = key[2];
             return true;
         }
 
-        inline bool
+        bool
         ComputeNorthNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const {
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
-            OctreeKey::KeyType offset = 1 << (kTreeDepth - depth);
-            if ((1 << kTreeDepth) - key[1] <= offset) { return false; }  // no north neighbor (key[1] + offset >= 2^max_depth)
+            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const OctreeKey::KeyType offset = 1 << (tree_depth - depth);
+            if ((1 << tree_depth) - key[1] <= offset) { return false; }  // no north neighbor (key[1] + offset >= 2^max_depth)
             neighbor_key[0] = key[0];
             neighbor_key[1] = key[1] + offset;
             neighbor_key[2] = key[2];
             return true;
         }
 
-        inline bool
+        bool
         ComputeSouthNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const {
             OctreeKey::KeyType offset = 1 << (this->m_setting_->tree_depth - depth);
             if (key[1] < offset) { return false; }  // no south neighbor
@@ -555,7 +615,7 @@ namespace erl::geometry {
             return true;
         }
 
-        inline bool
+        bool
         ComputeBottomNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const {
             OctreeKey::KeyType offset = 1 << (this->m_setting_->tree_depth - depth);
             if (key[2] < offset) { return false; }  // no bottom neighbor
@@ -565,7 +625,7 @@ namespace erl::geometry {
             return true;
         }
 
-        inline bool
+        bool
         ComputeTopNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const {
             const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
             OctreeKey::KeyType offset = 1 << (kTreeDepth - depth);
@@ -581,9 +641,9 @@ namespace erl::geometry {
          * @param key
          * @return
          */
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         KeyToCoord(OctreeKey::KeyType key) const {
-            return (double(int(key) - int(m_tree_key_offset_)) + 0.5) * this->m_setting_->resolution;
+            return (static_cast<double>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) + 0.5) * this->m_setting_->resolution;
         }
 
         /**
@@ -592,12 +652,14 @@ namespace erl::geometry {
          * @param depth
          * @return
          */
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         KeyToCoord(OctreeKey::KeyType key, uint32_t depth) const {
             const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
             if (depth == 0) { return 0.0; }
             if (depth == kTreeDepth) { return KeyToCoord(key); }
-            return (std::floor((double(key) - double(m_tree_key_offset_)) / double(1 << (kTreeDepth - depth))) + 0.5) * GetNodeSize(depth);
+            uint32_t &&diff = kTreeDepth - depth;
+            double &&r = this->GetNodeSize(depth);
+            return (std::floor((static_cast<double>(key) - static_cast<double>(m_tree_key_offset_)) / static_cast<double>(1 << diff)) + 0.5) * r;
         }
 
         /**
@@ -607,7 +669,7 @@ namespace erl::geometry {
          * @param y
          * @param z
          */
-        inline void
+        void
         KeyToCoord(const OctreeKey &key, double &x, double &y, double &z) const {
             x = KeyToCoord(key[0]);
             y = KeyToCoord(key[1]);
@@ -622,7 +684,7 @@ namespace erl::geometry {
          * @param y
          * @param z
          */
-        inline void
+        void
         KeyToCoord(const OctreeKey &key, uint32_t depth, double &x, double &y, double &z) const {
             if (depth == 0) {
                 x = y = z = 0.0;
@@ -652,9 +714,9 @@ namespace erl::geometry {
                       key(std::move(key)) {}
 
                 template<typename T>
-                inline const T &
+                const T &
                 GetData() const {
-                    return *reinterpret_cast<T *>(data.get());
+                    return *static_cast<T *>(data.get());
                 }
             };
 
@@ -698,66 +760,66 @@ namespace erl::geometry {
                 return true;
             }
 
-            [[nodiscard]] inline bool
+            [[nodiscard]] bool
             operator!=(const IteratorBase &other) const {
                 return !operator==(other);
             }
 
-            inline Node *
+            Node *
             operator->() {
                 return m_stack_.back().node;
             }
 
-            [[nodiscard]] inline const Node *
+            [[nodiscard]] const Node *
             operator->() const {
                 return m_stack_.back().node;
             }
 
-            inline Node *
+            Node *
             operator*() {
                 return m_stack_.back().node;
             }
 
-            [[nodiscard]] inline const Node *
+            [[nodiscard]] const Node *
             operator*() const {
                 return m_stack_.back().node;
             }
 
-            [[nodiscard]] inline double
+            [[nodiscard]] double
             GetX() const {
                 const StackElement &kTop = m_stack_.back();
                 return m_tree_->KeyToCoord(kTop.key[0], kTop.node->GetDepth());
             }
 
-            [[nodiscard]] inline double
+            [[nodiscard]] double
             GetY() const {
                 const StackElement &kTop = m_stack_.back();
                 return m_tree_->KeyToCoord(kTop.key[1], kTop.node->GetDepth());
             }
 
-            [[nodiscard]] inline double
+            [[nodiscard]] double
             GetZ() const {
                 const StackElement &kTop = m_stack_.back();
                 return m_tree_->KeyToCoord(kTop.key[2], kTop.node->GetDepth());
             }
 
-            [[nodiscard]] inline double
+            [[nodiscard]] double
             GetNodeSize() const {
                 return m_tree_->GetNodeSize(m_stack_.back().node->GetDepth());
             }
 
-            [[nodiscard]] inline Aabb3D
+            [[maybe_unused]] [[nodiscard]] Aabb3D
             GetNodeAabb() const {
                 Eigen::Vector3d center(this->GetX(), this->GetY(), this->GetZ());
                 return {center, this->GetNodeSize() * 0.5};
             }
 
-            [[maybe_unused]] [[nodiscard]] inline const OctreeKey &
+            [[maybe_unused]] [[nodiscard]] const OctreeKey &
             GetKey() const {
                 return m_stack_.back().key;
             }
 
-            [[maybe_unused]] [[nodiscard]] inline OctreeKey
+            [[maybe_unused]] [[nodiscard]] OctreeKey
             GetIndexKey() const {
                 const StackElement &kTop = m_stack_.back();
                 return m_tree_->AdjustKeyToDepth(kTop.key, kTop.node->GetDepth());
@@ -787,13 +849,13 @@ namespace erl::geometry {
                 }
             }
 
-            [[nodiscard]] inline bool
+            [[nodiscard]] bool
             IsLeaf() const {
                 ERL_DEBUG_ASSERT(!m_stack_.empty(), "Stack is empty.");
                 return !m_stack_.back().node->HasAnyChild();
             }
 
-            inline void
+            void
             Terminate() {
                 this->m_stack_.clear();
                 this->m_tree_ = nullptr;
@@ -811,14 +873,14 @@ namespace erl::geometry {
              * @param aabb_max_z
              * @return true if such an AABB exists, false otherwise.
              */
-            inline bool
+            bool
             GetInTreeAabb(double &aabb_min_x, double &aabb_min_y, double &aabb_min_z, double &aabb_max_x, double &aabb_max_y, double &aabb_max_z) const {
                 if (m_tree_ == nullptr) { return false; }
 
-                double center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_);
-                double half_size = m_tree_->GetNodeSize(0) / 2.0;
-                double aabb_min = center - half_size;
-                double aabb_max = center + half_size;
+                const double center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_);
+                const double half_size = m_tree_->GetNodeSize(0) / 2.0;
+                const double aabb_min = center - half_size;
+                const double aabb_max = center + half_size;
 
                 aabb_min_x = std::max(aabb_min_x, aabb_min);
                 aabb_max_x = std::min(aabb_max_x, aabb_max);
@@ -841,7 +903,7 @@ namespace erl::geometry {
                 : IteratorBase(tree, max_node_depth) {}
 
             // post-increment
-            inline TreeIterator
+            TreeIterator
             operator++(int) {
                 const TreeIterator kResult = *this;
                 ++(*this);
@@ -849,7 +911,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline TreeIterator &
+            TreeIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrement1(); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -858,7 +920,6 @@ namespace erl::geometry {
         };
 
         class InAabbIteratorBase : public IteratorBase {
-        private:
             OctreeKey m_aabb_min_key_;
             OctreeKey m_aabb_max_key_;
 
@@ -957,7 +1018,7 @@ namespace erl::geometry {
                 : InAabbIteratorBase(std::move(aabb_min_key), std::move(aabb_max_key), tree, max_node_depth) {}
 
             // post-increment
-            inline TreeInAabbIterator
+            TreeInAabbIterator
             operator++(int) {
                 const TreeInAabbIterator kResult = *this;
                 ++(*this);
@@ -965,7 +1026,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline TreeInAabbIterator &
+            TreeInAabbIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrement2(); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -1126,7 +1187,7 @@ namespace erl::geometry {
              * @param unchanged_dim the dimension that is unchanged during the search
              * @param increase
              */
-            inline void
+            void
             Init(OctreeKey key, uint32_t key_depth, int changing_dim1, int changing_dim2, int unchanged_dim, bool increase) {
                 if (this->m_tree_ == nullptr) { return; }
                 uint32_t max_depth = this->m_tree_->GetTreeDepth();
@@ -1135,7 +1196,7 @@ namespace erl::geometry {
                 OctreeKey::KeyType half_offset = (level == 0 ? 0 : 1 << (level - 1));
                 int key_unchanged;
                 if (increase) {
-                    key_unchanged = key[unchanged_dim] + std::max(1, int(half_offset));
+                    key_unchanged = key[unchanged_dim] + std::max(1, static_cast<int>(half_offset));
                     if (key_unchanged >= (1 << max_depth)) {  // no neighbor on east/north/top
                         this->Terminate();
                         return;
@@ -1201,10 +1262,10 @@ namespace erl::geometry {
         };
 
         class WestLeafNeighborIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim1_ = 1;  // changing the y-dim key during the search
-            inline static const int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
-            inline static const int sk_UnchangedDim_ = 0;
-            inline static const bool sk_Increase_ = false;  // decrease the x-dim key
+            static constexpr int sk_ChangingDim1_ = 1;  // changing the y-dim key during the search
+            static constexpr int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
+            static constexpr int sk_UnchangedDim_ = 0;
+            static constexpr bool sk_Increase_ = false;  // decrease the x-dim key
 
         public:
             WestLeafNeighborIterator() = default;
@@ -1233,7 +1294,7 @@ namespace erl::geometry {
             }
 
             // post-increment
-            inline WestLeafNeighborIterator
+            WestLeafNeighborIterator
             operator++(int) {
                 const WestLeafNeighborIterator kResult = *this;
                 ++(*this);
@@ -1241,7 +1302,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline WestLeafNeighborIterator &
+            WestLeafNeighborIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim1_, sk_ChangingDim2_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -1250,10 +1311,10 @@ namespace erl::geometry {
         };
 
         class EastLeafNeighborIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim1_ = 1;  // changing the y-dim key during the search
-            inline static const int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
-            inline static const int sk_UnchangedDim_ = 0;
-            inline static const bool sk_Increase_ = true;  // increase the x-dim key
+            static constexpr int sk_ChangingDim1_ = 1;  // changing the y-dim key during the search
+            static constexpr int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
+            static constexpr int sk_UnchangedDim_ = 0;
+            static constexpr bool sk_Increase_ = true;  // increase the x-dim key
 
         public:
             EastLeafNeighborIterator() = default;
@@ -1281,7 +1342,7 @@ namespace erl::geometry {
             }
 
             // post-increment
-            inline EastLeafNeighborIterator
+            EastLeafNeighborIterator
             operator++(int) {
                 const EastLeafNeighborIterator kResult = *this;
                 ++(*this);
@@ -1289,7 +1350,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline EastLeafNeighborIterator &
+            EastLeafNeighborIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim1_, sk_ChangingDim2_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -1298,10 +1359,10 @@ namespace erl::geometry {
         };
 
         class NorthLeafNeighborIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
-            inline static const int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
-            inline static const int sk_UnchangedDim_ = 1;
-            inline static const bool sk_Increase_ = true;  // increase the y-dim key
+            static constexpr int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
+            static constexpr int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
+            static constexpr int sk_UnchangedDim_ = 1;
+            static constexpr bool sk_Increase_ = true;  // increase the y-dim key
 
         public:
             NorthLeafNeighborIterator() = default;
@@ -1330,7 +1391,7 @@ namespace erl::geometry {
             }
 
             // post-increment
-            inline NorthLeafNeighborIterator
+            NorthLeafNeighborIterator
             operator++(int) {
                 const NorthLeafNeighborIterator kResult = *this;
                 ++(*this);
@@ -1338,7 +1399,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline NorthLeafNeighborIterator &
+            NorthLeafNeighborIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim1_, sk_ChangingDim2_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -1347,10 +1408,10 @@ namespace erl::geometry {
         };
 
         class SouthLeafNeighborIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
-            inline static const int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
-            inline static const int sk_UnchangedDim_ = 1;
-            inline static const bool sk_Increase_ = false;  // decrease the y-dim key
+            static constexpr int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
+            static constexpr int sk_ChangingDim2_ = 2;  // changing the z-dim key during the search
+            static constexpr int sk_UnchangedDim_ = 1;
+            static constexpr bool sk_Increase_ = false;  // decrease the y-dim key
 
         public:
             SouthLeafNeighborIterator() = default;
@@ -1378,7 +1439,7 @@ namespace erl::geometry {
             }
 
             // post-increment
-            inline SouthLeafNeighborIterator
+            SouthLeafNeighborIterator
             operator++(int) {
                 const SouthLeafNeighborIterator kResult = *this;
                 ++(*this);
@@ -1386,7 +1447,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline SouthLeafNeighborIterator &
+            SouthLeafNeighborIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim1_, sk_ChangingDim2_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -1395,10 +1456,10 @@ namespace erl::geometry {
         };
 
         class TopLeafNeighborIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
-            inline static const int sk_ChangingDim2_ = 1;  // changing the y-dim key during the search
-            inline static const int sk_UnchangedDim_ = 2;
-            inline static const bool sk_Increase_ = true;  // increase the z-dim key
+            static constexpr int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
+            static constexpr int sk_ChangingDim2_ = 1;  // changing the y-dim key during the search
+            static constexpr int sk_UnchangedDim_ = 2;
+            static constexpr bool sk_Increase_ = true;  // increase the z-dim key
 
         public:
             TopLeafNeighborIterator() = default;
@@ -1427,7 +1488,7 @@ namespace erl::geometry {
             }
 
             // post-increment
-            inline auto
+            auto
             operator++(int) {
                 const TopLeafNeighborIterator kResult = *this;
                 ++(*this);
@@ -1435,7 +1496,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline TopLeafNeighborIterator &
+            TopLeafNeighborIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim1_, sk_ChangingDim2_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -1444,10 +1505,10 @@ namespace erl::geometry {
         };
 
         class BottomLeafNeighborIterator : public LeafNeighborIteratorBase {
-            inline static const int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
-            inline static const int sk_ChangingDim2_ = 1;  // changing the y-dim key during the search
-            inline static const int sk_UnchangedDim_ = 2;
-            inline static const bool sk_Increase_ = false;  // decrease the z-dim key
+            static constexpr int sk_ChangingDim1_ = 0;  // changing the x-dim key during the search
+            static constexpr int sk_ChangingDim2_ = 1;  // changing the y-dim key during the search
+            static constexpr int sk_UnchangedDim_ = 2;
+            static constexpr bool sk_Increase_ = false;  // decrease the z-dim key
 
         public:
             BottomLeafNeighborIterator() = default;
@@ -1476,7 +1537,7 @@ namespace erl::geometry {
             }
 
             // post-increment
-            inline auto
+            auto
             operator++(int) {
                 const BottomLeafNeighborIterator kResult = *this;
                 ++(*this);
@@ -1484,7 +1545,7 @@ namespace erl::geometry {
             }
 
             // pre-increment
-            inline BottomLeafNeighborIterator &
+            BottomLeafNeighborIterator &
             operator++() {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim1_, sk_ChangingDim2_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
@@ -1546,7 +1607,7 @@ namespace erl::geometry {
                 if (this->m_stack_.empty()) { this->Terminate(); }
             }
 
-            [[maybe_unused]] [[nodiscard]] inline double
+            [[maybe_unused]] [[nodiscard]] double
             GetDistance() const {
                 if (this->m_stack_.empty()) { return 0.; }
                 return *reinterpret_cast<double *>(this->m_stack_.back().data.get());
@@ -1571,7 +1632,7 @@ namespace erl::geometry {
         protected:
             struct StackElementCompare {  // for min-heap
 
-                inline bool
+                bool
                 operator()(const typename IteratorBase::StackElement &lhs, const typename IteratorBase::StackElement &rhs) const {
                     const double &kLhsDist = lhs.template GetData<double>();
                     const double &kRhsDist = rhs.template GetData<double>();
@@ -1614,7 +1675,6 @@ namespace erl::geometry {
 
                 // now s.node is internal node
                 while (true) {
-                    typename IteratorBase::StackElement s_child;
                     uint32_t child_depth = s.node->GetDepth() + 1;
                     if (child_depth <= this->m_max_node_depth_) {  // do not go beyond the specified max depth
                         OctreeKey::KeyType center_offset_key = this->m_tree_->m_tree_key_offset_ >> child_depth;
@@ -1622,12 +1682,13 @@ namespace erl::geometry {
                             if (!s.node->HasChild(i)) { continue; }
 
                             const Node *child = this->m_tree_->GetNodeChild(s.node, i);
+                            typename IteratorBase::StackElement s_child;
                             OctreeKey::ComputeChildKey(i, center_offset_key, s.key, s_child.key);
 
-                            double center_x = this->m_tree_->KeyToCoord(s_child.key[0], child_depth);
-                            double center_y = this->m_tree_->KeyToCoord(s_child.key[1], child_depth);
-                            double center_z = this->m_tree_->KeyToCoord(s_child.key[2], child_depth);
-                            double half_size = this->m_tree_->GetNodeSize(child_depth) / 2.0;
+                            const double center_x = this->m_tree_->KeyToCoord(s_child.key[0], child_depth);
+                            const double center_y = this->m_tree_->KeyToCoord(s_child.key[1], child_depth);
+                            const double center_z = this->m_tree_->KeyToCoord(s_child.key[2], child_depth);
+                            const double half_size = this->m_tree_->GetNodeSize(child_depth) / 2.0;
                             Eigen::Vector3d box_min(center_x - half_size, center_y - half_size, center_z - half_size);
                             Eigen::Vector3d box_max(center_x + half_size, center_y + half_size, center_z + half_size);
                             double dist1 = 0.0, dist2 = 0.0;
@@ -1665,7 +1726,7 @@ namespace erl::geometry {
          * @param max_depth
          * @return
          */
-        [[nodiscard]] inline LeafIterator
+        [[nodiscard]] LeafIterator
         begin(uint32_t max_depth = 0) const {
             return LeafIterator(this, max_depth);
         }
@@ -1673,7 +1734,7 @@ namespace erl::geometry {
         /**
          * End iterator of LeafIterator.
          */
-        [[nodiscard]] inline LeafIterator
+        [[nodiscard]] LeafIterator
         end() const {
             return LeafIterator();
         }
@@ -1683,7 +1744,7 @@ namespace erl::geometry {
          * @param max_depth
          * @return
          */
-        [[nodiscard]] inline LeafIterator
+        [[nodiscard]] LeafIterator
         BeginLeaf(uint32_t max_depth = 0) const {
             return LeafIterator(this, max_depth);
         }
@@ -1691,22 +1752,22 @@ namespace erl::geometry {
         /**
          * End iterator of LeafIterator.
          */
-        [[nodiscard]] inline LeafIterator
+        [[nodiscard]] LeafIterator
         EndLeaf() const {
             return LeafIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline LeafOfNodeIterator
+        [[maybe_unused]] [[nodiscard]] LeafOfNodeIterator
         BeginLeafOfNode(const OctreeKey &key, uint32_t node_depth, uint32_t max_depth = 0) const {
             return LeafOfNodeIterator(key, node_depth, this, max_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline LeafOfNodeIterator
+        [[maybe_unused]] [[nodiscard]] LeafOfNodeIterator
         EndLeafOfNode() const {
             return LeafOfNodeIterator();
         }
 
-        [[nodiscard]] inline LeafInAabbIterator
+        [[nodiscard]] LeafInAabbIterator
         BeginLeafInAabb(
             double aabb_min_x,  //
             double aabb_min_y,
@@ -1718,27 +1779,27 @@ namespace erl::geometry {
             return LeafInAabbIterator(aabb_min_x, aabb_min_y, aabb_min_z, aabb_max_x, aabb_max_y, aabb_max_z, this, max_depth);
         }
 
-        [[nodiscard]] inline LeafInAabbIterator
+        [[nodiscard]] LeafInAabbIterator
         BeginLeafInAabb(const OctreeKey &aabb_min_key, const OctreeKey &aabb_max_key, uint32_t max_depth = 0) const {
             return LeafInAabbIterator(aabb_min_key, aabb_max_key, this, max_depth);
         }
 
-        [[nodiscard]] inline LeafInAabbIterator
+        [[nodiscard]] LeafInAabbIterator
         EndLeafInAabb() const {
             return LeafInAabbIterator();
         }
 
-        [[nodiscard]] inline TreeIterator
+        [[nodiscard]] TreeIterator
         BeginTree(uint32_t max_depth = 0) const {
             return TreeIterator(this, max_depth);
         }
 
-        [[nodiscard]] inline TreeIterator
+        [[nodiscard]] TreeIterator
         EndTree() const {
             return TreeIterator();
         }
 
-        [[nodiscard]] inline TreeInAabbIterator
+        [[nodiscard]] TreeInAabbIterator
         BeginTreeInAabb(
             double aabb_min_x,  //
             double aabb_min_y,
@@ -1750,107 +1811,107 @@ namespace erl::geometry {
             return TreeInAabbIterator(aabb_min_x, aabb_min_y, aabb_min_z, aabb_max_x, aabb_max_y, aabb_max_z, this, max_depth);
         }
 
-        [[nodiscard]] inline TreeInAabbIterator
+        [[nodiscard]] TreeInAabbIterator
         BeginTreeInAabb(const OctreeKey &aabb_min_key, const OctreeKey &aabb_max_key, uint32_t max_depth = 0) const {
             return TreeInAabbIterator(aabb_min_key, aabb_max_key, this, max_depth);
         }
 
-        [[nodiscard]] inline TreeInAabbIterator
+        [[nodiscard]] TreeInAabbIterator
         EndTreeInAabb() const {
             return TreeInAabbIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline WestLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] WestLeafNeighborIterator
         BeginWestLeafNeighbor(double x, double y, double z, uint32_t max_leaf_depth = 0) const {
             return WestLeafNeighborIterator(x, y, z, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline WestLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] WestLeafNeighborIterator
         BeginWestLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const {
             return WestLeafNeighborIterator(key, key_depth, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline WestLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] WestLeafNeighborIterator
         EndWestLeafNeighbor() const {
             return WestLeafNeighborIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline EastLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] EastLeafNeighborIterator
         BeginEastLeafNeighbor(double x, double y, double z, uint32_t max_leaf_depth = 0) const {
             return EastLeafNeighborIterator(x, y, z, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline EastLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] EastLeafNeighborIterator
         BeginEastLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const {
             return EastLeafNeighborIterator(key, key_depth, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline EastLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] EastLeafNeighborIterator
         EndEastLeafNeighbor() const {
             return EastLeafNeighborIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline NorthLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] NorthLeafNeighborIterator
         BeginNorthLeafNeighbor(double x, double y, double z, uint32_t max_leaf_depth = 0) const {
             return NorthLeafNeighborIterator(x, y, z, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline NorthLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] NorthLeafNeighborIterator
         BeginNorthLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const {
             return NorthLeafNeighborIterator(key, key_depth, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline NorthLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] NorthLeafNeighborIterator
         EndNorthLeafNeighbor() const {
             return NorthLeafNeighborIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline SouthLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] SouthLeafNeighborIterator
         BeginSouthLeafNeighbor(double x, double y, double z, uint32_t max_leaf_depth = 0) const {
             return SouthLeafNeighborIterator(x, y, z, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline SouthLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] SouthLeafNeighborIterator
         BeginSouthLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const {
             return SouthLeafNeighborIterator(key, key_depth, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline SouthLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] SouthLeafNeighborIterator
         EndSouthLeafNeighbor() const {
             return SouthLeafNeighborIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline TopLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] TopLeafNeighborIterator
         BeginTopLeafNeighbor(double x, double y, double z, uint32_t max_leaf_depth = 0) const {
             return TopLeafNeighborIterator(x, y, z, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline TopLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] TopLeafNeighborIterator
         BeginTopLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const {
             return TopLeafNeighborIterator(key, key_depth, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline TopLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] TopLeafNeighborIterator
         EndTopLeafNeighbor() const {
             return TopLeafNeighborIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline BottomLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] BottomLeafNeighborIterator
         BeginBottomLeafNeighbor(double x, double y, double z, uint32_t max_leaf_depth = 0) const {
             return BottomLeafNeighborIterator(x, y, z, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline BottomLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] BottomLeafNeighborIterator
         BeginBottomLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const {
             return BottomLeafNeighborIterator(key, key_depth, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline BottomLeafNeighborIterator
+        [[maybe_unused]] [[nodiscard]] BottomLeafNeighborIterator
         EndBottomLeafNeighbor() const {
             return BottomLeafNeighborIterator();
         }
 
-        [[maybe_unused]] [[nodiscard]] inline NodeOnRayIterator
+        [[maybe_unused]] [[nodiscard]] NodeOnRayIterator
         BeginNodeOnRay(
             double px,
             double py,
@@ -1866,9 +1927,9 @@ namespace erl::geometry {
             return NodeOnRayIterator(px, py, pz, vx, vy, vz, max_range, bidirectional, /*tree*/ this, leaf_only, min_node_depth, max_node_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] inline NodeOnRayIterator
+        [[maybe_unused]] [[nodiscard]] NodeOnRayIterator
         EndNodeOnRay() const {
-            return NodeOnRayIterator();
+            return {};
         }
 
         //-- ray tracing
@@ -1891,7 +1952,7 @@ namespace erl::geometry {
             // For example, if the ray is from (0, 0) to (1, 1), Bresenham's algorithm will miss (1, 0) and (0, 1) but the ray should traverse them.
             // Also look at https://en.wikipedia.org/wiki/File:Bresenham.svg for another example of Bresenham's algorithm.
 
-            ray.Reset();
+            ray.clear();
             OctreeKey key_start, key_end;
             if (!CoordToKeyChecked(sx, sy, sz, key_start) || !CoordToKeyChecked(ex, ey, ez, key_end)) {
                 ERL_WARN("Ray (%f, %f, %f) -> (%f, %f, %f) is out of range.\n", sx, sy, sz, ex, ey, ez);
@@ -1948,7 +2009,7 @@ namespace erl::geometry {
                 t_max[0] = std::numeric_limits<double>::infinity();
                 t_delta[0] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = KeyToCoord(key_start[0]) + double(step[0]) * 0.5 * kResolution;
+                double voxel_border = KeyToCoord(key_start[0]) + static_cast<double>(step[0]) * 0.5 * kResolution;
                 t_max[0] = (voxel_border - sx) / dx;
                 t_delta[0] = kResolution / std::abs(dx);
             }
@@ -1956,7 +2017,7 @@ namespace erl::geometry {
                 t_max[1] = std::numeric_limits<double>::infinity();
                 t_delta[1] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = KeyToCoord(key_start[1]) + double(step[1]) * 0.5 * kResolution;
+                double voxel_border = KeyToCoord(key_start[1]) + static_cast<double>(step[1]) * 0.5 * kResolution;
                 t_max[1] = (voxel_border - sy) / dy;
                 t_delta[1] = kResolution / std::abs(dy);
             }
@@ -1964,13 +2025,13 @@ namespace erl::geometry {
                 t_max[2] = std::numeric_limits<double>::infinity();
                 t_delta[2] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = KeyToCoord(key_start[2]) + double(step[2]) * 0.5 * kResolution;
+                double voxel_border = KeyToCoord(key_start[2]) + static_cast<double>(step[2]) * 0.5 * kResolution;
                 t_max[2] = (voxel_border - sz) / dz;
                 t_delta[2] = kResolution / std::abs(dz);
             }
 
             // incremental phase
-            ray.AddKey(key_start);
+            ray.push_back(key_start);
             OctreeKey current_key = key_start;
             while (true) {
                 int idx = 0;
@@ -1992,8 +2053,7 @@ namespace erl::geometry {
                 double dist_from_origin = std::min(t_max[0], std::min(t_max[1], t_max[2]));
                 if (dist_from_origin > length) { break; }  // this happens due to numerical error
 
-                ray.AddKey(current_key);
-                ERL_DEBUG_ASSERT(ray.size() < ray.capacity() - 1, "Ray capacity is not enough.");
+                ray.push_back(current_key);
             }
 
             return true;
@@ -2027,7 +2087,7 @@ namespace erl::geometry {
          * Clear KeyRay vector to minimize unneeded memory. This is only useful for the StaticMemberInitializer classes, don't call it for a quadtree that
          * is actually used.
          */
-        inline void
+        void
         ClearKeyRays() {
             m_key_rays_.clear();
         }
@@ -2039,17 +2099,17 @@ namespace erl::geometry {
          * @param child_idx
          * @return
          */
-        inline Node *
+        Node *
         CreateNodeChild(Node *node, uint32_t child_idx) {
-            node->AllocateChildrenPtr();                                            // allocate children if necessary
-            ERL_DEBUG_ASSERT(!node->HasChild(child_idx), "Child already exists.");  // child must not exist
-            Node *new_child = node->template CreateChild<Node>(child_idx);          // create child
-            m_tree_size_++;                                                         // increase tree size
-            m_size_changed_ = true;                                                 // size of the tree has changed
+            node->AllocateChildrenPtr();                                               // allocate children if necessary
+            ERL_DEBUG_ASSERT(!node->HasChild(child_idx), "Child already exists.");     // child must not exist
+            Node *new_child = reinterpret_cast<Node *>(node->CreateChild(child_idx));  // create child
+            m_tree_size_++;                                                            // increase tree size
+            m_size_changed_ = true;                                                    // size of the tree has changed
             return new_child;
         }
 
-        inline uint32_t
+        uint32_t
         DeleteNodeChild(Node *node, uint32_t child_idx, const OctreeKey &key) {
             uint32_t old_tree_size = m_tree_size_;
             Node *child = node->template GetChild<Node>(child_idx);
@@ -2067,7 +2127,7 @@ namespace erl::geometry {
          * @param child_idx
          * @return
          */
-        inline Node *
+        Node *
         GetNodeChild(Node *node, uint32_t child_idx) {
             return node->template GetChild<Node>(child_idx);
         }
@@ -2078,7 +2138,7 @@ namespace erl::geometry {
          * @param child_idx
          * @return
          */
-        inline const Node *
+        const Node *
         GetNodeChild(const Node *node, uint32_t child_idx) const {
             return node->template GetChild<Node>(child_idx);
         }
@@ -2138,33 +2198,34 @@ namespace erl::geometry {
         }
 
         /**
-         * Delete nodes that contain the given point, at or deeper than the given depth.
+         * Delete nodes that contain the given point, at or deeper than the given delete_depth.
          * @param x
          * @param y
          * @param z
-         * @param delete_depth depth to start deleting nodes, nodes at depth >= delete_depth will be deleted. If delete_depth == 0, delete at the lowest level.
+         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >= delete_depth will be deleted. If delete_depth == 0, delete at
+         * the lowest level.
          * @return
          */
-        inline uint32_t
+        uint32_t
         DeleteNode(double x, double y, double z, uint32_t delete_depth = 0) {
-            OctreeKey key;
-            if (!this->CoordToKeyChecked(x, y, z, key)) {
+            if (OctreeKey key; !this->CoordToKeyChecked(x, y, z, key)) {
                 ERL_WARN("Point (%f, %f, %f) is out of range.", x, y, z);
                 return 0;
             } else {
-                uint32_t old_tree_size = m_tree_size_;
+                const uint32_t old_tree_size = m_tree_size_;
                 this->DeleteNode(key, delete_depth);
                 return old_tree_size - m_tree_size_;
             }
         }
 
         /**
-         * Delete nodes that contain the given key, at or deeper than the given depth.
+         * Delete nodes that contain the given key, at or deeper than the given delete_depth.
          * @param key
-         * @param delete_depth depth to start deleting nodes, nodes at depth >= delete_depth will be deleted. If delete_depth == 0, delete at the lowest level.
+         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >= delete_depth will be deleted. If delete_depth == 0, delete at
+         * the lowest level.
          * @return
          */
-        inline void
+        void
         DeleteNode(const OctreeKey &key, uint32_t delete_depth = 0) {
             if (m_root_ == nullptr) { return; }
             if (delete_depth == 0) { delete_depth = this->m_setting_->tree_depth; }
@@ -2183,14 +2244,13 @@ namespace erl::geometry {
          * @param child child node to be deleted
          * @param key key of the child node
          */
-        inline virtual void
-        OnDeleteNodeChild(Node * /*node*/, Node * /*child*/, const geometry::OctreeKey & /*key*/) {}
+        virtual void
+        OnDeleteNodeChild([[maybe_unused]] Node *node, [[maybe_unused]] Node *child, [[maybe_unused]] const OctreeKey &key) {}
 
         /**
          * Delete child nodes down to max_depth matching the given key of the given node that is at the given depth.
          * @param node node at depth, must not be nullptr and it will not be deleted
          * @param key
-         * @param depth
          * @param max_depth
          * @return
          */
@@ -2209,9 +2269,7 @@ namespace erl::geometry {
                 }
             }
 
-            auto child = this->GetNodeChild(node, child_idx);
-            bool delete_child = this->DeleteNodeRecurs(child, key, max_depth);
-            if (delete_child) {
+            if (auto child = this->GetNodeChild(node, child_idx); this->DeleteNodeRecurs(child, key, max_depth)) {
                 this->DeleteNodeDescendants(child, key);    // delete the child's children recursively
                 this->OnDeleteNodeChild(node, child, key);  // callback before deleting the child
                 node->RemoveChild(child_idx);               // remove child
@@ -2225,9 +2283,10 @@ namespace erl::geometry {
         /**
          * Delete all descendants of the given node.
          * @param node
+         * @param key
          * @return
          */
-        inline void
+        void
         DeleteNodeDescendants(Node *node, const OctreeKey &key) {
             ERL_DEBUG_ASSERT(node != nullptr, "node should not be nullptr.");
             if (!node->HasAnyChild()) { return; }
@@ -2311,7 +2370,7 @@ namespace erl::geometry {
         }
 
     public:
-        inline const std::shared_ptr<Node> &
+        const std::shared_ptr<Node> &
         GetRoot() const {
             return m_root_;
         }
@@ -2325,7 +2384,7 @@ namespace erl::geometry {
          * @param max_depth max depth to search. However, max_depth=0 means searching from root.
          * @return
          */
-        [[nodiscard]] inline const Node *
+        [[nodiscard]] const Node *
         Search(double x, double y, double z, uint32_t max_depth = 0) const {
             OctreeKey key;
             if (!CoordToKeyChecked(x, y, z, key)) {
@@ -2352,7 +2411,7 @@ namespace erl::geometry {
 
             // generate appropriate key for the given depth
             OctreeKey key_at_depth = key;
-            if (max_depth != tree_depth) { key_at_depth = AdjustKeyToDepth(key_at_depth, max_depth); }
+            if (max_depth != tree_depth) { key_at_depth = this->AdjustKeyToDepth(key_at_depth, max_depth); }
 
             // search
             const Node *node = m_root_.get();
@@ -2361,7 +2420,7 @@ namespace erl::geometry {
             for (int level = tree_depth - 1; level >= min_level; --level) {
                 uint32_t child_index = OctreeKey::ComputeChildIndex(key_at_depth, level);
                 if (node->HasChild(child_index)) {
-                    node = GetNodeChild(node, child_index);
+                    node = this->GetNodeChild(node, child_index);
                 } else {
                     // we expect a child but did not get it, is the current node a leaf?
                     if (!node->HasAnyChild()) {
@@ -2374,24 +2433,24 @@ namespace erl::geometry {
             return node;
         }
 
-        inline Node *
+        [[maybe_unused]] Node *
         InsertNode(double x, double y, double z, uint32_t depth = 0) {
             OctreeKey key;
             if (!CoordToKeyChecked(x, y, z, key)) {
-                ERL_WARN("Point (%f, %f, %f) is out of range.\n", x, y, z);
+                ERL_WARN("Point ({}, {}, {}) is out of range.\n", x, y, z);
                 return nullptr;
             }
             return InsertNode(key, depth);
         }
 
-        inline Node *
+        Node *
         InsertNode(const OctreeKey &key, uint32_t depth = 0) {
             auto &tree_depth = this->m_setting_->tree_depth;
             if (depth == 0) { depth = tree_depth; }
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.", tree_depth, depth);
             if (this->m_root_ == nullptr) {
                 this->m_root_ = std::make_shared<Node>();
-                this->m_tree_size_++;
+                ++this->m_tree_size_;
             }
 
             Node *node = this->m_root_.get();
@@ -2408,6 +2467,7 @@ namespace erl::geometry {
             return node;
         }
 
+    protected:
         //-- file IO
         /**
          * Read all nodes from the input stream (without file header). For general file IO, use AbstractOctree::Read.
@@ -2441,11 +2501,11 @@ namespace erl::geometry {
                 // load children
                 char children_char;
                 s.read(&children_char, sizeof(char));
-                std::bitset<8> children((unsigned long long) children_char);
+                std::bitset<8> children(static_cast<unsigned long long>(children_char));
                 node->AllocateChildrenPtr();
                 for (int i = 7; i >= 0; --i) {  // the same order as the recursive implementation
                     if (!children[i]) { continue; }
-                    Node *child_node = node->template CreateChild<Node>(i);
+                    Node *child_node = reinterpret_cast<Node *>(node->CreateChild(i));
                     nodes_stack.push_back(child_node);
                     m_tree_size_++;
                 }
@@ -2454,12 +2514,11 @@ namespace erl::geometry {
             return s;
         }
 
-    protected:
         std::ostream &
         WriteData(std::ostream &s) const override {
             if (m_root_ == nullptr) { return s; }
 
-            std::vector<const Node *> nodes_stack;
+            std::list<const Node *> nodes_stack;
             nodes_stack.push_back(m_root_.get());
             while (!nodes_stack.empty()) {
                 auto node = nodes_stack.back();
@@ -2478,14 +2537,14 @@ namespace erl::geometry {
                         children[i] = false;
                     }
                 }
-                auto children_char = char(children.to_ulong());
+                auto children_char = static_cast<char>(children.to_ulong());
                 s.write(&children_char, sizeof(char));
             }
 
             return s;
         }
 
-        inline void
+        void
         ComputeMinMax() {
             if (!m_size_changed_) { return; }
 
@@ -2501,7 +2560,7 @@ namespace erl::geometry {
             m_metric_min_[0] = m_metric_min_[1] = m_metric_min_[2] = std::numeric_limits<double>::infinity();
             m_metric_max_[0] = m_metric_max_[1] = m_metric_max_[2] = -std::numeric_limits<double>::infinity();
 
-            for (auto it = begin(), end = this->end(); it != end; ++it) {
+            for (auto it = this->begin(), end = this->end(); it != end; ++it) {
                 double size = it.GetNodeSize();
                 double half_size = size / 2.0;
                 double x = it.GetX() - half_size;

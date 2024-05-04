@@ -1,4 +1,4 @@
-#include "erl_common/assert.hpp"
+#include "erl_common/logging.hpp"
 #include "erl_geometry/lidar_frame_2d.hpp"
 #include "erl_geometry/utils.hpp"
 #include "erl_geometry/winding_number.hpp"
@@ -40,7 +40,7 @@ namespace erl::geometry {
         long num_hit_points = 0;
         for (long i = 0; i < n; ++i) {
             double angle = common::WrapAnglePi(m_angles_frame_[i]);
-            double &range = m_ranges_[i];
+            const double &range = m_ranges_[i];
             m_angles_world_[i] = common::WrapAnglePi(angle + m_rotation_angle_);
 
             // directions
@@ -102,7 +102,7 @@ namespace erl::geometry {
         Eigen::Matrix2Xd &directions_world,
         Eigen::VectorXd &distances) const {
         std::vector<long> hit_ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
-        auto n_rays = long(hit_ray_indices.size());
+        auto n_rays = static_cast<long>(hit_ray_indices.size());
         long n_samples = n_rays * n_samples_per_ray;
         positions_world.resize(2, n_samples);
         directions_world.resize(2, n_samples);
@@ -112,7 +112,7 @@ namespace erl::geometry {
         for (long &hit_ray_idx: hit_ray_indices) {
             const long &kRayIdx = m_hit_ray_indices_[hit_ray_idx];
             double range = m_ranges_[kRayIdx];
-            double range_step = (range + max_in_obstacle_dist) / double(n_samples_per_ray);
+            double range_step = (range + max_in_obstacle_dist) / static_cast<double>(n_samples_per_ray);
             const Eigen::Vector2d &kDirWorld = m_dirs_world_.col(kRayIdx);
 
             positions_world.col(index) << m_translation_;
@@ -138,13 +138,13 @@ namespace erl::geometry {
         Eigen::Matrix2Xd &directions_world,
         Eigen::VectorXd &distances) const {
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
-        auto n_rays = long(ray_indices.size());
+        auto n_rays = static_cast<long>(ray_indices.size());
         long num_samples = 0;
         std::vector<std::pair<long, long>> n_samples_per_ray;
         n_samples_per_ray.reserve(n_rays);
-        for (long &idx: ray_indices) {
+        for (const long &idx: ray_indices) {
             auto ray_idx = m_hit_ray_indices_[idx];
-            auto n = long(std::floor((m_ranges_[ray_idx] + max_in_obstacle_dist) / range_step)) + 1;
+            auto n = static_cast<long>(std::floor((m_ranges_[ray_idx] + max_in_obstacle_dist) / range_step)) + 1;
             n_samples_per_ray.emplace_back(ray_idx, n);
             num_samples += n;
         }
@@ -179,7 +179,7 @@ namespace erl::geometry {
         Eigen::Matrix2Xd &directions_world,
         Eigen::VectorXd &distances) const {
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
-        auto n_rays = long(ray_indices.size());
+        auto n_rays = static_cast<long>(ray_indices.size());
         long n_samples = num_samples_per_ray * n_rays;
         positions_world.resize(2, n_samples);
         directions_world.resize(2, n_samples);
@@ -187,7 +187,7 @@ namespace erl::geometry {
 
         std::uniform_real_distribution<double> uniform(-max_offset, max_offset);
         long sample_idx = 0;
-        for (long &hit_ray_idx: ray_indices) {
+        for (const long &hit_ray_idx: ray_indices) {
             const long &kRayIdx = m_hit_ray_indices_[hit_ray_idx];
             const double &kRange = m_ranges_[kRayIdx];
             auto dir_world = m_dirs_world_.col(kRayIdx);
@@ -209,7 +209,7 @@ namespace erl::geometry {
         Eigen::Matrix2Xd &positions_world,
         Eigen::Matrix2Xd &directions_world,
         Eigen::VectorXd &distances) const {
-        ERL_ASSERTM(num_positions > 0, "num_positions (%ld) must be positive.", num_positions);
+        ERL_ASSERTM(num_positions > 0, "num_positions ({:d}) must be positive.", num_positions);
 
         std::uniform_int_distribution<long> uniform_int_dist(0, m_hit_points_world_.cols() - 1);
         std::uniform_real_distribution<double> uniform_real_dist(0.1, 0.8);
@@ -221,7 +221,6 @@ namespace erl::geometry {
         distances.resize(max_num_samples);
 
         long sample_cnt = 0;
-        Eigen::Vector2d position_scan;
         Eigen::Matrix2Xd dirs;
         Eigen::VectorXd dists;
         std::vector<long> visible_hit_point_indices;
@@ -231,10 +230,10 @@ namespace erl::geometry {
             long hit_ray_index = m_hit_ray_indices_[hit_index];
             double r = uniform_real_dist(common::g_random_engine);
             r *= m_ranges_[hit_ray_index];
-            position_scan = m_translation_ + r * m_dirs_world_.col(hit_ray_index);
+            Eigen::Vector2d position_scan = m_translation_ + r * m_dirs_world_.col(hit_ray_index);
             ComputeRaysAt(position_scan, dirs, dists, visible_hit_point_indices);
 
-            auto num_rays = long(visible_hit_point_indices.size());
+            auto num_rays = static_cast<long>(visible_hit_point_indices.size());
             if (num_rays == 0) {
                 position_idx--;  // retry
                 continue;
@@ -256,7 +255,7 @@ namespace erl::geometry {
                 positions_world.col(sample_cnt) << position_scan;
                 directions_world.col(sample_cnt) << dir;
                 distances[sample_cnt++] = range;
-                double range_step = (range + max_in_obstacle_dist) / double(num_along_ray_samples_per_ray);
+                double range_step = (range + max_in_obstacle_dist) / static_cast<double>(num_along_ray_samples_per_ray);
                 Eigen::Vector2d shift = range_step * dir;
                 for (long i = 1; i < num_along_ray_samples_per_ray; ++i) {
                     range -= range_step;
@@ -314,7 +313,7 @@ namespace erl::geometry {
             }
             if (arg_min != ray_idx) { continue; }  // not the closest intersection
 
-            auto num_valid_rays = long(visible_hit_point_indices.size());
+            auto num_valid_rays = static_cast<long>(visible_hit_point_indices.size());
             directions_world.col(num_valid_rays) << vec;
             distances[num_valid_rays] = min_dist;
             visible_hit_point_indices.push_back(ray_idx);
@@ -333,7 +332,7 @@ namespace erl::geometry {
         double gamma2 = 1 - gamma1;
         for (long i = 0; i < n; ++i) {
             double angle = common::WrapAnglePi(m_angles_frame_[i]);
-            double &range = m_ranges_[i];
+            const double &range = m_ranges_[i];
             if (i == 0 || !m_mask_hit_[i]) { continue; }
 
             double range_diff = std::abs((range - m_ranges_[i - 1]) / (angle - m_angles_frame_[i - 1]));  // range difference per angle

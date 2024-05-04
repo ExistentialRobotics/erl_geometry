@@ -4,7 +4,6 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <vector>
-#include "erl_common/assert.hpp"
 
 namespace erl::geometry {
 
@@ -14,7 +13,7 @@ namespace erl::geometry {
      */
     class OctreeKey {
     public:
-        typedef uint16_t KeyType;
+        using KeyType = uint16_t;
 
     private:
         KeyType m_k_[3] = {0, 0, 0};
@@ -64,55 +63,55 @@ namespace erl::geometry {
             return *this;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         operator==(const OctreeKey& other) const {
             return m_k_[0] == other.m_k_[0] && m_k_[1] == other.m_k_[1] && m_k_[2] == other.m_k_[2];
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         operator!=(const OctreeKey& other) const {
             return m_k_[0] != other.m_k_[0] || m_k_[1] != other.m_k_[1] || m_k_[2] != other.m_k_[2];
         }
 
-        inline KeyType&
+        KeyType&
         operator[](unsigned int i) {
             return m_k_[i];
         }
 
-        [[nodiscard]] inline const KeyType&
+        [[nodiscard]] const KeyType&
         operator[](unsigned int i) const {
             return m_k_[i];
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         operator<(const OctreeKey& other) const {
             return m_k_[0] < other.m_k_[0] ||                                //
                    (m_k_[0] == other.m_k_[0] && (m_k_[1] < other.m_k_[1] ||  //
                                                  (m_k_[1] == other.m_k_[1] && m_k_[2] < other.m_k_[2])));
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         operator<=(const OctreeKey& other) const {
             return m_k_[0] < other.m_k_[0] ||                                //
                    (m_k_[0] == other.m_k_[0] && (m_k_[1] < other.m_k_[1] ||  //
                                                  (m_k_[1] == other.m_k_[1] && m_k_[2] <= other.m_k_[2])));
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         operator>(const OctreeKey& other) const {
             return m_k_[0] > other.m_k_[0] ||                                //
                    (m_k_[0] == other.m_k_[0] && (m_k_[1] > other.m_k_[1] ||  //
                                                  (m_k_[1] == other.m_k_[1] && m_k_[2] > other.m_k_[2])));
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         operator>=(const OctreeKey& other) const {
             return m_k_[0] > other.m_k_[0] ||                                //
                    (m_k_[0] == other.m_k_[0] && (m_k_[1] > other.m_k_[1] ||  //
                                                  (m_k_[1] == other.m_k_[1] && m_k_[2] >= other.m_k_[2])));
         }
 
-        [[nodiscard]] inline explicit
+        [[nodiscard]] explicit
         operator std::string() const {
             return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]) + "," + std::to_string(m_k_[2]);
         }
@@ -125,7 +124,7 @@ namespace erl::geometry {
          * @param child_key
          */
         inline static void
-        ComputeChildKey(unsigned int pos, OctreeKey::KeyType center_offset_key, const OctreeKey& parent_key, OctreeKey& child_key) {
+        ComputeChildKey(unsigned int pos, KeyType center_offset_key, const OctreeKey& parent_key, OctreeKey& child_key) {
             child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
             child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
             child_key.m_k_[2] = parent_key.m_k_[2] + ((pos & 4) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
@@ -137,18 +136,18 @@ namespace erl::geometry {
          * @param level level=0 means the leaf level
          * @return
          */
-        inline static int
+        static int
         ComputeChildIndex(const OctreeKey& key, uint32_t level) {
             int pos = 0;
-            OctreeKey::KeyType mask = 1 << level;
+            const KeyType mask = 1 << level;
             if (key.m_k_[0] & mask) { pos += 1; }
             if (key.m_k_[1] & mask) { pos += 2; }
             if (key.m_k_[2] & mask) { pos += 4; }
             return pos;
         }
 
-        inline static bool
-        KeyInAabb(const OctreeKey& key, OctreeKey::KeyType center_offset_key, const OctreeKey& aabb_min_key, const OctreeKey& aabb_max_key) {
+        static bool
+        KeyInAabb(const OctreeKey& key, KeyType center_offset_key, const OctreeKey& aabb_min_key, const OctreeKey& aabb_max_key) {
             return (aabb_min_key.m_k_[0] <= (key.m_k_[0] + center_offset_key)) &&  //
                    (aabb_min_key.m_k_[1] <= (key.m_k_[1] + center_offset_key)) &&  //
                    (aabb_min_key.m_k_[2] <= (key.m_k_[2] + center_offset_key)) &&  //
@@ -161,95 +160,13 @@ namespace erl::geometry {
     /**
      * Data structure to efficiently compute the nodes to update from a scan insertion using a hash set.
      */
-    typedef absl::flat_hash_set<OctreeKey> OctreeKeySet;
-    typedef absl::flat_hash_map<OctreeKey, std::vector<long>> OctreeKeyVectorMap;
-    typedef std::vector<OctreeKey> OctreeKeyVector;
+    using OctreeKeySet = absl::flat_hash_set<OctreeKey>;
+    using OctreeKeyVectorMap = absl::flat_hash_map<OctreeKey, std::vector<long>>;
+    using OctreeKeyVector = std::vector<OctreeKey>;
 
     /**
      * Data structure to efficiently track changed nodes.
      */
-    typedef absl::flat_hash_map<OctreeKey, bool> OctreeKeyBoolMap;
-
-    /**
-     * Data structure for efficient ray casting.
-     */
-    class OctreeKeyRay {
-    public:
-        typedef OctreeKeyVector::iterator Iterator;
-        typedef OctreeKeyVector::const_iterator ConstIterator;
-        typedef OctreeKeyVector::reverse_iterator ReverseIterator;
-
-    private:
-        OctreeKeyVector m_ray_ = {};
-        Iterator m_end_of_ray_ = m_ray_.begin();
-
-    public:
-        OctreeKeyRay() {
-            m_ray_.resize(100000);
-            Reset();
-        }
-
-        OctreeKeyRay(const OctreeKeyRay& other)
-            : m_ray_(other.m_ray_),
-              m_end_of_ray_(m_ray_.begin() + (other.end() - other.begin())) {}
-
-        inline void
-        Reset() {
-            m_end_of_ray_ = begin();
-        }
-
-        inline void
-        AddKey(const OctreeKey& k) {
-            ERL_DEBUG_ASSERT(m_end_of_ray_ != m_ray_.end(), "Ray is full.");
-            *m_end_of_ray_ = k;
-            ++m_end_of_ray_;
-        }
-
-        [[nodiscard]] inline auto
-        size() const {
-            return (unsigned long) (m_end_of_ray_ - m_ray_.begin());
-        }
-
-        [[nodiscard]] inline auto
-        capacity() const {
-            return m_ray_.size();
-        }
-
-        inline Iterator
-        begin() {
-            return m_ray_.begin();
-        }
-
-        inline Iterator
-        end() {
-            return m_end_of_ray_;
-        }
-
-        [[nodiscard]] inline ConstIterator
-        begin() const {
-            return m_ray_.begin();
-        }
-
-        [[nodiscard]] inline ConstIterator
-        end() const {
-            return m_end_of_ray_;
-        }
-
-        inline ReverseIterator
-        rbegin() {
-            return ReverseIterator(m_end_of_ray_);
-        }
-
-        inline ReverseIterator
-        rend() {
-            return m_ray_.rend();
-        }
-
-        [[nodiscard]] inline const OctreeKey&
-        operator[](int idx) const {
-            ERL_DEBUG_ASSERT(idx >= 0 && idx < int(size()), "Index out of bounds.");
-            return m_ray_[idx];
-        }
-    };
-
+    using OctreeKeyBoolMap = absl::flat_hash_map<OctreeKey, bool>;
+    using OctreeKeyRay = std::vector<OctreeKey>;
 }  // namespace erl::geometry

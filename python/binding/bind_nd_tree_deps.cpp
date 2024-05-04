@@ -19,13 +19,13 @@ BindNdTreeDeps(py::module &m) {
         .def("__eq__", [](const QuadtreeKey &self, const QuadtreeKey &other) { return self == other; })
         .def("__ne__", [](const QuadtreeKey &self, const QuadtreeKey &other) { return self != other; })
         .def("__getitem__", [](const QuadtreeKey &self, int idx) { return self[idx]; });
-    py::class_<QuadtreeKeyRay>(m, "QuadtreeKeyRay").def("__len__", &QuadtreeKeyRay::size).def("__getitem__", &QuadtreeKeyRay::operator[], py::arg("idx"));
+    // QuadtreeKeyRay is std::vector<QuadtreeKey>
 
     py::class_<OctreeKey>(m, "OctreeKey")
         .def("__eq__", [](const OctreeKey &self, const OctreeKey &other) { return self == other; })
         .def("__ne__", [](const OctreeKey &self, const OctreeKey &other) { return self != other; })
         .def("__getitem__", [](const OctreeKey &self, int idx) { return self[idx]; });
-    py::class_<OctreeKeyRay>(m, "OctreeKeyRay").def("__len__", &OctreeKeyRay::size).def("__getitem__", &OctreeKeyRay::operator[], py::arg("idx"));
+    // OctreeKeyRay is std::vector<OctreeKey>
 
     py::class_<AbstractOctreeNode, py::raw_ptr_wrapper<AbstractOctreeNode>>(m, "AbstractOctreeNode")
         .def_property_readonly("depth", &AbstractOctreeNode::GetDepth)

@@ -6,7 +6,7 @@ namespace erl::geometry::logodd {
 
     inline float
     LogOdd(double p) {
-        return (float) std::log(p / (1 - p));
+        return static_cast<float>(std::log(p / (1 - p)));
     }
 
     inline double

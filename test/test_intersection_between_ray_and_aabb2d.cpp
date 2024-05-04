@@ -50,7 +50,7 @@ MouseCallback(int event, int x, int y, int flags, void *userdata) {
                 dist2,
                 intersected_flags[i]);
             if (intersected_flags[i] && ray_travel_distances[i] >= 0) {
-                // ERL_ASSERTM(ray_travel_distances[i] >= 0, "ray_travel_distances[i] = %f", ray_travel_distances[i]);
+                // ERL_ASSERTM(ray_travel_distances[i] >= 0, "ray_travel_distances[i] = {:f}", ray_travel_distances[i]);
                 cv::Point2i ray_end(x + int(ray_travel_distances[i] * ray_directions(0, i)), y + int(ray_travel_distances[i] * ray_directions(1, i)));
                 cv::line(new_image, ray_start, ray_end, cv::Scalar(0, 0, 255), 1);
             }

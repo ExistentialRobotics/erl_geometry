@@ -1,7 +1,7 @@
 #pragma once
 
-#include "erl_common/eigen.hpp"
-#include "erl_common/assert.hpp"
+#include "erl_common/logging.hpp"
+
 #include <nanoflann.hpp>
 #include <memory>
 
@@ -17,7 +17,7 @@ namespace erl::geometry {
         using TreeType = nanoflann::KDTreeSingleIndexAdaptor<MetricType, Self, Dim, IndexType>;
 
         std::shared_ptr<TreeType> m_tree_ = nullptr;
-        EigenMatrix m_data_matrix_;
+        EigenMatrix m_data_matrix_{};
         const int mk_MLeafMaxSize_;
 
     public:
@@ -64,15 +64,11 @@ namespace erl::geometry {
 
         void
         Clear() {
-            if (Dim == Eigen::Dynamic) {
-                m_data_matrix_.resize(0, 0);
-            } else {
-                m_data_matrix_.resize(Dim, 0);
-            }
+            m_data_matrix_.resize(0, 0);
             m_tree_ = nullptr;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         Ready() const {
             return m_tree_ != nullptr;
         }
@@ -85,30 +81,30 @@ namespace erl::geometry {
             m_tree_->buildIndex();
         }
 
-        inline void
+        void
         Knn(size_t k, const Eigen::Vector<T, Dim> &point, IndexType &indices_out, NumType &metric_out) {
-            ERL_ASSERTM(Ready(), "tree is not ready yet. Please call Build() first.");
+            ERL_ASSERTM(m_tree_ != nullptr, "tree is not ready yet. Please call Build() first.");
             nanoflann::KNNResultSet<NumType, IndexType> result_set(k);
             result_set.init(&indices_out, &metric_out);  // default metric is squared euclidean distance
             m_tree_->findNeighbors(result_set, point.data(), nanoflann::SearchParameters());
         }
 
         // Returns the number of points: used by TreeType
-        [[nodiscard]] inline size_t
+        [[nodiscard]] size_t
         kdtree_get_point_count() const {
             return m_data_matrix_.cols();
         }
 
         // Returns the dim-th component of the idx-th point in the class, used by TreeType
-        [[nodiscard]] inline NumType
+        [[nodiscard]] NumType
         kdtree_get_pt(const size_t idx, int dim) const {
             return m_data_matrix_(dim, idx);
         }
 
         // Optional bounding-box computation: return false to default to a standard bbox computation loop.
         template<class BBOX>
-        bool
-        kdtree_get_bbox(BBOX &) const {
+        static bool
+        kdtree_get_bbox(BBOX &) {
             return false;
         }
     };

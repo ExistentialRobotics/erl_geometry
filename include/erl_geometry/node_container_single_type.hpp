@@ -136,7 +136,7 @@ namespace erl::geometry {
 
             // must compute too_close before checking capacity, otherwise the node may be inserted into another container.
             if (!m_nodes_.empty()) {  // not empty
-                for (auto &stored_node: m_nodes_) {
+                for (const auto &stored_node: m_nodes_) {
                     if ((stored_node->position - node->position).squaredNorm() < m_setting_->min_squared_distance) {
                         too_close = true;
                         return false;

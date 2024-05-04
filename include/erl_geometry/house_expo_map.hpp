@@ -1,15 +1,10 @@
 #pragma once
 
-#include <filesystem>
-#include <fstream>
-#include <string>
-#include <open3d/geometry/TriangleMesh.h>
-
-#include "erl_common/assert.hpp"
-#include "erl_common/eigen.hpp"
-#include "erl_common/opencv.hpp"
 #include "erl_common/json.hpp"
 #include "space_2d.hpp"
+
+#include <string>
+#include <open3d/geometry/TriangleMesh.h>
 
 namespace erl::geometry {
 
@@ -24,17 +19,17 @@ namespace erl::geometry {
 
         HouseExpoMap(const char *file, double wall_thickness);
 
-        [[nodiscard]] inline std::string
+        [[nodiscard]] std::string
         GetFile() const {
             return m_file_;
         }
 
-        [[nodiscard]] inline std::string
+        [[nodiscard]] std::string
         GetRoomId() const {
             return m_room_id_;
         }
 
-        [[nodiscard]] inline const std::shared_ptr<geometry::Space2D> &
+        [[nodiscard]] const std::shared_ptr<geometry::Space2D> &
         GetMeterSpace() {
             return m_meter_space_;
         }

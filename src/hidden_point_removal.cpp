@@ -2,7 +2,7 @@
 
 #include "erl_geometry/hidden_point_removal.hpp"
 #include "erl_geometry/convex_hull.hpp"
-#include "erl_common/assert.hpp"
+#include "erl_common/logging.hpp"
 
 namespace erl::geometry {
 
@@ -21,7 +21,7 @@ namespace erl::geometry {
 
             projected_point << point - camera_position;
             norm = projected_point.norm();
-            ERL_ASSERTM(norm < radius, "norm (%f) should be < radius (%f).", norm, radius);
+            ERL_ASSERTM(norm < radius, "norm ({:f}) should be < radius ({:f}).", norm, radius);
             projected_point << projected_point + 2 * (radius - norm) * (projected_point / norm);
         }
     }
@@ -29,19 +29,19 @@ namespace erl::geometry {
     void
     HiddenPointRemoval(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &camera_position,
+        const Eigen::Ref<const Eigen::Vector3d> &view_position,
         double radius,
         std::vector<long> &visible_point_indices,
         bool fast,
         bool joggle_inputs) {
-        ERL_ASSERTM(radius > 0.0, "radius (%f) should be positive.", radius);
+        ERL_ASSERTM(radius > 0.0, "radius ({:f}) should be positive.", radius);
 
         // perform spherical projection
         long num_points = points.cols();
-        ERL_ASSERTM(num_points > 0, "num_points = %ld, it should be > 0.", num_points);
+        ERL_ASSERTM(num_points > 0, "num_points = {:d}, it should be > 0.", num_points);
         Eigen::Matrix3Xd projected_points(3, num_points + 1);
         Eigen::VectorXd norms(num_points);
-        SphericalProjection(points, camera_position, radius, projected_points, norms);
+        SphericalProjection(points, view_position, radius, projected_points, norms);
 
         // add origin, which may be outside the point cloud
         projected_points.col(num_points).setZero();
@@ -73,21 +73,21 @@ namespace erl::geometry {
     void
     HiddenPointRemoval(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &camera_position,
+        const Eigen::Ref<const Eigen::Vector3d> &view_position,
         double radius,
         Eigen::Matrix3Xl &mesh_triangles,
         Eigen::Matrix3Xd &mesh_vertices,
         std::vector<long> &visible_point_indices,
         bool fast,
         bool joggle_inputs) {
-        ERL_ASSERTM(radius > 0.0, "radius (%f) should be positive.", radius);
+        ERL_ASSERTM(radius > 0.0, "radius ({:f}) should be positive.", radius);
 
         // perform spherical projection
         long num_points = points.cols();
-        ERL_ASSERTM(num_points > 0, "num_points = %ld, it should be > 0.", num_points);
+        ERL_ASSERTM(num_points > 0, "num_points = {:d}, it should be > 0.", num_points);
         Eigen::Matrix3Xd projected_points(3, num_points + 1);
         Eigen::VectorXd norms(num_points);
-        SphericalProjection(points, camera_position, radius, projected_points, norms);
+        SphericalProjection(points, view_position, radius, projected_points, norms);
 
         // add origin, which may be outside the point cloud
         projected_points.col(num_points).setZero();

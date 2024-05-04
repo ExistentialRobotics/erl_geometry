@@ -1,7 +1,6 @@
 #include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/occupancy_octree_drawer.hpp"
 #include "erl_common/test_helper.hpp"
-#include "erl_common/angle_utils.hpp"
 
 #define SPHERE_RADIUS      0.75
 #define NUM_AZIMUTHS       720
@@ -90,11 +89,11 @@ TEST(OccupancyOctree, InsertPointCloud) {
     EXPECT_EQ(tree->GetSize(), casted_tree->GetSize());
     EXPECT_TRUE(*tree == *casted_tree);
 
-    // test occupancy node copy
-    auto copied_node = std::make_shared<OccupancyOctreeNode>(*tree->GetRoot());
-    EXPECT_TRUE(*copied_node == *tree->GetRoot());
-    copied_node->GetChild<OccupancyOctreeNode>(1)->AddLogOdds(0.1);
-    EXPECT_FALSE(*copied_node == *tree->GetRoot());
+    // test occupancy node deep copy (shallow copy is not allowed unless it is managed by shared_ptr)
+    auto cloned_node = std::shared_ptr<OccupancyOctreeNode>(reinterpret_cast<OccupancyOctreeNode*>(tree->GetRoot()->Clone()));  // deep copy
+    EXPECT_TRUE(*cloned_node == *tree->GetRoot());
+    cloned_node->GetChild<OccupancyOctreeNode>(1)->AddLogOdds(0.1);
+    EXPECT_FALSE(*cloned_node == *tree->GetRoot());
 
     EXPECT_TRUE(tree->WriteBinary((test_output_dir / "sphere.bt").string()));  // pruned, binary tree
     auto read_tree = std::make_shared<OccupancyOctree>();
@@ -478,13 +477,26 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_TRUE(tree->Write("prune.ot"));
 }
 
-TEST(OccupancyOctree, CopyTree) {
-    auto tree1 = AbstractOctree::ReadAs<OccupancyOctree>("prune.ot");
-    OccupancyOctree tree2 = *tree1;
-    EXPECT_NE(tree1->GetSetting<OccupancyOctree::Setting>(), tree2.GetSetting<OccupancyOctree::Setting>());  // the setting pointers should be different
+TEST(OccupancyOctree, CopyTree) {  // shallow copy
+    const auto tree1 = AbstractOctree::ReadAs<OccupancyOctree>("prune.ot");
+    const OccupancyOctree tree2 = *tree1;
+    EXPECT_EQ(tree1->GetSetting<OccupancyOctree::Setting>(), tree2.GetSetting<OccupancyOctree::Setting>());  // the setting pointers should be the same
     EXPECT_TRUE(*tree1 == tree2);                                                                            // the content should be the same
     auto itr_tree1 = tree1->BeginTree();
     auto itr_tree2 = tree2.BeginTree();
+    for (; itr_tree1 != tree1->EndTree(); ++itr_tree1, ++itr_tree2) {
+        EXPECT_EQ(*itr_tree1, *itr_tree2);    // the pointers should be the same
+        EXPECT_EQ(**itr_tree1, **itr_tree2);  // the content should be the same
+    }
+}
+
+TEST(OccupancyOctree, CloneTree) {  // deep copy
+    const auto tree1 = AbstractOctree::ReadAs<OccupancyOctree>("prune.ot");
+    const auto tree2 = std::reinterpret_pointer_cast<OccupancyOctree>(tree1->Clone());
+    EXPECT_NE(tree1->GetSetting<OccupancyOctree::Setting>(), tree2->GetSetting<OccupancyOctree::Setting>());  // the setting pointers should be different
+    EXPECT_TRUE(*tree1 == *tree2);                                                                            // the content should be the same
+    auto itr_tree1 = tree1->BeginTree();
+    auto itr_tree2 = tree2->BeginTree();
     for (; itr_tree1 != tree1->EndTree(); ++itr_tree1, ++itr_tree2) {
         EXPECT_NE(*itr_tree1, *itr_tree2);    // the pointers should be different
         EXPECT_EQ(**itr_tree1, **itr_tree2);  // the content should be the same

@@ -1,9 +1,8 @@
 #pragma once
 
-#include <map>
-
 #include "collision_checker_base.hpp"
-#include "erl_common/assert.hpp"
+
+#include <map>
 
 namespace erl::geometry {
 
@@ -21,8 +20,8 @@ namespace erl::geometry {
             : m_grid_map_(std::move(grid_map)),
               m_metric_shapes_(std::move(metric_shape)) {
 
-            auto theta_c_min = int(std::round(grid_map_info->MeterToGridForValue(-M_PI, 2)));
-            auto theta_c_max = int(std::round(grid_map_info->MeterToGridForValue(M_PI, 2)));
+            auto theta_c_min = static_cast<int>(std::round(grid_map_info->MeterToGridForValue(-M_PI, 2)));
+            auto theta_c_max = static_cast<int>(std::round(grid_map_info->MeterToGridForValue(M_PI, 2)));
 
             for (int theta_c = theta_c_min; theta_c <= theta_c_max; ++theta_c) {
                 double theta = grid_map_info->GridToMeterForValue(theta_c, 2);
@@ -32,7 +31,7 @@ namespace erl::geometry {
             }
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsCollided(const Eigen::Ref<const Eigen::Matrix3d> &pose) const {
             auto num_cells = m_metric_shapes_.cols();
             for (int i = 0; i < num_cells; ++i) {
@@ -44,10 +43,10 @@ namespace erl::geometry {
             return false;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsCollided(const Eigen::Ref<const Eigen::VectorXi> &coords) const override {
             const Eigen::Matrix2Xi &kOrientedShapes = m_oriented_shapes_.at(coords[2]);
-            auto num_cells = int(kOrientedShapes.cols());
+            auto num_cells = static_cast<int>(kOrientedShapes.cols());
             for (int i = 0; i < num_cells; ++i) {
                 Eigen::Vector2i grid_coords = kOrientedShapes.col(i) + coords.head(2);
                 if (!m_grid_map_->info->InGrids(grid_coords) || m_grid_map_->data[grid_coords] > 0) { return true; }

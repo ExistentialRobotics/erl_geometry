@@ -763,7 +763,7 @@ BindLidarFrame3D(py::module &m) {
             py::arg("elevations"),
             py::arg("ranges"),
             py::arg("partition_rays") = false)
-        .def_property_readonly("setting", [](const LidarFrame3D &self) { return self.GetSetting(); })
+        .def_property_readonly("setting", [](const LidarFrame3D &self) { return self.GetSetting<LidarFrame3D::Setting>(); })
         .def_property_readonly("num_rays", &LidarFrame3D::GetNumRays)
         .def_property_readonly("num_hit_rays", &LidarFrame3D::GetNumHitRays)
         .def_property_readonly("rotation_matrix", &LidarFrame3D::GetRotationMatrix)
@@ -1006,7 +1006,7 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("depth"),
             py::arg("depth_scaled"),
             py::arg("partition_rays") = false)
-        .def_property_readonly("setting", [](const RgbdFrame3D &self) { return self.GetSetting(); })
+        .def_property_readonly("setting", [](const RgbdFrame3D &self) { return self.GetSetting<RgbdFrame3D::Setting>(); })
         .def_property_readonly("camera_extrinsic_matrix", &RgbdFrame3D::GetCameraExtrinsicMatrix)
         .def_property_readonly("camera_intrinsic_matrix", &RgbdFrame3D::GetCameraIntrinsicMatrix)
         .def_property_readonly("num_rays", [](const RgbdFrame3D &self) { return self.GetNumRays(); })

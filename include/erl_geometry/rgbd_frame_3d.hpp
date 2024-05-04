@@ -19,15 +19,9 @@ namespace erl::geometry {
             double depth_scale = 6553.5;
         };
 
-    private:
-        std::shared_ptr<Setting> m_setting_ = nullptr;
-
     public:
         explicit RgbdFrame3D(std::shared_ptr<Setting> setting)
-            : LidarFrame3D(setting),
-              m_setting_(std::move(setting)) {
-            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
-        }
+            : LidarFrame3D(std::move(setting)) {}
 
         /**
          * @brief Resize the frame by a factor. Need to call Update() after this.
@@ -37,16 +31,17 @@ namespace erl::geometry {
         std::pair<int, int>
         Resize(double factor) {
             Reset();
-            int old_image_height = m_setting_->image_height;
-            int old_image_width = m_setting_->image_width;
-            m_setting_->image_height = static_cast<int>(m_setting_->image_height * factor);
-            m_setting_->image_width = static_cast<int>(m_setting_->image_width * factor);
-            factor = (double(m_setting_->image_height) / double(old_image_height) + double(m_setting_->image_width) / double(old_image_width)) / 2.0;
-            m_setting_->camera_fx *= factor;
-            m_setting_->camera_fy *= factor;
-            m_setting_->camera_cx *= factor;
-            m_setting_->camera_cy *= factor;
-            return {m_setting_->image_height, m_setting_->image_width};
+            auto *setting = reinterpret_cast<Setting *>(m_setting_.get());
+            int old_image_height = setting->image_height;
+            int old_image_width = setting->image_width;
+            setting->image_height = static_cast<int>(setting->image_height * factor);
+            setting->image_width = static_cast<int>(setting->image_width * factor);
+            factor = (double(setting->image_height) / double(old_image_height) + double(setting->image_width) / double(old_image_width)) / 2.0;
+            setting->camera_fx *= factor;
+            setting->camera_fy *= factor;
+            setting->camera_cx *= factor;
+            setting->camera_cy *= factor;
+            return {setting->image_height, setting->image_width};
         }
 
         void
@@ -55,16 +50,14 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Vector3d> &translation,
             Eigen::MatrixXd depth,
             bool depth_scaled,
-            bool partition_rays = false
-        );
+            bool partition_rays = false);
 
         inline void
         Update(
             const Eigen::Ref<const Eigen::Matrix3d> &rotation,
             const Eigen::Ref<const Eigen::Vector3d> &translation,
             const std::string &depth_file,
-            bool partition_rays = false
-        ) {
+            bool partition_rays = false) {
             cv::Mat depth_img = cv::imread(depth_file, cv::IMREAD_UNCHANGED);
             depth_img.convertTo(depth_img, CV_64FC1);  // convert to double
             Eigen::MatrixXd depth;
@@ -72,23 +65,19 @@ namespace erl::geometry {
             Update(rotation, translation, depth, false, partition_rays);
         }
 
-        [[nodiscard]] inline std::shared_ptr<Setting>
-        GetSetting() const {
-            return m_setting_;
-        }
-
         [[nodiscard]] inline Eigen::Matrix4d
         GetCameraExtrinsicMatrix() const {
-            Eigen::Matrix4d extrinsic = m_setting_->camera_to_optical * GetPoseMatrix();
+            Eigen::Matrix4d extrinsic = reinterpret_cast<Setting *>(m_setting_.get())->camera_to_optical * GetPoseMatrix();
             return extrinsic;
         }
 
         [[nodiscard]] inline Eigen::Matrix3d
         GetCameraIntrinsicMatrix() const {
             Eigen::Matrix3d intrinsic;
+            auto *setting = reinterpret_cast<Setting *>(m_setting_.get());
             // clang-format off
-            intrinsic << m_setting_->camera_fx, 0, m_setting_->camera_cx,
-                         0, m_setting_->camera_fy, m_setting_->camera_cy,
+            intrinsic << setting->camera_fx, 0, setting->camera_cx,
+                         0, setting->camera_fy, setting->camera_cy,
                          0, 0, 1;
             // clang-format on
             return intrinsic;
@@ -129,27 +118,27 @@ namespace YAML {
         }
     };
 
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::RgbdFrame3D::Setting &rhs) {
-//        out << BeginMap;
-//        out << Key << "valid_range_min" << Value << rhs.valid_range_min;
-//        out << Key << "valid_range_max" << Value << rhs.valid_range_max;
-//        out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
-//        out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
-//        out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
-//        out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
-//        out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
-//        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
-//        out << Key << "min_partition_size" << Value << rhs.min_partition_size;
-//        out << Key << "camera_to_optical" << Value << rhs.camera_to_optical;
-//        out << Key << "image_height" << Value << rhs.image_height;
-//        out << Key << "image_width" << Value << rhs.image_width;
-//        out << Key << "camera_fx" << Value << rhs.camera_fx;
-//        out << Key << "camera_fy" << Value << rhs.camera_fy;
-//        out << Key << "camera_cx" << Value << rhs.camera_cx;
-//        out << Key << "camera_cy" << Value << rhs.camera_cy;
-//        out << Key << "depth_scale" << Value << rhs.depth_scale;
-//        out << EndMap;
-//        return out;
-//    }
+    // inline Emitter &
+    // operator<<(Emitter &out, const erl::geometry::RgbdFrame3D::Setting &rhs) {
+    //     out << BeginMap;
+    //     out << Key << "valid_range_min" << Value << rhs.valid_range_min;
+    //     out << Key << "valid_range_max" << Value << rhs.valid_range_max;
+    //     out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
+    //     out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
+    //     out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
+    //     out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
+    //     out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
+    //     out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
+    //     out << Key << "min_partition_size" << Value << rhs.min_partition_size;
+    //     out << Key << "camera_to_optical" << Value << rhs.camera_to_optical;
+    //     out << Key << "image_height" << Value << rhs.image_height;
+    //     out << Key << "image_width" << Value << rhs.image_width;
+    //     out << Key << "camera_fx" << Value << rhs.camera_fx;
+    //     out << Key << "camera_fy" << Value << rhs.camera_fy;
+    //     out << Key << "camera_cx" << Value << rhs.camera_cx;
+    //     out << Key << "camera_cy" << Value << rhs.camera_cy;
+    //     out << Key << "depth_scale" << Value << rhs.depth_scale;
+    //     out << EndMap;
+    //     return out;
+    // }
 }  // namespace YAML

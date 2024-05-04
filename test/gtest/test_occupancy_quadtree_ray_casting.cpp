@@ -16,7 +16,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     static bool mouse_fixed = false;
 
     (void) flags;
-    auto data = reinterpret_cast<UserData *>(userdata);
+    auto data = static_cast<UserData *>(userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) {
         std::cout << "Left button of the mouse is clicked - position (" << mouse_x << ", " << mouse_y << ")" << std::endl;
@@ -42,9 +42,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             double vy = std::sin(angles[i]);
             constexpr bool kIgnoreUnknown = false;
             double max_range = -1;
-            uint32_t depth = 0;
-            if (!data->tree->CastRay(x, y, vx, vy, kIgnoreUnknown, max_range, ex, ey, depth)) {
-                if (!data->tree->CastRay(x, y, vx, vy, !kIgnoreUnknown, max_range, ex, ey, depth)) {
+            if (!data->tree->CastRay(x, y, vx, vy, kIgnoreUnknown, max_range, ex, ey)) {
+                if (!data->tree->CastRay(x, y, vx, vy, !kIgnoreUnknown, max_range, ex, ey)) {
                     std::cout << "Fail to cast ray for angle " << erl::common::RadianToDegree(angles[i]) << std::endl;
                 }
             }

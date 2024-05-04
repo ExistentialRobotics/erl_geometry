@@ -1,6 +1,5 @@
 #include "erl_common/test_helper.hpp"
 #include "erl_common/csv.hpp"
-#include "erl_common/binary_file.hpp"
 #include "erl_common/progress_bar.hpp"
 #include "erl_common/random.hpp"
 #include "erl_geometry/gazebo_room.hpp"
@@ -70,19 +69,21 @@ TEST(OccupancyQuadtree, Build) {
         // load raw data
         auto train_data_loader = erl::geometry::GazeboRoom::TrainDataLoader(g_options.gazebo_train_file.c_str());
         // prepare buffer
-        max_update_cnt = long(train_data_loader.size()) / g_options.stride + 1;
+        max_update_cnt = static_cast<long>(train_data_loader.size()) / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
         trajectory.resize(2, max_update_cnt);
         // load data into buffer
         long j = 0;
-        erl::common::ProgressBar bar(int(max_update_cnt), true, std::cout);
+        std::shared_ptr<erl::common::ProgressBar> bar = erl::common::ProgressBar::Open();
+        bar->SetTotal(max_update_cnt);
         for (std::size_t i = 0; i < train_data_loader.size(); i += g_options.stride) {
             auto &df = train_data_loader[i];
             trajectory.col(j) << df.pose_numpy(0, 2), df.pose_numpy(1, 2);
             buf_points.push_back(load_scan(df.pose_numpy.block<2, 2>(0, 0), trajectory.col(j), df.angles, df.distances));
             j++;
-            bar.Update();
+            bar->Update();
         }
+        bar->Close();
         trajectory.conservativeResize(2, j);
     } else if (g_options.use_house_expo_data) {
         tree_name = std::filesystem::path(g_options.house_expo_map_file).stem().filename().string() + "_2d";
@@ -91,47 +92,50 @@ TEST(OccupancyQuadtree, Build) {
         auto caster = [](const std::string &str) -> double { return std::stod(str); };
         auto csv_trajectory = erl::common::LoadAndCastCsvFile<double>(g_options.house_expo_traj_file.c_str(), caster);
         // prepare buffer
-        max_update_cnt = long(csv_trajectory.size()) / g_options.stride + 1;
+        max_update_cnt = static_cast<long>(csv_trajectory.size()) / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
         trajectory.resize(2, max_update_cnt);
         // setup lidar
         auto lidar_setting = std::make_shared<erl::geometry::Lidar2D::Setting>();
         lidar_setting->num_lines = 720;
         erl::geometry::Lidar2D lidar(lidar_setting, house_expo_map.GetMeterSpace());
-        bool scan_in_parallel = true;
         Eigen::VectorXd lidar_angles = lidar.GetAngles();
         // load data into buffer
         long j = 0;
-        erl::common::ProgressBar bar(int(max_update_cnt), true, std::cout);
+        std::shared_ptr<erl::common::ProgressBar> bar = erl::common::ProgressBar::Open();
+        bar->SetTotal(max_update_cnt);
         for (std::size_t i = 0; i < csv_trajectory.size(); i += g_options.stride) {
             trajectory.col(j) << csv_trajectory[i][0], csv_trajectory[i][1];
             Eigen::Matrix2d rotation = Eigen::Rotation2Dd(csv_trajectory[i][2]).toRotationMatrix();
-            Eigen::VectorXd lidar_ranges = lidar.Scan(rotation, trajectory.col(j), scan_in_parallel);
+            Eigen::VectorXd lidar_ranges = lidar.Scan(rotation, trajectory.col(j), /*scan_in_parallel*/ true);
             lidar_ranges += erl::common::GenerateGaussianNoise(lidar_ranges.size(), 0.0, 0.01);
             buf_points.push_back(load_scan(rotation, trajectory.col(j), lidar_angles, lidar_ranges));
             j++;
-            bar.Update();
+            bar->Update();
         }
+        bar->Close();
         trajectory.conservativeResize(2, j);
     } else {
         tree_name = "ros_bag";
         Eigen::MatrixXd ros_bag_data = erl::common::LoadEigenMatrixFromBinaryFile<double, Eigen::Dynamic, Eigen::Dynamic>(g_options.ros_bag_dat_file);
         // prepare buffer
-        max_update_cnt = long(ros_bag_data.rows()) / g_options.stride + 1;
+        max_update_cnt = static_cast<long>(ros_bag_data.rows()) / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
         trajectory.resize(2, max_update_cnt);
         // load data into buffer
         long num_rays = (ros_bag_data.cols() - 7) / 2;
         long j = 0;
-        erl::common::ProgressBar bar(int(max_update_cnt), true, std::cout);
+        std::shared_ptr<erl::common::ProgressBar> bar = erl::common::ProgressBar::Open();
+        bar->SetTotal(max_update_cnt);
         for (long i = 0; i < ros_bag_data.rows(); i += g_options.stride, j++) {
             Eigen::Matrix23d pose = ros_bag_data.row(i).segment(1, 6).reshaped(3, 2).transpose();
             trajectory.col(j) << pose(0, 2), pose(1, 2);
             Eigen::VectorXd angles = ros_bag_data.row(i).segment(7, num_rays);
             Eigen::VectorXd ranges = ros_bag_data.row(i).segment(7 + num_rays, num_rays);
             buf_points.push_back(load_scan(pose.block<2, 2>(0, 0), trajectory.col(j), angles, ranges));
-            bar.Update();
+            bar->Update();
         }
+        bar->Close();
         trajectory.conservativeResize(2, j);
     }
 
@@ -159,14 +163,10 @@ TEST(OccupancyQuadtree, Build) {
     cv::waitKey(0);
 
     // build occupancy quadtree
-    double max_range = 100;
-    bool parallel = false;  // bad, use more CPU cores but not faster
-    bool discrete = false;
-    bool pixel_based = true;
-    max_update_cnt = long(buf_points.size());
+    max_update_cnt = static_cast<long>(buf_points.size());
     for (long i = 0; i < max_update_cnt; ++i) {
         auto t0 = std::chrono::high_resolution_clock::now();
-        tree->InsertPointCloud(buf_points[i], trajectory.col(i), max_range, parallel, g_options.quadtree_lazy_eval, discrete);
+        tree->InsertPointCloud(buf_points[i], trajectory.col(i), /*max_range*/ 100, /*parallel*/ false, g_options.quadtree_lazy_eval, /*discrete*/ false);
         if (g_options.quadtree_lazy_eval) {
             tree->UpdateInnerOccupancy();
             tree->Prune();
@@ -175,7 +175,7 @@ TEST(OccupancyQuadtree, Build) {
         std::cout << "update time: " << std::chrono::duration<double, std::milli>(t1 - t0).count() << " ms" << std::endl;
 
         drawer->DrawLeaves(img);
-        erl::common::DrawTrajectoryInplace(img, trajectory.block(0, 0, 2, i), grid_map_info, trajectory_color, 2, pixel_based);
+        erl::common::DrawTrajectoryInplace(img, trajectory.block(0, 0, 2, i), grid_map_info, trajectory_color, 2, /*pixel_based*/ true);
         cv::imshow(g_window_name, img);
         cv::waitKey(10);
     }

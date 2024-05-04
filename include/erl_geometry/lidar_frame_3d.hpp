@@ -1,7 +1,7 @@
 #pragma once
 
 #include "erl_common/yaml.hpp"
-#include "erl_common/assert.hpp"
+#include "erl_common/logging.hpp"
 #include "kdtree_eigen_adaptor.hpp"
 
 namespace erl::geometry {
@@ -74,9 +74,10 @@ namespace erl::geometry {
             Eigen::MatrixXd ranges,
             bool partition_rays = false);
 
-        [[nodiscard]] inline std::shared_ptr<Setting>
+        template<typename Derived>
+        [[nodiscard]] inline std::shared_ptr<Derived>
         GetSetting() const {
-            return m_setting_;
+            return std::dynamic_pointer_cast<Derived>(m_setting_);
         }
 
         [[nodiscard]] inline long
