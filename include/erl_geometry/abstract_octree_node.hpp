@@ -260,8 +260,7 @@ namespace erl::geometry {
 
         [[nodiscard]] virtual bool
         AllowMerge(const AbstractOctreeNode *other) const {
-            (void) other;
-            return m_num_children_ == 0;
+            return m_num_children_ == 0 && other->m_num_children_ == 0;
         }
 
         virtual void
