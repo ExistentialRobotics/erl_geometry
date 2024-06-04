@@ -1,9 +1,12 @@
 #pragma once
 
-#include <memory>
-#include <map>
-#include <string>
 #include "nd_tree_setting.hpp"
+
+#include "erl_common/string_utils.hpp"
+
+#include <map>
+#include <memory>
+#include <string>
 
 namespace erl::geometry {
 
@@ -106,7 +109,7 @@ namespace erl::geometry {
         [[nodiscard]] virtual bool
         operator==(const AbstractQuadtree& other) const = 0;
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         operator!=(const AbstractQuadtree& other) const {
             return !(*this == other);
         }

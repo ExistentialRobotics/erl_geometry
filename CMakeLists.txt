@@ -80,9 +80,12 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME}
-        PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES} Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
-        PUBLIC ${catkin_LIBRARIES})
+if (catkin_LIBRARIES)
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
+else ()
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
+endif ()
+target_link_libraries(${PROJECT_NAME} PUBLIC nanoflann::nanoflann Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D)
 
 ###################
 # Python bindings #

@@ -1,4 +1,5 @@
 #include "erl_geometry/lidar_3d.hpp"
+#include "erl_geometry/azimuth_elevation.hpp"
 #include "erl_common/random.hpp"
 
 namespace erl::geometry {

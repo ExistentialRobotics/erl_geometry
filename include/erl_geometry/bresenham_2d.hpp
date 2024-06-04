@@ -1,8 +1,8 @@
 #pragma once
 
 #include "erl_common/eigen.hpp"
+
 #include <functional>
-#include <vector>
 
 namespace erl::geometry {
     Eigen::Matrix2Xi

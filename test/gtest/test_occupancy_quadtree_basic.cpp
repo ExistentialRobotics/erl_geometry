@@ -1,6 +1,6 @@
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
-#include "erl_common/test_helper.hpp"
 
 using namespace erl::geometry;
 
@@ -15,9 +15,9 @@ TEST(OccupancyQuadtree, IO) {
     EXPECT_EQ(empty_read_tree.GetSize(), 0);
     EXPECT_TRUE(tree == empty_read_tree);
 
-    auto read_tree_abstract = AbstractQuadtree::Read("empty.ot");
+    const auto read_tree_abstract = AbstractQuadtree::Read("empty.ot");
     EXPECT_TRUE(read_tree_abstract != nullptr);
-    auto occupancy_quadtree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_tree_abstract);
+    const auto occupancy_quadtree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_tree_abstract);
     EXPECT_TRUE(occupancy_quadtree != nullptr);
     EXPECT_EQ(occupancy_quadtree->GetSize(), 0);
     EXPECT_TRUE(tree == *occupancy_quadtree);
@@ -45,7 +45,7 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
     bool parallel = false;
     bool lazy_eval = false;
     bool discretize = false;
-    erl::common::ReportTime<std::chrono::milliseconds>("InsertPointCloud", 1, true, [&]() {
+    erl::common::ReportTime<std::chrono::milliseconds>("InsertPointCloud", 1, true, [&] {
         tree->InsertPointCloud(points, sensor_origin, max_range, parallel, lazy_eval, discretize);
     });
 
@@ -94,7 +94,7 @@ TEST(OccupancyQuadtree, InsertRay) {
 
     double max_range = -1;
     bool lazy_eval = false;
-    erl::common::ReportTime<std::chrono::milliseconds>("InsertRay", 1, true, [&]() {
+    erl::common::ReportTime<std::chrono::milliseconds>("InsertRay", 1, true, [&] {
         for (int i = 0; i < points.cols(); ++i) { tree->InsertRay(sensor_origin[0], sensor_origin[1], points(0, i), points(1, i), max_range, lazy_eval); }
     });
 
@@ -121,10 +121,11 @@ TEST(OccupancyQuadtree, InsertRay) {
 }
 
 TEST(OccupancyQuadtree, CoordsAndKey) {
-    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
+    const auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.05;
-    OccupancyQuadtree tree(tree_setting);
-    double x = 0, y = 0;
+    const OccupancyQuadtree tree(tree_setting);
+    constexpr double x = 0;
+    constexpr double y = 0;
     QuadtreeKey key;
     EXPECT_TRUE(tree.CoordToKeyChecked(x, y, key));
     double x_inv = 0, y_inv = 0;
@@ -333,9 +334,9 @@ TEST(OccupancyQuadtree, Prune) {
 }
 
 TEST(OccupancyQuadtree, DeleteTree) {
-    auto abstract_tree = AbstractQuadtree::Read("prune.ot");
+    const auto abstract_tree = AbstractQuadtree::Read("prune.ot");
     EXPECT_TRUE(abstract_tree != nullptr);
-    auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
+    const auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
     EXPECT_TRUE(tree != nullptr);
 
     tree->Clear();
@@ -363,9 +364,7 @@ TEST(OccupancyQuadtree, Iterator) {
     for (; l_it != l_end; ++l_it) { num_iterated_nodes++; }
     EXPECT_EQ(num_iterated_nodes, 0);
 
-    auto lb_it = tree->BeginLeafInAabb(-1., -1., 1., 1.);
-    auto lb_end = tree->EndLeafInAabb();
-    for (; lb_it != lb_end; ++lb_it) { num_iterated_nodes++; }
+    for (auto lb_it = tree->BeginLeafInAabb(-1., -1., 1., 1.), lb_end = tree->EndLeafInAabb(); lb_it != lb_end; ++lb_it) { num_iterated_nodes++; }
     EXPECT_EQ(num_iterated_nodes, 0);
 
     // iterate over non-empty tree
@@ -396,8 +395,7 @@ TEST(OccupancyQuadtree, Iterator) {
         }
 
         for (int i = 0; i < 4; ++i) {
-            auto child = node->GetChild<OccupancyQuadtreeNode>(i);
-            if (child != nullptr) { stack.emplace_back(child); }
+            if (auto child = node->GetChild<OccupancyQuadtreeNode>(i); child != nullptr) { stack.emplace_back(child); }
         }
     }
     EXPECT_EQ(num_iterated_occupied_leaf_nodes, occupied_leaf_node_count);
@@ -425,16 +423,18 @@ TEST(OccupancyQuadtree, RayCasting) {
     auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.05;
     auto sampled_surface = std::make_shared<OccupancyQuadtree>(tree_setting);
-    double sx = 1.0, sy = 0.;
-    bool ignore_unknown = false;
-    double max_range = 6;
+
     int n = 10000;
     for (int i = 0; i < n; ++i) {
         double angle = static_cast<double>(i) / 1000 * 2 * M_PI - M_PI;
         double vx = std::cos(angle);
         double vy = std::sin(angle);
-        double ex = 0, ey = 0;
-        if (tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
+
+        constexpr double sx = 1.0, sy = 0.;
+        constexpr bool ignore_unknown = false;
+        constexpr double max_range = 6;
+
+        if (double ex = 0, ey = 0; tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
             hit++;
             double dx = ex - sx;
             double dy = ey - sy;

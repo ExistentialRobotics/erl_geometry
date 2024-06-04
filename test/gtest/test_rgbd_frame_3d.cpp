@@ -28,10 +28,10 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
     }
     std::cout << "ply_path: " << ply_path << std::endl;
     std::cout << "depth_dir: " << depth_dir << std::endl;
-    int cur_depth_file = 0;
     Eigen::MatrixXd traj_data = LoadEigenMatrixFromTextFile<double>((depth_dir / "traj.csv").string(), EigenTextFormat::kCsvFmt);
 
     try {
+        int cur_depth_file = 0;
         auto room_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
         {
             open3d::io::ReadTriangleMeshOptions options;
@@ -104,21 +104,21 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     rgbd_point_cloud->points_.reserve(max_num_valid_rays);
                     rgbd_point_cloud->colors_.reserve(max_num_valid_rays);
                 }
-                const Eigen::MatrixX<Eigen::Vector3d> &kEndPointsInWorld = rgbd_frame_3d->GetEndPointsInWorld();
-                const Eigen::MatrixXb &kHitMask = rgbd_frame_3d->GetHitMask();
+                const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_world = rgbd_frame_3d->GetEndPointsInWorld();
+                const Eigen::MatrixXb &hit_mask = rgbd_frame_3d->GetHitMask();
                 for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
                     long ray_idx_base = azimuth_idx * num_elevations;
                     for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
                         long ray_idx = ray_idx_base + elevation_idx;
-                        if (!kHitMask(azimuth_idx, elevation_idx)) { continue; }
-                        const Eigen::Vector3d &kEndPt = kEndPointsInWorld(azimuth_idx, elevation_idx);
+                        if (!hit_mask(azimuth_idx, elevation_idx)) { continue; }
+                        const Eigen::Vector3d &end_pt = end_points_in_world(azimuth_idx, elevation_idx);
                         if (show_rgbd_rays) {
-                            rgbd_rays_line_set->points_.push_back(kEndPt);
+                            rgbd_rays_line_set->points_.push_back(end_pt);
                             rgbd_rays_line_set->lines_.emplace_back(0, ray_idx + 1);
                             rgbd_rays_line_set->colors_.emplace_back(0.0, 1.0, 0.0);
                         }
                         if (show_rgbd_points) {
-                            rgbd_point_cloud->points_.push_back(kEndPt);
+                            rgbd_point_cloud->points_.push_back(end_pt);
                             rgbd_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
                         }
                     }

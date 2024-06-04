@@ -1,4 +1,5 @@
 #include "erl_geometry/abstract_occupancy_octree.hpp"
+
 #include <fstream>
 
 namespace erl::geometry {
@@ -13,12 +14,12 @@ namespace erl::geometry {
         }
 
         WriteBinary(file);
-        bool success = file.good();
+        const bool success = file.good();
         file.close();
         if (success) {
-            ERL_DEBUG("Successfully wrote Octree of type {}, size {:d}", GetTreeType(), GetSize());
+            ERL_DEBUG("Successfully wrote Octree of type {}, size {}", GetTreeType(), GetSize());
         } else {
-            ERL_WARN("Failed to write Octree of type {}, size {:d}", GetTreeType(), GetSize());
+            ERL_WARN("Failed to write Octree of type {}, size {}", GetTreeType(), GetSize());
         }
         return success;
     }
@@ -40,12 +41,12 @@ namespace erl::geometry {
         }
 
         WriteBinary(file);
-        bool success = file.good();
+        const bool success = file.good();
         file.close();
         if (success) {
-            ERL_DEBUG("Successfully wrote Octree of type {}, size {:d}", GetTreeType(), GetSize());
+            ERL_DEBUG("Successfully wrote Octree of type {}, size {}", GetTreeType(), GetSize());
         } else {
-            ERL_WARN("Failed to write Octree of type {}, size {:d}", GetTreeType(), GetSize());
+            ERL_WARN("Failed to write Octree of type {}, size {}", GetTreeType(), GetSize());
         }
         return success;
     }
@@ -71,7 +72,7 @@ namespace erl::geometry {
             return false;
         }
 
-        bool success = ReadBinary(file);
+        const bool success = ReadBinary(file);
         file.close();
         return success;
     }
@@ -114,7 +115,7 @@ namespace erl::geometry {
 
         // read binary data
         if (size > 0) { ReadBinaryData(s); }
-        ERL_DEBUG("Done ({:d} nodes).", GetSize());
+        ERL_DEBUG("Done ({} nodes).", GetSize());
         return GetSize() == size;
     }
 }  // namespace erl::geometry

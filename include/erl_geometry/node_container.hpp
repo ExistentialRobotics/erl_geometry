@@ -1,11 +1,10 @@
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <vector>
-
 #include "aabb.hpp"
 #include "node.hpp"
+
+#include <memory>
+#include <vector>
 
 namespace erl::geometry {
     struct NodeContainer {
@@ -30,23 +29,23 @@ namespace erl::geometry {
         [[nodiscard]] virtual std::size_t
         Capacity(int type) const = 0;
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         Empty() const {
             return Size() == 0;
         }
 
-        [[nodiscard]] inline bool
-        Empty(int type) const {
+        [[nodiscard]] bool
+        Empty(const int type) const {
             return Size(type) == 0;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         Full() const {
             return Size() >= Capacity();
         }
 
-        [[nodiscard]] inline bool
-        Full(int type) const {
+        [[nodiscard]] bool
+        Full(const int type) const {
             return Size(type) >= Capacity(type);
         }
 
@@ -79,7 +78,7 @@ namespace erl::geometry {
         CollectNodesOfType(int type, std::vector<std::shared_ptr<Node>> &out) const = 0;
 
         [[nodiscard]] std::vector<std::shared_ptr<Node>>
-        CollectNodesOfType(int type) const {
+        CollectNodesOfType(const int type) const {
             std::vector<std::shared_ptr<Node>> out;
             CollectNodesOfType(type, out);
             return out;
@@ -89,7 +88,7 @@ namespace erl::geometry {
         CollectNodesOfTypeInAabb2D(int type, const Aabb2D &area, std::vector<std::shared_ptr<Node>> &nodes) const = 0;
 
         [[nodiscard]] std::vector<std::shared_ptr<Node>>
-        CollectNodesOfTypeInAabb2D(int type, const Aabb2D &area) const {
+        CollectNodesOfTypeInAabb2D(const int type, const Aabb2D &area) const {
             std::vector<std::shared_ptr<Node>> out;
             CollectNodesOfTypeInAabb2D(type, area, out);
             return out;
@@ -99,7 +98,7 @@ namespace erl::geometry {
         CollectNodesOfTypeInAabb3D(int type, const Aabb3D &area, std::vector<std::shared_ptr<Node>> &nodes) const = 0;
 
         [[nodiscard]] std::vector<std::shared_ptr<Node>>
-        CollectNodesOfTypeInAabb3D(int type, const Aabb3D &area) const {
+        CollectNodesOfTypeInAabb3D(const int type, const Aabb3D &area) const {
             std::vector<std::shared_ptr<Node>> out;
             CollectNodesOfTypeInAabb3D(type, area, out);
             return out;

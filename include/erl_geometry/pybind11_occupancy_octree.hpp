@@ -1,15 +1,16 @@
 #pragma once
 
-#include "erl_common/pybind11.hpp"
-#include "erl_common/yaml.hpp"
 #include "occupancy_octree_base.hpp"
 #include "open3d_visualizer_wrapper.hpp"
+
+#include "erl_common/pybind11.hpp"
+#include "erl_common/yaml.hpp"
 
 template<class Octree, class Node>
 auto
 BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name) {
     py::class_<Octree, std::shared_ptr<Octree>> tree(m, tree_name);
-    py::class_<Node, py::raw_ptr_wrapper<Node>> node(m, node_name);
+    py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
 
     using namespace erl::common;
     using namespace erl::geometry;
@@ -29,37 +30,33 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
             "write_raw",
             [](Octree &self, const std::string &filename) -> bool { return self.Write(filename); },
             py::arg("filename"))
-        .def("read_raw", [](Octree &self, const std::string &filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
+        .def(
+            "read_raw",
+            [](Octree &self, const std::string &filename) -> bool { return self.LoadData(filename); },
+            py::arg("filename"));
 
     // AbstractOccupancyOctree methods
     tree.def(
             "write_binary",
-            [](Octree &self, const std::string &filename, bool prune_at_first) -> bool {
-                if (prune_at_first) {
-                    return self.WriteBinary(filename);
-                } else {
-                    return const_cast<const Octree &>(self).WriteBinary(filename);
-                }
+            [](Octree &self, const std::string &filename, const bool prune_at_first) -> bool {
+                if (prune_at_first) { return self.WriteBinary(filename); }
+                return const_cast<const Octree &>(self).WriteBinary(filename);
             },
             py::arg("filename"),
             py::arg("prune_at_first"))
-        .def("read_binary", [](Octree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); }, py::arg("filename"));
+        .def(
+            "read_binary",
+            [](Octree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); },
+            py::arg("filename"));
 
     // OccupancyOctreeBase methods, except iterators
     tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Octree::Setting> &setting) { return std::make_shared<Octree>(setting); }), py::arg("setting"))
         .def(
-            py::init<>([](const std::string &filename, bool is_binary) {
-                if (is_binary) {
-                    return std::make_shared<Octree>(filename);  // .bt file
-                } else {
-                    std::shared_ptr<Octree> tree = Octree::template ReadAs<Octree>(filename);  // .ot file
-                    if (tree) {
-                        return tree;
-                    } else {
-                        throw std::runtime_error("Failed to read octree from " + filename);
-                    }
-                }
+            py::init<>([](const std::string &filename, const bool is_binary) {
+                if (is_binary) { return std::make_shared<Octree>(filename); }  // .bt file
+                if (std::shared_ptr<Octree> octree = Octree::template ReadAs<Octree>(filename)) { return octree; }
+                throw std::runtime_error("Failed to read octree from " + filename);
             }),
             py::arg("filename"),
             py::arg("is_binary"))
@@ -270,35 +267,23 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def(
             "coord_to_key_checked",
             [](const Octree &self, double coordinate) {
-                OctreeKey::KeyType key;
-                if (self.CoordToKeyChecked(coordinate, key)) {
-                    return std::optional<OctreeKey::KeyType>(key);
-                } else {
-                    return std::optional<OctreeKey::KeyType>();
-                }
+                if (OctreeKey::KeyType key; self.CoordToKeyChecked(coordinate, key)) { return std::optional<OctreeKey::KeyType>(key); }
+                return std::optional<OctreeKey::KeyType>();
             },
             py::arg("coordinate"))
         .def(
             "coord_to_key_checked",
             [](const Octree &self, double coordinate, uint32_t depth) {
-                OctreeKey::KeyType key;
-                if (self.CoordToKeyChecked(coordinate, depth, key)) {
-                    return std::optional<OctreeKey::KeyType>(key);
-                } else {
-                    return std::optional<OctreeKey::KeyType>();
-                }
+                if (OctreeKey::KeyType key; self.CoordToKeyChecked(coordinate, depth, key)) { return std::optional<OctreeKey::KeyType>(key); }
+                return std::optional<OctreeKey::KeyType>();
             },
             py::arg("coordinate"),
             py::arg("depth"))
         .def(
             "coord_to_key_checked",
             [](const Octree &self, double x, double y, double z) {
-                OctreeKey key;
-                if (self.CoordToKeyChecked(x, y, z, key)) {
-                    return std::optional<OctreeKey>(key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey key; self.CoordToKeyChecked(x, y, z, key)) { return std::optional<OctreeKey>(key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("x"),
             py::arg("y"),
@@ -306,12 +291,8 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def(
             "coord_to_key_checked",
             [](const Octree &self, double x, double y, double z, uint32_t depth) {
-                OctreeKey key;
-                if (self.CoordToKeyChecked(x, y, z, depth, key)) {
-                    return std::optional<OctreeKey>(key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey key; self.CoordToKeyChecked(x, y, z, depth, key)) { return std::optional<OctreeKey>(key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("x"),
             py::arg("y"),
@@ -330,72 +311,48 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def(
             "compute_west_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                OctreeKey neighbor_key;
-                if (self.ComputeWestNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<OctreeKey>(neighbor_key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey neighbor_key; self.ComputeWestNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_east_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                OctreeKey neighbor_key;
-                if (self.ComputeEastNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<OctreeKey>(neighbor_key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey neighbor_key; self.ComputeEastNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_north_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                OctreeKey neighbor_key;
-                if (self.ComputeNorthNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<OctreeKey>(neighbor_key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey neighbor_key; self.ComputeNorthNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_south_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                OctreeKey neighbor_key;
-                if (self.ComputeSouthNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<OctreeKey>(neighbor_key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey neighbor_key; self.ComputeSouthNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_top_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                OctreeKey neighbor_key;
-                if (self.ComputeTopNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<OctreeKey>(neighbor_key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey neighbor_key; self.ComputeTopNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_bottom_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                OctreeKey neighbor_key;
-                if (self.ComputeBottomNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<OctreeKey>(neighbor_key);
-                } else {
-                    return std::optional<OctreeKey>();
-                }
+                if (OctreeKey neighbor_key; self.ComputeBottomNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                return std::optional<OctreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
@@ -421,12 +378,8 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def(
             "compute_ray_keys",
             [](const Octree &self, double sx, double sy, double sz, double ex, double ey, double ez) {
-                OctreeKeyRay ray;
-                if (self.ComputeRayKeys(sx, sy, sz, ex, ey, ez, ray)) {
-                    return std::optional<OctreeKeyRay>(ray);
-                } else {
-                    return std::optional<OctreeKeyRay>();
-                }
+                if (OctreeKeyRay ray; self.ComputeRayKeys(sx, sy, sz, ex, ey, ez, ray)) { return std::optional<OctreeKeyRay>(ray); }
+                return std::optional<OctreeKeyRay>();
             },
             py::arg("sx"),
             py::arg("sy"),
@@ -437,12 +390,10 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def(
             "compute_ray_coords",
             [](const Octree &self, double sx, double sy, double sz, double ex, double ey, double ez) {
-                std::vector<Eigen::Vector3d> ray;
-                if (self.ComputeRayCoords(sx, sy, sz, ex, ey, ez, ray)) {
+                if (std::vector<Eigen::Vector3d> ray; self.ComputeRayCoords(sx, sy, sz, ex, ey, ez, ray)) {
                     return std::optional<std::vector<Eigen::Vector3d>>(ray);
-                } else {
-                    return std::optional<std::vector<Eigen::Vector3d>>();
                 }
+                return std::optional<std::vector<Eigen::Vector3d>>();
             },
             py::arg("sx"),
             py::arg("sy"),
@@ -487,13 +438,13 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
         .def(
             "visualize",
             [](std::shared_ptr<Octree> &self,
-               bool leaf_only,
+               const bool leaf_only,
                Eigen::Vector3d occupied_color,
                Eigen::Vector3d border_color,
-               int window_width,
-               int window_height,
-               int window_left,
-               int window_top) {
+               const int window_width,
+               const int window_height,
+               const int window_left,
+               const int window_top) {
                 auto drawer_setting = std::make_shared<typename Octree::Drawer::Setting>();
                 for (int i = 0; i < 3; ++i) {
                     drawer_setting->occupied_color[0] = occupied_color[0];
@@ -511,7 +462,7 @@ BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name)
                 visualizer_setting->window_height = window_height;
                 visualizer_setting->window_left = window_left;
                 visualizer_setting->window_top = window_top;
-                auto visualizer = std::make_shared<Open3dVisualizerWrapper>(visualizer_setting);
+                const auto visualizer = std::make_shared<Open3dVisualizerWrapper>(visualizer_setting);
                 std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries;
                 if (leaf_only) {
                     drawer->DrawLeaves(geometries);

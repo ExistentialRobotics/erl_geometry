@@ -1,9 +1,11 @@
 #pragma once
 
+#include "erl_common/eigen.hpp"
 #include "erl_common/logging.hpp"
 
-#include <nanoflann.hpp>
 #include <memory>
+
+#include <nanoflann.hpp>
 
 namespace erl::geometry {
 
@@ -21,17 +23,17 @@ namespace erl::geometry {
         const int mk_MLeafMaxSize_;
 
     public:
-        explicit KdTreeEigenAdaptor(int leaf_max_size = 10)
+        explicit KdTreeEigenAdaptor(const int leaf_max_size = 10)
             : mk_MLeafMaxSize_(leaf_max_size) {}
 
-        explicit KdTreeEigenAdaptor(EigenMatrix mat, bool build = true, int leaf_max_size = 10)
+        explicit KdTreeEigenAdaptor(EigenMatrix mat, const bool build = true, const int leaf_max_size = 10)
             : m_data_matrix_(std::move(mat)),
               mk_MLeafMaxSize_(leaf_max_size) {
 
             if (build) { Build(); }
         }
 
-        explicit KdTreeEigenAdaptor(const T *data, long num_points, bool build = true, int leaf_max_size = 10)
+        explicit KdTreeEigenAdaptor(const T *data, long num_points, const bool build = true, const int leaf_max_size = 10)
             : m_data_matrix_(Eigen::Map<const EigenMatrix>(data, Dim, num_points)),
               mk_MLeafMaxSize_(leaf_max_size) {
 
@@ -49,14 +51,14 @@ namespace erl::geometry {
         }
 
         void
-        SetDataMatrix(EigenMatrix mat, bool build = true) {
+        SetDataMatrix(EigenMatrix mat, const bool build = true) {
             m_data_matrix_ = std::move(mat);
             m_tree_ = nullptr;  // invalidate the tree
             if (build) { Build(); }
         }
 
         void
-        SetDataMatrix(const T *data, long num_points, bool build = true) {
+        SetDataMatrix(const T *data, long num_points, const bool build = true) {
             m_data_matrix_ = Eigen::Map<const EigenMatrix>(data, Dim, num_points);
             m_tree_ = nullptr;  // invalidate the tree
             if (build) { Build(); }
@@ -97,7 +99,7 @@ namespace erl::geometry {
 
         // Returns the dim-th component of the idx-th point in the class, used by TreeType
         [[nodiscard]] NumType
-        kdtree_get_pt(const size_t idx, int dim) const {
+        kdtree_get_pt(const size_t &idx, int dim) const {
             return m_data_matrix_(dim, idx);
         }
 
@@ -109,6 +111,6 @@ namespace erl::geometry {
         }
     };
 
-    typedef KdTreeEigenAdaptor<double, 3> KdTree3d;
-    typedef KdTreeEigenAdaptor<double, 2> KdTree2d;
+    using KdTree3d = KdTreeEigenAdaptor<double, 3>;
+    using KdTree2d = KdTreeEigenAdaptor<double, 2>;
 }  // namespace erl::geometry

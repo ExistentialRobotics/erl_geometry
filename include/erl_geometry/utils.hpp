@@ -18,7 +18,6 @@ namespace erl::geometry {
      * @param y_1: y coordinate of line vertex 1
      * @param x_2: x coordinate of line vertex 2
      * @param y_2: y coordinate of line vertex 2
-     * @param lam: if lam > 1, the closest vertex to the point is (x_1, y_1); if lam < 0, (x_2, y_2)
      * @return
      */
     inline double
@@ -30,19 +29,19 @@ namespace erl::geometry {
         const double &x_2,
         const double &y_2) {
 
-        double dx_20 = x_2 - x_0;
-        double dx_21 = x_2 - x_1;
-        double dy_20 = y_2 - y_0;
-        double dy_21 = y_2 - y_1;
-        double d = dx_21 * dx_21 + dy_21 * dy_21;
-        double lam = (dx_20 * dx_21 + dy_20 * dy_21) / d;
+        const double dx_20 = x_2 - x_0;
+        const double dx_21 = x_2 - x_1;
+        const double dy_20 = y_2 - y_0;
+        const double dy_21 = y_2 - y_1;
+        const double d = dx_21 * dx_21 + dy_21 * dy_21;
+        const double lam = (dx_20 * dx_21 + dy_20 * dy_21) / d;
 
         double dist = (dy_21 * dx_20 - dy_20 * dx_21) / std::sqrt(d);
         dist = std::abs(dist);
 
         if (lam > 1.) {
-            double dx_10 = x_1 - x_0;
-            double dy_10 = y_1 - y_0;
+            const double dx_10 = x_1 - x_0;
+            const double dy_10 = y_1 - y_0;
             dist = std::sqrt(dx_10 * dx_10 + dy_10 * dy_10);
         } else if (lam < 0.) {
             dist = std::sqrt(dx_20 * dx_20 + dy_20 * dy_20);
@@ -72,7 +71,7 @@ namespace erl::geometry {
         Eigen::Vector2d v_21 = p_2 - p_1;
         Eigen::Vector2d v_20 = p_2 - p_0;
 
-        double tmp = v_21.x() * d.y() - v_21.y() * d.x();  // tmp = (p_2 - p_1).cross(d)
+        const double tmp = v_21.x() * d.y() - v_21.y() * d.x();  // tmp = (p_2 - p_1).cross(d)
         if (std::abs(tmp) < 1.e-10) {
             lam = std::numeric_limits<double>::infinity();
             dist = std::numeric_limits<double>::infinity();
@@ -110,8 +109,6 @@ namespace erl::geometry {
         double &d2,
         bool &intersected) {
 
-        double t_min, t_max;
-
         double tx_1, tx_2, ty_1, ty_2;
         if (p[0] == box_min[0]) {
             tx_1 = 0;
@@ -123,8 +120,8 @@ namespace erl::geometry {
         } else {
             tx_2 = (box_max[0] - p[0]) * r_inv[0];
         }
-        t_min = std::min(tx_1, tx_2);
-        t_max = std::max(tx_1, tx_2);
+        double t_min = std::min(tx_1, tx_2);
+        double t_max = std::max(tx_1, tx_2);
 
         if (p[1] == box_min[1]) {
             ty_1 = 0;
@@ -178,8 +175,6 @@ namespace erl::geometry {
         double &d2,
         bool &intersected) {
 
-        double t_min, t_max;
-
         double tx_1, tx_2, ty_1, ty_2, tz_1, tz_2;
         if (p[0] == box_min[0]) {
             tx_1 = 0;
@@ -191,8 +186,8 @@ namespace erl::geometry {
         } else {
             tx_2 = (box_max[0] - p[0]) * r_inv[0];
         }
-        t_min = std::min(tx_1, tx_2);
-        t_max = std::max(tx_1, tx_2);
+        double t_min = std::min(tx_1, tx_2);
+        double t_max = std::max(tx_1, tx_2);
 
         if (p[1] == box_min[1]) {
             ty_1 = 0;
@@ -242,17 +237,17 @@ namespace erl::geometry {
     }
 
     inline std::vector<Eigen::Matrix4d>
-    ConvertPath2dTo3d(const Eigen::Ref<const Eigen::Matrix3Xd> &path_2d, double z) {
+    ConvertPath2dTo3d(const Eigen::Ref<const Eigen::Matrix3Xd> &path_2d, const double &z) {
         std::vector<Eigen::Matrix4d> path_3d(path_2d.cols(), Eigen::Matrix4d::Identity());
         for (long i = 0; i < path_2d.cols(); ++i) {
-            auto &mat = path_3d[i];
-            mat(0, 0) = std::cos(path_2d(2, i));
-            mat(0, 1) = -std::sin(path_2d(2, i));
-            mat(1, 0) = -mat(0, 1);
-            mat(1, 1) = mat(0, 0);
-            mat(0, 3) = path_2d(0, i);
-            mat(1, 3) = path_2d(1, i);
-            mat(2, 3) = z;
+            Eigen::Matrix4d &mat = path_3d[i];
+            mat.coeffRef(0, 0) = std::cos(path_2d(2, i));
+            mat.coeffRef(0, 1) = -std::sin(path_2d(2, i));
+            mat.coeffRef(1, 0) = -mat(0, 1);
+            mat.coeffRef(1, 1) = mat(0, 0);
+            mat.coeffRef(0, 3) = path_2d(0, i);
+            mat.coeffRef(1, 3) = path_2d(1, i);
+            mat.coeffRef(2, 3) = z;
         }
         return path_3d;
     }

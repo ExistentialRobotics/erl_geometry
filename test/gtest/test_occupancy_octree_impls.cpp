@@ -1,12 +1,13 @@
-#include <filesystem>
-#include <open3d/io/TriangleMeshIO.h>
-#include <octomap/OcTree.h>
-#include <octomap/math/Vector3.h>
-
 #include "erl_common/test_helper.hpp"
-#include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/lidar_3d.hpp"
+#include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/utils.hpp"
+
+#include <octomap/math/Vector3.h>
+#include <octomap/OcTree.h>
+#include <open3d/io/TriangleMeshIO.h>
+
+#include <filesystem>
 
 static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
 
@@ -22,20 +23,20 @@ TEST(OccupancyOctree, ErlImpl) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    auto mesh_legacy = open3d::io::CreateMeshFromFile(g_options.mesh_file);
-    auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
-    auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
+    const auto mesh_legacy = open3d::io::CreateMeshFromFile(g_options.mesh_file);
+    const auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
+    const auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
     o3d_scene->AddTriangles(mesh);
 
-    auto lidar_setting = std::make_shared<Lidar3D::Setting>();
-    auto lidar = Lidar3D(lidar_setting, o3d_scene);
+    const auto lidar_setting = std::make_shared<Lidar3D::Setting>();
+    const auto lidar = Lidar3D(lidar_setting, o3d_scene);
     Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
 
-    Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
+    const Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
 
     g_options.octree_setting->resolution = 0.01;
-    auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_setting);
+    const auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_setting);
 
     double dt_erl = 0;
     std::size_t pose_idx = 0;
@@ -54,7 +55,7 @@ TEST(OccupancyOctree, ErlImpl) {
         long cnt_points = 0;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                double &range = ranges(i, j);
+                const double &range = ranges(i, j);
                 if (std::isinf(range) || std::isnan(range)) { continue; }
                 points.col(cnt_points++) = sensor_origin + range * orientation * ray_directions(i, j);
             }
@@ -68,7 +69,7 @@ TEST(OccupancyOctree, ErlImpl) {
         std::cout << "ERL insert time: " << duration << " ms." << std::endl;
         dt_erl += duration;
     }
-    dt_erl /= double(pose_idx);
+    dt_erl /= static_cast<double>(pose_idx);
     std::cout << "===================" << std::endl  //
               << "Average insert time" << std::endl  //
               << "ERL:     " << dt_erl << " ms." << std::endl;
@@ -78,20 +79,20 @@ TEST(OccupancyOctree, Erl_ComputeUpdate) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    auto mesh_legacy = open3d::io::CreateMeshFromFile(g_options.mesh_file);
-    auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
-    auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
+    const auto mesh_legacy = open3d::io::CreateMeshFromFile(g_options.mesh_file);
+    const auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
+    const auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
     o3d_scene->AddTriangles(mesh);
 
-    auto lidar_setting = std::make_shared<Lidar3D::Setting>();
-    auto lidar = Lidar3D(lidar_setting, o3d_scene);
+    const auto lidar_setting = std::make_shared<Lidar3D::Setting>();
+    const auto lidar = Lidar3D(lidar_setting, o3d_scene);
     Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
 
-    Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
+    const Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
 
     g_options.octree_setting->resolution = 0.01;
-    auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_setting);
+    const auto erl_octree = std::make_shared<OccupancyOctree>(g_options.octree_setting);
 
     double dt_erl = 0;
     std::size_t pose_idx = 0;
@@ -110,7 +111,7 @@ TEST(OccupancyOctree, Erl_ComputeUpdate) {
         long cnt_points = 0;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                double &range = ranges(i, j);
+                const double &range = ranges(i, j);
                 if (std::isinf(range) || std::isnan(range)) { continue; }
                 points.col(cnt_points++) = sensor_origin + range * orientation * ray_directions(i, j);
             }
@@ -125,9 +126,9 @@ TEST(OccupancyOctree, Erl_ComputeUpdate) {
         std::cout << "ERL compute update time: " << duration << " ms." << std::endl;
         dt_erl += duration;
     }
-    dt_erl /= double(pose_idx);
+    dt_erl /= static_cast<double>(pose_idx);
     std::cout << "===================" << std::endl  //
-              << "Average time" << std::endl  //
+              << "Average time" << std::endl         //
               << "ERL:     " << dt_erl << " ms." << std::endl;
 }
 
@@ -135,21 +136,21 @@ TEST(OccupancyOctree, OctomapImpl) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    auto mesh_legacy = open3d::io::CreateMeshFromFile(g_options.mesh_file);
-    auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
-    auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
+    const auto mesh_legacy = open3d::io::CreateMeshFromFile(g_options.mesh_file);
+    const auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
+    const auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
     o3d_scene->AddTriangles(mesh);
 
-    auto lidar_setting = std::make_shared<Lidar3D::Setting>();
-    auto lidar = Lidar3D(lidar_setting, o3d_scene);
+    const auto lidar_setting = std::make_shared<Lidar3D::Setting>();
+    const auto lidar = Lidar3D(lidar_setting, o3d_scene);
     Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
 
-    Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
+    const Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
 
     g_options.octree_setting->resolution = 0.01;
-    auto octomap_octree = std::make_shared<octomap::OcTree>(g_options.octree_setting->resolution);
+    const auto octomap_octree = std::make_shared<octomap::OcTree>(g_options.octree_setting->resolution);
 
     double dt_octomap = 0;
     std::size_t pose_idx = 0;
@@ -167,23 +168,28 @@ TEST(OccupancyOctree, OctomapImpl) {
         octomap::Pointcloud scan;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                double &range = ranges(i, j);
+                const double &range = ranges(i, j);
                 if (std::isinf(range) || std::isnan(range)) { continue; }
                 Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
-                scan.push_back(float(point[0]), float(point[1]), float(point[2]));
+                scan.push_back(static_cast<float>(point[0]), static_cast<float>(point[1]), static_cast<float>(point[2]));
             }
         }
 
         t0 = std::chrono::high_resolution_clock::now();
-        octomap_octree->insertPointCloud(scan, octomath::Vector3(float(sensor_origin[0]), float(sensor_origin[1]), float(sensor_origin[2])), -1, false, false);
+        octomap_octree->insertPointCloud(
+            scan,
+            octomath::Vector3(static_cast<float>(sensor_origin[0]), static_cast<float>(sensor_origin[1]), static_cast<float>(sensor_origin[2])),
+            -1,
+            false,
+            false);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "Octomap insert time: " << duration << " ms." << std::endl;
         dt_octomap += duration;
     }
-    dt_octomap /= double(pose_idx);
-    std::cout << "===================" << std::endl            //
-              << "Average insert time" << std::endl            //
+    dt_octomap /= static_cast<double>(pose_idx);
+    std::cout << "===================" << std::endl  //
+              << "Average insert time" << std::endl  //
               << "Octomap: " << dt_octomap << " ms." << std::endl;
 }
 
@@ -222,27 +228,27 @@ TEST(OccupancyOctree, Octomap_ComputeUpdate) {
         octomap::Pointcloud scan;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                double &range = ranges(i, j);
+                const double &range = ranges(i, j);
                 if (std::isinf(range) || std::isnan(range)) { continue; }
                 Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
-                scan.push_back(float(point[0]), float(point[1]), float(point[2]));
+                scan.push_back(static_cast<float>(point[0]), static_cast<float>(point[1]), static_cast<float>(point[2]));
             }
         }
 
-        octomath::Vector3 sensor_origin_;
-        sensor_origin_.x() = float(sensor_origin[0]);
-        sensor_origin_.y() = float(sensor_origin[1]);
-        sensor_origin_.z() = float(sensor_origin[2]);
+        octomath::Vector3 octo_sensor_origin;
+        octo_sensor_origin.x() = static_cast<float>(sensor_origin[0]);
+        octo_sensor_origin.y() = static_cast<float>(sensor_origin[1]);
+        octo_sensor_origin.z() = static_cast<float>(sensor_origin[2]);
         octomap::KeySet free_cells, occupied_cells;
         t0 = std::chrono::high_resolution_clock::now();
-        octomap_octree->computeUpdate(scan, sensor_origin_, free_cells, occupied_cells, -1);
+        octomap_octree->computeUpdate(scan, octo_sensor_origin, free_cells, occupied_cells, -1);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "Octomap insert time: " << duration << " ms." << std::endl;
         dt_octomap += duration;
     }
-    dt_octomap /= double(pose_idx);
-    std::cout << "===================" << std::endl            //
-              << "Average insert time" << std::endl            //
+    dt_octomap /= static_cast<double>(pose_idx);
+    std::cout << "===================" << std::endl  //
+              << "Average insert time" << std::endl  //
               << "Octomap: " << dt_octomap << " ms." << std::endl;
 }

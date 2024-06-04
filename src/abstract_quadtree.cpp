@@ -1,14 +1,15 @@
 #include "erl_geometry/abstract_quadtree.hpp"
+
 #include "erl_common/logging.hpp"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
 namespace erl::geometry {
 
     std::shared_ptr<AbstractQuadtree>
     AbstractQuadtree::CreateTree(const std::string &tree_id) {
-        auto it = s_class_id_mapping_.find(tree_id);
+        const auto it = s_class_id_mapping_.find(tree_id);
         if (it == s_class_id_mapping_.end()) {
             ERL_WARN("Unknown Quadtree type: {}", tree_id);
             return nullptr;
@@ -28,14 +29,16 @@ namespace erl::geometry {
 
         (void) Write(file);
         file.close();
-        ERL_INFO("Successfully wrote Quadtree of type {}, size {:d}", this->GetTreeType(), this->GetSize());
+        ERL_INFO("Successfully wrote Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
         return true;
     }
+
+    static const std::string kFileHeader = "# erl::geometry::AbstractQuadtree";
 
     std::ostream &
     AbstractQuadtree::Write(std::ostream &s) const {
         // write header
-        s << sk_FileHeader_ << std::endl
+        s << kFileHeader << std::endl
           << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
           << "id " << this->GetTreeType() << std::endl
           << "size " << this->GetSize() << std::endl
@@ -70,8 +73,8 @@ namespace erl::geometry {
         // check if the first line is valid
         std::string line;
         std::getline(s, line);
-        if (line.compare(0, sk_FileHeader_.length(), sk_FileHeader_) != 0) {
-            ERL_WARN("First line of Quadtree file header does not start with \"{}\"", sk_FileHeader_);
+        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {
+            ERL_WARN("First line of Quadtree file header does not start with \"{}\"", kFileHeader);
             return nullptr;
         }
 
@@ -79,7 +82,7 @@ namespace erl::geometry {
         uint32_t size;
         if (!ReadHeader(s, tree_id, size)) { return nullptr; }
 
-        ERL_DEBUG("Reading Quadtree of type {}, size {:d}", tree_id, size);
+        ERL_DEBUG("Reading Quadtree of type {}, size {}", tree_id, size);
         auto tree = CreateTree(tree_id);
         if (!tree) { return nullptr; }
         tree->ReadSetting(s);
@@ -93,7 +96,7 @@ namespace erl::geometry {
 
         // read the actual tree data
         if (size > 0) { tree->ReadData(s); }
-        ERL_INFO("Done ({:d} nodes).", tree->GetSize());
+        ERL_INFO("Done ({} nodes).", tree->GetSize());
         return tree;
     }
 
@@ -119,8 +122,8 @@ namespace erl::geometry {
 
         std::string line;
         std::getline(s, line);
-        if (line.compare(0, sk_FileHeader_.length(), sk_FileHeader_) != 0) {  // check if the first line is valid
-            ERL_WARN("First line of Octree file header does not start with \"{}\"", sk_FileHeader_.c_str());
+        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
+            ERL_WARN("First line of Octree file header does not start with \"{}\"", kFileHeader.c_str());
             return false;
         }
 
@@ -142,7 +145,7 @@ namespace erl::geometry {
             return false;
         }
         if (size > 0) { this->ReadData(s); }
-        ERL_DEBUG("Done ({:d} nodes).", this->GetSize());
+        ERL_DEBUG("Done ({} nodes).", this->GetSize());
         return GetSize() == size;
     }
 
@@ -160,11 +163,11 @@ namespace erl::geometry {
                 header_read = true;    // header read successfully
                 // skip forward until end of line
                 char c;
-                do { c = static_cast<char>(s.get()); } while (s.good() && (c != '\n'));
+                do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
             } else if (token.compare(0, 1, "#") == 0) {
                 // comment line, skip forward until end of line
                 char c;
-                do { c = static_cast<char>(s.get()); } while (s.good() && (c != '\n'));
+                do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
             } else if (token == "id") {
                 s >> tree_id;
             } else if (token == "size") {
@@ -172,7 +175,7 @@ namespace erl::geometry {
             } else {
                 ERL_WARN("Unknown keyword in Quadtree header, skipping: {}", token.c_str());
                 char c;
-                do { c = static_cast<char>(s.get()); } while (s.good() && (c != '\n'));
+                do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
             }
         }
 

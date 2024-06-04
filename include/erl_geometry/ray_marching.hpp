@@ -1,7 +1,8 @@
 #pragma once
 
+#include <Eigen/Core>
+
 #include <functional>
-#include "erl_common/eigen.hpp"
 
 namespace erl::geometry {
 
@@ -22,15 +23,15 @@ namespace erl::geometry {
         const std::function<double(const Eigen::Ref<const Eigen::Vector<double, Dim>> &)> &sdf,
         const Eigen::Ref<const Eigen::Vector<double, Dim>> &origin,
         const Eigen::Ref<const Eigen::Vector<double, Dim>> &direction,
-        double threshold,
-        double max_distance,
-        int max_marching_steps) {
+        const double threshold,
+        const double max_distance,
+        const int max_marching_steps) {
 
         double distance = 0;
         int num_marching_steps = 0;
         while (max_marching_steps < 0 || num_marching_steps < max_marching_steps) {
             Eigen::Vector<double, Dim> pos = origin + distance * direction;
-            double sdf_value = sdf(pos);
+            const double sdf_value = sdf(pos);
             distance += sdf_value;
             num_marching_steps++;
 

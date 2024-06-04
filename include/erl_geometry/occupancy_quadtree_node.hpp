@@ -1,7 +1,7 @@
 #pragma once
 
-#include "logodd.hpp"
 #include "abstract_quadtree_node.hpp"
+#include "logodd.hpp"
 
 #include <cstdint>
 
@@ -12,7 +12,7 @@ namespace erl::geometry {
         float m_log_odds_ = 0;
 
     public:
-        explicit OccupancyQuadtreeNode(uint32_t depth = 0, int child_index = -1, float log_odds = 0)
+        explicit OccupancyQuadtreeNode(const uint32_t depth = 0, const int child_index = -1, const float log_odds = 0)
             : AbstractQuadtreeNode(depth, child_index),
               m_log_odds_(log_odds) {}
 
@@ -33,7 +33,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] AbstractQuadtreeNode *
-        Create(uint32_t depth, int child_index) const override {
+        Create(const uint32_t depth, const int child_index) const override {
             return new OccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
         }
 
@@ -94,7 +94,7 @@ namespace erl::geometry {
         }
 
         void
-        SetLogOdds(float log_odds) {
+        SetLogOdds(const float log_odds) {
             m_log_odds_ = log_odds;
         }
 
@@ -127,15 +127,14 @@ namespace erl::geometry {
                 for (int i = 0; i < 4; ++i) {
                     const auto *child = reinterpret_cast<OccupancyQuadtreeNode *>(m_children_[i]);  // dynamic_cast causes high overhead
                     if (child == nullptr) { continue; }
-                    float l = child->GetLogOdds();
-                    if (l > max) { max = l; }
+                    if (const float l = child->GetLogOdds(); l > max) { max = l; }
                 }
             }
             return max;
         }
 
         void
-        AddLogOdds(float log_odds) {
+        AddLogOdds(const float log_odds) {
             m_log_odds_ += log_odds;
         }
     };

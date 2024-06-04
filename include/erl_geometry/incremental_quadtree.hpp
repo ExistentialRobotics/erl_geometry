@@ -1,18 +1,17 @@
 #pragma once
 
-#include <iomanip>
-#include <opencv2/core.hpp>
-#include <unordered_set>
-#include <unordered_map>
-#include <utility>
-#include <functional>
-
 #include "aabb.hpp"
-#include "erl_common/eigen.hpp"
-#include "erl_common/grid_map_info.hpp"
-#include "erl_common/yaml.hpp"
 #include "node.hpp"
 #include "node_container.hpp"
+
+#include "erl_common/grid_map_info.hpp"
+#include "erl_common/yaml.hpp"
+
+#include <functional>
+#include <unordered_map>
+#include <utility>
+
+#include <opencv2/core.hpp>
 
 namespace erl::geometry {
 
@@ -25,7 +24,7 @@ namespace erl::geometry {
 
             enum class Type { kNorthWest = 0, kNorthEast = 1, kSouthWest = 2, kSouthEast = 3, kRoot = 4 };
 
-            static inline const char *
+            static const char *
             GetTypeName(const Type &type) {
                 static const char *names[] = {"kNorthWest", "kNorthEast", "kSouthWest", "kSouthEast", "kRoot"};
                 return names[static_cast<int>(type)];
@@ -38,47 +37,47 @@ namespace erl::geometry {
                 vector.resize(4, nullptr);
             }
 
-            inline std::shared_ptr<IncrementalQuadtree> &
-            operator[](int i) {
+            std::shared_ptr<IncrementalQuadtree> &
+            operator[](const int i) {
                 return vector[i];
             }
 
-            inline std::shared_ptr<IncrementalQuadtree> &
+            std::shared_ptr<IncrementalQuadtree> &
             NorthWest() {
                 return vector[0];
             }
 
-            [[nodiscard]] inline std::shared_ptr<IncrementalQuadtree>
+            [[nodiscard]] std::shared_ptr<IncrementalQuadtree>
             NorthWest() const {
                 return vector[0];
             }
 
-            inline std::shared_ptr<IncrementalQuadtree> &
+            std::shared_ptr<IncrementalQuadtree> &
             NorthEast() {
                 return vector[1];
             }
 
-            [[nodiscard]] inline std::shared_ptr<IncrementalQuadtree>
+            [[nodiscard]] std::shared_ptr<IncrementalQuadtree>
             NorthEast() const {
                 return vector[1];
             }
 
-            inline std::shared_ptr<IncrementalQuadtree> &
+            std::shared_ptr<IncrementalQuadtree> &
             SouthWest() {
                 return vector[2];
             }
 
-            [[nodiscard]] inline std::shared_ptr<IncrementalQuadtree>
+            [[nodiscard]] std::shared_ptr<IncrementalQuadtree>
             SouthWest() const {
                 return vector[2];
             }
 
-            inline std::shared_ptr<IncrementalQuadtree> &
+            std::shared_ptr<IncrementalQuadtree> &
             SouthEast() {
                 return vector[3];
             }
 
-            [[nodiscard]] inline std::shared_ptr<IncrementalQuadtree>
+            [[nodiscard]] std::shared_ptr<IncrementalQuadtree>
             SouthEast() const {
                 return vector[3];
             }
@@ -127,87 +126,87 @@ namespace erl::geometry {
          * @param node_container_constructor
          * @return
          */
-        [[nodiscard]] static inline std::shared_ptr<IncrementalQuadtree>
+        [[nodiscard]] static std::shared_ptr<IncrementalQuadtree>
         Create(std::shared_ptr<Setting> setting, const Aabb2D &area, const std::function<std::shared_ptr<NodeContainer>()> &node_container_constructor) {
             auto tree = std::shared_ptr<IncrementalQuadtree>(new IncrementalQuadtree(std::move(setting), area, node_container_constructor, nullptr));
             return tree;
         }
 
-        [[nodiscard]] inline std::shared_ptr<Setting>
+        [[nodiscard]] std::shared_ptr<Setting>
         GetSetting() const {
             return m_setting_;
         }
 
-        std::shared_ptr<IncrementalQuadtree>
-        GetRoot() {
+        [[nodiscard]] std::shared_ptr<IncrementalQuadtree>
+        GetRoot() const {
             return (*m_root_ptr_)->shared_from_this();
         }
 
-        std::shared_ptr<IncrementalQuadtree>
-        GetCluster() {
+        [[nodiscard]] std::shared_ptr<IncrementalQuadtree>
+        GetCluster() const {
             if (m_cluster_ == nullptr) { return nullptr; }
             return m_cluster_->shared_from_this();
         }
 
         std::shared_ptr<IncrementalQuadtree>
-        GetParent() {
+        GetParent() const {
             if (m_parent_ == nullptr) { return nullptr; }
             return m_parent_->shared_from_this();
         }
 
-        [[nodiscard]] inline const Aabb2D &
+        [[nodiscard]] const Aabb2D &
         GetArea() const {
             return m_area_;
         }
 
-        [[nodiscard]] inline Children::Type
+        [[nodiscard]] Children::Type
         GetChildType() const {
             return m_child_type_;
         }
 
-        [[nodiscard]] inline const Children &
+        [[nodiscard]] const Children &
         GetChildren() const {
             return m_children_;
         }
 
         template<typename T>
-        inline std::shared_ptr<T>
+        std::shared_ptr<T>
         GetData() const {
             return std::static_pointer_cast<T>(m_data_ptr_);
         }
 
-        inline void
+        void
         SetData(std::shared_ptr<void> ptr) {
             m_data_ptr_ = std::move(ptr);
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsRoot() const {
             return m_parent_ == nullptr;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsLeaf() const {
             return m_is_leaf_;
         }
 
-        [[nodiscard]] inline bool
-        IsEmpty(int type) const {
+        [[nodiscard]] bool
+        IsEmpty(const int type) const {
             return (m_node_container_ == nullptr) || (m_node_container_->Empty(type));
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsEmpty() const {
             return (m_node_container_ == nullptr) || (m_node_container_->Empty());
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsCluster() const {
             const double &kL = m_area_.half_sizes[0];
             return (kL <= m_setting_->cluster_half_area_size) && (kL * 2 >= m_setting_->cluster_half_area_size);
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsInCluster() const {
             // m_area_ is a square.
             // return (m_area_.half_sizes[0] <= m_setting_->cluster_half_area_size) || (m_setting_->cluster_half_area_size < 0);
@@ -215,18 +214,19 @@ namespace erl::geometry {
             return m_area_.half_sizes[0] <= m_setting_->cluster_half_area_size;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsExpandable() const {
             return (m_area_.half_sizes[0] <= m_setting_->max_half_area_size) || (m_setting_->max_half_area_size < 0);
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsSubdividable() const {
             return (m_area_.half_sizes[0] >= m_setting_->min_half_area_size) || (m_setting_->min_half_area_size < 0);
         }
 
         /**
          * @param node
+         * @param new_root
          * @return If node is inserted, a IncrementalQuadtree of top level in the call stack will be returned. Otherwise, nullptr. So, if you call this method
          * from the root, the (new) root IncrementalQuadtree will be returned.
          */
@@ -253,14 +253,14 @@ namespace erl::geometry {
         void
         CollectNodes(std::vector<std::shared_ptr<Node>> &nodes) const;
 
-        inline void
-        CollectNodesOfType(int type, std::vector<std::shared_ptr<Node>> &nodes) const {
+        void
+        CollectNodesOfType(const int type, std::vector<std::shared_ptr<Node>> &nodes) const {
             std::vector<std::shared_ptr<const IncrementalQuadtree>> tree_stack;
             tree_stack.reserve(100);
             tree_stack.push_back(shared_from_this());
 
             while (!tree_stack.empty()) {
-                auto tree = tree_stack.back();
+                const auto tree = tree_stack.back();
                 tree_stack.pop_back();
 
                 if (!tree->IsEmpty(type)) { tree->m_node_container_->CollectNodesOfType(type, nodes); }
@@ -271,15 +271,15 @@ namespace erl::geometry {
             }
         }
 
-        inline void
-        CollectNodesOfTypeInArea(int type, const Aabb2D &area, std::vector<std::shared_ptr<Node>> &nodes) const {
+        void
+        CollectNodesOfTypeInArea(const int type, const Aabb2D &area, std::vector<std::shared_ptr<Node>> &nodes) const {
             // This method should not be recursive as the overhead of function call is too large.
             std::vector<std::shared_ptr<const IncrementalQuadtree>> tree_stack;
             tree_stack.reserve(100);
             tree_stack.push_back(shared_from_this());
 
             while (!tree_stack.empty()) {
-                auto tree = tree_stack.back();
+                const auto tree = tree_stack.back();
                 tree_stack.pop_back();
 
                 if (!tree->m_area_.intersects(area)) { continue; }
@@ -347,7 +347,7 @@ namespace erl::geometry {
             std::vector<double> &ray_travel_distances,
             std::vector<std::shared_ptr<Node>> &hit_nodes) const;
 
-        inline std::vector<int>
+        std::vector<int>
         GetNodeTypes() const {
             if (m_node_container_ == nullptr) { return {}; }
             return m_node_container_->GetNodeTypes();
@@ -370,14 +370,14 @@ namespace erl::geometry {
         Print(std::ostream &os) const;
 
     private:
-        [[nodiscard]] static inline std::shared_ptr<IncrementalQuadtree>
+        [[nodiscard]] static std::shared_ptr<IncrementalQuadtree>
         Create(
             std::shared_ptr<Setting> setting,
             const Aabb2D &area,
             const std::function<std::shared_ptr<NodeContainer>()> &node_container_constructor,
             const std::shared_ptr<IncrementalQuadtree *> &root,
             IncrementalQuadtree *parent,
-            Children::Type child_type) {
+            const Children::Type child_type) {
 
             auto tree = std::shared_ptr<IncrementalQuadtree>(new IncrementalQuadtree(std::move(setting), area, node_container_constructor, root));
             tree->m_parent_ = parent;
@@ -405,36 +405,23 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
+template<>
+struct YAML::convert<erl::geometry::IncrementalQuadtree::Setting> {
+    static Node
+    encode(const erl::geometry::IncrementalQuadtree::Setting &setting) {
+        Node node;
+        node["cluster_half_area_size"] = setting.cluster_half_area_size;
+        node["max_half_area_size"] = setting.max_half_area_size;
+        node["min_half_area_size"] = setting.min_half_area_size;
+        return node;
+    }
 
-    template<>
-    struct convert<erl::geometry::IncrementalQuadtree::Setting> {
-        inline static Node
-        encode(const erl::geometry::IncrementalQuadtree::Setting &setting) {
-            Node node;
-            node["cluster_half_area_size"] = setting.cluster_half_area_size;
-            node["max_half_area_size"] = setting.max_half_area_size;
-            node["min_half_area_size"] = setting.min_half_area_size;
-            return node;
-        }
-
-        inline static bool
-        decode(const Node &node, erl::geometry::IncrementalQuadtree::Setting &setting) {
-            if (!node.IsMap()) { return false; }
-            setting.cluster_half_area_size = node["cluster_half_area_size"].as<double>();
-            setting.max_half_area_size = node["max_half_area_size"].as<double>();
-            setting.min_half_area_size = node["min_half_area_size"].as<double>();
-            return true;
-        }
-    };
-
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::IncrementalQuadtree::Setting &setting) {
-//        out << BeginMap;
-//        out << Key << "cluster_half_area_size" << Value << setting.cluster_half_area_size;
-//        out << Key << "max_half_area_size" << Value << setting.max_half_area_size;
-//        out << Key << "min_half_area_size" << Value << setting.min_half_area_size;
-//        out << EndMap;
-//        return out;
-//    }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::IncrementalQuadtree::Setting &setting) {
+        if (!node.IsMap()) { return false; }
+        setting.cluster_half_area_size = node["cluster_half_area_size"].as<double>();
+        setting.max_half_area_size = node["max_half_area_size"].as<double>();
+        setting.min_half_area_size = node["min_half_area_size"].as<double>();
+        return true;
+    }
+};  // namespace YAML

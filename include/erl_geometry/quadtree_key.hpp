@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+
+#include <cstdint>
 #include <vector>
 
 namespace erl::geometry {
@@ -28,15 +29,15 @@ namespace erl::geometry {
 
         // Hash function for OctreeKey when used with std hash containers.
         struct [[maybe_unused]] KeyHash {
-            [[nodiscard]] inline std::size_t
+            [[nodiscard]] std::size_t
             operator()(const QuadtreeKey& key) const {
-                return (std::size_t(key.m_k_[0]) << 16) | std::size_t(key.m_k_[1]);
+                return static_cast<std::size_t>(key.m_k_[0]) << 16 | static_cast<std::size_t>(key.m_k_[1]);
             }
         };
 
         QuadtreeKey() = default;
 
-        QuadtreeKey(KeyType a, KeyType b)
+        QuadtreeKey(const KeyType a, const KeyType b)
             : m_k_{a, b} {}
 
         QuadtreeKey(const QuadtreeKey& other)
@@ -72,12 +73,12 @@ namespace erl::geometry {
         }
 
         KeyType&
-        operator[](unsigned int i) {
+        operator[](const uint32_t i) {
             return m_k_[i];
         }
 
         [[nodiscard]] const KeyType&
-        operator[](unsigned int i) const {
+        operator[](const uint32_t i) const {
             return m_k_[i];
         }
 
@@ -113,10 +114,10 @@ namespace erl::geometry {
          * @param parent_key
          * @param child_key
          */
-        inline static void
-        ComputeChildKey(unsigned int pos, KeyType center_offset_key, const QuadtreeKey& parent_key, QuadtreeKey& child_key) {
-            child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+        static void
+        ComputeChildKey(const uint32_t pos, const KeyType center_offset_key, const QuadtreeKey& parent_key, QuadtreeKey& child_key) {
+            child_key.m_k_[0] = parent_key.m_k_[0] + (pos & 1 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[1] = parent_key.m_k_[1] + (pos & 2 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
         }
 
         /**
@@ -126,7 +127,7 @@ namespace erl::geometry {
          * @return
          */
         static int
-        ComputeChildIndex(const QuadtreeKey& key, uint32_t level) {
+        ComputeChildIndex(const QuadtreeKey& key, const uint32_t level) {
             int pos = 0;
             const KeyType mask = 1 << level;
             if (key.m_k_[0] & mask) { pos += 1; }
@@ -135,11 +136,11 @@ namespace erl::geometry {
         }
 
         static bool
-        KeyInAabb(const QuadtreeKey& key, KeyType center_offset_key, const QuadtreeKey& aabb_min_key, const QuadtreeKey& aabb_max_key) {
-            return (aabb_min_key[0] <= (key[0] + center_offset_key)) &&  //
-                   (aabb_min_key[1] <= (key[1] + center_offset_key)) &&  //
-                   (aabb_max_key[0] >= (key[0] - center_offset_key)) &&  //
-                   (aabb_max_key[1] >= (key[1] - center_offset_key));
+        KeyInAabb(const QuadtreeKey& key, const KeyType center_offset_key, const QuadtreeKey& aabb_min_key, const QuadtreeKey& aabb_max_key) {
+            return aabb_min_key[0] <= key[0] + center_offset_key &&  //
+                   aabb_min_key[1] <= key[1] + center_offset_key &&  //
+                   aabb_max_key[0] >= key[0] - center_offset_key &&  //
+                   aabb_max_key[1] >= key[1] - center_offset_key;
         }
     };
 

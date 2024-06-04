@@ -1,7 +1,9 @@
 #pragma once
 
-#include "erl_common/yaml.hpp"
 #include "range_sensor_3d.hpp"
+
+#include "erl_common/yaml.hpp"
+
 #include <open3d/t/geometry/RaycastingScene.h>
 
 namespace erl::geometry {
@@ -48,7 +50,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
-        GetRayDirectionsInFrame() const override ;
+        GetRayDirectionsInFrame() const override;
     };
 
 }  // namespace erl::geometry
@@ -81,16 +83,16 @@ namespace YAML {
         }
     };
 
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::DepthCamera3D::Setting &rhs) {
-//        out << BeginMap;
-//        out << Key << "image_height" << Value << rhs.image_height;
-//        out << Key << "image_width" << Value << rhs.image_width;
-//        out << Key << "camera_fx" << Value << rhs.camera_fx;
-//        out << Key << "camera_fy" << Value << rhs.camera_fy;
-//        out << Key << "camera_cx" << Value << rhs.camera_cx;
-//        out << Key << "camera_cy" << Value << rhs.camera_cy;
-//        out << EndMap;
-//        return out;
-//    }
+    // inline Emitter &
+    // operator<<(Emitter &out, const erl::geometry::DepthCamera3D::Setting &rhs) {
+    //     out << BeginMap;
+    //     out << Key << "image_height" << Value << rhs.image_height;
+    //     out << Key << "image_width" << Value << rhs.image_width;
+    //     out << Key << "camera_fx" << Value << rhs.camera_fx;
+    //     out << Key << "camera_fy" << Value << rhs.camera_fy;
+    //     out << Key << "camera_cx" << Value << rhs.camera_cx;
+    //     out << Key << "camera_cy" << Value << rhs.camera_cy;
+    //     out << EndMap;
+    //     return out;
+    // }
 }  // namespace YAML

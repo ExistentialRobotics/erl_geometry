@@ -1,10 +1,12 @@
 #pragma once
 
-#include "erl_common/json.hpp"
 #include "space_2d.hpp"
 
-#include <string>
+#include "erl_common/json.hpp"
+
 #include <open3d/geometry/TriangleMesh.h>
+
+#include <string>
 
 namespace erl::geometry {
 
@@ -12,7 +14,7 @@ namespace erl::geometry {
         std::string m_file_;
         std::string m_room_id_;
         Eigen::Matrix2d m_bbox_;
-        std::shared_ptr<geometry::Space2D> m_meter_space_;
+        std::shared_ptr<Space2D> m_meter_space_;
 
     public:
         explicit HouseExpoMap(const char *file);
@@ -29,7 +31,7 @@ namespace erl::geometry {
             return m_room_id_;
         }
 
-        [[nodiscard]] const std::shared_ptr<geometry::Space2D> &
+        [[nodiscard]] const std::shared_ptr<Space2D> &
         GetMeterSpace() {
             return m_meter_space_;
         }

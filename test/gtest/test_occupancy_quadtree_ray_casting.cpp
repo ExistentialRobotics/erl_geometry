@@ -1,7 +1,7 @@
-#include "erl_common/opencv.hpp"
-#include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_common/angle_utils.hpp"
+#include "erl_common/opencv.hpp"
 #include "erl_common/test_helper.hpp"
+#include "erl_geometry/occupancy_quadtree.hpp"
 
 struct UserData {
     inline static const char *window_name = "quadtree ray casting";
@@ -12,11 +12,11 @@ struct UserData {
 };
 
 void
-MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
+MouseCallback(const int event, const int mouse_x, const int mouse_y, const int flags, void *userdata) {
     static bool mouse_fixed = false;
 
     (void) flags;
-    auto data = static_cast<UserData *>(userdata);
+    const auto data = static_cast<UserData *>(userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) {
         std::cout << "Left button of the mouse is clicked - position (" << mouse_x << ", " << mouse_y << ")" << std::endl;
@@ -28,24 +28,20 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         if (mouse_fixed) { return; }
         if (data->tree == nullptr) { return; }
 
-        auto grid_map_info = data->drawer->GetGridMapInfo();
+        const auto grid_map_info = data->drawer->GetGridMapInfo();
         cv::Mat img = data->img.clone();
-        double x = grid_map_info->GridToMeterForValue(mouse_x, 0);
-        double y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
+        const double x = grid_map_info->GridToMeterForValue(mouse_x, 0);
+        const double y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
 
-        long n = 721;
+        constexpr long n = 721;
         Eigen::VectorXd angles = Eigen::VectorXd::LinSpaced(n, 0, 2 * M_PI);
-        auto t0 = std::chrono::high_resolution_clock::now();
+        const auto t0 = std::chrono::high_resolution_clock::now();
         for (long i = 0; i < n; ++i) {
             double ex = 0, ey = 0;
-            double vx = std::cos(angles[i]);
-            double vy = std::sin(angles[i]);
-            constexpr bool kIgnoreUnknown = false;
-            double max_range = -1;
-            if (!data->tree->CastRay(x, y, vx, vy, kIgnoreUnknown, max_range, ex, ey)) {
-                if (!data->tree->CastRay(x, y, vx, vy, !kIgnoreUnknown, max_range, ex, ey)) {
-                    std::cout << "Fail to cast ray for angle " << erl::common::RadianToDegree(angles[i]) << std::endl;
-                }
+            if (const double vx = std::cos(angles[i]), vy = std::sin(angles[i]);
+                !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ false, /*max_range*/ -1, ex, ey) ||
+                !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ true, /*max_range*/ -1, ex, ey)) {
+                std::cout << "Fail to cast ray for angle " << erl::common::RadianToDegree(angles[i]) << std::endl;
             }
             cv::line(
                 img,
@@ -54,7 +50,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 cv::Scalar(0, 0, 255, 255),
                 1);
         }
-        auto t1 = std::chrono::high_resolution_clock::now();
+        const auto t1 = std::chrono::high_resolution_clock::now();
         std::cout << "Time: " << std::chrono::duration<double, std::milli>(t1 - t0).count() << " ms." << std::endl;
         cv::addWeighted(data->img, 0.5, img, 0.5, 0, img);
         cv::imshow(UserData::window_name, img);
@@ -67,7 +63,7 @@ TEST(OccupancyQuadtree, RayCasting) {
     UserData data;
     data.tree_setting->resolution = 0.1;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(data.tree_setting);
-    std::string file = (g_test_data_dir / "house_expo_room_1451_2d.bt").string();
+    const std::string file = (g_test_data_dir / "house_expo_room_1451_2d.bt").string();
     ASSERT_TRUE(data.tree->ReadBinary(file)) << "Fail to load the tree.";
     auto setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
     setting->resolution = 0.0025;

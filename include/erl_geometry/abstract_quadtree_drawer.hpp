@@ -1,8 +1,9 @@
 #pragma once
 
+#include "abstract_quadtree.hpp"
+
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/yaml.hpp"
-#include "abstract_quadtree.hpp"
 
 namespace erl::geometry {
 
@@ -34,7 +35,7 @@ namespace erl::geometry {
 
         virtual ~AbstractQuadtreeDrawer() = default;
 
-        [[nodiscard]] inline std::shared_ptr<common::GridMapInfo2D>
+        [[nodiscard]] std::shared_ptr<common::GridMapInfo2D>
         GetGridMapInfo() const {
             return std::make_shared<common::GridMapInfo2D>(
                 m_setting_->area_min,
@@ -45,7 +46,7 @@ namespace erl::geometry {
 
         void
         SetQuadtree(std::shared_ptr<const AbstractQuadtree> quadtree) {
-            m_quadtree_ = quadtree;
+            m_quadtree_ = std::move(quadtree);
         }
 
         void
@@ -70,51 +71,33 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
+template<>
+struct YAML::convert<erl::geometry::AbstractQuadtreeDrawer::Setting> {
+    static Node
+    encode(const erl::geometry::AbstractQuadtreeDrawer::Setting &rhs) {
+        Node node;
+        node["area_min"] = rhs.area_min;
+        node["area_max"] = rhs.area_max;
+        node["resolution"] = rhs.resolution;
+        node["padding"] = rhs.padding;
+        node["bg_color"] = rhs.bg_color;
+        node["fg_color"] = rhs.fg_color;
+        node["border_color"] = rhs.border_color;
+        node["border_thickness"] = rhs.border_thickness;
+        return node;
+    }
 
-    template<>
-    struct convert<erl::geometry::AbstractQuadtreeDrawer::Setting> {
-        inline static Node
-        encode(const erl::geometry::AbstractQuadtreeDrawer::Setting &rhs) {
-            Node node;
-            node["area_min"] = rhs.area_min;
-            node["area_max"] = rhs.area_max;
-            node["resolution"] = rhs.resolution;
-            node["padding"] = rhs.padding;
-            node["bg_color"] = rhs.bg_color;
-            node["fg_color"] = rhs.fg_color;
-            node["border_color"] = rhs.border_color;
-            node["border_thickness"] = rhs.border_thickness;
-            return node;
-        }
-
-        inline static bool
-        decode(const Node &node, erl::geometry::AbstractQuadtreeDrawer::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.area_min = node["area_min"].as<Eigen::Vector2d>();
-            rhs.area_max = node["area_max"].as<Eigen::Vector2d>();
-            rhs.resolution = node["resolution"].as<double>();
-            rhs.padding = node["padding"].as<int>();
-            rhs.bg_color = node["bg_color"].as<cv::Scalar>();
-            rhs.fg_color = node["fg_color"].as<cv::Scalar>();
-            rhs.border_color = node["border_color"].as<cv::Scalar>();
-            rhs.border_thickness = node["border_thickness"].as<int>();
-            return true;
-        }
-    };
-
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::AbstractQuadtreeDrawer::Setting &rhs) {
-//        out << BeginMap;
-//        out << Key << "area_min" << Value << rhs.area_min;
-//        out << Key << "area_max" << Value << rhs.area_max;
-//        out << Key << "resolution" << Value << rhs.resolution;
-//        out << Key << "padding" << Value << rhs.padding;
-//        out << Key << "bg_color" << Value << rhs.bg_color;
-//        out << Key << "fg_color" << Value << rhs.fg_color;
-//        out << Key << "border_color" << Value << rhs.border_color;
-//        out << Key << "border_thickness" << Value << rhs.border_thickness;
-//        out << EndMap;
-//        return out;
-//    }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::AbstractQuadtreeDrawer::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.area_min = node["area_min"].as<Eigen::Vector2d>();
+        rhs.area_max = node["area_max"].as<Eigen::Vector2d>();
+        rhs.resolution = node["resolution"].as<double>();
+        rhs.padding = node["padding"].as<int>();
+        rhs.bg_color = node["bg_color"].as<cv::Scalar>();
+        rhs.fg_color = node["fg_color"].as<cv::Scalar>();
+        rhs.border_color = node["border_color"].as<cv::Scalar>();
+        rhs.border_thickness = node["border_thickness"].as<int>();
+        return true;
+    }
+};  // namespace YAML

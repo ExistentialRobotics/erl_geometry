@@ -1,13 +1,17 @@
 #pragma once
 
-#include "erl_common/eigen.hpp"
+#include "aabb.hpp"
 #include "abstract_quadtree.hpp"
+#include "abstract_quadtree_node.hpp"
 #include "quadtree_key.hpp"
 #include "utils.hpp"
-#include "aabb.hpp"
+
+#include "erl_common/eigen.hpp"
+
 #include <omp.h>
-#include <stack>
+
 #include <bitset>
+#include <stack>
 #include <utility>
 
 namespace erl::geometry {
@@ -197,9 +201,9 @@ namespace erl::geometry {
 
             max_x = max_y = -std::numeric_limits<double>::infinity();
             for (auto it = this->begin(), end = this->end(); it != end; ++it) {
-                double half_size = it.GetNodeSize() / 2.;
-                double node_max_x = it.GetX() + half_size;
-                double node_max_y = it.GetY() + half_size;
+                const double half_size = it.GetNodeSize() / 2.;
+                const double node_max_x = it.GetX() + half_size;
+                const double node_max_y = it.GetY() + half_size;
                 if (node_max_x > max_x) { max_x = node_max_x; }
                 if (node_max_y > max_y) { max_y = node_max_y; }
             }
@@ -269,12 +273,12 @@ namespace erl::geometry {
             double min_x = std::numeric_limits<double>::infinity(), min_y = min_x;
             double max_x = -std::numeric_limits<double>::infinity(), max_y = max_x;
             for (auto it = this->begin(), end = this->end(); it != end; ++it) {
-                double size = it.GetNodeSize();
-                double half_size = size / 2.;
-                double node_max_x = it.GetX() + half_size;
-                double node_max_y = it.GetY() + half_size;
-                double node_min_x = node_max_x - size;
-                double node_min_y = node_max_y - size;
+                const double size = it.GetNodeSize();
+                const double half_size = size / 2.;
+                const double node_max_x = it.GetX() + half_size;
+                const double node_max_y = it.GetY() + half_size;
+                const double node_min_x = node_max_x - size;
+                const double node_min_y = node_max_y - size;
                 if (node_max_x > max_x) { max_x = node_max_x; }
                 if (node_max_y > max_y) { max_y = node_max_y; }
                 if (node_min_x < min_x) { min_x = node_min_x; }
@@ -288,6 +292,14 @@ namespace erl::geometry {
         GetNodeSize(uint32_t depth) const {
             ERL_DEBUG_ASSERT(depth <= this->m_setting_->tree_depth, "Depth must be in [0, %u], but got %u.\n", this->m_setting_->tree_depth, depth);
             return m_size_lookup_table_[depth];
+        }
+
+        [[nodiscard]] Aabb2D
+        GetNodeAabb(const QuadtreeKey &key, const uint32_t &depth) const {
+            Eigen::Vector2d center;
+            KeyToCoord(key, center.x(), center.y());
+            const double half_size = GetNodeSize(depth) * 0.5;
+            return {center, half_size};
         }
 
         [[nodiscard]] std::size_t
@@ -315,9 +327,8 @@ namespace erl::geometry {
 
         [[maybe_unused]] [[nodiscard]] std::size_t
         GetMemoryUsage() const override {
-            std::size_t number_of_leaf_nodes = this->ComputeNumberOfLeafNodes();
-            std::size_t number_of_inner_nodes = m_tree_size_ - number_of_leaf_nodes;
-            // TODO: update the statistics
+            const std::size_t number_of_leaf_nodes = this->ComputeNumberOfLeafNodes();
+            const std::size_t number_of_inner_nodes = m_tree_size_ - number_of_leaf_nodes;
             return sizeof(QuadtreeImpl) + this->GetMemoryUsagePerNode() * m_tree_size_ + number_of_inner_nodes * sizeof(Node *) * 4;
         }
 
@@ -356,7 +367,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey::KeyType
-        CoordToKey(double coordinate) const {
+        CoordToKey(const double coordinate) const {
             return static_cast<uint32_t>(std::floor(coordinate * m_resolution_inv_)) + m_tree_key_offset_;
         }
 
@@ -367,11 +378,11 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey::KeyType
-        CoordToKey(double coordinate, uint32_t depth) const {
+        CoordToKey(const double coordinate, uint32_t depth) const {
             const uint32_t &tree_depth = this->m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
-            uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
-            uint32_t diff = tree_depth - depth;
+            const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
+            const uint32_t diff = tree_depth - depth;
             if (!diff) { return keyval + m_tree_key_offset_; }
             return ((keyval >> diff) << diff) + (1 << (diff - 1)) + m_tree_key_offset_;
         }
@@ -382,7 +393,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] QuadtreeKey
-        CoordToKey(const Eigen::Ref<const Eigen::Vector2d> &coord, uint32_t depth) const {
+        CoordToKey(const Eigen::Ref<const Eigen::Vector2d> &coord, const uint32_t depth) const {
             return {CoordToKey(coord[0], depth), CoordToKey(coord[1], depth)};
         }
 
@@ -393,7 +404,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey
-        CoordToKey(double x, double y) const {
+        CoordToKey(const double x, const double y) const {
             return {CoordToKey(x), CoordToKey(y)};
         }
 
@@ -405,7 +416,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey
-        CoordToKey(double x, double y, uint32_t depth) const {
+        CoordToKey(const double x, const double y, uint32_t depth) const {
             if (depth == this->m_setting_->tree_depth) { return CoordToKey(x, y); }
             return {CoordToKey(x, depth), CoordToKey(y, depth)};
         }
@@ -417,9 +428,9 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(double coordinate, QuadtreeKey::KeyType &key) const {
-            const int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
-            if ((scaled_coord >= 0) && static_cast<uint32_t>(scaled_coord) < (m_tree_key_offset_ << 1)) {
+        CoordToKeyChecked(const double coordinate, QuadtreeKey::KeyType &key) const {
+            if (const int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
+                scaled_coord >= 0 && static_cast<uint32_t>(scaled_coord) < (m_tree_key_offset_ << 1)) {
                 key = scaled_coord;
                 return true;
             }
@@ -434,10 +445,10 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(double coordinate, uint32_t depth, QuadtreeKey::KeyType &key) const {
-            int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
-            if ((scaled_coord >= 0) && ((uint32_t) scaled_coord) < (m_tree_key_offset_ << 1)) {
-                key = AdjustKeyToDepth((QuadtreeKey::KeyType) scaled_coord, depth);
+        CoordToKeyChecked(const double coordinate, const uint32_t depth, QuadtreeKey::KeyType &key) const {
+            if (const int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
+                scaled_coord >= 0 && static_cast<uint32_t>(scaled_coord) < (m_tree_key_offset_ << 1)) {
+                key = AdjustKeyToDepth(static_cast<QuadtreeKey::KeyType>(scaled_coord), depth);
                 return true;
             }
             return false;
@@ -448,8 +459,8 @@ namespace erl::geometry {
             return CoordToKeyChecked(coord[0], coord[1], key);
         }
 
-        [[nodiscard]] inline bool
-        CoordToKeyChecked(const Eigen::Ref<const Eigen::Vector2d> &coord, uint32_t depth, QuadtreeKey &key) const {
+        [[nodiscard]] bool
+        CoordToKeyChecked(const Eigen::Ref<const Eigen::Vector2d> &coord, const uint32_t depth, QuadtreeKey &key) const {
             return CoordToKeyChecked(coord[0], coord[1], depth, key);
         }
 
@@ -461,7 +472,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(double x, double y, QuadtreeKey &key) const {
+        CoordToKeyChecked(const double x, const double y, QuadtreeKey &key) const {
             if (!CoordToKeyChecked(x, key[0])) { return false; }
             if (!CoordToKeyChecked(y, key[1])) { return false; }
             return true;
@@ -476,7 +487,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(double x, double y, uint32_t depth, QuadtreeKey &key) const {
+        CoordToKeyChecked(const double x, const double y, uint32_t depth, QuadtreeKey &key) const {
             ERL_DEBUG_ASSERT(depth != 0, "When depth = 0, key is 0x0, which is useless!");
             if (depth == this->m_setting_->tree_depth) { return CoordToKeyChecked(x, y, key); }
             if (!CoordToKeyChecked(x, depth, key[0])) { return false; }
@@ -491,10 +502,10 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey::KeyType
-        AdjustKeyToDepth(QuadtreeKey::KeyType key, uint32_t depth) const {
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+        AdjustKeyToDepth(const QuadtreeKey::KeyType key, uint32_t depth) const {
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
-            uint32_t diff = tree_depth - depth;
+            const uint32_t diff = tree_depth - depth;
             if (!diff) { return key; }
             return (((key - m_tree_key_offset_) >> diff) << diff) + (1 << (diff - 1)) + m_tree_key_offset_;
         }
@@ -513,18 +524,18 @@ namespace erl::geometry {
 
         void
         ComputeCommonAncestorKey(const QuadtreeKey &key1, const QuadtreeKey &key2, QuadtreeKey &ancestor_key, uint32_t &ancestor_depth) const {
-            QuadtreeKey::KeyType mask = (key1[0] ^ key2[0]) | (key1[1] ^ key2[1]);  // 0: same bit, 1: different bit
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
+            const QuadtreeKey::KeyType mask = (key1[0] ^ key2[0]) | (key1[1] ^ key2[1]);  // 0: same bit, 1: different bit
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             if (!mask) {  // keys are identical
                 ancestor_key = key1;
-                ancestor_depth = kTreeDepth;
+                ancestor_depth = tree_depth;
                 return;
             }
             // from bit-max_depth to bit-0, find first 1
-            uint32_t level = kTreeDepth;
+            uint32_t level = tree_depth;
             while (level > 0 && !(mask & (1 << (level - 1)))) { --level; }
-            ancestor_depth = kTreeDepth - level;  // bit[level] = 0, bit[level-1] = 1
-            QuadtreeKey::KeyType ancestor_mask = ((1 << kTreeDepth) - 1) << level;
+            ancestor_depth = tree_depth - level;  // bit[level] = 0, bit[level-1] = 1
+            const QuadtreeKey::KeyType ancestor_mask = ((1 << tree_depth) - 1) << level;
             ancestor_key[0] = key1[0] & ancestor_mask;
             ancestor_key[1] = key1[1] & ancestor_mask;
         }
@@ -537,7 +548,7 @@ namespace erl::geometry {
          */
         bool
         ComputeWestNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const {
-            QuadtreeKey::KeyType offset = 1 << (this->m_setting_->tree_depth - depth);
+            const QuadtreeKey::KeyType offset = 1 << (this->m_setting_->tree_depth - depth);
             if (key[0] < offset) { return false; }  // no west neighbor
             neighbor_key[0] = key[0] - offset;
             neighbor_key[1] = key[1];
@@ -545,20 +556,20 @@ namespace erl::geometry {
         }
 
         bool
-        ComputeEastNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const {
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
-            QuadtreeKey::KeyType offset = 1 << (kTreeDepth - depth);
-            if ((1 << kTreeDepth) - key[0] <= offset) { return false; }  // no east neighbor (key[0] + offset >= 2^max_depth)
+        ComputeEastNeighborKey(const QuadtreeKey &key, const uint32_t depth, QuadtreeKey &neighbor_key) const {
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
+            const QuadtreeKey::KeyType offset = 1 << (tree_depth - depth);
+            if ((1 << tree_depth) - key[0] <= offset) { return false; }  // no east neighbor (key[0] + offset >= 2^max_depth)
             neighbor_key[0] = key[0] + offset;
             neighbor_key[1] = key[1];
             return true;
         }
 
         bool
-        ComputeNorthNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const {
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
-            QuadtreeKey::KeyType offset = 1 << (kTreeDepth - depth);
-            if ((1 << kTreeDepth) - key[1] <= offset) { return false; }  // no north neighbor (key[1] + offset >= 2^max_depth)
+        ComputeNorthNeighborKey(const QuadtreeKey &key, const uint32_t depth, QuadtreeKey &neighbor_key) const {
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
+            const QuadtreeKey::KeyType offset = 1 << (tree_depth - depth);
+            if ((1 << tree_depth) - key[1] <= offset) { return false; }  // no north neighbor (key[1] + offset >= 2^max_depth)
             neighbor_key[0] = key[0];
             neighbor_key[1] = key[1] + offset;
             return true;
@@ -566,7 +577,7 @@ namespace erl::geometry {
 
         bool
         ComputeSouthNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const {
-            QuadtreeKey::KeyType offset = 1 << (this->m_setting_->tree_depth - depth);
+            const QuadtreeKey::KeyType offset = 1 << (this->m_setting_->tree_depth - depth);
             if (key[1] < offset) { return false; }  // no south neighbor
             neighbor_key[0] = key[0];
             neighbor_key[1] = key[1] - offset;
@@ -579,7 +590,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] double
-        KeyToCoord(QuadtreeKey::KeyType key) const {
+        KeyToCoord(const QuadtreeKey::KeyType key) const {
             return (static_cast<double>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) + 0.5) * this->m_setting_->resolution;
         }
 
@@ -590,7 +601,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] double
-        KeyToCoord(QuadtreeKey::KeyType key, uint32_t depth) const {
+        KeyToCoord(const QuadtreeKey::KeyType key, const uint32_t depth) const {
             const uint32_t &tree_depth = this->m_setting_->tree_depth;
             if (depth == 0) { return 0.0; }
             if (depth == tree_depth) { return KeyToCoord(key); }
@@ -666,7 +677,7 @@ namespace erl::geometry {
                 : m_tree_(nullptr),
                   m_max_node_depth_(0) {}
 
-            explicit IteratorBase(const QuadtreeImpl *tree, uint32_t max_node_depth)
+            explicit IteratorBase(const QuadtreeImpl *tree, const uint32_t max_node_depth)
                 : m_tree_(tree),
                   m_max_node_depth_(max_node_depth) {
                 if (m_tree_ == nullptr) { return; }
@@ -737,8 +748,7 @@ namespace erl::geometry {
 
             [[nodiscard]] Aabb2D
             GetNodeAabb() const {
-                Eigen::Vector2d center(this->GetX(), this->GetY());
-                return {center, this->GetNodeSize() * 0.5};
+                return m_tree_->GetNodeAabb(m_stack_.back().key, m_stack_.back().node->GetDepth());
             }
 
             [[maybe_unused]] [[nodiscard]] const QuadtreeKey &
@@ -766,7 +776,7 @@ namespace erl::geometry {
                 uint32_t next_depth = kNodeDepth + 1;
                 ERL_DEBUG_ASSERT(next_depth <= m_max_node_depth_, "Wrong depth: %u (max: %u).\n", next_depth, m_max_node_depth_);
                 QuadtreeKey next_key;
-                QuadtreeKey::KeyType center_offset_key = m_tree_->m_tree_key_offset_ >> next_depth;
+                const QuadtreeKey::KeyType center_offset_key = m_tree_->m_tree_key_offset_ >> next_depth;
                 // push on stack in reverse order
                 for (int i = 3; i >= 0; --i) {
                     if (top.node->HasChild(i)) {
@@ -868,9 +878,8 @@ namespace erl::geometry {
                 if (this->m_tree_->CoordToKeyChecked(aabb_min_x, aabb_min_y, m_aabb_min_key_) &&
                     this->m_tree_->CoordToKeyChecked(aabb_max_x, aabb_max_y, m_aabb_max_key_)) {
                     // check if the root node is in the AABB
-                    typename IteratorBase::StackElement top = this->m_stack_.back();
-                    QuadtreeKey::KeyType center_offset_key = this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth();
-                    if (!QuadtreeKey::KeyInAabb(top.key, center_offset_key, m_aabb_min_key_, m_aabb_max_key_)) {
+                    if (typename IteratorBase::StackElement top = this->m_stack_.back();
+                        !QuadtreeKey::KeyInAabb(top.key, this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth(), m_aabb_min_key_, m_aabb_max_key_)) {
                         this->Terminate();
                         return;
                     }
@@ -887,9 +896,8 @@ namespace erl::geometry {
                 ERL_DEBUG_ASSERT(tree != nullptr, "Tree is null.");
 
                 // check if the root node is in the AABB
-                typename IteratorBase::StackElement top = this->m_stack_.back();
-                QuadtreeKey::KeyType center_offset_key = this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth();
-                if (!QuadtreeKey::KeyInAabb(top.key, center_offset_key, m_aabb_min_key_, m_aabb_max_key_)) {
+                if (typename IteratorBase::StackElement top = this->m_stack_.back();
+                    !QuadtreeKey::KeyInAabb(top.key, this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth(), m_aabb_min_key_, m_aabb_max_key_)) {
                     this->Terminate();
                     return;
                 }
@@ -906,7 +914,7 @@ namespace erl::geometry {
                 uint32_t next_depth = kNodeDepth + 1;
                 ERL_DEBUG_ASSERT(next_depth <= this->m_max_node_depth_, "Wrong depth: %u (max: %u).\n", next_depth, this->m_max_node_depth_);
                 QuadtreeKey next_key;
-                QuadtreeKey::KeyType center_offset_key = this->m_tree_->m_tree_key_offset_ >> next_depth;
+                const QuadtreeKey::KeyType center_offset_key = this->m_tree_->m_tree_key_offset_ >> next_depth;
                 // push on stack in reverse order
                 for (int i = 3; i >= 0; --i) {
                     if (!top.node->HasChild(i)) { continue; }
@@ -1101,12 +1109,12 @@ namespace erl::geometry {
              * @param increase
              */
             void
-            Init(QuadtreeKey key, uint32_t key_depth, int changing_dim, int unchanged_dim, bool increase) {
+            Init(QuadtreeKey key, uint32_t key_depth, int changing_dim, int unchanged_dim, const bool increase) {
                 if (this->m_tree_ == nullptr) { return; }
-                uint32_t max_depth = this->m_tree_->GetTreeDepth();
-                uint32_t level = max_depth - key_depth;
+                const uint32_t max_depth = this->m_tree_->GetTreeDepth();
+                const uint32_t level = max_depth - key_depth;
                 key = this->m_tree_->AdjustKeyToDepth(key, key_depth);
-                QuadtreeKey::KeyType half_offset = (level == 0 ? 0 : 1 << (level - 1));
+                const QuadtreeKey::KeyType half_offset = (level == 0 ? 0 : 1 << (level - 1));
                 int key_unchanged;
                 if (increase) {
                     key_unchanged = key[unchanged_dim] + std::max(1, static_cast<int>(half_offset));
@@ -1146,7 +1154,7 @@ namespace erl::geometry {
 
                     // found a neighbor
                     s.key = this->m_tree_->AdjustKeyToDepth(m_neighbor_key_, kNodeDepth);
-                    uint32_t max_depth = this->m_tree_->GetTreeDepth();
+                    const uint32_t max_depth = this->m_tree_->GetTreeDepth();
                     key_changing_dim = s.key[changing_dim] + (kNodeDepth == max_depth ? 1 : (1 << (max_depth - kNodeDepth - 1)));
                 }
                 // check if we have reached the end
@@ -1370,15 +1378,15 @@ namespace erl::geometry {
              * @param max_node_depth 0 means using the tree's max depth
              */
             NodeOnRayIterator(
-                double px,
-                double py,
-                double vx,
-                double vy,
-                double max_range,
-                bool bidirectional,
+                const double px,
+                const double py,
+                const double vx,
+                const double vy,
+                const double max_range,
+                const bool bidirectional,
                 const QuadtreeImpl *tree,
-                bool leaf_only = false,
-                uint32_t min_node_depth = 0,
+                const bool leaf_only = false,
+                const uint32_t min_node_depth = 0,
                 uint32_t max_node_depth = 0)
                 : IteratorBase(tree, max_node_depth),
                   m_origin_(px, py),
@@ -1421,15 +1429,14 @@ namespace erl::geometry {
 
                 bool
                 operator()(const typename IteratorBase::StackElement &lhs, const typename IteratorBase::StackElement &rhs) const {
-                    const double &kLhsDist = lhs.template GetData<double>();
-                    const double &kRhsDist = rhs.template GetData<double>();
-                    if (kLhsDist >= 0) {
-                        if (kRhsDist >= 0) { return kLhsDist > kRhsDist; }  // both are positive
+                    const double &lhs_dist = lhs.template GetData<double>();
+                    const double &rhs_dist = rhs.template GetData<double>();
+                    if (lhs_dist >= 0) {
+                        if (rhs_dist >= 0) { return lhs_dist > rhs_dist; }  // both are positive
                         return false;
-                    } else {
-                        if (kRhsDist >= 0) { return true; }
-                        return kLhsDist < kRhsDist;  // both are negative
                     }
+                    if (rhs_dist >= 0) { return true; }
+                    return lhs_dist < rhs_dist;  // both are negative
                 }
             };
 
@@ -1449,15 +1456,15 @@ namespace erl::geometry {
                     if (this->m_stack_.empty()) {  // end of iteration
                         this->Terminate();
                         return;
-                    } else {                                                                // check the next stack top
-                        std::pop_heap(this->m_stack_.begin(), this->m_stack_.end(), cmp);   // now the stack top is at the back
-                        if (this->m_stack_.back().node->GetDepth() >= m_min_node_depth_) {  // current stack top is deep enough
-                            if (!this->m_leaf_only_) { return; }                            // stack top is not required to be leaf node
-                            if (this->IsLeaf()) { return; }                                 // current stack top is leaf node
-                        }
-                        s = this->m_stack_.back();  // current stack top is internal node
-                        this->m_stack_.pop_back();
                     }
+                    // check the next stack top
+                    std::pop_heap(this->m_stack_.begin(), this->m_stack_.end(), cmp);   // now the stack top is at the back
+                    if (this->m_stack_.back().node->GetDepth() >= m_min_node_depth_) {  // current stack top is deep enough
+                        if (!this->m_leaf_only_) { return; }                            // stack top is not required to be leaf node
+                        if (this->IsLeaf()) { return; }                                 // current stack top is leaf node
+                    }
+                    s = this->m_stack_.back();  // current stack top is internal node
+                    this->m_stack_.pop_back();
                 }
 
                 // now s.node is internal node
@@ -1703,7 +1710,7 @@ namespace erl::geometry {
             ray.clear();
             QuadtreeKey key_start, key_end;
             if (!CoordToKeyChecked(sx, sy, key_start) || !CoordToKeyChecked(ex, ey, key_end)) {
-                ERL_WARN("Ray (%f, %f) -> (%f, %f) is out of range.\n", sx, sy, ex, ey);
+                ERL_WARN("Ray ({}, {}) -> ({}, {}) is out of range.\n", sx, sy, ex, ey);
                 return false;
             }
             if (key_start == key_end) { return true; }
@@ -1714,7 +1721,7 @@ namespace erl::geometry {
             double &dy = direction[1];
             dx = ex - sx;
             dy = ey - sy;
-            double length = std::sqrt(dx * dx + dy * dy);
+            const double length = std::sqrt(dx * dx + dy * dy);
             dx /= length;
             dy /= length;
 
@@ -1740,24 +1747,22 @@ namespace erl::geometry {
             }
 
             // compute t_max and t_delta
-            const double &kResolution = this->m_setting_->resolution;
+            const double resolution = this->m_setting_->resolution;
             double t_max[2];
             double t_delta[2];
             if (step[0] == 0) {
                 t_max[0] = std::numeric_limits<double>::infinity();
                 t_delta[0] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = KeyToCoord(key_start[0]) + double(step[0]) * 0.5 * kResolution;
-                t_max[0] = (voxel_border - sx) / dx;
-                t_delta[0] = kResolution / std::abs(dx);
+                t_max[0] = (KeyToCoord(key_start[0]) + static_cast<double>(step[0]) * 0.5 * resolution - sx) / dx;
+                t_delta[0] = resolution / std::abs(dx);
             }
             if (step[1] == 0) {
                 t_max[1] = std::numeric_limits<double>::infinity();
                 t_delta[1] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = KeyToCoord(key_start[1]) + double(step[1]) * 0.5 * kResolution;
-                t_max[1] = (voxel_border - sy) / dy;
-                t_delta[1] = kResolution / std::abs(dy);
+                t_max[1] = (KeyToCoord(key_start[1]) + static_cast<double>(step[1]) * 0.5 * resolution - sy) / dy;
+                t_delta[1] = resolution / std::abs(dy);
             }
 
             // incremental phase
@@ -1785,8 +1790,7 @@ namespace erl::geometry {
                 if (current_key == key_end) { break; }
 
                 // this seems to be unlikely to happen
-                double dist_from_origin = std::min(t_max[0], t_max[1]);
-                if (dist_from_origin > length) { break; }  // this happens due to numerical error
+                if (std::min(t_max[0], t_max[1]) > length) { break; }  // this happens due to numerical error
 
                 ray.push_back(current_key);
             }
@@ -1805,7 +1809,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        ComputeRayCoords(double sx, double sy, double ex, double ey, std::vector<Eigen::Vector2d> &ray) const {
+        ComputeRayCoords(const double sx, const double sy, const double ex, const double ey, std::vector<Eigen::Vector2d> &ray) const {
             ray.clear();
             QuadtreeKeyRay key_ray;
             if (!ComputeRayKeys(sx, sy, ex, ey, key_ray)) { return false; }
@@ -1844,7 +1848,7 @@ namespace erl::geometry {
 
         uint32_t
         DeleteNodeChild(Node *node, uint32_t child_idx, const QuadtreeKey &key) {
-            uint32_t old_tree_size = m_tree_size_;
+            const uint32_t old_tree_size = m_tree_size_;
             Node *child = node->template GetChild<Node>(child_idx);
             this->DeleteNodeDescendants(child, key);
             this->OnDeleteNodeChild(node, child, key);
@@ -1935,9 +1939,9 @@ namespace erl::geometry {
          * @return
          */
         uint32_t
-        DeleteNode(double x, double y, uint32_t delete_depth = 0) {
+        DeleteNode(double x, double y, const uint32_t delete_depth = 0) {
             if (QuadtreeKey key; !this->CoordToKeyChecked(x, y, key)) {
-                ERL_WARN("Point (%f, %f) is out of range.", x, y);
+                ERL_WARN("Point ({}, {}) is out of range.", x, y);
                 return 0;
             } else {
                 const uint32_t old_tree_size = m_tree_size_;
@@ -2011,6 +2015,7 @@ namespace erl::geometry {
         /**
          * Delete all descendants of the given node.
          * @param node
+         * @param key
          * @return
          */
         void
@@ -2046,20 +2051,18 @@ namespace erl::geometry {
         void
         Prune() override {
             if (m_root_ == nullptr) { return; }
-            long tree_depth = this->m_setting_->tree_depth;
+            const long tree_depth = this->m_setting_->tree_depth;
             for (long depth = tree_depth - 1; depth > 0; --depth) {
-                uint32_t old_tree_size = m_tree_size_;
+                const uint32_t old_tree_size = m_tree_size_;
                 this->PruneRecurs(this->m_root_.get(), depth);
-                uint32_t num_pruned = old_tree_size - m_tree_size_;
-                if (num_pruned == 0) { break; }
+                if (old_tree_size - m_tree_size_ == 0) { break; }
             }
         }
 
     protected:
         void
-        PruneRecurs(Node *node, uint32_t max_depth) {
-            const uint32_t &kDepth = node->GetDepth();
-            if (kDepth < max_depth) {
+        PruneRecurs(Node *node, const uint32_t max_depth) {
+            if (node->GetDepth() < max_depth) {
                 if (!node->HasAnyChild()) { return; }
                 for (int i = 0; i < 4; ++i) {
                     Node *child = this->GetNodeChild(node, i);
@@ -2084,7 +2087,7 @@ namespace erl::geometry {
 
     protected:
         void
-        ExpandRecurs(Node *node, uint32_t depth, uint32_t max_depth) {
+        ExpandRecurs(Node *node, const uint32_t depth, const uint32_t max_depth) {
             if (depth >= max_depth) { return; }
             ERL_DEBUG_ASSERT(node != nullptr, "node is nullptr");
 
@@ -2111,10 +2114,10 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] const Node *
-        Search(double x, double y, uint32_t max_depth = 0) const {
+        Search(double x, double y, const uint32_t max_depth = 0) const {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
-                ERL_WARN("Point (%f, %f) is out of range.\n", x, y);
+                ERL_WARN("Point ({}, {}) is out of range.\n", x, y);
                 return nullptr;
             }
 
@@ -2141,26 +2144,24 @@ namespace erl::geometry {
 
             // search
             const Node *node = m_root_.get();
-            int min_level = tree_depth - max_depth;
+            const int min_level = tree_depth - max_depth;
             // follow nodes down to the requested level (for level = 0, it is the leaf level)
             for (int level = tree_depth - 1; level >= min_level; --level) {
-                uint32_t child_index = QuadtreeKey::ComputeChildIndex(key_at_depth, level);
-                if (node->HasChild(child_index)) {
+                if (const uint32_t child_index = QuadtreeKey::ComputeChildIndex(key_at_depth, level); node->HasChild(child_index)) {
                     node = this->GetNodeChild(node, child_index);
                 } else {
                     // we expect a child but did not get it, is the current node a leaf?
                     if (!node->HasAnyChild()) {
                         return node;  // current node is a leaf, so we cannot go deeper
-                    } else {
-                        return nullptr;  // current node is not a leaf, search failed
                     }
+                    return nullptr;  // current node is not a leaf, search failed
                 }
             }
             return node;
         }
 
         [[maybe_unused]] Node *
-        InsertNode(double x, double y, uint32_t depth = 0) {
+        InsertNode(double x, double y, const uint32_t depth = 0) {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
                 ERL_WARN("Point ({}, {}) is out of range.\n", x, y);
@@ -2180,10 +2181,9 @@ namespace erl::geometry {
             }
 
             Node *node = this->m_root_.get();
-            int diff = tree_depth - depth;
+            const int diff = tree_depth - depth;
             for (int level = tree_depth - 1; level >= diff; --level) {
-                uint32_t child_index = QuadtreeKey::ComputeChildIndex(key, level);
-                if (node->HasChild(child_index)) {
+                if (const uint32_t child_index = QuadtreeKey::ComputeChildIndex(key, level); node->HasChild(child_index)) {
                     node = GetNodeChild(node, child_index);
                 } else {
                     node = CreateNodeChild(node, child_index);
@@ -2287,8 +2287,8 @@ namespace erl::geometry {
             m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<double>::infinity();
 
             for (auto it = this->begin(), end = this->end(); it != end; ++it) {
-                double size = it.GetNodeSize();
-                double half_size = size / 2.0;
+                const double size = it.GetNodeSize();
+                const double half_size = size / 2.0;
                 double x = it.GetX() - half_size;
                 double y = it.GetY() - half_size;
                 if (x < m_metric_min_[0]) { m_metric_min_[0] = x; }

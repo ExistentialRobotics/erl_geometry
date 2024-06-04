@@ -1,8 +1,6 @@
 #pragma once
 
-#include <memory>
-
-#include "erl_common/grid_map.hpp"
+#include "erl_common/eigen.hpp"
 
 namespace erl::geometry {
 

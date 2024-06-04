@@ -2,13 +2,13 @@
 
 #include "erl_common/yaml.hpp"
 
-#include <functional>
 #include <open3d/geometry/Geometry.h>
 #include <open3d/geometry/LineSet.h>
-#include <open3d/geometry/PointCloud.h>
 #include <open3d/geometry/TriangleMesh.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 #include <open3d/visualization/visualizer/VisualizerWithKeyCallback.h>
+
+#include <functional>
 
 namespace erl::geometry {
     class Open3dVisualizerWrapper {
@@ -39,8 +39,7 @@ namespace erl::geometry {
         std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> m_animation_callback_ = nullptr;
 
     public:
-        explicit
-        Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
+        explicit Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
             : m_setting_(std::move(setting)) {
             if (!m_setting_) { m_setting_ = std::make_shared<Setting>(); }
             Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
@@ -58,12 +57,12 @@ namespace erl::geometry {
             return m_visualizer_;
         }
 
-        inline void
+        void
         SetKeyboardCallback(std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> callback) {
             m_keyboard_callback_ = std::move(callback);
         }
 
-        inline void
+        void
         SetAnimationCallback(std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)> callback) {
             m_animation_callback_ = std::move(callback);
             if (m_animation_callback_) {
@@ -88,17 +87,15 @@ namespace erl::geometry {
         }
 
         void
-        Show(int wait_time_seconds = -1) {
+        Show(const int wait_time_seconds = -1) {
 
             if (wait_time_seconds > 0) {
                 m_visualizer_->BuildUtilities();
                 m_visualizer_->UpdateWindowTitle();
-                auto start_time = std::chrono::system_clock::now();
+                const auto start_time = std::chrono::system_clock::now();
                 if (m_keyboard_callback_) { m_keyboard_callback_(this, m_visualizer_.get()); }
                 while (true) {
-                    auto current_time = std::chrono::system_clock::now();
-                    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time);
-                    if (elapsed_seconds.count() >= wait_time_seconds) { break; }
+                    if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now() - start_time).count() >= wait_time_seconds) { break; }
                     m_visualizer_->PollEvents();
                     m_visualizer_->UpdateRender();
                 }

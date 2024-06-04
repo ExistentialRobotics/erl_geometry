@@ -1,7 +1,6 @@
 #pragma once
 
 #include "erl_common/pybind11.hpp"
-#include "erl_common/pybind11_opencv.hpp"
 #include "erl_common/yaml.hpp"
 
 template<class Drawer, class Tree>

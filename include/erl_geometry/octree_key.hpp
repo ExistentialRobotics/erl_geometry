@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+
+#include <cstdint>
 #include <vector>
 
 namespace erl::geometry {
@@ -28,15 +29,15 @@ namespace erl::geometry {
 
         // Hash function for OctreeKey when used with std hash containers.
         struct [[maybe_unused]] KeyHash {
-            [[nodiscard]] inline std::size_t
+            [[nodiscard]] std::size_t
             operator()(const OctreeKey& key) const {
-                return (std::size_t(key.m_k_[0]) << 32) | (std::size_t(key.m_k_[1]) << 16) | std::size_t(key.m_k_[2]);
+                return (static_cast<std::size_t>(key.m_k_[0]) << 32) | (static_cast<std::size_t>(key.m_k_[1]) << 16) | static_cast<std::size_t>(key.m_k_[2]);
             }
         };
 
         OctreeKey() = default;
 
-        OctreeKey(KeyType a, KeyType b, KeyType c)
+        OctreeKey(const KeyType a, const KeyType b, const KeyType c)
             : m_k_{a, b, c} {}
 
         OctreeKey(const OctreeKey& other)
@@ -74,12 +75,12 @@ namespace erl::geometry {
         }
 
         KeyType&
-        operator[](unsigned int i) {
+        operator[](const uint32_t i) {
             return m_k_[i];
         }
 
         [[nodiscard]] const KeyType&
-        operator[](unsigned int i) const {
+        operator[](const uint32_t i) const {
             return m_k_[i];
         }
 
@@ -123,8 +124,8 @@ namespace erl::geometry {
          * @param parent_key
          * @param child_key
          */
-        inline static void
-        ComputeChildKey(unsigned int pos, KeyType center_offset_key, const OctreeKey& parent_key, OctreeKey& child_key) {
+        static void
+        ComputeChildKey(const uint32_t pos, const KeyType center_offset_key, const OctreeKey& parent_key, OctreeKey& child_key) {
             child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
             child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
             child_key.m_k_[2] = parent_key.m_k_[2] + ((pos & 4) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
@@ -137,7 +138,7 @@ namespace erl::geometry {
          * @return
          */
         static int
-        ComputeChildIndex(const OctreeKey& key, uint32_t level) {
+        ComputeChildIndex(const OctreeKey& key, const uint32_t level) {
             int pos = 0;
             const KeyType mask = 1 << level;
             if (key.m_k_[0] & mask) { pos += 1; }
@@ -147,7 +148,7 @@ namespace erl::geometry {
         }
 
         static bool
-        KeyInAabb(const OctreeKey& key, KeyType center_offset_key, const OctreeKey& aabb_min_key, const OctreeKey& aabb_max_key) {
+        KeyInAabb(const OctreeKey& key, const KeyType center_offset_key, const OctreeKey& aabb_min_key, const OctreeKey& aabb_max_key) {
             return (aabb_min_key.m_k_[0] <= (key.m_k_[0] + center_offset_key)) &&  //
                    (aabb_min_key.m_k_[1] <= (key.m_k_[1] + center_offset_key)) &&  //
                    (aabb_min_key.m_k_[2] <= (key.m_k_[2] + center_offset_key)) &&  //

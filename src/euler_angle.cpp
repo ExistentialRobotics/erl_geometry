@@ -1,14 +1,18 @@
 #include "erl_geometry/euler_angle.hpp"
+
 #include "erl_common/logging.hpp"
+
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 namespace erl::geometry {
 
     EulerAngleOrder
     GetEulerAngleOrder(const std::string& euler_order) {
-        auto s = static_cast<char>(std::tolower(euler_order.c_str()[0]));
-        auto x = static_cast<char>(std::tolower(euler_order.c_str()[1]));
-        auto y = static_cast<char>(std::tolower(euler_order.c_str()[2]));
-        auto z = static_cast<char>(std::tolower(euler_order.c_str()[3]));
+        const auto s = static_cast<char>(std::tolower(euler_order.c_str()[0]));
+        const auto x = static_cast<char>(std::tolower(euler_order.c_str()[1]));
+        const auto y = static_cast<char>(std::tolower(euler_order.c_str()[2]));
+        const auto z = static_cast<char>(std::tolower(euler_order.c_str()[3]));
 
         ERL_ASSERTM(x != y && y != z, "Invalid Euler angle order: {}", euler_order.c_str());
 
@@ -39,7 +43,7 @@ namespace erl::geometry {
 
     Eigen::Matrix3d
     EulerToRotation3D(double a, double b, double c, EulerAngleOrder euler_angle_order) {
-        auto order = static_cast<int>(euler_angle_order);
+        const auto order = static_cast<int>(euler_angle_order);
 
         /*
          * rzyx (sxyz): yaw = a, pitch = b, roll = c, i = 0, j = 1, k = 2, cross(x, y) = z --> right-handed
@@ -102,15 +106,15 @@ namespace erl::geometry {
          *    \ sin(a) sin(b), cos(a) sin(c) + cos(b) cos(c) sin(a),  cos(a) cos(c) - cos(b) sin(a) sin(c)  /
          */
 
-        bool is_relative = (order & (1 << 6)) >> 6;  // 0b1xxxxxx
-        int i = (order & (0b11 << 4)) >> 4;
-        int j = (order & (0b11 << 2)) >> 2;
+        const bool is_relative = (order & 1 << 6) >> 6;  // 0b1xxxxxx
+        int i = (order & 0b11 << 4) >> 4;
+        const int j = (order & 0b11 << 2) >> 2;
         int k = order & 0b11;
         if (is_relative) {
             std::swap(a, c);
             std::swap(i, k);
         }
-        bool repetition = i == k;
+        const bool repetition = i == k;
         k = 3 - i - j;
 
         Eigen::Vector3i axis_vec_a = Eigen::Vector3i::Zero();
@@ -125,13 +129,13 @@ namespace erl::geometry {
             c = -c;
         }
 
-        double sa = std::sin(a), ca = std::cos(a);
-        double sb = std::sin(b), cb = std::cos(b);
-        double sc = std::sin(c), cc = std::cos(c);
-        double cc_ca = cc * ca;
-        double cc_sa = cc * sa;
-        double sc_ca = sc * ca;
-        double sc_sa = sc * sa;
+        const double sa = std::sin(a), ca = std::cos(a);
+        const double sb = std::sin(b), cb = std::cos(b);
+        const double sc = std::sin(c), cc = std::cos(c);
+        const double cc_ca = cc * ca;
+        const double cc_sa = cc * sa;
+        const double sc_ca = sc * ca;
+        const double sc_sa = sc * sa;
         Eigen::Matrix3d r;
         // clang-format off
         if (repetition) {

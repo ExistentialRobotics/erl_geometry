@@ -18,8 +18,8 @@ namespace erl::geometry {
                 // rRo = [0, 0, 1; -1, 0, 0; 0, -1, 0];
                 // clang-format off
                 dir_frame << 1.0,
-                             -(double(u) - m_setting_->camera_cx) / m_setting_->camera_fx,
-                             -(double(v) - m_setting_->camera_cy) / m_setting_->camera_fy;
+                             -(static_cast<double>(u) - m_setting_->camera_cx) / m_setting_->camera_fx,
+                             -(static_cast<double>(v) - m_setting_->camera_cy) / m_setting_->camera_fy;
                 // clang-format on
             }
         }

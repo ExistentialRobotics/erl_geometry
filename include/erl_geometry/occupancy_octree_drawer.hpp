@@ -1,10 +1,12 @@
 #pragma once
 
-#include "erl_common/yaml.hpp"
 #include "abstract_octree_drawer.hpp"
 
-#include <functional>
+#include "erl_common/yaml.hpp"
+
 #include <open3d/geometry/VoxelGrid.h>
+
+#include <functional>
 
 namespace erl::geometry {
 
@@ -34,8 +36,7 @@ namespace erl::geometry {
         DrawLeafCallback m_draw_leaf_ = {};
 
     public:
-        explicit
-        OccupancyOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyOctreeType> octree = nullptr)
+        explicit OccupancyOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyOctreeType> octree = nullptr)
             : AbstractOctreeDrawer(std::static_pointer_cast<AbstractOctreeDrawer::Setting>(setting), octree),
               m_setting_(std::move(setting)),
               m_occupancy_octree_(std::move(octree)) {
@@ -64,13 +65,11 @@ namespace erl::geometry {
 
         void
         DrawTree(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override {
-            std::shared_ptr<open3d::geometry::VoxelGrid> boxes;
-            std::shared_ptr<open3d::geometry::LineSet> node_border;
             if (geometries.empty()) { geometries = GetBlankGeometries(); }
             ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
-            boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+            const std::shared_ptr<open3d::geometry::VoxelGrid> boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
             ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
-            node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
+            const std::shared_ptr<open3d::geometry::LineSet> node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
             ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
 
             if (m_occupancy_octree_ == nullptr) {
@@ -93,14 +92,14 @@ namespace erl::geometry {
             auto end = m_occupancy_octree_->EndTreeInAabb();
 
             node_border->Clear();
-            double area_size = (m_setting_->area_max - m_setting_->area_min).maxCoeff();
+            const double area_size = (m_setting_->area_max - m_setting_->area_min).maxCoeff();
             for (; it != end; ++it) {
-                double node_size = it.GetNodeSize();
+                const double node_size = it.GetNodeSize();
                 if (node_size > area_size) { continue; }  // skip nodes that are too large
-                double half_size = node_size / 2.0;
-                double x = it.GetX();
-                double y = it.GetY();
-                double z = it.GetZ();
+                const double half_size = node_size / 2.0;
+                const double x = it.GetX();
+                const double y = it.GetY();
+                const double z = it.GetZ();
                 bool occupied = m_occupancy_octree_->IsNodeOccupied(*it);
 
                 if (!it->HasAnyChild() && occupied && m_setting_->draw_node_boxes) {  // occupied leaf node
@@ -115,7 +114,7 @@ namespace erl::geometry {
                 }
 
                 if (m_setting_->draw_node_borders) {
-                    auto n = static_cast<int>(node_border->points_.size());
+                    const auto n = static_cast<int>(node_border->points_.size());
                     node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
@@ -150,13 +149,11 @@ namespace erl::geometry {
 
         void
         DrawLeaves(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override {
-            std::shared_ptr<open3d::geometry::VoxelGrid> boxes;
-            std::shared_ptr<open3d::geometry::LineSet> node_border;
             if (geometries.empty()) { geometries = GetBlankGeometries(); }
             ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
-            boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+            const std::shared_ptr<open3d::geometry::VoxelGrid> boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
             ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
-            node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
+            const std::shared_ptr<open3d::geometry::LineSet> node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
             ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
 
             std::shared_ptr<const OccupancyOctreeType> octree = std::static_pointer_cast<const OccupancyOctreeType>(m_octree_);
@@ -181,11 +178,11 @@ namespace erl::geometry {
             for (; it != end; ++it) {
                 ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!");
 
-                double node_size = it.GetNodeSize();
-                double half_size = node_size / 2.0;
-                double x = it.GetX();
-                double y = it.GetY();
-                double z = it.GetZ();
+                const double node_size = it.GetNodeSize();
+                const double half_size = node_size / 2.0;
+                const double x = it.GetX();
+                const double y = it.GetY();
+                const double z = it.GetZ();
                 bool occupied = octree->IsNodeOccupied(*it);
 
                 if (occupied && m_setting_->draw_node_boxes) {
@@ -200,7 +197,7 @@ namespace erl::geometry {
                 }
 
                 if (m_setting_->draw_node_borders) {
-                    auto n = static_cast<int>(node_border->points_.size());
+                    const auto n = static_cast<int>(node_border->points_.size());
                     node_border->points_.emplace_back(x - half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y - half_size, z - half_size);
                     node_border->points_.emplace_back(x + half_size, y + half_size, z - half_size);
@@ -238,7 +235,7 @@ namespace erl::geometry {
 namespace YAML {
     template<typename Setting>
     struct ConvertOccupancyOctreeDrawerSetting {
-        inline static Node
+        static Node
         encode(const Setting &rhs) {
             Node node = convert<erl::geometry::AbstractOctreeDrawer::Setting>::encode(rhs);
             node["occupied_only"] = rhs.occupied_only;
@@ -248,7 +245,7 @@ namespace YAML {
             return node;
         }
 
-        inline static bool
+        static bool
         decode(const Node &node, Setting &rhs) {
             if (!node.IsMap()) { return false; }
             if (!convert<erl::geometry::AbstractOctreeDrawer::Setting>::decode(node, rhs)) { return false; }

@@ -1,11 +1,12 @@
-#include "erl_common/test_helper.hpp"
 #include "erl_common/csv.hpp"
 #include "erl_common/progress_bar.hpp"
 #include "erl_common/random.hpp"
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/gazebo_room.hpp"
 #include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
+
 #include <boost/program_options.hpp>
 
 static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
@@ -40,7 +41,7 @@ TEST(OccupancyQuadtree, Build) {
     Eigen::Matrix2Xd trajectory;
 
     auto load_scan = [&](const Eigen::Matrix2d &rotation, const Eigen::Vector2d &translation, const Eigen::VectorXd &angles, const Eigen::VectorXd &ranges) {
-        long n = ranges.size();
+        const long n = ranges.size();
         Eigen::Matrix2Xd points(2, n);
         long cnt = 0;
         for (long k = 0; k < n; ++k) {
@@ -52,12 +53,12 @@ TEST(OccupancyQuadtree, Build) {
             points.col(cnt) = global_pt;
             cnt++;
 
-            const double &kX = global_pt[0];
-            const double &kY = global_pt[1];
-            if (kX < map_min[0]) { map_min[0] = kX; }
-            if (kX > map_max[0]) { map_max[0] = kX; }
-            if (kY < map_min[1]) { map_min[1] = kY; }
-            if (kY > map_max[1]) { map_max[1] = kY; }
+            const double &x = global_pt[0];
+            const double &y = global_pt[1];
+            if (x < map_min[0]) { map_min[0] = x; }
+            if (x > map_max[0]) { map_max[0] = x; }
+            if (y < map_min[1]) { map_min[1] = y; }
+            if (y > map_max[1]) { map_max[1] = y; }
         }
         points.conservativeResize(2, cnt);
         return points;
@@ -119,7 +120,7 @@ TEST(OccupancyQuadtree, Build) {
         tree_name = "ros_bag";
         Eigen::MatrixXd ros_bag_data = erl::common::LoadEigenMatrixFromBinaryFile<double, Eigen::Dynamic, Eigen::Dynamic>(g_options.ros_bag_dat_file);
         // prepare buffer
-        max_update_cnt = static_cast<long>(ros_bag_data.rows()) / g_options.stride + 1;
+        max_update_cnt = ros_bag_data.rows() / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
         trajectory.resize(2, max_update_cnt);
         // load data into buffer

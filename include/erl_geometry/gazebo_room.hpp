@@ -1,3 +1,5 @@
+#pragma once
+
 #include "erl_common/binary_file.hpp"
 #include "erl_common/eigen.hpp"
 
@@ -6,26 +8,26 @@ namespace erl::geometry {
     class GazeboRoom {
 
         template<typename T>
-        inline static void
+        static void
         ReadVar(char *&data_ptr, T &var) {
             var = reinterpret_cast<T *>(data_ptr)[0];
             data_ptr += sizeof(T);
         }
 
         template<typename T>
-        inline static void
-        ReadPtr(char *&data_ptr, size_t n, T *&ptr) {
+        static void
+        ReadPtr(char *&data_ptr, const size_t n, T *&ptr) {
             ptr = reinterpret_cast<T *>(data_ptr);
             data_ptr += sizeof(T) * n;
         }
 
     public:
-        inline static const double sk_MaxRange_ = 30.;
-        inline static const double sk_MinRange_ = 0.2;
-        inline static const double sk_SensorOffsetX_ = 0.08;  // sensor x-offset in the robot frame (IMU frame).
-        inline static const double sk_SensorOffsetY_ = 0.;    // sensor y-offset in the robot frame (IMU frame).
+        // static constexpr double sk_MaxRange_ = 30.;
+        // static constexpr double sk_MinRange_ = 0.2;
+        static constexpr double sk_SensorOffsetX_ = 0.08;  // sensor x-offset in the robot frame (IMU frame).
+        static constexpr double sk_SensorOffsetY_ = 0.;    // sensor y-offset in the robot frame (IMU frame).
 
-        typedef struct TrainDataFrame {
+        using TrainDataFrame = struct TrainDataFrame {
             Eigen::VectorXd angles;
             Eigen::VectorXd distances;
             std::vector<double> pose_matlab;
@@ -33,11 +35,11 @@ namespace erl::geometry {
             Eigen::Vector2d position;  // 2D position
             Eigen::Matrix2d rotation;  // 2D rotation
 
-            TrainDataFrame(double *pa, double *pr, const double *pose_ptr, int numel) {
+            TrainDataFrame(double *pa, double *pr, const double *pose_ptr, const int numel) {
                 angles.resize(numel);
                 distances.resize(numel);
-                std::copy(pa, pa + numel, angles.begin());
-                std::copy(pr, pr + numel, distances.begin());
+                std::copy_n(pa, numel, angles.begin());
+                std::copy_n(pr, numel, distances.begin());
 
                 Eigen::Matrix23d pose;
                 // clang-format off
@@ -63,7 +65,7 @@ namespace erl::geometry {
             Resize(int numel) {
                 return {angles.data(), distances.data(), pose_matlab.data(), numel};
             }
-        } TrainDataFrame;
+        };
 
         class TrainDataLoader {
             std::vector<TrainDataFrame> m_data_frames_;
@@ -73,8 +75,8 @@ namespace erl::geometry {
                 auto data = erl::common::LoadBinaryFile<char>(path);
 
                 char *data_ptr = data.data();
-                auto data_ptr_begin = data_ptr;
-                size_t data_size = data.size();
+                const auto data_ptr_begin = data_ptr;
+                const size_t data_size = data.size();
                 int numel;
                 double *pa, *pr, *pose_ptr;
                 std::size_t pose_size;
@@ -89,27 +91,27 @@ namespace erl::geometry {
                 }
             }
 
-            inline TrainDataFrame &
-            operator[](size_t i) {
+            TrainDataFrame &
+            operator[](const size_t i) {
                 return m_data_frames_[i];
             }
 
-            inline const TrainDataFrame &
-            operator[](size_t i) const {
+            const TrainDataFrame &
+            operator[](const size_t i) const {
                 return m_data_frames_[i];
             }
 
-            [[nodiscard]] inline size_t
+            [[nodiscard]] size_t
             size() const {
                 return m_data_frames_.size();
             }
 
-            inline auto
+            auto
             begin() {
                 return m_data_frames_.begin();
             }
 
-            inline auto
+            auto
             end() {
                 return m_data_frames_.end();
             }
@@ -135,7 +137,7 @@ namespace erl::geometry {
                 GazeboRoom::ReadVar(data_ptr, numel_p_res);
 
                 positions.resize(2, numel_px / 2);
-                std::copy(px, px + numel_px, positions.data());
+                std::copy_n(px, numel_px, positions.data());
                 out_buf.resize(numel_p_res, 0);
             }
 

@@ -1,12 +1,13 @@
 #pragma once
 
-#include <utility>
-
-#include "erl_common/eigen.hpp"
-#include "erl_common/yaml.hpp"
-#include "erl_common/random.hpp"
-#include "erl_common/angle_utils.hpp"
 #include "kdtree_eigen_adaptor.hpp"
+
+#include "erl_common/angle_utils.hpp"
+#include "erl_common/eigen.hpp"
+#include "erl_common/random.hpp"
+#include "erl_common/yaml.hpp"
+
+#include <utility>
 
 namespace erl::geometry {
     class LidarFramePartition2D;
@@ -70,37 +71,37 @@ namespace erl::geometry {
             Eigen::VectorXd ranges,
             bool partition_rays = false);
 
-        [[nodiscard]] inline const std::shared_ptr<Setting> &
+        [[nodiscard]] const std::shared_ptr<Setting> &
         GetSetting() const {
             return m_setting_;
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumRays() const {
             return m_angles_frame_.size();
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumHitRays() const {
             return m_hit_ray_indices_.size();
         }
 
-        [[nodiscard]] inline const Eigen::Matrix2d &
+        [[nodiscard]] const Eigen::Matrix2d &
         GetRotationMatrix() const {
             return m_rotation_;
         }
 
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         GetRotationAngle() const {
             return m_rotation_angle_;
         }
 
-        [[nodiscard]] inline const Eigen::Vector2d &
+        [[nodiscard]] const Eigen::Vector2d &
         GetTranslationVector() const {
             return m_translation_;
         }
 
-        [[nodiscard]] inline Eigen::Matrix3d
+        [[nodiscard]] Eigen::Matrix3d
         GetPoseMatrix() const {
             Eigen::Isometry2d pose;
             pose.linear() = m_rotation_;
@@ -108,68 +109,68 @@ namespace erl::geometry {
             return pose.matrix();
         }
 
-        [[nodiscard]] inline const Eigen::VectorXd &
+        [[nodiscard]] const Eigen::VectorXd &
         GetAnglesInFrame() const {
             return m_angles_frame_;
         }
 
-        [[nodiscard]] inline const Eigen::VectorXd &
+        [[nodiscard]] const Eigen::VectorXd &
         GetAnglesInWorld() const {
             return m_angles_world_;
         }
 
-        [[nodiscard]] inline const Eigen::VectorXd &
+        [[nodiscard]] const Eigen::VectorXd &
         GetRanges() const {
             return m_ranges_;
         }
 
-        [[nodiscard]] inline const Eigen::Matrix2Xd &
+        [[nodiscard]] const Eigen::Matrix2Xd &
         GetRayDirectionsInFrame() const {
             return m_dirs_frame_;
         }
 
-        [[nodiscard]] inline const Eigen::Matrix2Xd &
+        [[nodiscard]] const Eigen::Matrix2Xd &
         GetRayDirectionsInWorld() const {
             return m_dirs_world_;
         }
 
-        [[nodiscard]] inline const Eigen::Matrix2Xd &
+        [[nodiscard]] const Eigen::Matrix2Xd &
         GetEndPointsInFrame() const {
             return m_end_pts_frame_;
         }
 
-        [[nodiscard]] inline const Eigen::Matrix2Xd &
+        [[nodiscard]] const Eigen::Matrix2Xd &
         GetEndPointsInWorld() const {
             return m_end_pts_world_;
         }
 
-        [[nodiscard]] inline const Eigen::VectorXl &
+        [[nodiscard]] const Eigen::VectorXl &
         GetHitRayIndices() const {
             return m_hit_ray_indices_;
         }
 
-        [[nodiscard]] inline const Eigen::Matrix2Xd &
+        [[nodiscard]] const Eigen::Matrix2Xd &
         GetHitPointsWorld() const {
             return m_hit_points_world_;
         }
 
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         GetMaxValidRange() const {
             return m_max_valid_range_;
         }
 
-        [[nodiscard]] inline const std::vector<LidarFramePartition2D> &
+        [[nodiscard]] const std::vector<LidarFramePartition2D> &
         GetPartitions() const {
             ERL_ASSERTM(m_partitioned_, "LidarFrame2D::GetPartitions() is called before partitioning.");
             return m_partitions_;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsPartitioned() const {
             return m_partitioned_;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsValid() const {
             return m_max_valid_range_ > 0;
         }
@@ -235,7 +236,7 @@ namespace erl::geometry {
         friend class LidarFrame2D;
 
     public:
-        LidarFramePartition2D(LidarFrame2D *frame, long index_begin, long index_end)
+        LidarFramePartition2D(LidarFrame2D *frame, const long index_begin, const long index_end)
             : m_frame_(frame),
               m_index_begin_(index_begin),
               m_index_end_(index_end) {
@@ -244,65 +245,49 @@ namespace erl::geometry {
             ERL_DEBUG_ASSERT(m_index_end_ >= 0, "index_end is negative.");
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetIndexBegin() const {
             return m_index_begin_;
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetIndexEnd() const {
             return m_index_end_ + 1;
         }
 
-        [[nodiscard]] inline bool
-        AngleInPartition(double angle_world) const {
-            double angle_frame = common::WrapAnglePi(angle_world - m_frame_->m_rotation_angle_);
+        [[nodiscard]] bool
+        AngleInPartition(const double angle_world) const {
+            const double angle_frame = common::WrapAnglePi(angle_world - m_frame_->m_rotation_angle_);
             return (angle_frame >= m_frame_->m_angles_frame_[m_index_begin_]) && (angle_frame <= m_frame_->m_angles_frame_[m_index_end_]);
         }
     };
 }  // namespace erl::geometry
 
-namespace YAML {
-    template<>
-    struct convert<erl::geometry::LidarFrame2D::Setting> {
-        inline static Node
-        encode(const erl::geometry::LidarFrame2D::Setting &rhs) {
-            Node node;
-            node["valid_range_min"] = rhs.valid_range_min;
-            node["valid_range_max"] = rhs.valid_range_max;
-            node["valid_angle_min"] = rhs.valid_angle_min;
-            node["valid_angle_max"] = rhs.valid_angle_max;
-            node["discontinuity_factor"] = rhs.discontinuity_factor;
-            node["rolling_diff_discount"] = rhs.rolling_diff_discount;
-            node["min_partition_size"] = rhs.min_partition_size;
-            return node;
-        }
+template<>
+struct YAML::convert<erl::geometry::LidarFrame2D::Setting> {
+    static Node
+    encode(const erl::geometry::LidarFrame2D::Setting &rhs) {
+        Node node;
+        node["valid_range_min"] = rhs.valid_range_min;
+        node["valid_range_max"] = rhs.valid_range_max;
+        node["valid_angle_min"] = rhs.valid_angle_min;
+        node["valid_angle_max"] = rhs.valid_angle_max;
+        node["discontinuity_factor"] = rhs.discontinuity_factor;
+        node["rolling_diff_discount"] = rhs.rolling_diff_discount;
+        node["min_partition_size"] = rhs.min_partition_size;
+        return node;
+    }
 
-        inline static bool
-        decode(const Node &node, erl::geometry::LidarFrame2D::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.valid_range_min = node["valid_range_min"].as<double>();
-            rhs.valid_range_max = node["valid_range_max"].as<double>();
-            rhs.valid_angle_min = node["valid_angle_min"].as<double>();
-            rhs.valid_angle_max = node["valid_angle_max"].as<double>();
-            rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
-            rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
-            rhs.min_partition_size = node["min_partition_size"].as<int>();
-            return true;
-        }
-    };
-
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::LidarFrame2D::Setting &rhs) {
-//        out << BeginMap;
-//        out << Key << "valid_range_min" << Value << rhs.valid_range_min;
-//        out << Key << "valid_range_max" << Value << rhs.valid_range_max;
-//        out << Key << "valid_angle_min" << Value << rhs.valid_angle_min;
-//        out << Key << "valid_angle_max" << Value << rhs.valid_angle_max;
-//        out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
-//        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
-//        out << Key << "min_partition_size" << Value << rhs.min_partition_size;
-//        out << EndMap;
-//        return out;
-//    }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::LidarFrame2D::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.valid_range_min = node["valid_range_min"].as<double>();
+        rhs.valid_range_max = node["valid_range_max"].as<double>();
+        rhs.valid_angle_min = node["valid_angle_min"].as<double>();
+        rhs.valid_angle_max = node["valid_angle_max"].as<double>();
+        rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
+        rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
+        rhs.min_partition_size = node["min_partition_size"].as<int>();
+        return true;
+    }
+};  // namespace YAML

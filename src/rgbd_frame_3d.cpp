@@ -1,4 +1,5 @@
 #include "erl_geometry/rgbd_frame_3d.hpp"
+
 #include "erl_common/opencv.hpp"
 #include "erl_geometry/azimuth_elevation.hpp"
 
@@ -9,12 +10,11 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Matrix3d> &rotation,
         const Eigen::Ref<const Eigen::Vector3d> &translation,
         Eigen::MatrixXd depth,
-        bool depth_scaled,
-        bool partition_rays
-    ) {
+        const bool depth_scaled,
+        const bool partition_rays) {
         auto *setting = reinterpret_cast<Setting *>(m_setting_.get());
-        ERL_ASSERTM(depth.rows() == setting->image_height, "depth image height ({:d}) does not match setting ({:d}).", depth.rows(), setting->image_height);
-        ERL_ASSERTM(depth.cols() == setting->image_width, "depth image width ({:d}) does not match setting ({:d}).", depth.cols(), setting->image_width);
+        ERL_ASSERTM(depth.rows() == setting->image_height, "depth image height ({}) does not match setting ({}).", depth.rows(), setting->image_height);
+        ERL_ASSERTM(depth.cols() == setting->image_width, "depth image width ({}) does not match setting ({}).", depth.cols(), setting->image_width);
         m_rotation_ << rotation;
         m_translation_ << translation;
         m_azimuth_frame_.resize(depth.rows(), depth.cols());
@@ -27,8 +27,8 @@ namespace erl::geometry {
 
         long num_azimuths = GetNumAzimuthLines();
         long num_elevations = GetNumElevationLines();
-        ERL_ASSERTM(num_azimuths == m_ranges_.rows(), "num of azimuths ({:d}) does not match rows of ranges ({:d}).", num_azimuths, m_ranges_.rows());
-        ERL_ASSERTM(num_elevations == m_ranges_.cols(), "num of elevations ({:d}) does not match cols of ranges ({:d}).", num_elevations, m_ranges_.cols());
+        ERL_ASSERTM(num_azimuths == m_ranges_.rows(), "num of azimuths ({}) does not match rows of ranges ({}).", num_azimuths, m_ranges_.rows());
+        ERL_ASSERTM(num_elevations == m_ranges_.cols(), "num of elevations ({}) does not match cols of ranges ({}).", num_elevations, m_ranges_.cols());
         ERL_ASSERTM(num_azimuths > 0, "no azimuth angle.");
         ERL_ASSERTM(num_elevations > 0, "no elevation angle.");
 
@@ -58,8 +58,8 @@ namespace erl::geometry {
                 // azimuth_idx <--> image coordinate y
                 // clang-format off
                 // camera normalized coordinates, i.e. depth = 1.0
-                dir_frame << (double(elevation_idx) - setting->camera_cx) / setting->camera_fx,
-                             (double(azimuth_idx) - setting->camera_cy) / setting->camera_fy,
+                dir_frame << (static_cast<double>(elevation_idx) - setting->camera_cx) / setting->camera_fx,
+                             (static_cast<double>(azimuth_idx) - setting->camera_cy) / setting->camera_fy,
                              1.0;
                 // clang-format on
                 end_pt_frame = dir_frame * range;   // range is depth currently
@@ -75,8 +75,8 @@ namespace erl::geometry {
 
                 // max valid range
                 // cannot move this line to the outer loop, because directions are computed in the inner loop
-                if ((azimuth < m_setting_->valid_azimuth_min) || (azimuth > m_setting_->valid_azimuth_max)) { continue; }
-                if (std::isnan(range) || (range < m_setting_->valid_range_min) || (range > m_setting_->valid_range_max)) { continue; }
+                if (azimuth < m_setting_->valid_azimuth_min || azimuth <= m_setting_->valid_azimuth_max) { continue; }
+                if (std::isnan(range) || range < m_setting_->valid_range_min || range <= m_setting_->valid_range_max) { continue; }
                 m_mask_hit_(azimuth_idx, elevation_idx) = true;
             }
         }
@@ -86,8 +86,7 @@ namespace erl::geometry {
         for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
             for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
                 if (!m_mask_hit_(azimuth_idx, elevation_idx)) { continue; }
-                const double &kRange = m_ranges_(azimuth_idx, elevation_idx);
-                if (kRange > m_max_valid_range_) { m_max_valid_range_ = kRange; }
+                if (const double range = m_ranges_(azimuth_idx, elevation_idx); range > m_max_valid_range_) { m_max_valid_range_ = range; }
                 m_hit_ray_indices_.col(num_hit_points) << azimuth_idx, elevation_idx;
                 m_hit_points_world_.col(num_hit_points++) << m_end_pts_world_(azimuth_idx, elevation_idx);
             }

@@ -1,10 +1,8 @@
 #pragma once
 
-#include <utility>
-#include <vector>
-
-#include "erl_common/eigen.hpp"
 #include "erl_common/yaml.hpp"
+
+#include <utility>
 
 namespace erl::geometry {
 
@@ -31,12 +29,12 @@ namespace erl::geometry {
               center((min + max) / 2),
               half_sizes((max - min) / 2) {}
 
-        inline bool
+        bool
         operator==(const Aabb &rhs) const {
             return center == rhs.center && half_sizes == rhs.half_sizes;
         }
 
-        inline bool
+        bool
         operator!=(const Aabb &rhs) const {
             return !(*this == rhs);
         }

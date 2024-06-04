@@ -1,10 +1,10 @@
-#include <filesystem>
-
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/lidar_frame_2d.hpp"
+
+#include <filesystem>
 
 struct UserData {
     inline static const char *window_name1 = "test lidar frame 2d: map";
@@ -22,12 +22,12 @@ struct UserData {
 };
 
 void
-MouseCallback1(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
+MouseCallback1(const int event, int mouse_x, int mouse_y, const int flags, void *userdata) {
     (void) flags;
-    auto data = reinterpret_cast<UserData *>(userdata);
+    const auto data = static_cast<UserData *>(userdata);
     if (event == cv::EVENT_LBUTTONDOWN) {
-        Eigen::Matrix2d rotation = Eigen::Matrix2d::Identity();
-        Eigen::Vector2d position = data->grid_map_info->PixelToMeterForPoints(Eigen::Vector2i(mouse_x, mouse_y));
+        const Eigen::Matrix2d rotation = Eigen::Matrix2d::Identity();
+        const Eigen::Vector2d position = data->grid_map_info->PixelToMeterForPoints(Eigen::Vector2i(mouse_x, mouse_y));
         data->lidar_frame->Update(rotation, position, data->lidar->GetAngles(), data->lidar->Scan(rotation, position, true));
         data->image1 = data->map_image.clone();
         std::vector<cv::Point2i> points;
@@ -54,14 +54,13 @@ MouseCallback1(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         cv::circle(data->image2, cv::Point(mouse_x, mouse_y), 2, cv::Scalar(0, 0, 255), cv::FILLED);
         data->image2_bk = data->image2.clone();
         cv::imshow(UserData::window_name2, data->image2);
-        return;
     }
 }
 
 void
-MouseCallback2(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
+MouseCallback2(const int event, int mouse_x, int mouse_y, const int flags, void *userdata) {
     (void) flags;
-    auto data = reinterpret_cast<UserData *>(userdata);
+    const auto data = static_cast<UserData *>(userdata);
     if (!data->lidar_frame->IsValid() || !data->lidar_frame->IsPartitioned()) { return; }
     static bool mouse_fixed = false;
 
@@ -73,7 +72,7 @@ MouseCallback2(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     if (event == cv::EVENT_MOUSEMOVE) {
         if (mouse_fixed) { return; }
         data->image2 = data->image2_bk.clone();
-        Eigen::Vector2d position = data->grid_map_info->PixelToMeterForPoints(Eigen::Vector2i(mouse_x, mouse_y));
+        const Eigen::Vector2d position = data->grid_map_info->PixelToMeterForPoints(Eigen::Vector2i(mouse_x, mouse_y));
         Eigen::Matrix2Xd directions;
         Eigen::VectorXd distances;
         std::vector<long> visible_hit_point_indices;
@@ -105,12 +104,11 @@ TEST(ERL_GEOMETRY, LidarFrame2D) {
         data.map->GetMeterSpace()->GetSurface()->vertices.rowwise().minCoeff(),
         data.map->GetMeterSpace()->GetSurface()->vertices.rowwise().maxCoeff(),
         Eigen::Vector2d(0.01, 0.01),
-        Eigen::Vector2i(10, 10)
-    );
+        Eigen::Vector2i(10, 10));
     auto lidar_setting = std::make_shared<Lidar2D::Setting>();
     lidar_setting->min_angle = -data.fov / 2;
     lidar_setting->max_angle = data.fov / 2;
-    lidar_setting->num_lines = int(std::round(data.fov / M_PI * 180)) + 1;
+    lidar_setting->num_lines = static_cast<int>(std::round(data.fov / M_PI * 180)) + 1;
     data.lidar = std::make_shared<Lidar2D>(lidar_setting, data.map->GetMeterSpace());
     auto setting = std::make_shared<LidarFrame2D::Setting>();
     setting->valid_angle_min = -data.fov / 2;
@@ -118,7 +116,7 @@ TEST(ERL_GEOMETRY, LidarFrame2D) {
     setting->valid_range_min = 0.0;
     setting->valid_range_max = 30.0;
     data.lidar_frame = std::make_shared<LidarFrame2D>(setting);
-    auto map_image = data.map->GetMeterSpace()->GenerateMapImage(*data.grid_map_info);
+    const Eigen::MatrixX8U map_image = data.map->GetMeterSpace()->GenerateMapImage(*data.grid_map_info);
     cv::eigen2cv(map_image, data.map_image);
     cv::cvtColor(data.map_image, data.map_image, cv::COLOR_GRAY2BGR);
     cv::imshow(UserData::window_name1, data.map_image);
@@ -127,7 +125,6 @@ TEST(ERL_GEOMETRY, LidarFrame2D) {
     cv::setMouseCallback(UserData::window_name1, MouseCallback1, &data);
     cv::setMouseCallback(UserData::window_name2, MouseCallback2, &data);
     while (!data.quit) {
-        int key = cv::waitKey(0);
-        if (key == 'q') { data.quit = true; }
+        if (cv::waitKey(0) == 'q') { data.quit = true; }
     }
 }

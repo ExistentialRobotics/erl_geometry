@@ -18,12 +18,11 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     auto lidar_setting = std::make_shared<erl::geometry::Lidar2D::Setting>();
     lidar_setting->num_lines = 720;
     erl::geometry::Lidar2D lidar(lidar_setting, house_expo_map.GetMeterSpace());
-    bool scan_in_parallel = true;
 
     std::filesystem::path traj_file_path = test_data_dir / ("house_expo_room_" + std::to_string(map_index) + ".csv");
     std::vector<std::vector<double>> trajectory =
         erl::common::LoadAndCastCsvFile<double>(traj_file_path.string().c_str(), [](const std::string &str) -> double { return std::stod(str); });
-    long max_update_cnt = long(trajectory.size());
+    long max_update_cnt = static_cast<long>(trajectory.size());
 
     auto tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.05;
@@ -39,11 +38,6 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     auto grid_map_info = drawer->GetGridMapInfo();
 
     long stride = 5;
-    double max_range = 30;
-    bool parallel = true;
-    bool lazy_eval = false;
-    bool discrete = false;
-    bool pixel_based = true;
     cv::Scalar trajectory_color(0, 0, 255, 255);
     Eigen::VectorXd lidar_angles = lidar.GetAngles();
     Eigen::Matrix2Xd line_directions(2, lidar_setting->num_lines);
@@ -58,6 +52,12 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     Eigen::Matrix2Xd cur_traj(2, max_update_cnt);
     for (long i = 0; i < max_update_cnt; ++i) { cur_traj.col(i) << trajectory[i][0], trajectory[i][1]; }
     for (long i = 0; i < max_update_cnt; i += stride) {
+        constexpr bool pixel_based = true;
+        constexpr bool discrete = false;
+        constexpr bool lazy_eval = false;
+        constexpr bool parallel = true;
+        constexpr double max_range = 30;
+        constexpr bool scan_in_parallel = true;
         std::vector<double> &waypoint = trajectory[i];
 
         Eigen::Matrix2d rotation = Eigen::Rotation2Dd(waypoint[2]).toRotationMatrix();

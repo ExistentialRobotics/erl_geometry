@@ -1,10 +1,11 @@
 #include "erl_geometry/space_2d.hpp"
 
+#include "erl_geometry/surface_2d.hpp"
+#include "erl_geometry/utils.hpp"
+
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc.hpp>
-#include "erl_geometry/surface_2d.hpp"
-#include "erl_geometry/utils.hpp"
 
 namespace erl::geometry {
 
@@ -12,17 +13,17 @@ namespace erl::geometry {
         const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &ordered_object_vertices,
         const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &ordered_object_normals) {
 
-        auto n_obj = (ssize_t) ordered_object_vertices.size();
-        ERL_ASSERTM((ssize_t) ordered_object_normals.size() == n_obj, "#groups_of_normals != #objects.");
+        const auto n_obj = static_cast<ssize_t>(ordered_object_vertices.size());
+        ERL_ASSERTM(static_cast<ssize_t>(ordered_object_normals.size()) == n_obj, "#groups_of_normals != #objects.");
 
         ssize_t n_vtx = 0;
         ssize_t n_lines = 0;
         for (ssize_t i = 0; i < n_obj; ++i) {
             auto n = ordered_object_vertices[i].cols();
-            ERL_ASSERTM(n >= 3, "#vertices({:d}) should >= 3 for object {:d}.", n, i);
+            ERL_ASSERTM(n >= 3, "#vertices({}) should >= 3 for object {}.", n, i);
 
             auto m = ordered_object_normals[i].cols();
-            ERL_ASSERTM(m == n, "#vertices ({:d}) != #normals ({:d}).", n, m);
+            ERL_ASSERTM(m == n, "#vertices ({}) != #normals ({}).", n, m);
 
             n_vtx += n;
             n_lines += n;
@@ -35,7 +36,7 @@ namespace erl::geometry {
         int vertex_idx_0 = 0;
         int line_idx_0 = 0;
         for (ssize_t i = 0; i < n_obj; ++i) {
-            auto n = (int) ordered_object_vertices[i].cols();
+            const auto n = static_cast<int>(ordered_object_vertices[i].cols());
 
             for (int j = 0; j < n; ++j) {
                 vertices(0, vertex_idx_0 + j) = ordered_object_vertices[i](0, j);
@@ -64,17 +65,17 @@ namespace erl::geometry {
     Space2D::Space2D(
         const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &ordered_object_vertices,
         const Eigen::Ref<const Eigen::VectorXb> &outside_flags,
-        double delta,
-        bool parallel) {
+        const double delta,
+        const bool parallel) {
 
-        auto n_obj = (ssize_t) ordered_object_vertices.size();
-        ERL_ASSERTM(outside_flags.size() == n_obj, "#outside_flags({:d}) != #objects({:d}).", outside_flags.size(), n_obj);
+        auto n_obj = static_cast<ssize_t>(ordered_object_vertices.size());
+        ERL_ASSERTM(outside_flags.size() == n_obj, "#outside_flags({}) != #objects({}).", outside_flags.size(), n_obj);
 
         ssize_t n_vtx = 0;
         ssize_t n_lines = 0;
         for (ssize_t i = 0; i < n_obj; ++i) {
             auto n = ordered_object_vertices[i].cols();
-            ERL_ASSERTM(n >= 3, "#vertices({:d}) should >= 3 for object {:d}.", n, i);
+            ERL_ASSERTM(n >= 3, "#vertices({}) should >= 3 for object {}.", n, i);
             n_vtx += n;
             n_lines += n;
         }
@@ -85,7 +86,7 @@ namespace erl::geometry {
         int vertex_idx_0 = 0;
         int line_idx_0 = 0;
         for (ssize_t i = 0; i < n_obj; ++i) {
-            auto n = (int) ordered_object_vertices[i].cols();
+            const auto n = static_cast<int>(ordered_object_vertices[i].cols());
 
             for (int j = 0; j < n; ++j) {
                 vertices(0, vertex_idx_0 + j) = ordered_object_vertices[i](0, j);
@@ -112,9 +113,9 @@ namespace erl::geometry {
     Space2D::Space2D(
         const Eigen::Ref<const Eigen::MatrixXd> &map_image,  // y up, x right
         const common::GridMapInfo2D &grid_map_info,
-        double free_threshold,
+        const double free_threshold,
         double delta,
-        bool parallel) {
+        const bool parallel) {
 
         // in pixels
         Eigen::Matrix2Xd vertices;
@@ -133,16 +134,16 @@ namespace erl::geometry {
     }
 
     Space2D
-    Space2D::AddObstacles(const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &obstacle_vertices, double delta, bool parallel) {
+    Space2D::AddObstacles(const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &obstacle_vertices, double delta, bool parallel) const {
 
         // in meters
-        long num_objects = m_surface_->GetNumObjects();
-        auto num_obstacles = long(obstacle_vertices.size());
+        const long num_objects = m_surface_->GetNumObjects();
+        const auto num_obstacles = static_cast<long>(obstacle_vertices.size());
         std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> ordered_object_vertices;
         ordered_object_vertices.reserve(num_objects + num_obstacles);
         Eigen::VectorXb outside_flags(num_objects + num_obstacles);
         for (long i = 0; i < num_objects; ++i) {
-            ordered_object_vertices.emplace_back(m_surface_->GetObjectVertices(int(i)));
+            ordered_object_vertices.emplace_back(m_surface_->GetObjectVertices(static_cast<int>(i)));
             outside_flags[i] = m_surface_->outside_flags[i];
         }
 
@@ -155,13 +156,13 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixX8U
-    Space2D::GenerateMapImage(const common::GridMapInfo2D &grid_map_info, bool anti_aliased) {
+    Space2D::GenerateMapImage(const common::GridMapInfo2D &grid_map_info, const bool anti_aliased) const {
         cv::Mat cv_map_image = cv::Mat::zeros(grid_map_info.Height(), grid_map_info.Width(), CV_8UC1);
-        auto n_obj = m_surface_->GetNumObjects();
+        const long n_obj = m_surface_->GetNumObjects();
         for (int i = 0; i < n_obj; ++i) {
             std::vector<std::vector<cv::Point>> contours(1);
             Eigen::Matrix2Xi vertices = grid_map_info.MeterToPixelForPoints(m_surface_->GetObjectVertices(i));
-            auto n_vertices = vertices.cols();
+            const long n_vertices = vertices.cols();
             for (int j = 0; j < n_vertices; ++j) { contours[0].emplace_back(vertices(0, j), vertices(1, j)); }
             cv::drawContours(cv_map_image, contours, 0, m_surface_->outside_flags[i] ? 0 : 255, -1, anti_aliased ? cv::LINE_8 : cv::LINE_AA);
         }
@@ -171,14 +172,12 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixXd
-    Space2D::ComputeSdfImage(const common::GridMapInfo2D &grid_map_info, SignMethod sign_method, bool use_kdtree, bool parallel) const {
-        int height = grid_map_info.Height();                                 // y dimension
-        int width = grid_map_info.Width();                                   // x dimension
+    Space2D::ComputeSdfImage(const common::GridMapInfo2D &grid_map_info, const SignMethod sign_method, const bool use_kdtree, const bool parallel) const {
         Eigen::MatrixXd sdf(grid_map_info.Height(), grid_map_info.Width());  // y up, x right, column-major
 
-#pragma omp parallel for if (parallel) default(none) shared(height, width, grid_map_info, sign_method, use_kdtree, sdf)
-        for (int v = 0; v < height; ++v) {
-            for (int u = 0; u < width; ++u) {
+#pragma omp parallel for if (parallel) default(none) shared(grid_map_info, sign_method, use_kdtree, sdf)
+        for (int v = 0; v < grid_map_info.Height(); ++v) {
+            for (int u = 0; u < grid_map_info.Width(); ++u) {
                 Eigen::Vector2d q = grid_map_info.PixelToMeterForPoints(Eigen::Vector2i(u, v));
                 sdf(v, u) = use_kdtree ? ComputeSdfWithKdtree(q, sign_method) : ComputeSdfGreedily(q, sign_method);
             }
@@ -187,7 +186,8 @@ namespace erl::geometry {
     }
 
     Eigen::VectorXd
-    Space2D::ComputeSdf(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, SignMethod sign_method, bool use_kdtree, bool parallel) const {
+    Space2D::ComputeSdf(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, const SignMethod sign_method, const bool use_kdtree, const bool parallel)
+        const {
 
         Eigen::VectorXd sdf(query_points.cols());
 
@@ -210,57 +210,55 @@ namespace erl::geometry {
      * @return
      */
     double
-    Space2D::ComputeSdfWithKdtree(const Eigen::Vector2d &q, SignMethod sign_method) const {
+    Space2D::ComputeSdfWithKdtree(const Eigen::Vector2d &q, const SignMethod sign_method) const {
         double sdf;
         long idx_vertex_0 = 0, idx_vertex_1 = 0;
         m_kdtree_->Knn(1, q, idx_vertex_0, sdf);
         sdf = std::sqrt(sdf);
 
-        const auto &kV0 = m_surface_->vertices.col(idx_vertex_0);
-        auto idx_vertex_12 = m_surface_->GetVertexNeighbors(idx_vertex_0);
+        const Eigen::Vector2d v0 = m_surface_->vertices.col(idx_vertex_0);
+        const auto [idx_neighbor1, idx_neighbor2] = m_surface_->GetVertexNeighbors(static_cast<int>(idx_vertex_0));
 
-        const auto &kV1 = m_surface_->vertices.col(idx_vertex_12.first);
-        const auto &kV2 = m_surface_->vertices.col(idx_vertex_12.second);
+        const auto &v1 = m_surface_->vertices.col(idx_neighbor1);
+        const auto &v2 = m_surface_->vertices.col(idx_neighbor2);
 
         // compute the distances to the two nearby line segments
-        double dist_1 = ComputeNearestDistanceFromPointToLineSegment2D(q.x(), q.y(), kV0.x(), kV0.y(), kV1.x(), kV1.y());
-        double dist_2 = ComputeNearestDistanceFromPointToLineSegment2D(q.x(), q.y(), kV0.x(), kV0.y(), kV2.x(), kV2.y());
+        const double dist_1 = ComputeNearestDistanceFromPointToLineSegment2D(q.x(), q.y(), v0.x(), v0.y(), v1.x(), v1.y());
+        const double dist_2 = ComputeNearestDistanceFromPointToLineSegment2D(q.x(), q.y(), v0.x(), v0.y(), v2.x(), v2.y());
 
         if (dist_1 < sdf) {
             sdf = dist_1;
-            idx_vertex_1 = idx_vertex_12.first;
+            idx_vertex_1 = idx_neighbor1;
         }
         if (dist_2 < sdf) {
             sdf = dist_2;
-            idx_vertex_1 = idx_vertex_12.second;
+            idx_vertex_1 = idx_neighbor2;
         }
 
-        if (IsNegativeSdf(sign_method, q, idx_vertex_0, idx_vertex_1)) { sdf = -sdf; }
+        if (IsNegativeSdf(sign_method, q, static_cast<int>(idx_vertex_0), static_cast<int>(idx_vertex_1))) { sdf = -sdf; }
 
         return sdf;
     }
 
     /**
      * iterate over all line segments, this is slower but accurate
-     * @param x
-     * @param y
+     * @param q
      * @param sign_method
      * @return
      */
     double
-    Space2D::ComputeSdfGreedily(const Eigen::Ref<const Eigen::Vector2d> &q, SignMethod sign_method) const {
+    Space2D::ComputeSdfGreedily(const Eigen::Ref<const Eigen::Vector2d> &q, const SignMethod sign_method) const {
         double sdf = std::numeric_limits<double>::infinity();
         int idx_vertex_0 = 0, idx_vertex_1 = 0;
 
         for (int j = 1; j < m_surface_->GetNumLines(); ++j) {
-            const auto &kL = m_surface_->lines_to_vertices.col(j);
-            const auto &kV0 = m_surface_->vertices.col(kL.x());
-            const auto &kV1 = m_surface_->vertices.col(kL.y());
-            double dist = ComputeNearestDistanceFromPointToLineSegment2D(q.x(), q.y(), kV0.x(), kV0.y(), kV1.x(), kV1.y());
-            if (dist < sdf) {
+            const auto &line = m_surface_->lines_to_vertices.col(j);
+            const auto &v0 = m_surface_->vertices.col(line.x());
+            const auto &v1 = m_surface_->vertices.col(line.y());
+            if (const double dist = ComputeNearestDistanceFromPointToLineSegment2D(q.x(), q.y(), v0.x(), v0.y(), v1.x(), v1.y()); dist < sdf) {
                 sdf = dist;
-                idx_vertex_0 = kL.x();
-                idx_vertex_1 = kL.y();
+                idx_vertex_0 = line.x();
+                idx_vertex_1 = line.y();
             }
         }
 
@@ -270,18 +268,14 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixX<Eigen::VectorXd>
-    Space2D::ComputeDdf(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel) const {
-
-        long n_directions = query_directions.cols();
-        int height = grid_map_info.Height();
-        int width = grid_map_info.Width();
+    Space2D::ComputeDdf(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) const {
         Eigen::MatrixX<Eigen::VectorXd> out(grid_map_info.Height(), grid_map_info.Width());
 
-#pragma omp parallel for if (parallel) default(none) shared(n_directions, height, width, grid_map_info, query_directions, out)
-        for (int v = 0; v < height; ++v) {
-            for (int u = 0; u < width; ++u) {
+#pragma omp parallel for if (parallel) default(none) shared(grid_map_info, query_directions, out)
+        for (int v = 0; v < grid_map_info.Height(); ++v) {
+            for (int u = 0; u < grid_map_info.Width(); ++u) {
                 Eigen::Vector2d point = grid_map_info.PixelToMeterForPoints(Eigen::Vector2i(u, v));
-                out(v, u) = ComputeDdf(point.replicate(1, n_directions), query_directions, false);
+                out(v, u) = ComputeDdf(point.replicate(1, query_directions.cols()), query_directions, false);
             }
         }
 
@@ -289,12 +283,12 @@ namespace erl::geometry {
     }
 
     Eigen::VectorXd
-    Space2D::ComputeDdf(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel)
+    Space2D::ComputeDdf(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel)
         const {
 
         ERL_ASSERTM(
             query_points.cols() == query_directions.cols(),
-            "#query_points({:d}) != #query_directions({:d}).",
+            "#query_points({}) != #query_directions({}).",
             query_points.cols(),
             query_directions.cols());
 
@@ -304,7 +298,7 @@ namespace erl::geometry {
         for (int i = 0; i < query_points.cols(); ++i) {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();
-            auto n_lines = m_surface_->GetNumLines();
+            const long n_lines = m_surface_->GetNumLines();
             double lam, t;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
@@ -323,11 +317,11 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixX<Eigen::VectorXd>
-    Space2D::ComputeSddfV1(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel) const {
+    Space2D::ComputeSddfV1(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) const {
 
-        long n_directions = query_directions.cols();
-        int height = grid_map_info.Height();
-        int width = grid_map_info.Width();
+        const long n_directions = query_directions.cols();
+        const int height = grid_map_info.Height();
+        const int width = grid_map_info.Width();
         Eigen::MatrixX<Eigen::VectorXd> out(grid_map_info.Height(), grid_map_info.Width());
 
 #pragma omp parallel for if (parallel) default(none) shared(n_directions, height, width, grid_map_info, query_directions, out)
@@ -347,7 +341,7 @@ namespace erl::geometry {
 
         ERL_ASSERTM(
             query_points.cols() == query_directions.cols(),
-            "#query_points({:d}) != #query_directions({:d}).",
+            "#query_points({}) != #query_directions({}).",
             query_points.cols(),
             query_directions.cols());
 
@@ -357,7 +351,7 @@ namespace erl::geometry {
         for (int i = 0; i < query_points.cols(); ++i) {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();
-            auto n_lines = m_surface_->GetNumLines();
+            const long n_lines = m_surface_->GetNumLines();
             double lam, t;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
@@ -375,12 +369,12 @@ namespace erl::geometry {
     Space2D::ComputeSddfV2(
         const common::GridMapInfo2D &grid_map_info,
         const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
-        SignMethod sign_method,
-        bool parallel) const {
+        const SignMethod sign_method,
+        const bool parallel) const {
 
-        long n_directions = query_directions.cols();
-        int height = grid_map_info.Height();
-        int width = grid_map_info.Width();
+        const long n_directions = query_directions.cols();
+        const int height = grid_map_info.Height();
+        const int width = grid_map_info.Width();
         Eigen::MatrixX<Eigen::VectorXd> out(grid_map_info.Height(), grid_map_info.Width());
 
 #pragma omp parallel for if (parallel) default(none) shared(n_directions, height, width, grid_map_info, query_directions, sign_method, out)
@@ -398,48 +392,24 @@ namespace erl::geometry {
     Space2D::ComputeSddfV2(
         const Eigen::Ref<const Eigen::Matrix2Xd> &query_points,
         const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
-        SignMethod sign_method,
-        bool parallel) const {
+        const SignMethod sign_method,
+        const bool parallel) const {
 
         ERL_ASSERTM(
             query_points.cols() == query_directions.cols(),
-            "#query_points({:d}) != #query_directions({:d}).",
+            "#query_points({}) != #query_directions({}).",
             query_points.cols(),
             query_directions.cols());
-
-        auto filter_func = [](const Eigen::VectorXd &lams, const Eigen::VectorXd &ts, bool is_negative) -> double {
-            std::optional<double> sddf;
-            for (int i = 0; i < lams.size(); ++i) {
-                auto &kLam = lams[i];
-                auto &kT = ts[i];
-
-                if (kLam <= 1. && kLam >= 0.) {
-                    if (is_negative) {
-                        if (kT <= 0.) {
-                            if (!sddf.has_value() || -kT < std::abs(sddf.value())) { sddf = kT; }
-                        }
-                    } else {
-                        if (kT >= 0.) {
-                            if (!sddf.has_value() || kT < sddf.value()) { sddf = kT; }
-                        }
-                    }
-                }
-            }
-            if (!sddf.has_value()) { sddf = std::numeric_limits<double>::infinity(); }
-
-            return sddf.value();
-        };
-
         Eigen::VectorXd sddf(query_points.cols());
-        auto n_lines = m_surface_->GetNumLines();
 
-#pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, query_directions, sign_method, filter_func, sddf, n_lines)
+#pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, query_directions, sign_method, sddf)
         for (int i = 0; i < query_points.cols(); ++i) {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();
 
             Eigen::Vector2d q = query_points.col(i);
 
+            const long n_lines = m_surface_->GetNumLines();
             Eigen::VectorXd lams(n_lines);
             Eigen::VectorXd ts(n_lines);
             bool is_negative = false;
@@ -452,11 +422,8 @@ namespace erl::geometry {
 
                 Eigen::Vector2d qv_1 = q - v_1;
                 auto dist_1 = qv_1.norm();
-
                 Eigen::Vector2d qv_2 = q - v_2;
-                auto dist_2 = qv_2.norm();
-
-                if (dist_2 < dist_1) {
+                if (double dist_2 = qv_2.norm(); dist_2 < dist_1) {
                     std::swap(dist_1, dist_2);
                     std::swap(l.x(), l.y());
                 }
@@ -466,15 +433,33 @@ namespace erl::geometry {
                     is_negative = IsNegativeSdf(sign_method, q, l.x(), l.y());
                 }
             }
-            sddf[i] = filter_func(lams, ts, is_negative);
+
+            std::optional<double> sddf_opt;
+            for (int k = 0; k < lams.size(); ++k) {
+                const double &lam = lams[k];
+                const double &t = ts[k];
+                if (lam <= 1. && lam >= 0.) {
+                    if (is_negative) {
+                        if (t <= 0.) {
+                            if (!sddf_opt.has_value() || -t < std::abs(sddf_opt.value())) { sddf_opt = t; }
+                        }
+                    } else {
+                        if (t >= 0.) {
+                            if (!sddf_opt.has_value() || t < sddf_opt.value()) { sddf_opt = t; }
+                        }
+                    }
+                }
+            }
+            if (!sddf_opt.has_value()) { sddf_opt = std::numeric_limits<double>::infinity(); }
+            sddf[i] = sddf_opt.value();
         }
 
         return sddf;
     }
 
     void
-    Space2D::ComputeNormals(double delta, bool use_kdtree, bool parallel) {
-        auto n_vtx = m_surface_->GetNumVertices();
+    Space2D::ComputeNormals(const double delta, const bool use_kdtree, const bool parallel) const {
+        const long n_vtx = m_surface_->GetNumVertices();
 
         Eigen::Matrix2Xd query_points(2, 4 * n_vtx);  // px-, py-, px+, py+
         Eigen::Matrix24d deltas;
@@ -482,37 +467,37 @@ namespace erl::geometry {
             deltas << -delta, 0, +delta, 0,
                       0, -delta, 0, +delta;
         // clang-format on
-        for (int i = 0; i < (int) n_vtx; ++i) { query_points.block<2, 4>(0, i * 4) << (deltas.colwise() + m_surface_->vertices.col(i)); }
+        for (int i = 0; i < static_cast<int>(n_vtx); ++i) { query_points.block<2, 4>(0, i * 4) << deltas.colwise() + m_surface_->vertices.col(i); }
         Eigen::Matrix4Xd sdf = ComputeSdf(query_points, SignMethod::kPolygon, use_kdtree, parallel).reshaped(4, n_vtx);
-        m_surface_->normals = ((sdf.block(2, 0, 2, n_vtx) - sdf.block(0, 0, 2, n_vtx)) / (delta * 2.));
+        m_surface_->normals = (sdf.block(2, 0, 2, n_vtx) - sdf.block(0, 0, 2, n_vtx)) / (delta * 2.);
         m_surface_->normals.colwise().normalize();
     }
 
     void
-    Space2D::ComputeOutsideFlags(const Eigen::Ref<const Eigen::MatrixXd> &map_image, double free_threshold) {
-        auto n_obj = m_surface_->GetNumObjects();
+    Space2D::ComputeOutsideFlags(const Eigen::Ref<const Eigen::MatrixXd> &map_image, const double free_threshold) const {
+        const long n_obj = m_surface_->GetNumObjects();
         m_surface_->outside_flags.resize(n_obj);
         for (int i = 0; i < n_obj; ++i) {
             auto vertices = m_surface_->GetObjectVertices(i);
             Eigen::Vector2d p = vertices.rowwise().mean();
-            ssize_t u = std::lround(p[0]);
-            ssize_t v = std::lround(p[1]);
-            bool inside = WindingNumber(p, vertices);
-            m_surface_->outside_flags[i] = (inside == (map_image(v, u) <= free_threshold));
+            const ssize_t u = std::lround(p[0]);
+            const ssize_t v = std::lround(p[1]);
+            const bool inside = WindingNumber(p, vertices);
+            m_surface_->outside_flags[i] = inside == (map_image(v, u) <= free_threshold);
         }
     }
 
     void
-    Space2D::ComputeOutsideFlags() {
-        auto n_obj = m_surface_->GetNumObjects();
+    Space2D::ComputeOutsideFlags() const {
+        const long n_obj = m_surface_->GetNumObjects();
         m_surface_->outside_flags.resize(n_obj);
         for (int i = 0; i < n_obj; ++i) {
             auto vertices = m_surface_->GetObjectVertices(i);
             Eigen::Vector2d p = vertices.rowwise().mean();
             Eigen::Matrix2Xd v = p.replicate(1, vertices.cols()).array() - vertices.array();
-            bool is_negative_sdf = (m_surface_->GetObjectNormals(i).array() * v.array()).mean() < 0.;
-            bool inside = WindingNumber(p, vertices);
-            m_surface_->outside_flags[i] = (inside == is_negative_sdf);
+            bool &&is_negative_sdf = (m_surface_->GetObjectNormals(i).array() * v.array()).mean() < 0.;
+            bool &&inside = WindingNumber(p, vertices);
+            m_surface_->outside_flags[i] = inside == is_negative_sdf;
         }
     }
 }  // namespace erl::geometry

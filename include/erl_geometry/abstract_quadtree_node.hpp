@@ -4,9 +4,9 @@
 #include "erl_common/string_utils.hpp"
 
 #include <cstdint>
-#include <string>
 #include <map>
 #include <memory>
+#include <string>
 
 namespace erl::geometry {
     /**
@@ -229,7 +229,7 @@ namespace erl::geometry {
         CreateChild(uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 4, "Child index must be in [0, 3], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u already exists.", child_index);
-            AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, child_index);
+            AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, static_cast<int>(child_index));
             m_children_[child_index] = child;
             m_num_children_++;
             return child;

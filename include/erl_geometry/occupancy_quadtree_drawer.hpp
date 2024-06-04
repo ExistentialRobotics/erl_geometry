@@ -1,9 +1,10 @@
 #pragma once
 
-#include <functional>
-#include "erl_common/opencv.hpp"
-#include "erl_common/yaml.hpp"
 #include "abstract_quadtree_drawer.hpp"
+
+#include "erl_common/yaml.hpp"
+
+#include <functional>
 
 namespace erl::geometry {
 
@@ -42,7 +43,7 @@ namespace erl::geometry {
 
         void
         DrawTree(cv::Mat &mat) const override {
-            auto grid_map_info = GetGridMapInfo();
+            const auto grid_map_info = GetGridMapInfo();
             if (!mat.total()) { mat = cv::Mat(std::vector<int>{grid_map_info->Height(), grid_map_info->Width()}, CV_8UC4, m_setting_->bg_color); }
             if (m_quadtree_ == nullptr) { return; }
             std::shared_ptr<const OccupancyQuadtreeType> quadtree = std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
@@ -51,15 +52,15 @@ namespace erl::geometry {
                 return;
             }
 
-            bool draw_border = (m_setting_->border_thickness > 0) && (m_setting_->border_color != m_setting_->occupied_color);
+            const bool draw_border = (m_setting_->border_thickness > 0) && (m_setting_->border_color != m_setting_->occupied_color);
 
             auto it = quadtree->BeginTree();
             auto end = quadtree->EndTree();
             for (; it != end; ++it) {
-                double node_size = it.GetNodeSize();
-                double half_size = node_size / 2.0;
-                double x = it.GetX();
-                double y = it.GetY();
+                const double node_size = it.GetNodeSize();
+                const double half_size = node_size / 2.0;
+                const double x = it.GetX();
+                const double y = it.GetY();
 
                 Eigen::Vector2i aabb_min = grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(x - half_size, y - half_size));
                 Eigen::Vector2i aabb_max = grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(x + half_size, y + half_size));
@@ -88,7 +89,7 @@ namespace erl::geometry {
 
         void
         DrawLeaves(cv::Mat &mat) const override {
-            auto grid_map_info = GetGridMapInfo();
+            const auto grid_map_info = GetGridMapInfo();
             if (!mat.total()) { mat = cv::Mat(std::vector<int>{grid_map_info->Height(), grid_map_info->Width()}, CV_8UC4, m_setting_->bg_color); }
             if (m_quadtree_ == nullptr) { return; }
             std::shared_ptr<const OccupancyQuadtreeType> quadtree = std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
@@ -97,7 +98,7 @@ namespace erl::geometry {
                 return;
             }
 
-            bool draw_border = (m_setting_->border_thickness > 0) && (m_setting_->border_color != m_setting_->occupied_color);
+            const bool draw_border = (m_setting_->border_thickness > 0) && (m_setting_->border_color != m_setting_->occupied_color);
 
             auto it = quadtree->BeginLeaf();
             auto end = quadtree->EndLeaf();
@@ -105,10 +106,10 @@ namespace erl::geometry {
 
                 ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!");
 
-                double node_size = it.GetNodeSize();
-                double half_size = node_size / 2.0;
-                double x = it.GetX();
-                double y = it.GetY();
+                const double node_size = it.GetNodeSize();
+                const double half_size = node_size / 2.0;
+                const double x = it.GetX();
+                const double y = it.GetY();
 
                 Eigen::Vector2i aabb_min = grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(x - half_size, y - half_size));
                 Eigen::Vector2i aabb_max = grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(x + half_size, y + half_size));
@@ -137,7 +138,7 @@ namespace erl::geometry {
 namespace YAML {
     template<typename Setting>
     struct ConvertOccupancyQuadtreeDrawerSetting {
-        inline static Node
+        static Node
         encode(const Setting &rhs) {
             Node node = convert<erl::geometry::AbstractQuadtreeDrawer::Setting>::encode(rhs);
             node["occupied_color"] = rhs.occupied_color;
@@ -145,12 +146,12 @@ namespace YAML {
             return node;
         }
 
-        inline static bool
+        static bool
         decode(const Node &node, Setting &rhs) {
             if (!node.IsMap()) { return false; }
             if (!convert<erl::geometry::AbstractQuadtreeDrawer::Setting>::decode(node, rhs)) { return false; }
-            rhs.occupied_color = node["occupied_color"].template as<cv::Scalar>();
-            rhs.free_color = node["free_color"].template as<cv::Scalar>();
+            rhs.occupied_color = node["occupied_color"].as<cv::Scalar>();
+            rhs.free_color = node["free_color"].as<cv::Scalar>();
             return true;
         }
     };

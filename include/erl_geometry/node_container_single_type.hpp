@@ -1,7 +1,8 @@
 #pragma once
 
-#include "erl_common/yaml.hpp"
 #include "node_container.hpp"
+
+#include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
 
@@ -115,7 +116,7 @@ namespace erl::geometry {
             ERL_ASSERTM(type == 0, "Invalid node type.\n");
 
             for (auto &kNode: m_nodes_) {
-                ERL_ASSERTM(kNode->position.size() == 2, "Invalid node position dimension: %ld. Expecting 2.\n", kNode->position.size());
+                ERL_ASSERTM(kNode->position.size() == 2, "Invalid node position dimension: {}. Expecting 2.\n", kNode->position.size());
                 if (area.contains(kNode->position)) { nodes.push_back(kNode); }
             }
         }
@@ -125,7 +126,7 @@ namespace erl::geometry {
             ERL_ASSERTM(type == 0, "Invalid node type.\n");
 
             for (auto &kNode: m_nodes_) {
-                ERL_ASSERTM(kNode->position.size() == 3, "Invalid node position dimension: %ld. Expecting 3.\n", kNode->position.size());
+                ERL_ASSERTM(kNode->position.size() == 3, "Invalid node position dimension: {}. Expecting 3.\n", kNode->position.size());
                 if (kNode->type == type && area.contains(kNode->position)) { nodes.push_back(kNode); }
             }
         }
@@ -136,12 +137,10 @@ namespace erl::geometry {
 
             // must compute too_close before checking capacity, otherwise the node may be inserted into another container.
             if (!m_nodes_.empty()) {  // not empty
-                for (const auto &stored_node: m_nodes_) {
-                    if ((stored_node->position - node->position).squaredNorm() < m_setting_->min_squared_distance) {
-                        too_close = true;
-                        return false;
-                    }
-                }
+                too_close = std::any_of(m_nodes_.begin(), m_nodes_.end(), [&](const std::shared_ptr<geometry::Node> &stored_node) {
+                    return (stored_node->position - node->position).squaredNorm() < m_setting_->min_squared_distance;
+                });
+                if (too_close) { return false; }
             }
 
             if (m_nodes_.size() >= std::size_t(m_setting_->capacity)) { return false; }
@@ -204,12 +203,12 @@ namespace YAML {
         }
     };
 
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::NodeContainerSingleType::Setting &setting) {
-//        out << BeginMap;
-//        out << Key << "capacity" << Value << setting.capacity;
-//        out << Key << "min_squared_distance" << Value << setting.min_squared_distance;
-//        out << EndMap;
-//        return out;
-//    }
+    // inline Emitter &
+    // operator<<(Emitter &out, const erl::geometry::NodeContainerSingleType::Setting &setting) {
+    //     out << BeginMap;
+    //     out << Key << "capacity" << Value << setting.capacity;
+    //     out << Key << "min_squared_distance" << Value << setting.min_squared_distance;
+    //     out << EndMap;
+    //     return out;
+    // }
 }  // namespace YAML

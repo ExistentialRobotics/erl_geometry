@@ -1,8 +1,9 @@
 #pragma once
 
-#include "erl_common/yaml.hpp"
-#include "erl_common/logging.hpp"
 #include "kdtree_eigen_adaptor.hpp"
+
+#include "erl_common/logging.hpp"
+#include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
 
@@ -75,42 +76,42 @@ namespace erl::geometry {
             bool partition_rays = false);
 
         template<typename Derived>
-        [[nodiscard]] inline std::shared_ptr<Derived>
+        [[nodiscard]] std::shared_ptr<Derived>
         GetSetting() const {
             return std::dynamic_pointer_cast<Derived>(m_setting_);
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumRays() const {
             return m_ranges_.size();
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumAzimuthLines() const {
             return m_ranges_.rows();
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumElevationLines() const {
             return m_ranges_.cols();
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumHitRays() const {
             return m_hit_ray_indices_.cols();
         }
 
-        [[nodiscard]] inline const Eigen::Matrix3d &
+        [[nodiscard]] const Eigen::Matrix3d &
         GetRotationMatrix() const {
             return m_rotation_;
         }
 
-        [[nodiscard]] inline const Eigen::Vector3d &
+        [[nodiscard]] const Eigen::Vector3d &
         GetTranslationVector() const {
             return m_translation_;
         }
 
-        [[nodiscard]] inline Eigen::Matrix4d
+        [[nodiscard]] Eigen::Matrix4d
         GetPoseMatrix() const {
             Eigen::Isometry3d pose;
             pose.linear() = m_rotation_;
@@ -118,72 +119,72 @@ namespace erl::geometry {
             return pose.matrix();
         }
 
-        [[nodiscard]] inline const Eigen::MatrixXd &
+        [[nodiscard]] const Eigen::MatrixXd &
         GetAzimuthAnglesInFrame() const {
             return m_azimuth_frame_;
         }
 
-        [[nodiscard]] inline const Eigen::MatrixXd &
+        [[nodiscard]] const Eigen::MatrixXd &
         GetElevationAnglesInFrame() const {
             return m_elevation_frame_;
         }
 
-        [[nodiscard]] inline const Eigen::MatrixXd &
+        [[nodiscard]] const Eigen::MatrixXd &
         GetRanges() const {
             return m_ranges_;
         }
 
-        [[nodiscard]] inline const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
         GetRayDirectionsInFrame() const {
             return m_dirs_frame_;
         }
 
-        [[nodiscard]] inline const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
         GetRayDirectionsInWorld() const {
             return m_dirs_world_;
         }
 
-        [[nodiscard]] inline const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
         GetEndPointsInFrame() const {
             return m_end_pts_frame_;
         }
 
-        [[nodiscard]] inline const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
         GetEndPointsInWorld() const {
             return m_end_pts_world_;
         }
 
-        [[nodiscard]] inline const Eigen::Matrix2Xl &
+        [[nodiscard]] const Eigen::Matrix2Xl &
         GetHitRayIndices() const {
             return m_hit_ray_indices_;
         }
 
-        [[nodiscard]] inline const Eigen::Matrix3Xd &
+        [[nodiscard]] const Eigen::Matrix3Xd &
         GetHitPointsWorld() const {
             return m_hit_points_world_;
         }
 
-        [[nodiscard]] inline double
+        [[nodiscard]] double
         GetMaxValidRange() const {
             return m_max_valid_range_;
         }
 
-        [[nodiscard]] inline const Eigen::MatrixXb &
+        [[nodiscard]] const Eigen::MatrixXb &
         GetHitMask() const {
             return m_mask_hit_;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsValid() const {
             return m_max_valid_range_ > 0.0;
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsPartitioned() const {
             return m_partitioned_;
         }
 
-        [[nodiscard]] inline const std::vector<LidarFramePartition3D> &
+        [[nodiscard]] const std::vector<LidarFramePartition3D> &
         GetPartitions() const {
             ERL_ASSERTM(m_partitioned_, "LidarFrame3D::GetPartitions() is called before partitioning.");
             return m_partitions_;
@@ -286,53 +287,35 @@ namespace erl::geometry {
 
 }  // namespace erl::geometry
 
-namespace YAML {
-    template<>
-    struct convert<erl::geometry::LidarFrame3D::Setting> {
-        inline static Node
-        encode(const erl::geometry::LidarFrame3D::Setting &rhs) {
-            Node node;
-            node["valid_range_min"] = rhs.valid_range_min;
-            node["valid_range_max"] = rhs.valid_range_max;
-            node["valid_azimuth_min"] = rhs.valid_azimuth_min;
-            node["valid_azimuth_max"] = rhs.valid_azimuth_max;
-            node["valid_elevation_min"] = rhs.valid_elevation_min;
-            node["valid_elevation_max"] = rhs.valid_elevation_max;
-            node["discontinuity_factor"] = rhs.discontinuity_factor;
-            node["rolling_diff_discount"] = rhs.rolling_diff_discount;
-            node["min_partition_size"] = rhs.min_partition_size;
-            return node;
-        }
+template<>
+struct YAML::convert<erl::geometry::LidarFrame3D::Setting> {
+    static Node
+    encode(const erl::geometry::LidarFrame3D::Setting &rhs) {
+        Node node;
+        node["valid_range_min"] = rhs.valid_range_min;
+        node["valid_range_max"] = rhs.valid_range_max;
+        node["valid_azimuth_min"] = rhs.valid_azimuth_min;
+        node["valid_azimuth_max"] = rhs.valid_azimuth_max;
+        node["valid_elevation_min"] = rhs.valid_elevation_min;
+        node["valid_elevation_max"] = rhs.valid_elevation_max;
+        node["discontinuity_factor"] = rhs.discontinuity_factor;
+        node["rolling_diff_discount"] = rhs.rolling_diff_discount;
+        node["min_partition_size"] = rhs.min_partition_size;
+        return node;
+    }
 
-        inline static bool
-        decode(const Node &node, erl::geometry::LidarFrame3D::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.valid_range_min = node["valid_range_min"].as<double>();
-            rhs.valid_range_max = node["valid_range_max"].as<double>();
-            rhs.valid_azimuth_min = node["valid_azimuth_min"].as<double>();
-            rhs.valid_azimuth_max = node["valid_azimuth_max"].as<double>();
-            rhs.valid_elevation_min = node["valid_elevation_min"].as<double>();
-            rhs.valid_elevation_max = node["valid_elevation_max"].as<double>();
-            rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
-            rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
-            rhs.min_partition_size = node["min_partition_size"].as<int>();
-            return true;
-        }
-    };
-
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::LidarFrame3D::Setting &rhs) {
-//        out << BeginMap;
-//        out << Key << "valid_range_min" << Value << rhs.valid_range_min;
-//        out << Key << "valid_range_max" << Value << rhs.valid_range_max;
-//        out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
-//        out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
-//        out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
-//        out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
-//        out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
-//        out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
-//        out << Key << "min_partition_size" << Value << rhs.min_partition_size;
-//        out << EndMap;
-//        return out;
-//    }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::LidarFrame3D::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.valid_range_min = node["valid_range_min"].as<double>();
+        rhs.valid_range_max = node["valid_range_max"].as<double>();
+        rhs.valid_azimuth_min = node["valid_azimuth_min"].as<double>();
+        rhs.valid_azimuth_max = node["valid_azimuth_max"].as<double>();
+        rhs.valid_elevation_min = node["valid_elevation_min"].as<double>();
+        rhs.valid_elevation_max = node["valid_elevation_max"].as<double>();
+        rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
+        rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
+        rhs.min_partition_size = node["min_partition_size"].as<int>();
+        return true;
+    }
+};  // namespace YAML

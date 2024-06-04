@@ -1,8 +1,9 @@
 #pragma once
 
-#include "erl_common/yaml.hpp"
-#include "azimuth_elevation.hpp"
 #include "range_sensor_3d.hpp"
+
+#include "erl_common/yaml.hpp"
+
 #include <open3d/t/geometry/RaycastingScene.h>
 
 namespace erl::geometry {
@@ -46,21 +47,21 @@ namespace erl::geometry {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
-        [[nodiscard]] inline std::shared_ptr<Setting>
+        [[nodiscard]] std::shared_ptr<Setting>
         GetSetting() const {
             return m_setting_;
         }
 
-        [[nodiscard]] inline Eigen::VectorXd
+        [[nodiscard]] Eigen::VectorXd
         GetAzimuthAngles() const {
-            if (m_setting_->azimuth_max - m_setting_->azimuth_min == 2 * M_PI) {
-                double d = 2 * M_PI / m_setting_->num_azimuth_lines;
+            if (m_setting_->azimuth_max - m_setting_->azimuth_min == 2.0 * M_PI) {
+                const double d = 2.0 * M_PI / m_setting_->num_azimuth_lines;
                 return Eigen::VectorXd::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max - d);
             }
             return Eigen::VectorXd::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max);
         }
 
-        [[nodiscard]] inline Eigen::VectorXd
+        [[nodiscard]] Eigen::VectorXd
         GetElevationAngles() const {
             return Eigen::VectorXd::LinSpaced(m_setting_->num_elevation_lines, m_setting_->elevation_min, m_setting_->elevation_max);
         }
@@ -70,34 +71,30 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
+template<>
+struct YAML::convert<erl::geometry::Lidar3D::Setting> {
 
-    template<>
-    struct convert<erl::geometry::Lidar3D::Setting> {
+    static Node
+    encode(const erl::geometry::Lidar3D::Setting &rhs) {
+        Node node;
+        node["azimuth_min"] = rhs.azimuth_min;
+        node["azimuth_max"] = rhs.azimuth_max;
+        node["elevation_min"] = rhs.elevation_min;
+        node["elevation_max"] = rhs.elevation_max;
+        node["num_azimuth_lines"] = rhs.num_azimuth_lines;
+        node["num_elevation_lines"] = rhs.num_elevation_lines;
+        return node;
+    }
 
-        inline static Node
-        encode(const erl::geometry::Lidar3D::Setting &rhs) {
-            Node node;
-            node["azimuth_min"] = rhs.azimuth_min;
-            node["azimuth_max"] = rhs.azimuth_max;
-            node["elevation_min"] = rhs.elevation_min;
-            node["elevation_max"] = rhs.elevation_max;
-            node["num_azimuth_lines"] = rhs.num_azimuth_lines;
-            node["num_elevation_lines"] = rhs.num_elevation_lines;
-            return node;
-        }
-
-        inline static bool
-        decode(const Node &node, erl::geometry::Lidar3D::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.azimuth_min = node["azimuth_min"].as<double>();
-            rhs.azimuth_max = node["azimuth_max"].as<double>();
-            rhs.elevation_min = node["elevation_min"].as<double>();
-            rhs.elevation_max = node["elevation_max"].as<double>();
-            rhs.num_azimuth_lines = node["num_azimuth_lines"].as<int>();
-            rhs.num_elevation_lines = node["num_elevation_lines"].as<int>();
-            return true;
-        }
-    };
-
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::Lidar3D::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.azimuth_min = node["azimuth_min"].as<double>();
+        rhs.azimuth_max = node["azimuth_max"].as<double>();
+        rhs.elevation_min = node["elevation_min"].as<double>();
+        rhs.elevation_max = node["elevation_max"].as<double>();
+        rhs.num_azimuth_lines = node["num_azimuth_lines"].as<int>();
+        rhs.num_elevation_lines = node["num_elevation_lines"].as<int>();
+        return true;
+    }
+};  // namespace YAML

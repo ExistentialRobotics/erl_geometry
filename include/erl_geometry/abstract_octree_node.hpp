@@ -4,9 +4,9 @@
 #include "erl_common/string_utils.hpp"
 
 #include <cstdint>
-#include <string>
 #include <map>
 #include <memory>
+#include <string>
 
 namespace erl::geometry {
     /**
@@ -27,7 +27,7 @@ namespace erl::geometry {
 
         AbstractOctreeNode() = delete;
 
-        explicit AbstractOctreeNode(uint32_t depth, int child_index = -1)
+        explicit AbstractOctreeNode(const uint32_t depth, const int child_index = -1)
             : m_depth_(depth),
               m_child_index_(child_index) {
             ERL_DEBUG_WARN_ONCE_COND(
@@ -124,7 +124,7 @@ namespace erl::geometry {
         Create(uint32_t depth, int child_index) const = 0;
 
         static AbstractOctreeNode *
-        CreateNode(const std::string &node_type, uint32_t depth, int child_index) {
+        CreateNode(const std::string &node_type, const uint32_t depth, const int child_index) {
             const auto it = s_class_id_mapping_.find(node_type);
             if (it == s_class_id_mapping_.end()) {
                 ERL_WARN("Unknown Octree node type: {}", node_type);

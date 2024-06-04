@@ -1,7 +1,6 @@
 #pragma once
 
 #include "erl_common/eigen.hpp"
-#include <vector>
 
 namespace erl::geometry {
 

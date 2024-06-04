@@ -3,10 +3,11 @@
 #include "erl_common/eigen.hpp"
 #include "erl_common/logging.hpp"
 
+#include <Eigen/Geometry>
 #include <libqhullcpp/PointCoordinates.h>
 #include <libqhullcpp/Qhull.h>
-#include <libqhullcpp/QhullFacetList.h>
 #include <libqhullcpp/QhullFacet.h>
+#include <libqhullcpp/QhullFacetList.h>
 #include <libqhullcpp/QhullVertexSet.h>
 
 namespace erl::geometry {
@@ -24,7 +25,7 @@ namespace erl::geometry {
     template<typename Container = Eigen::Ref<const Eigen::Matrix3Xd>>
     void
     ConvexHull(const Container &points, std::size_t num_points, std::vector<long> &hull_pt_map, const std::string &options = "Qt") {
-        ERL_ASSERTM(num_points > 0, "num_points = %ld, it should be > 0.", num_points);
+        ERL_ASSERTM(num_points > 0, "num_points = {}, it should be > 0.", num_points);
 
         // convert e.g. Eigen::Matrix3Xd to orgQhull::PointCoordinates
         orgQhull::PointCoordinates qhull_points(3, "");
@@ -35,7 +36,7 @@ namespace erl::geometry {
         qhull.runQhull(qhull_points.comment().c_str(), qhull_points.dimension(), qhull_points.count(), qhull_points.coordinates(), options.c_str());
 
         hull_pt_map.resize(qhull.vertexCount());
-        std::transform(qhull.vertexList().begin(), qhull.vertexList().end(), hull_pt_map.begin(), [](const auto &kVertex) { return kVertex.point().id(); });
+        std::transform(qhull.vertexList().begin(), qhull.vertexList().end(), hull_pt_map.begin(), [](const auto &vertex) { return vertex.point().id(); });
     }
 
     /**
@@ -58,7 +59,7 @@ namespace erl::geometry {
         Eigen::Matrix3Xl &mesh_triangles,
         std::vector<long> &hull_pt_map,
         const std::string &options = "Qt") {
-        ERL_ASSERTM(num_points > 0, "num_points = %ld, it should be > 0.", num_points);
+        ERL_ASSERTM(num_points > 0, "num_points = {}, it should be > 0.", num_points);
 
         // convert Eigen::Matrix3Xd to orgQhull::PointCoordinates
         orgQhull::PointCoordinates qhull_points(3, "");
@@ -111,15 +112,11 @@ namespace erl::geometry {
             triangle[1] = indices_map[triangle[1]];
             triangle[2] = indices_map[triangle[2]];
 
-            auto p0 = mesh_vertices.col(triangle[0]);
-            auto p1 = mesh_vertices.col(triangle[1]);
-            auto p2 = mesh_vertices.col(triangle[2]);
-
-            Eigen::Vector3d e1 = p1 - p0;
-            Eigen::Vector3d e2 = p2 - p0;
-            Eigen::Vector3d normal = e1.cross(e2);
-            Eigen::Vector3d triangle_center = (p0 + p1 + p2) * (1.0 / 3.0);
-            if (normal.dot(triangle_center - hull_center) < 0.0) { std::swap(triangle[0], triangle[1]); }  // make sure the normal points outward
+            const auto p0 = mesh_vertices.col(triangle[0]);
+            const auto p1 = mesh_vertices.col(triangle[1]);
+            const auto p2 = mesh_vertices.col(triangle[2]);
+            // make sure the normal points outward
+            if ((p1 - p0).cross(p2 - p0).dot((p0 + p1 + p2) * (1.0 / 3.0) - hull_center) < 0.0) { std::swap(triangle[0], triangle[1]); }
         }
     }
 }  // namespace erl::geometry

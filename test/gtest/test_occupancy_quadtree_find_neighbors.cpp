@@ -18,7 +18,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     static bool mouse_fixed = false;
 
     (void) flags;
-    auto data = reinterpret_cast<UserData *>(userdata);
+    auto data = static_cast<UserData *>(userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) {
         std::cout << "Left button of the mouse is clicked - position (" << mouse_x << ", " << mouse_y << ")" << std::endl;
@@ -37,8 +37,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         erl::geometry::QuadtreeKey key;
         if (!data->tree->CoordToKeyChecked(x, y, key)) { return; }
         unsigned int key_depth = 0;
-        auto node = data->tree->Search(key, key_depth);
-        if (node == nullptr) { return; }
+        if (auto node = data->tree->Search(key, key_depth); node == nullptr) { return; }
         // draw selected node
         data->tree->KeyToCoord(key, key_depth, x, y);
         double half_size = data->tree->GetNodeSize(key_depth) / 2.;
@@ -47,9 +46,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {255, 0, 0, 100}, cv::FILLED);
         // draw neighbors on west
         {
-            auto it = data->tree->BeginWestLeafNeighbor(x, y);
-            auto end = data->tree->EndWestLeafNeighbor();
-            for (; it != end; it++) {
+            for (auto it = data->tree->BeginWestLeafNeighbor(x, y), end = data->tree->EndWestLeafNeighbor(); it != end; ++it) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;
@@ -60,9 +57,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         }
         // draw neighbors on east
         {
-            auto it = data->tree->BeginEastLeafNeighbor(x, y);
-            auto end = data->tree->EndEastLeafNeighbor();
-            for (; it != end; it++) {
+            for (auto it = data->tree->BeginEastLeafNeighbor(x, y), end = data->tree->EndEastLeafNeighbor(); it != end; ++it) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;
@@ -73,9 +68,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         }
         // draw neighbors on north
         {
-            auto it = data->tree->BeginNorthLeafNeighbor(x, y);
-            auto end = data->tree->EndNorthLeafNeighbor();
-            for (; it != end; it++) {
+            for (auto it = data->tree->BeginNorthLeafNeighbor(x, y), end = data->tree->EndNorthLeafNeighbor(); it != end; ++it) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;
@@ -86,9 +79,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         }
         // draw neighbors on south
         {
-            auto it = data->tree->BeginSouthLeafNeighbor(x, y);
-            auto end = data->tree->EndSouthLeafNeighbor();
-            for (; it != end; it++) {
+            for (auto it = data->tree->BeginSouthLeafNeighbor(x, y), end = data->tree->EndSouthLeafNeighbor(); it != end; ++it) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;

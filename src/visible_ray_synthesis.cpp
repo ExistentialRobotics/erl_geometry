@@ -1,32 +1,34 @@
-#include "erl_common/logging.hpp"
 #include "erl_geometry/visible_ray_synthesis.hpp"
+
+#include "erl_common/logging.hpp"
 #include "erl_geometry/azimuth_elevation.hpp"
 
 #include <absl/container/flat_hash_map.h>
+#include <Eigen/Geometry>
 
 namespace erl::geometry {
 
     void
     VisibleRaySynthesis(
-        long point_index,
+        const long point_index,
         const Eigen::Ref<const Eigen::Matrix3Xd> &hit_points,
         const Eigen::Ref<const Eigen::Vector3d> &sensor_position,
-        long num_azimuth_segments,
-        long num_samples_per_azimuth_segment,
-        uint64_t seed,
+        const long num_azimuth_segments,
+        const long num_samples_per_azimuth_segment,
+        const uint64_t seed,
         std::vector<Eigen::Vector3d> &sampled_ray_origins) {
 
         std::mt19937 random_engine(seed);
 
         Eigen::Vector3d viewing_direction = hit_points.col(point_index) - sensor_position;
-        double hit_distance = viewing_direction.norm();
+        const double hit_distance = viewing_direction.norm();
         viewing_direction.normalize();
 
-        Eigen::Vector3d z_axis = Eigen::Vector3d::UnitZ();
-        Eigen::Vector3d axis = -viewing_direction.cross(z_axis).normalized();
-        double angle = std::acos(-viewing_direction.dot(z_axis));
-        Eigen::Matrix3d rotation = Eigen::AngleAxisd(angle, axis).toRotationMatrix();
-        double azimuth_resolution = 2 * M_PI / static_cast<double>(num_azimuth_segments);
+        const Eigen::Vector3d z_axis = Eigen::Vector3d::UnitZ();
+        const Eigen::Vector3d axis = -viewing_direction.cross(z_axis).normalized();
+        const double angle = std::acos(-viewing_direction.dot(z_axis));
+        const Eigen::Matrix3d rotation = Eigen::AngleAxisd(angle, axis).toRotationMatrix();
+        const double azimuth_resolution = 2 * M_PI / static_cast<double>(num_azimuth_segments);
 
         struct RayInfo {
             double ray_azimuth = 0.0;
@@ -64,8 +66,9 @@ namespace erl::geometry {
             ray_info.end_point_elevation = std::asin(point_local.z() / point_local.norm());
             spherical_coords.emplace_back(ray_info.ray_azimuth, ray_info.end_point_elevation);
             // 3.
-            double &max_elevation = max_elevations[azimuth_index];
-            if (ray_info.end_point_elevation > max_elevation) { max_elevation = ray_info.end_point_elevation; }
+            if (double &max_elevation = max_elevations[azimuth_index]; ray_info.end_point_elevation > max_elevation) {
+                max_elevation = ray_info.end_point_elevation;
+            }
             azimuth_rays[azimuth_index].push_back(std::move(ray_info));
         }
 
@@ -74,17 +77,16 @@ namespace erl::geometry {
         sampled_ray_origins.clear();
         sampled_ray_origins.reserve(num_azimuth_segments * num_samples_per_azimuth_segment);
         for (auto &[azimuth_index, rays]: azimuth_rays) {
-            const double &kMaxElevation = max_elevations[azimuth_index];
-            double cos_max_elevation = std::cos(kMaxElevation) * hit_distance;
+            const double &max_elevation = max_elevations[azimuth_index];
+            const double cos_max_elevation = std::cos(max_elevation) * hit_distance;
             std::uniform_int_distribution<std::size_t> uniform_ray_index(0, rays.size() - 1);
             for (long cnt_samples = 0; cnt_samples < num_samples_per_azimuth_segment; ++cnt_samples) {
-                std::size_t ray_index = uniform_ray_index(random_engine);
-                const RayInfo &kRay = rays[ray_index];
-                double r = uniform_range_ratio(random_engine);
-                double elevation_diff = kMaxElevation - kRay.ray_elevation;
-                double max_range = std::min(kRay.range, cos_max_elevation / std::sin(elevation_diff));  // calculate max sampling range along the kRay
-                Eigen::Vector3d position = sensor_position + r * max_range * kRay.dir_world;
-                sampled_ray_origins.push_back(position);
+                const std::size_t ray_index = uniform_ray_index(random_engine);
+                const auto &[ray_azimuth, ray_elevation, end_point_elevation, range, dir_world] = rays[ray_index];
+                const double r = uniform_range_ratio(random_engine);
+                const double elevation_diff = max_elevation - ray_elevation;
+                const double max_range = std::min(range, cos_max_elevation / std::sin(elevation_diff));  // calculate max sampling range along the kRay
+                sampled_ray_origins.emplace_back(sensor_position + r * max_range * dir_world);
             }
         }
     }

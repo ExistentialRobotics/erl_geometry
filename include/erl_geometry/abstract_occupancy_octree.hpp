@@ -1,9 +1,9 @@
 #pragma once
 
 #include "abstract_octree.hpp"
-#include "octree_key.hpp"
-#include "occupancy_octree_node.hpp"
 #include "occupancy_nd_tree_setting.hpp"
+#include "occupancy_octree_node.hpp"
+#include "octree_key.hpp"
 
 namespace erl::geometry {
 
@@ -92,7 +92,7 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsNodeAtThreshold(const OccupancyOctreeNode* node) const {
-            float log_odds = node->GetLogOdds();
+            const float log_odds = node->GetLogOdds();
             const auto* setting = reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get());
             return log_odds >= setting->log_odd_max || log_odds <= setting->log_odd_min;
         }

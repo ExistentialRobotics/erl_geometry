@@ -13,7 +13,7 @@ namespace erl::geometry {
         explicit PointCollisionChecker(std::shared_ptr<common::GridMap<uint8_t, Dim>> grid_map)
             : m_grid_map_(std::move(grid_map)) {}
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         IsCollided(const Eigen::Ref<const Eigen::VectorXi> &coords) const override {
             return m_grid_map_->data[coords.head<Dim>()] > 0;  // the first d elements are grid coords while the remains could be orientation coords
         }

@@ -1,9 +1,10 @@
-#include <open3d/geometry/TriangleMesh.h>
-#include <open3d/io/PointCloudIO.h>
-#include <open3d/visualization/visualizer/Visualizer.h>
-#include <open3d/visualization/utility/DrawGeometry.h>
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/convex_hull.hpp"
+
+#include <open3d/geometry/TriangleMesh.h>
+#include <open3d/io/PointCloudIO.h>
+#include <open3d/visualization/utility/DrawGeometry.h>
+#include <open3d/visualization/visualizer/Visualizer.h>
 
 TEST(ERL_GEOMETRY, ConvexHull) {
 
@@ -29,7 +30,7 @@ TEST(ERL_GEOMETRY, ConvexHull) {
         point_cloud->NormalizeNormals();
 
         Eigen::Matrix3Xd points(3, point_cloud->points_.size());
-        for (std::size_t i = 0; i < point_cloud->points_.size(); ++i) { points.col(long(i)) = point_cloud->points_[i]; }
+        for (std::size_t i = 0; i < point_cloud->points_.size(); ++i) { points.col(static_cast<long>(i)) = point_cloud->points_[i]; }
         Eigen::Matrix3Xl mesh_triangles;
         Eigen::Matrix3Xd mesh_vertices;
         std::vector<long> hull_pt_map;
@@ -61,7 +62,7 @@ TEST(ERL_GEOMETRY, ConvexHull) {
         int shown_geometries = 3;
 
         std::map<int, std::function<bool(open3d::visualization::Visualizer *)>> key_to_callback;
-        key_to_callback[int('5')] = [&](open3d::visualization::Visualizer *vis) {
+        key_to_callback[static_cast<int>('5')] = [&](open3d::visualization::Visualizer *vis) {
             if (show_bunny) {
                 if (shown_geometries == 1) {
                     std::cout << "Cannot remove the last geometry." << std::endl;
@@ -76,7 +77,7 @@ TEST(ERL_GEOMETRY, ConvexHull) {
             show_bunny = !show_bunny;
             return true;
         };
-        key_to_callback[int('6')] = [&](open3d::visualization::Visualizer *vis) {
+        key_to_callback[static_cast<int>('6')] = [&](open3d::visualization::Visualizer *vis) {
             if (show_hull) {
                 if (shown_geometries == 1) {
                     std::cout << "Cannot remove the last geometry." << std::endl;
@@ -91,7 +92,7 @@ TEST(ERL_GEOMETRY, ConvexHull) {
             show_hull = !show_hull;
             return true;
         };
-        key_to_callback[int('7')] = [&](open3d::visualization::Visualizer *vis) {
+        key_to_callback[static_cast<int>('7')] = [&](open3d::visualization::Visualizer *vis) {
             if (show_hull_point_cloud) {
                 if (shown_geometries == 1) {
                     std::cout << "Cannot remove the last geometry." << std::endl;

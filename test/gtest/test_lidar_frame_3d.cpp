@@ -1,23 +1,23 @@
-#include <open3d/geometry/TriangleMesh.h>
-#include <open3d/geometry/LineSet.h>
-#include <open3d/geometry/PointCloud.h>
-#include <open3d/io/TriangleMeshIO.h>
-#include <open3d/t/geometry/TriangleMesh.h>
-#include <open3d/t/geometry/RaycastingScene.h>
-#include <open3d/visualization/visualizer/Visualizer.h>
-#include <open3d/visualization/utility/DrawGeometry.h>
-#include <boost/program_options.hpp>
-
-#include "erl_common/test_helper.hpp"
 #include "erl_common/angle_utils.hpp"
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/lidar_frame_3d.hpp"
 
-std::filesystem::path gtest_dir = std::filesystem::path(__FILE__).parent_path();
+#include <boost/program_options.hpp>
+#include <open3d/geometry/LineSet.h>
+#include <open3d/geometry/PointCloud.h>
+#include <open3d/geometry/TriangleMesh.h>
+#include <open3d/io/TriangleMeshIO.h>
+#include <open3d/t/geometry/RaycastingScene.h>
+#include <open3d/t/geometry/TriangleMesh.h>
+#include <open3d/visualization/utility/DrawGeometry.h>
+#include <open3d/visualization/visualizer/Visualizer.h>
+
+std::filesystem::path g_gtest_dir = std::filesystem::path(__FILE__).parent_path();
 
 struct Options {
     std::string window_name = "LidarFrame3D";
-    std::string ply_file = (gtest_dir / "house_expo_room_1451.ply").string();
+    std::string ply_file = (g_gtest_dir / "house_expo_room_1451.ply").string();
     // std::string ply_file = (gtest_dir / "replica-office-0.ply").string();
     double lidar_elevation_min = -30;
     double lidar_elevation_max = 30;
@@ -140,7 +140,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     long ray_idx_base = azimuth_idx * num_elevations;
                     for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
                         long ray_idx = ray_idx_base + elevation_idx;
-                        double &range = ranges(azimuth_idx, elevation_idx);
+                        const double &range = ranges(azimuth_idx, elevation_idx);
                         if (std::isinf(range)) { continue; }
                         Eigen::Vector3d end_pt = range * lidar_ray_dirs(azimuth_idx, elevation_idx);
                         end_pt = rotation * end_pt + lidar_position;
@@ -226,7 +226,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     double t = std::chrono::duration<double, std::milli>(toc - tic).count();
                     std::cout << "SampleInRegionHpr: " << t << " ms" << std::endl
                               << "number of samples: " << sampled_positions.cols() << std::endl
-                              << "time per sample: " << t / double(sampled_positions.cols()) << " ms" << std::endl;
+                              << "time per sample: " << t / static_cast<double>(sampled_positions.cols()) << " ms" << std::endl;
                     region_samples_hpr_line_set->Clear();
                     region_samples_hpr_line_set->points_.reserve(sampled_positions.cols());
                     region_samples_hpr_line_set->lines_.reserve(sampled_positions.cols());
@@ -277,7 +277,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     double t = std::chrono::duration<double, std::milli>(toc - tic).count();
                     std::cout << "SampleInRegionVrs: " << t << " ms" << std::endl
                               << "number of samples: " << sampled_positions.cols() << std::endl
-                              << "time per sample: " << t / double(sampled_positions.cols()) << " ms" << std::endl;
+                              << "time per sample: " << t / static_cast<double>(sampled_positions.cols()) << " ms" << std::endl;
                     region_samples_vrs_line_set->Clear();
                     region_samples_vrs_line_set->points_.reserve(sampled_positions.cols());
                     region_samples_vrs_line_set->lines_.reserve(sampled_positions.cols());
@@ -555,7 +555,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
             if (show_region_samples_vrs) { line_sets.emplace_back("region_samples_vrs", region_samples_vrs_line_set); }
             if (show_along_ray_samples) { line_sets.emplace_back("along_ray_samples", along_ray_samples_line_set); }
             for (auto &[sample_name, line_set]: line_sets) {  // verify samples are correct
-                auto num_rays = long(line_set->lines_.size());
+                auto num_rays = static_cast<long>(line_set->lines_.size());
                 open3d::core::Tensor rays({num_rays, 6}, open3d::core::Dtype::Float32);
                 auto *rays_ptr = rays.GetDataPtr<float>();
                 std::vector<double> ranges_to_check;
@@ -566,15 +566,15 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     Eigen::Vector3d &start_pt = line_set->points_[start_idx];
                     Eigen::Vector3d &end_pt = line_set->points_[end_idx];
                     long base = i * 6;
-                    rays_ptr[base + 0] = float(start_pt[0]);
-                    rays_ptr[base + 1] = float(start_pt[1]);
-                    rays_ptr[base + 2] = float(start_pt[2]);
+                    rays_ptr[base + 0] = static_cast<float>(start_pt[0]);
+                    rays_ptr[base + 1] = static_cast<float>(start_pt[1]);
+                    rays_ptr[base + 2] = static_cast<float>(start_pt[2]);
                     Eigen::Vector3d dir = end_pt - start_pt;
                     ranges_to_check.push_back(dir.norm());
                     dir /= ranges_to_check.back();
-                    rays_ptr[base + 3] = float(dir[0]);
-                    rays_ptr[base + 4] = float(dir[1]);
-                    rays_ptr[base + 5] = float(dir[2]);
+                    rays_ptr[base + 3] = static_cast<float>(dir[0]);
+                    rays_ptr[base + 4] = static_cast<float>(dir[1]);
+                    rays_ptr[base + 5] = static_cast<float>(dir[2]);
                 }
                 std::unordered_map<std::string, open3d::core::Tensor> cast_results = scene->CastRays(rays);
                 std::vector<float> ranges = cast_results.at("t_hit").ToFlatVector<float>();
@@ -597,7 +597,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         ++cnt_miss;
                         continue;
                     }
-                    double diff = std::abs(double(ranges[i]) - ranges_to_check[i]);
+                    double diff = std::abs(static_cast<double>(ranges[i]) - ranges_to_check[i]);
                     if (diff < 0.01) {
                         ++cnt_correct_1;
                         ++cnt_correct_5;
@@ -624,8 +624,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         int end_idx = line_set->lines_[i][1];
                         error_line_set_010->points_.emplace_back(line_set->points_[start_idx]);
                         error_line_set_010->points_.emplace_back(line_set->points_[end_idx]);
-                        start_idx = int(error_line_set_010->points_.size() - 2);
-                        end_idx = int(error_line_set_010->points_.size() - 1);
+                        start_idx = static_cast<int>(error_line_set_010->points_.size() - 2);
+                        end_idx = static_cast<int>(error_line_set_010->points_.size() - 1);
                         error_line_set_010->lines_.emplace_back(start_idx, end_idx);
                     } else if (diff < 0.5) {
                         ++cnt_correct_50;
@@ -634,8 +634,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         int end_idx = line_set->lines_[i][1];
                         error_line_set_025->points_.emplace_back(line_set->points_[start_idx]);
                         error_line_set_025->points_.emplace_back(line_set->points_[end_idx]);
-                        start_idx = int(error_line_set_025->points_.size() - 2);
-                        end_idx = int(error_line_set_025->points_.size() - 1);
+                        start_idx = static_cast<int>(error_line_set_025->points_.size() - 2);
+                        end_idx = static_cast<int>(error_line_set_025->points_.size() - 1);
                         error_line_set_025->lines_.emplace_back(start_idx, end_idx);
                     } else if (diff < 1.0) {
                         ++cnt_correct_100;
@@ -643,16 +643,16 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         int end_idx = line_set->lines_[i][1];
                         error_line_set_050->points_.emplace_back(line_set->points_[start_idx]);
                         error_line_set_050->points_.emplace_back(line_set->points_[end_idx]);
-                        start_idx = int(error_line_set_050->points_.size() - 2);
-                        end_idx = int(error_line_set_050->points_.size() - 1);
+                        start_idx = static_cast<int>(error_line_set_050->points_.size() - 2);
+                        end_idx = static_cast<int>(error_line_set_050->points_.size() - 1);
                         error_line_set_050->lines_.emplace_back(start_idx, end_idx);
                     } else {
                         int start_idx = line_set->lines_[i][0];
                         int end_idx = line_set->lines_[i][1];
                         error_line_set_100->points_.emplace_back(line_set->points_[start_idx]);
                         error_line_set_100->points_.emplace_back(line_set->points_[end_idx]);
-                        start_idx = int(error_line_set_100->points_.size() - 2);
-                        end_idx = int(error_line_set_100->points_.size() - 1);
+                        start_idx = static_cast<int>(error_line_set_100->points_.size() - 2);
+                        end_idx = static_cast<int>(error_line_set_100->points_.size() - 1);
                         error_line_set_100->lines_.emplace_back(start_idx, end_idx);
                     }
 
@@ -667,19 +667,19 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                 if (!error_line_set_050->IsEmpty()) { vis->AddGeometry(error_line_set_050); }
                 if (!error_line_set_100->IsEmpty()) { vis->AddGeometry(error_line_set_100); }
                 vis->UpdateRender();
-                double success_rate_100 = double(cnt_correct_100) / double(num_rays) * 100;
-                double success_rate_50 = double(cnt_correct_50) / double(num_rays) * 100;
-                double success_rate_25 = double(cnt_correct_25) / double(num_rays) * 100;
-                double success_rate_10 = double(cnt_correct_10) / double(num_rays) * 100;
-                double success_rate_5 = double(cnt_correct_5) / double(num_rays) * 100;
-                double success_rate_1 = double(cnt_correct_1) / double(num_rays) * 100;
-                double miss_rate = double(cnt_miss) / double(num_rays);
-                double avg_diff = diff_sum / double(num_rays - cnt_miss - cnt_correct_1);
+                double success_rate_100 = static_cast<double>(cnt_correct_100) / static_cast<double>(num_rays) * 100;
+                double success_rate_50 = static_cast<double>(cnt_correct_50) / static_cast<double>(num_rays) * 100;
+                double success_rate_25 = static_cast<double>(cnt_correct_25) / static_cast<double>(num_rays) * 100;
+                double success_rate_10 = static_cast<double>(cnt_correct_10) / static_cast<double>(num_rays) * 100;
+                double success_rate_5 = static_cast<double>(cnt_correct_5) / static_cast<double>(num_rays) * 100;
+                double success_rate_1 = static_cast<double>(cnt_correct_1) / static_cast<double>(num_rays) * 100;
+                double miss_rate = static_cast<double>(cnt_miss) / static_cast<double>(num_rays);
+                double avg_diff = diff_sum / static_cast<double>(num_rays - cnt_miss - cnt_correct_1);
                 std::cout << "==========" << std::endl
                           << sample_name << "     <=1.0     <=0.5    <=0.25     <=0.1    <=0.05    <=0.01" << std::endl
-                          << std::setw(int(sample_name.size())) << "success rate" << std::setw(10) << success_rate_100 << std::setw(10) << success_rate_50
-                          << std::setw(10) << success_rate_25 << std::setw(10) << success_rate_10 << std::setw(10) << success_rate_5 << std::setw(10)
-                          << success_rate_1 << std::endl
+                          << std::setw(static_cast<int>(sample_name.size())) << "success rate" << std::setw(10) << success_rate_100 << std::setw(10)
+                          << success_rate_50 << std::setw(10) << success_rate_25 << std::setw(10) << success_rate_10 << std::setw(10) << success_rate_5
+                          << std::setw(10) << success_rate_1 << std::endl
                           << "miss rate: " << miss_rate << std::endl
                           << "avg diff(>=0.01): " << avg_diff << std::endl;
             }

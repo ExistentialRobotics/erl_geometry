@@ -1,7 +1,8 @@
 #pragma once
 
-#include "erl_common/yaml.hpp"
 #include "lidar_frame_3d.hpp"
+
+#include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
 
@@ -32,11 +33,13 @@ namespace erl::geometry {
         Resize(double factor) {
             Reset();
             auto *setting = reinterpret_cast<Setting *>(m_setting_.get());
-            int old_image_height = setting->image_height;
-            int old_image_width = setting->image_width;
+            const int old_image_height = setting->image_height;
+            const int old_image_width = setting->image_width;
             setting->image_height = static_cast<int>(setting->image_height * factor);
             setting->image_width = static_cast<int>(setting->image_width * factor);
-            factor = (double(setting->image_height) / double(old_image_height) + double(setting->image_width) / double(old_image_width)) / 2.0;
+            factor = (static_cast<double>(setting->image_height) / static_cast<double>(old_image_height) +
+                      static_cast<double>(setting->image_width) / static_cast<double>(old_image_width)) /
+                     2.0;
             setting->camera_fx *= factor;
             setting->camera_fy *= factor;
             setting->camera_cx *= factor;
@@ -52,12 +55,12 @@ namespace erl::geometry {
             bool depth_scaled,
             bool partition_rays = false);
 
-        inline void
+        void
         Update(
             const Eigen::Ref<const Eigen::Matrix3d> &rotation,
             const Eigen::Ref<const Eigen::Vector3d> &translation,
             const std::string &depth_file,
-            bool partition_rays = false) {
+            const bool partition_rays = false) {
             cv::Mat depth_img = cv::imread(depth_file, cv::IMREAD_UNCHANGED);
             depth_img.convertTo(depth_img, CV_64FC1);  // convert to double
             Eigen::MatrixXd depth;
@@ -65,16 +68,16 @@ namespace erl::geometry {
             Update(rotation, translation, depth, false, partition_rays);
         }
 
-        [[nodiscard]] inline Eigen::Matrix4d
+        [[nodiscard]] Eigen::Matrix4d
         GetCameraExtrinsicMatrix() const {
             Eigen::Matrix4d extrinsic = reinterpret_cast<Setting *>(m_setting_.get())->camera_to_optical * GetPoseMatrix();
             return extrinsic;
         }
 
-        [[nodiscard]] inline Eigen::Matrix3d
+        [[nodiscard]] Eigen::Matrix3d
         GetCameraIntrinsicMatrix() const {
             Eigen::Matrix3d intrinsic;
-            auto *setting = reinterpret_cast<Setting *>(m_setting_.get());
+            const auto *setting = reinterpret_cast<Setting *>(m_setting_.get());
             // clang-format off
             intrinsic << setting->camera_fx, 0, setting->camera_cx,
                          0, setting->camera_fy, setting->camera_cy,
@@ -85,60 +88,34 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
-    template<>
-    struct convert<erl::geometry::RgbdFrame3D::Setting> {
-        static inline Node
-        encode(const erl::geometry::RgbdFrame3D::Setting &rhs) {
-            Node node = convert<erl::geometry::LidarFrame3D::Setting>::encode(rhs);
-            node["camera_to_optical"] = rhs.camera_to_optical;
-            node["image_height"] = rhs.image_height;
-            node["image_width"] = rhs.image_width;
-            node["camera_fx"] = rhs.camera_fx;
-            node["camera_fy"] = rhs.camera_fy;
-            node["camera_cx"] = rhs.camera_cx;
-            node["camera_cy"] = rhs.camera_cy;
-            node["depth_scale"] = rhs.depth_scale;
-            return node;
-        }
+template<>
+struct YAML::convert<erl::geometry::RgbdFrame3D::Setting> {
+    static Node
+    encode(const erl::geometry::RgbdFrame3D::Setting &rhs) {
+        Node node = convert<erl::geometry::LidarFrame3D::Setting>::encode(rhs);
+        node["camera_to_optical"] = rhs.camera_to_optical;
+        node["image_height"] = rhs.image_height;
+        node["image_width"] = rhs.image_width;
+        node["camera_fx"] = rhs.camera_fx;
+        node["camera_fy"] = rhs.camera_fy;
+        node["camera_cx"] = rhs.camera_cx;
+        node["camera_cy"] = rhs.camera_cy;
+        node["depth_scale"] = rhs.depth_scale;
+        return node;
+    }
 
-        static inline bool
-        decode(const Node &node, erl::geometry::RgbdFrame3D::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            convert<erl::geometry::LidarFrame3D::Setting>::decode(node, rhs);
-            rhs.camera_to_optical = node["camera_to_optical"].as<Eigen::Matrix4d>();
-            rhs.image_height = node["image_height"].as<int>();
-            rhs.image_width = node["image_width"].as<int>();
-            rhs.camera_fx = node["camera_fx"].as<double>();
-            rhs.camera_fy = node["camera_fy"].as<double>();
-            rhs.camera_cx = node["camera_cx"].as<double>();
-            rhs.camera_cy = node["camera_cy"].as<double>();
-            rhs.depth_scale = node["depth_scale"].as<double>();
-            return true;
-        }
-    };
-
-    // inline Emitter &
-    // operator<<(Emitter &out, const erl::geometry::RgbdFrame3D::Setting &rhs) {
-    //     out << BeginMap;
-    //     out << Key << "valid_range_min" << Value << rhs.valid_range_min;
-    //     out << Key << "valid_range_max" << Value << rhs.valid_range_max;
-    //     out << Key << "valid_azimuth_min" << Value << rhs.valid_azimuth_min;
-    //     out << Key << "valid_azimuth_max" << Value << rhs.valid_azimuth_max;
-    //     out << Key << "valid_elevation_min" << Value << rhs.valid_elevation_min;
-    //     out << Key << "valid_elevation_max" << Value << rhs.valid_elevation_max;
-    //     out << Key << "discontinuity_factor" << Value << rhs.discontinuity_factor;
-    //     out << Key << "rolling_diff_discount" << Value << rhs.rolling_diff_discount;
-    //     out << Key << "min_partition_size" << Value << rhs.min_partition_size;
-    //     out << Key << "camera_to_optical" << Value << rhs.camera_to_optical;
-    //     out << Key << "image_height" << Value << rhs.image_height;
-    //     out << Key << "image_width" << Value << rhs.image_width;
-    //     out << Key << "camera_fx" << Value << rhs.camera_fx;
-    //     out << Key << "camera_fy" << Value << rhs.camera_fy;
-    //     out << Key << "camera_cx" << Value << rhs.camera_cx;
-    //     out << Key << "camera_cy" << Value << rhs.camera_cy;
-    //     out << Key << "depth_scale" << Value << rhs.depth_scale;
-    //     out << EndMap;
-    //     return out;
-    // }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::RgbdFrame3D::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        convert<erl::geometry::LidarFrame3D::Setting>::decode(node, rhs);
+        rhs.camera_to_optical = node["camera_to_optical"].as<Eigen::Matrix4d>();
+        rhs.image_height = node["image_height"].as<int>();
+        rhs.image_width = node["image_width"].as<int>();
+        rhs.camera_fx = node["camera_fx"].as<double>();
+        rhs.camera_fy = node["camera_fy"].as<double>();
+        rhs.camera_cx = node["camera_cx"].as<double>();
+        rhs.camera_cy = node["camera_cy"].as<double>();
+        rhs.depth_scale = node["depth_scale"].as<double>();
+        return true;
+    }
+};  // namespace YAML

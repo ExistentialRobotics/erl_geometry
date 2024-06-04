@@ -116,7 +116,7 @@ main() {
             quadtree = new_root;
         }
     }
-    ERL_INFO("num_inserted: {:d} / {:d}\n", num_inserted, circle_vertices.cols());
+    ERL_INFO("num_inserted: {} / {}\n", num_inserted, circle_vertices.cols());
 
     num_inserted = 0;
     std::shared_ptr<erl::geometry::IncrementalQuadtree> cluster;
@@ -127,7 +127,7 @@ main() {
         if (cluster) { num_inserted++; }
         if (new_root) { quadtree = new_root; }
     }
-    ERL_INFO("num_inserted: {:d} / {:d}\n", num_inserted, rect_vertices.cols());
+    ERL_INFO("num_inserted: {} / {}\n", num_inserted, rect_vertices.cols());
 
     quadtree_image = quadtree->Plot(grid_map_info, {0, 1}, {{0, cv::Scalar(0, 0, 255)}, {1, cv::Scalar(0, 255, 0)}}, {{0, 1}, {1, 1}});
     cv::namedWindow(window_name, cv::WINDOW_NORMAL);

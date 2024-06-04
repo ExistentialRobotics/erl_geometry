@@ -18,7 +18,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
     static bool mouse_fixed = false;
 
     (void) flags;
-    auto data = reinterpret_cast<UserData *>(userdata);
+    auto data = static_cast<UserData *>(userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) {
         std::cout << "Left button of the mouse is clicked - position (" << mouse_x << ", " << mouse_y << ")" << std::endl;
@@ -66,7 +66,7 @@ TEST(OccupancyQuadtree, IterateLeafInAABB) {
     UserData data;
     data.tree_setting->resolution = 0.1;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(data.tree_setting);
-    std::filesystem::path path = gtest_src_dir / "house_expo_room_1451_2d.bt";
+    const std::filesystem::path path = gtest_src_dir / "house_expo_room_1451_2d.bt";
     ASSERT_TRUE(data.tree->ReadBinary(path.string())) << "Fail to load the tree.";
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;

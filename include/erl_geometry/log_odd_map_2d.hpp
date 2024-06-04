@@ -1,11 +1,12 @@
 #pragma once
-#include <Eigen/Core>
-#include <opencv2/core.hpp>
-#include <opencv2/core/eigen.hpp>
-
 #include "erl_common/eigen.hpp"
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/yaml.hpp"
+
+#include <Eigen/Core>
+
+#include <opencv2/core.hpp>
+#include <opencv2/core/eigen.hpp>
 
 namespace erl::geometry {
 
@@ -15,10 +16,10 @@ namespace erl::geometry {
         enum CellType { kOccupied = 0, kFree = 255, kUnexplored = 128 };
 
         static const char *
-        GetCellTypeName(CellType type) {
+        GetCellTypeName(const CellType type) {
             static const char *names[] = {"kOccupied", "kUnexplored", "kFree"};
 
-            int i = (static_cast<int>(type) + 1) / 128;
+            const int i = (static_cast<int>(type) + 1) / 128;
             return names[i];
         }
 
@@ -37,7 +38,7 @@ namespace erl::geometry {
 
             LogOddCVMask() = default;
 
-            LogOddCVMask(int height, int width)
+            LogOddCVMask(const int height, const int width)
                 : unexplored_mask(cv::Mat(height, width, CV_8UC1, cv::Scalar(1))),
                   free_mask(cv::Mat(height, width, CV_8UC1, cv::Scalar(0))),
                   occupied_mask(cv::Mat(height, width, CV_8UC1, cv::Scalar(0))) {}
@@ -66,8 +67,8 @@ namespace erl::geometry {
 
             LidarFrameMask() = default;
 
-            inline void
-            UpdateGridRange(int x, int y) {
+            void
+            UpdateGridRange(const int x, const int y) {
                 if (x < x_grid_min) { x_grid_min = x; }
                 if (x > x_grid_max) { x_grid_max = x; }
                 if (y < y_grid_min) { y_grid_min = y; }
@@ -113,32 +114,32 @@ namespace erl::geometry {
         void
         LoadExternalPossibilityMap(const Eigen::Ref<const Eigen::Vector2d> &position, double theta, const Eigen::Ref<const Eigen::MatrixXi> &possibility_map);
 
-        inline std::shared_ptr<geometry::LogOddMap2D::LidarFrameMask>
+        std::shared_ptr<LidarFrameMask>
         ComputeStatisticsOfLidarFrame(
             const Eigen::Ref<const Eigen::Vector2d> &position,
-            double theta,
+            const double theta,
             const Eigen::Ref<const Eigen::VectorXd> &angles_body,
             const Eigen::Ref<const Eigen::VectorXd> &ranges,
-            bool clip_ranges,
+            const bool clip_ranges,
             const std::shared_ptr<LidarFrameMask> &old_mask,
             int &num_occupied_cells,
             int &num_free_cells,
             int &num_unexplored_cells,
             int &num_out_of_map_cells) const {
 
-            constexpr bool kRayMode = false;
-            constexpr bool kInMapOnly = false;
-            auto new_mask = ComputeLidarFrameMask(position, theta, angles_body, ranges, clip_ranges, kRayMode, kInMapOnly, old_mask);
+            constexpr bool ray_mode = false;
+            constexpr bool in_map_only = false;
+            auto new_mask = ComputeLidarFrameMask(position, theta, angles_body, ranges, clip_ranges, ray_mode, in_map_only, old_mask);
             ComputeStatisticsOfLidarFrameMask(new_mask, num_occupied_cells, num_free_cells, num_unexplored_cells, num_out_of_map_cells);
             return new_mask;
         }
 
-        inline std::shared_ptr<LidarFrameMask>
+        std::shared_ptr<LidarFrameMask>
         ComputeStatisticsOfLidarFrames(
             const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
             const Eigen::Ref<const Eigen::VectorXd> &lidar_angles_body,
             const std::vector<Eigen::VectorXd> &lidar_ranges,
-            bool clip_ranges,
+            const bool clip_ranges,
             const std::shared_ptr<LidarFrameMask> &old_mask,
             int &num_occupied_cells,
             int &num_free_cells,
@@ -152,64 +153,64 @@ namespace erl::geometry {
             return new_mask;
         }
 
-        [[nodiscard]] inline std::shared_ptr<Setting>
+        [[nodiscard]] std::shared_ptr<Setting>
         GetSetting() const {
             return m_setting_;
         }
 
-        [[nodiscard]] inline Eigen::MatrixXd
+        [[nodiscard]] Eigen::MatrixXd
         GetLogMap() const {
             Eigen::MatrixXd log_map;
             cv::cv2eigen(m_log_map_, log_map);
             return log_map;
         }
 
-        [[nodiscard]] inline Eigen::MatrixXd
+        [[nodiscard]] Eigen::MatrixXd
         GetPossibilityMap() const {
             Eigen::MatrixXd possibility_map;
             cv::cv2eigen(m_possibility_map_, possibility_map);
             return possibility_map;
         }
 
-        [[nodiscard]] inline Eigen::MatrixX8U
+        [[nodiscard]] Eigen::MatrixX8U
         GetOccupancyMap() const {
             Eigen::MatrixX8U occupancy_map;
             cv::cv2eigen(m_occupancy_map_, occupancy_map);
             return occupancy_map;
         }
 
-        [[nodiscard]] inline Eigen::MatrixX8U
+        [[nodiscard]] Eigen::MatrixX8U
         GetUnexploredMask() const {
             Eigen::MatrixX8U unexplored_mask;
             cv::cv2eigen(m_mask_.unexplored_mask, unexplored_mask);
             return unexplored_mask;
         }
 
-        [[nodiscard]] inline Eigen::MatrixX8U
+        [[nodiscard]] Eigen::MatrixX8U
         GetOccupiedMask() const {
             Eigen::MatrixX8U occupied_mask;
             cv::cv2eigen(m_mask_.occupied_mask, occupied_mask);
             return occupied_mask;
         }
 
-        [[nodiscard]] inline Eigen::MatrixX8U
+        [[nodiscard]] Eigen::MatrixX8U
         GetFreeMask() const {
             Eigen::MatrixX8U free_mask;
             cv::cv2eigen(m_mask_.free_mask, free_mask);
             return free_mask;
         }
 
-        [[nodiscard]] inline std::size_t
+        [[nodiscard]] std::size_t
         GetNumUnexploredCells() const {
             return m_num_unexplored_cells_;
         }
 
-        [[nodiscard]] inline std::size_t
+        [[nodiscard]] std::size_t
         GetNumOccupiedCells() const {
             return m_num_occupied_cells_;
         }
 
-        [[nodiscard]] inline std::size_t
+        [[nodiscard]] std::size_t
         GetNumFreeCells() const {
             return m_num_free_cells_;
         }
@@ -219,21 +220,21 @@ namespace erl::geometry {
             return m_cleaned_mask_;
         }
 
-        [[nodiscard]] inline Eigen::MatrixX8U
+        [[nodiscard]] Eigen::MatrixX8U
         GetCleanedFreeMask() const {
             Eigen::MatrixX8U free_mask;
             cv::cv2eigen(m_cleaned_mask_.free_mask, free_mask);
             return free_mask;
         }
 
-        [[nodiscard]] inline Eigen::MatrixX8U
+        [[nodiscard]] Eigen::MatrixX8U
         GetCleanedOccupiedMask() const {
             Eigen::MatrixX8U occupied_mask;
             cv::cv2eigen(m_cleaned_mask_.occupied_mask, occupied_mask);
             return occupied_mask;
         }
 
-        [[nodiscard]] inline Eigen::MatrixX8U
+        [[nodiscard]] Eigen::MatrixX8U
         GetCleanedUnexploredMask() const {
             Eigen::MatrixX8U unexplored_mask;
             cv::cv2eigen(m_cleaned_mask_.unexplored_mask, unexplored_mask);

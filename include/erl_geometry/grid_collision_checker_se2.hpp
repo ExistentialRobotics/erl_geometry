@@ -8,7 +8,7 @@ namespace erl::geometry {
 
     class GridCollisionCheckerSe2 : public CollisionCheckerBase {
 
-        std::shared_ptr<common::GridMapUnsigned2D> m_grid_map_;
+        std::shared_ptr<common::GridMapUnsigned2D> m_grid_map_ = nullptr;
         Eigen::Matrix2Xd m_metric_shapes_;
         std::map<int, Eigen::Matrix2Xi> m_oriented_shapes_;
 
@@ -20,8 +20,8 @@ namespace erl::geometry {
             : m_grid_map_(std::move(grid_map)),
               m_metric_shapes_(std::move(metric_shape)) {
 
-            auto theta_c_min = static_cast<int>(std::round(grid_map_info->MeterToGridForValue(-M_PI, 2)));
-            auto theta_c_max = static_cast<int>(std::round(grid_map_info->MeterToGridForValue(M_PI, 2)));
+            const auto theta_c_min = static_cast<int>(std::round(grid_map_info->MeterToGridForValue(-M_PI, 2)));
+            const auto theta_c_max = static_cast<int>(std::round(grid_map_info->MeterToGridForValue(M_PI, 2)));
 
             for (int theta_c = theta_c_min; theta_c <= theta_c_max; ++theta_c) {
                 double theta = grid_map_info->GridToMeterForValue(theta_c, 2);
@@ -33,8 +33,8 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsCollided(const Eigen::Ref<const Eigen::Matrix3d> &pose) const {
-            auto num_cells = m_metric_shapes_.cols();
-            for (int i = 0; i < num_cells; ++i) {
+            const long num_cells = m_metric_shapes_.cols();
+            for (long i = 0; i < num_cells; ++i) {
                 Eigen::Vector2d metric_coords = pose.topLeftCorner<2, 2>() * m_metric_shapes_.col(i) + pose.topRightCorner<2, 1>();
                 if (!m_grid_map_->info->InMap(metric_coords)) { return true; }
                 Eigen::Vector2i grid_coords = m_grid_map_->info->MeterToGridForPoints(metric_coords);
@@ -45,10 +45,10 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsCollided(const Eigen::Ref<const Eigen::VectorXi> &coords) const override {
-            const Eigen::Matrix2Xi &kOrientedShapes = m_oriented_shapes_.at(coords[2]);
-            auto num_cells = static_cast<int>(kOrientedShapes.cols());
+            const Eigen::Matrix2Xi &oriented_shapes = m_oriented_shapes_.at(coords[2]);
+            const auto num_cells = static_cast<int>(oriented_shapes.cols());
             for (int i = 0; i < num_cells; ++i) {
-                Eigen::Vector2i grid_coords = kOrientedShapes.col(i) + coords.head(2);
+                Eigen::Vector2i grid_coords = oriented_shapes.col(i) + coords.head(2);
                 if (!m_grid_map_->info->InGrids(grid_coords) || m_grid_map_->data[grid_coords] > 0) { return true; }
             }
             return false;

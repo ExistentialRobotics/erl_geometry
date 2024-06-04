@@ -1,12 +1,14 @@
 #pragma once
 
-#include "erl_common/yaml.hpp"
 #include "abstract_octree.hpp"
 #include "open3d_visualizer_wrapper.hpp"
 
-#include <utility>
-#include <open3d/geometry/VoxelGrid.h>
+#include "erl_common/yaml.hpp"
+
 #include <open3d/geometry/LineSet.h>
+#include <open3d/geometry/VoxelGrid.h>
+
+#include <utility>
 
 namespace erl::geometry {
 
@@ -54,7 +56,7 @@ namespace erl::geometry {
             std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = GetBlankGeometries();
             DrawTree(geometries);
 
-            auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
+            const auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
             visualizer_setting->window_name = "Press Ctrl+S to save the view as an image";
             visualizer_setting->screenshot_filename = filename;
             Open3dVisualizerWrapper visualizer(visualizer_setting);
@@ -70,7 +72,7 @@ namespace erl::geometry {
             std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = GetBlankGeometries();
             DrawLeaves(geometries);
 
-            auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
+            const auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
             visualizer_setting->window_name = "Press Ctrl+S to save the view as an image";
             visualizer_setting->screenshot_filename = filename;
             Open3dVisualizerWrapper visualizer(visualizer_setting);

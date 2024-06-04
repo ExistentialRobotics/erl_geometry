@@ -27,7 +27,7 @@ BindNdTreeDeps(py::module &m) {
         .def("__getitem__", [](const OctreeKey &self, int idx) { return self[idx]; });
     // OctreeKeyRay is std::vector<OctreeKey>
 
-    py::class_<AbstractOctreeNode, py::raw_ptr_wrapper<AbstractOctreeNode>>(m, "AbstractOctreeNode")
+    py::class_<AbstractOctreeNode, py::RawPtrWrapper<AbstractOctreeNode>>(m, "AbstractOctreeNode")
         .def_property_readonly("depth", &AbstractOctreeNode::GetDepth)
         .def_property_readonly("child_index", &AbstractOctreeNode::GetChildIndex)
         .def_property_readonly("num_children", &AbstractOctreeNode::GetNumChildren);

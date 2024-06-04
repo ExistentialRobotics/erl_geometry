@@ -1,32 +1,16 @@
 #include <boost/heap/d_ary_heap.hpp>
 // MUST INCLUDE BOOST HEADER BEFORE EIGEN HEADER WHEN USING LAPACK
 
-#include <algorithm>
-#include <opencv2/imgproc.hpp>
-#include <utility>
-
 #include "erl_common/string_utils.hpp"
 #include "erl_geometry/incremental_quadtree.hpp"
 #include "erl_geometry/utils.hpp"
 
-namespace erl::geometry {
+#include <algorithm>
+#include <utility>
 
-    // std::shared_ptr<IncrementalQuadtree>
-    // IncrementalQuadtree::GetRoot() {
-    //     return (*m_root_ptr_)->GetSharedPtr();
-    // }
-    //
-    // std::shared_ptr<IncrementalQuadtree>
-    // IncrementalQuadtree::GetCluster() {
-    //     if (m_cluster_ == nullptr) { return nullptr; }
-    //     return m_cluster_->GetSharedPtr();
-    // }
-    //
-    // std::shared_ptr<IncrementalQuadtree>
-    // IncrementalQuadtree::GetParent() {
-    //     if (m_parent_ == nullptr) { return nullptr; }
-    //     return m_parent_->GetSharedPtr();
-    // }
+#include <opencv2/imgproc.hpp>
+
+namespace erl::geometry {
 
     std::shared_ptr<IncrementalQuadtree>
     IncrementalQuadtree::Insert(const std::shared_ptr<Node> &node, std::shared_ptr<IncrementalQuadtree> &new_root) {  // NOLINT(misc-no-recursion)
@@ -61,8 +45,9 @@ namespace erl::geometry {
                     //  NW  |  NE
                     // -----------
                     //  SW  |  SE
-                    auto my_child_type =
-                        Children::Type((np.y() < cp.y() ? int(Children::Type::kNorthWest) : int(Children::Type::kSouthWest)) + (np.x() > cp.x() ? 0 : 1));
+                    const auto my_child_type = static_cast<Children::Type>(
+                        (np.y() < cp.y() ? static_cast<int>(Children::Type::kNorthWest) : static_cast<int>(Children::Type::kSouthWest)) +
+                        (np.x() > cp.x() ? 0 : 1));
                     tree = tree->Expand(my_child_type);
                     new_root = tree;
                 } else {  // this tree is not the root, try its parent
@@ -83,14 +68,14 @@ namespace erl::geometry {
 
                     // move nodes to the children
                     auto node_types = tree->m_node_container_->GetNodeTypes();
-                    for (auto &node_type: node_types) {
-                        auto begin = tree->m_node_container_->Begin(node_type);
-                        auto end = tree->m_node_container_->End(node_type);
+                    for (const auto &node_type: node_types) {
+                        const auto begin = tree->m_node_container_->Begin(node_type);
+                        const auto end = tree->m_node_container_->End(node_type);
                         std::for_each(begin, end, [&](const std::shared_ptr<Node> &n) {  // NOLINT(misc-no-recursion)
                             std::any_of(
                                 tree->m_children_.vector.begin(),
                                 tree->m_children_.vector.end(),
-                                [&n, &new_root](std::shared_ptr<IncrementalQuadtree> &child) -> bool {  // NOLINT(misc-no-recursion)
+                                [&n, &new_root](const std::shared_ptr<IncrementalQuadtree> &child) -> bool {  // NOLINT(misc-no-recursion)
                                     // Don't call child->Insert if the child does not contain n's position. Otherwise, call-stack overflow will occur.
                                     // The current tree stack is not for this node, so we call child->Insert to start a new tree stack for this node.
                                     if (child->m_area_.contains(n->position)) { return child->Insert(n, new_root) != nullptr; }
@@ -106,7 +91,7 @@ namespace erl::geometry {
             }
 
             // Insert node to any descendent that accepts it
-            if (!std::any_of(tree->m_children_.vector.begin(), tree->m_children_.vector.end(), [&](std::shared_ptr<IncrementalQuadtree> &child) -> bool {
+            if (!std::any_of(tree->m_children_.vector.begin(), tree->m_children_.vector.end(), [&](const std::shared_ptr<IncrementalQuadtree> &child) -> bool {
                     if (child->m_area_.contains(node->position)) {
                         // tree_stack.push_back(child);
                         tree = child;
@@ -116,7 +101,7 @@ namespace erl::geometry {
                 })) {
                 // may come here due to numerical error
                 std::vector<std::shared_ptr<Node>> nodes;
-                for (auto &split_tree: split_trees) {
+                for (const auto &split_tree: split_trees) {
                     nodes.clear();
                     split_tree->CollectNodes(nodes);
                     if (nodes.empty()) { split_tree->DeleteChildren(); }
@@ -132,7 +117,7 @@ namespace erl::geometry {
     }
 
     bool
-    IncrementalQuadtree::Remove(const std::shared_ptr<const Node> &node) {
+    IncrementalQuadtree::Remove(const std::shared_ptr<const Node> &node) {  // NOLINT(*-no-recursion)
         static bool warned = false;
         if (IsRoot()) {
             warned = true;
@@ -147,9 +132,12 @@ namespace erl::geometry {
 
         if (IsLeaf()) { return false; }
 
-        auto removed = std::any_of(m_children_.vector.begin(), m_children_.vector.end(), [&](std::shared_ptr<IncrementalQuadtree> &child) -> bool {
-            return child->Remove(node);
-        });
+        const auto removed = std::any_of(
+            m_children_.vector.begin(),
+            m_children_.vector.end(),
+            [&](const std::shared_ptr<IncrementalQuadtree> &child) -> bool {  // NOLINT(*-no-recursion)
+                return child->Remove(node);
+            });
 
         if (removed && std::all_of(m_children_.vector.begin(), m_children_.vector.end(), [&](const std::shared_ptr<IncrementalQuadtree> &child) -> bool {
                 return child->IsLeaf() && child->IsEmpty();
@@ -283,7 +271,7 @@ namespace erl::geometry {
         tree_stack.push_back(shared_from_this());
 
         while (!tree_stack.empty()) {
-            auto tree = tree_stack.back();
+            const auto tree = tree_stack.back();
             tree_stack.pop_back();
 
             if (!tree->IsEmpty()) { tree->m_node_container_->CollectNodes(nodes); }
@@ -297,11 +285,11 @@ namespace erl::geometry {
     IncrementalQuadtree::RayTracing(
         const Eigen::Ref<const Eigen::Vector2d> &ray_origin,
         const Eigen::Ref<const Eigen::Vector2d> &ray_direction,
-        double hit_distance_threshold,
+        const double hit_distance_threshold,
         double &ray_travel_distance,
         std::shared_ptr<Node> &hit_node) const {
 
-        Eigen::Vector2d r_inv = ray_direction.cwiseInverse();
+        const Eigen::Vector2d r_inv = ray_direction.cwiseInverse();
         auto self = shared_from_this();
         double dist, dist2;
         bool intersected;
@@ -327,22 +315,18 @@ namespace erl::geometry {
         hit_node = nullptr;
 
         while (!tree_queue.empty()) {
-            auto tree = tree_queue.top().second;
+            const auto tree = tree_queue.top().second;
             tree_queue.pop();
 
             // the ray intersects with the tree's area
             if (tree->IsLeaf()) {
                 if (!tree->IsEmpty()) {
                     auto container_nodes = tree->m_node_container_->CollectNodes();  // collect all nodes in the container
-                    for (auto &node: container_nodes) {
-                        double dx = node->position[0] - ray_origin[0];
-                        double dy = node->position[1] - ray_origin[1];
-                        // bool in_front = (dx * ray_direction[0] + dy * ray_direction[1]) > 0;
+                    for (const auto &node: container_nodes) {
+                        const double dx = node->position[0] - ray_origin[0];
+                        const double dy = node->position[1] - ray_origin[1];
                         dist = dx * ray_direction[0] + dy * ray_direction[1];
-                        bool in_front = (dist > 0);
-                        double vertical_dist = std::abs(dx * ray_direction[1] - dy * ray_direction[0]);
-                        if (in_front && vertical_dist < hit_distance_threshold) {
-                            // dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist > 0 && std::abs(dx * ray_direction[1] - dy * ray_direction[0]) < hit_distance_threshold) {
                             if (dist < ray_travel_distance) {
                                 ray_travel_distance = dist;
                                 hit_node = node;
@@ -360,13 +344,13 @@ namespace erl::geometry {
                         continue;
                     }
                     // not intersected but this child is in front of the ray and very close to the ray
-                    auto &child_area_center = (*child)->m_area_.center;
-                    double &half_size = (*child)->m_area_.half_sizes[0];
-                    double dx = child_area_center[0] - ray_origin[0];
-                    double dy = child_area_center[1] - ray_origin[1];
-                    bool in_front = (dx * ray_direction[0] + dy * ray_direction[1]) > 0;
-                    double vertical_dist = std::abs(dx * ray_direction[1] - dy * ray_direction[0]);
-                    if (in_front && vertical_dist < hit_distance_threshold + half_size) { tree_queue.emplace(std::sqrt(dx * dx + dy * dy), *child); }
+                    const auto &child_area_center = (*child)->m_area_.center;
+                    if (const double dx = child_area_center[0] - ray_origin[0], dy = child_area_center[1] - ray_origin[1];
+                        (dx * ray_direction[0] + dy * ray_direction[1]) > 0 &&  // in front of the ray
+                                                                                // vertical dist is smaller than the hit distance threshold
+                        std::abs(dx * ray_direction[1] - dy * ray_direction[0]) < hit_distance_threshold + (*child)->m_area_.half_sizes[0]) {
+                        tree_queue.emplace(std::sqrt(dx * dx + dy * dy), *child);
+                    }
                 }
             }
         }
@@ -376,7 +360,7 @@ namespace erl::geometry {
     IncrementalQuadtree::RayTracing(
         const Eigen::Ref<const Eigen::Matrix2Xd> &ray_origins,
         const Eigen::Ref<const Eigen::Matrix2Xd> &ray_directions,
-        double hit_distance_threshold,
+        const double hit_distance_threshold,
         int num_threads,
         std::vector<double> &ray_travel_distances,
         std::vector<std::shared_ptr<Node>> &hit_nodes) const {
@@ -385,25 +369,22 @@ namespace erl::geometry {
         ray_travel_distances.resize(ray_origins.cols());
         hit_nodes.resize(ray_origins.cols());
 
-        long num_rays = ray_origins.cols();
-
-#pragma omp parallel for default(none) shared(num_rays, ray_origins, ray_directions, hit_distance_threshold, ray_travel_distances, hit_nodes) \
-    num_threads(num_threads)
-        for (int i = 0; i < num_rays; ++i) {
+#pragma omp parallel for default(none) shared(ray_origins, ray_directions, hit_distance_threshold, ray_travel_distances, hit_nodes) num_threads(num_threads)
+        for (int i = 0; i < ray_origins.cols(); ++i) {
             RayTracing(ray_origins.col(i), ray_directions.col(i), hit_distance_threshold, ray_travel_distances[i], hit_nodes[i]);
         }
     }
 
     void
     IncrementalQuadtree::RayTracing(
-        int node_type,
+        const int node_type,
         const Eigen::Ref<const Eigen::Vector2d> &ray_origin,
         const Eigen::Ref<const Eigen::Vector2d> &ray_direction,
-        double hit_distance_threshold,
+        const double hit_distance_threshold,
         double &ray_travel_distance,
         std::shared_ptr<Node> &hit_node) const {
 
-        Eigen::Vector2d r_inv = ray_direction.cwiseInverse();
+        const Eigen::Vector2d r_inv = ray_direction.cwiseInverse();
         auto self = shared_from_this();
         double dist, dist2;
         bool intersected;
@@ -429,22 +410,19 @@ namespace erl::geometry {
         hit_node = nullptr;
 
         while (!tree_queue.empty()) {
-            auto tree = tree_queue.top().second;
+            const auto tree = tree_queue.top().second;
             tree_queue.pop();
 
             // the ray intersects with the tree's area
             if (tree->IsLeaf()) {
                 if (!tree->IsEmpty()) {
                     auto container_nodes = tree->m_node_container_->CollectNodesOfType(node_type);  // collect all nodes in the container
-                    for (auto &node: container_nodes) {
-                        double dx = node->position[0] - ray_origin[0];
-                        double dy = node->position[1] - ray_origin[1];
-                        // bool in_front = (dx * ray_direction[0] + dy * ray_direction[1]) > 0;
+                    for (const auto &node: container_nodes) {
+                        const double dx = node->position[0] - ray_origin[0];
+                        const double dy = node->position[1] - ray_origin[1];
                         dist = dx * ray_direction[0] + dy * ray_direction[1];
-                        bool in_front = dist > 0;
-                        double vertical_dist = std::abs(dx * ray_direction[1] - dy * ray_direction[0]);
-                        if (in_front && vertical_dist < hit_distance_threshold) {
-                            // dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist > 0 &&  // in front of the ray
+                            std::abs(dx * ray_direction[1] - dy * ray_direction[0]) < hit_distance_threshold) {
                             if (dist < ray_travel_distance) {
                                 ray_travel_distance = dist;
                                 hit_node = node;
@@ -462,13 +440,14 @@ namespace erl::geometry {
                         continue;
                     }
                     // not intersected but this child is in front of the ray and very close to the ray
-                    auto &child_area_center = (*child)->m_area_.center;
-                    double &half_size = (*child)->m_area_.half_sizes[0];
-                    double dx = child_area_center[0] - ray_origin[0];
-                    double dy = child_area_center[1] - ray_origin[1];
-                    bool in_front = (dx * ray_direction[0] + dy * ray_direction[1]) > 0;
-                    double vertical_dist = std::abs(dx * ray_direction[1] - dy * ray_direction[0]);
-                    if (in_front && vertical_dist <= hit_distance_threshold + half_size) { tree_queue.emplace(std::sqrt(dx * dx + dy * dy), *child); }
+                    const auto &child_area_center = (*child)->m_area_.center;
+                    const double &half_size = (*child)->m_area_.half_sizes[0];
+                    if (const double dx = child_area_center[0] - ray_origin[0], dy = child_area_center[1] - ray_origin[1];
+                        (dx * ray_direction[0] + dy * ray_direction[1]) > 0 &&  // in front of the ray
+                                                                                // vertical dist is smaller than the hit distance threshold
+                        std::abs(dx * ray_direction[1] - dy * ray_direction[0]) <= hit_distance_threshold + half_size) {
+                        tree_queue.emplace(std::sqrt(dx * dx + dy * dy), *child);
+                    }
                 }
             }
         }
@@ -476,10 +455,10 @@ namespace erl::geometry {
 
     void
     IncrementalQuadtree::RayTracing(
-        int node_type,
+        const int node_type,
         const Eigen::Ref<const Eigen::Matrix2Xd> &ray_origins,
         const Eigen::Ref<const Eigen::Matrix2Xd> &ray_directions,
-        double hit_distance_threshold,
+        const double hit_distance_threshold,
         int num_threads,
         std::vector<double> &ray_travel_distances,
         std::vector<std::shared_ptr<Node>> &hit_nodes) const {
@@ -488,11 +467,9 @@ namespace erl::geometry {
         ray_travel_distances.resize(ray_origins.cols());
         hit_nodes.resize(ray_origins.cols());
 
-        long num_rays = ray_origins.cols();
-
-#pragma omp parallel for default(none) shared(num_rays, node_type, ray_origins, ray_directions, hit_distance_threshold, ray_travel_distances, hit_nodes) \
+#pragma omp parallel for default(none) shared(node_type, ray_origins, ray_directions, hit_distance_threshold, ray_travel_distances, hit_nodes) \
     num_threads(num_threads)
-        for (int i = 0; i < num_rays; ++i) {
+        for (int i = 0; i < ray_origins.cols(); ++i) {
             RayTracing(node_type, ray_origins.col(i), ray_directions.col(i), hit_distance_threshold, ray_travel_distances[i], hit_nodes[i]);
         }
     }
@@ -505,9 +482,9 @@ namespace erl::geometry {
         std::unordered_map<int, int> node_type_radius,
         const cv::Scalar &bg_color,
         const cv::Scalar &area_rect_color,
-        int area_rect_thickness,
+        const int area_rect_thickness,
         const cv::Scalar &tree_data_color,
-        int tree_data_radius,
+        const int tree_data_radius,
         const std::function<void(cv::Mat &, std::vector<std::shared_ptr<Node>> &)> &plot_node_data) {
 
         // a blank image with white background
@@ -525,7 +502,7 @@ namespace erl::geometry {
         // for (auto &kType: node_types) { node_type_pixels[kType] = std::vector<cv::Point2i>(); }
 
         while (!tree_stack.empty()) {
-            auto tree = tree_stack.back();
+            const auto tree = tree_stack.back();
             tree_stack.pop_back();
 
             Eigen::Vector2i bottom_left =
@@ -540,7 +517,7 @@ namespace erl::geometry {
                 cv::LineTypes::LINE_8);
 
             if (tree->m_node_container_ != nullptr) {
-                for (auto type: node_types) { tree->m_node_container_->CollectNodesOfType(type, node_data); }
+                for (const auto type: node_types) { tree->m_node_container_->CollectNodesOfType(type, node_data); }
             }
 
             if (!tree->IsLeaf()) {
@@ -556,12 +533,12 @@ namespace erl::geometry {
         // for (auto &[node_type, node_pixels]: node_type_pixels) {
         //     for (auto &pixel: node_pixels) { cv::circle(image, pixel, node_type_radius[node_type], node_type_colors[node_type], cv::FILLED); }
         // }
-        for (auto &node: node_data) {
+        for (const auto &node: node_data) {
             Eigen::Vector2i pixel = grid_map_info->MeterToPixelForPoints(node->position);
             cv::circle(image, cv::Point2i(pixel.x(), pixel.y()), node_type_radius[node->type], node_type_colors[node->type], cv::FILLED);
         }
         if (plot_node_data != nullptr) { plot_node_data(image, node_data); }
-        for (auto &p: tree_data_positions) { cv::circle(image, p, tree_data_radius, tree_data_color, cv::FILLED); }
+        for (const auto &p: tree_data_positions) { cv::circle(image, p, tree_data_radius, tree_data_color, cv::FILLED); }
 
         return image;
     }
@@ -571,7 +548,7 @@ namespace erl::geometry {
         static std::vector<std::string> indents;
         static auto print_indent = [&]() -> std::string {
             std::stringstream ss;
-            for (auto &indent: indents) { ss << indent; }
+            for (const std::string &indent: indents) { ss << indent; }
             return ss.str();
         };
         std::vector<std::shared_ptr<const IncrementalQuadtree>> tree_stack;
@@ -586,19 +563,19 @@ namespace erl::geometry {
         std::vector<std::shared_ptr<Node>> nodes;
 
         while (!tree_stack.empty()) {
-            auto tree = tree_stack.back();
+            const auto tree = tree_stack.back();
             tree_stack.pop_back();
             level = level_stack.back();
             level_stack.pop_back();
 
-            auto &kArea = tree->GetArea();
-            auto &c = kArea.center;
+            auto &area = tree->GetArea();
+            auto &c = area.center;
 
             nodes.clear();
             tree->CollectNodes(nodes);
 
             os << print_indent() << Children::GetTypeName(tree->m_child_type_) << ": center = [" << c.x() << ", " << c.y()
-               << "], half size = " << kArea.half_sizes[0] << ", is leaf: " << tree->IsLeaf() << ", has SurfaceData: " << (tree->m_data_ptr_ != nullptr)
+               << "], half size = " << area.half_sizes[0] << ", is leaf: " << tree->IsLeaf() << ", has SurfaceData: " << (tree->m_data_ptr_ != nullptr)
                << ", number of nodes = " << nodes.size() << std::endl;
 
             // print nodes
@@ -611,11 +588,11 @@ namespace erl::geometry {
                 }
 
                 auto node_types = tree->m_node_container_->GetNodeTypes();
-                for (auto &node_type: node_types) {
-                    auto begin = tree->m_node_container_->Begin(node_type);
+                for (const auto &node_type: node_types) {
+                    const auto begin = tree->m_node_container_->Begin(node_type);
                     auto end = tree->m_node_container_->End(node_type);
-                    for (auto itr = begin; itr < end; itr++) {
-                        auto &node = *itr;
+                    for (auto itr = begin; itr < end; ++itr) {
+                        const auto &node = *itr;
                         auto np = node->position;
                         os << print_indent() << (itr != end - 1 ? "├──* " : "└──* ") << tree->m_node_container_->GetNodeTypeName(node->type) << " Node"
                            << std::setw(2) << std::distance(begin, itr) << ": position = [" << np.x() << ", " << np.y() << ']' << std::endl;
@@ -644,7 +621,7 @@ namespace erl::geometry {
             }
 
             if (!level_stack.empty() && level > level_stack.back()) {
-                auto n = level - level_stack.back();
+                const int n = level - level_stack.back();
                 for (int i = 0; i <= n; ++i) { indents.pop_back(); }
                 indents.emplace_back("├── ");
             }
@@ -696,13 +673,13 @@ namespace erl::geometry {
         if (!IsExpandable()) { return nullptr; }
 
         auto &c = m_area_.center;
-        auto l = m_area_.half_sizes[0];
+        const double l = m_area_.half_sizes[0];
         // NW=0 : c.x + l, c.y - l
         // NE=1 : c.x - l, c.y - l
         // SW=2 : c.x + l, c.y + l
         // SE=3 : c.x - l, c.y + l
-        double &&x = int(current_root_child_type) % 2 ? c.x() - l : c.x() + l;
-        double &&y = int(current_root_child_type) < 2 ? c.y() - l : c.y() + l;
+        double &&x = static_cast<int>(current_root_child_type) % 2 ? c.x() - l : c.x() + l;
+        double &&y = static_cast<int>(current_root_child_type) < 2 ? c.y() - l : c.y() + l;
         std::shared_ptr<IncrementalQuadtree> new_root =
             std::shared_ptr<IncrementalQuadtree>(new IncrementalQuadtree(m_setting_, Aabb2D({x, y}, l * 2.), m_node_container_constructor_, m_root_ptr_));
         *m_root_ptr_ = new_root.get();
@@ -737,7 +714,7 @@ namespace erl::geometry {
 
         if (IsSubdividable()) {
             // auto l = m_area_.half_sizes[0] / 2.0 + 1.e-20;
-            auto l = m_area_.half_sizes[0] / 2.0;
+            const double l = m_area_.half_sizes[0] / 2.0;
             auto &c = m_area_.center;
             m_children_.NorthWest() =
                 Create(m_setting_, Aabb2D({c.x() - l, c.y() + l}, l), m_node_container_constructor_, m_root_ptr_, this, Children::Type::kNorthWest);

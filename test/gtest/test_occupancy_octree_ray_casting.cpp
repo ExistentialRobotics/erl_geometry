@@ -1,10 +1,10 @@
-#include <open3d/geometry/LineSet.h>
-
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/azimuth_elevation.hpp"
 #include "erl_geometry/euler_angle.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
+
+#include <open3d/geometry/LineSet.h>
 
 using namespace erl::common;
 using namespace erl::geometry;
@@ -32,7 +32,7 @@ struct UserData {
     Eigen::Matrix3Xd ray_directions;
 
     UserData() {
-        double d = (azimuth_max - azimuth_min) / num_azimuth_lines;
+        const double d = (azimuth_max - azimuth_min) / num_azimuth_lines;
         Eigen::VectorXd azimuth_angles = Eigen::VectorXd::LinSpaced(num_azimuth_lines, azimuth_min, azimuth_max - d);
         Eigen::VectorXd elevation_angles = Eigen::VectorXd::LinSpaced(num_elevation_lines, elevation_min, elevation_max);
         ray_directions.resize(3, num_azimuth_lines * num_elevation_lines);
@@ -69,29 +69,29 @@ struct UserData {
 static UserData g_user_data;
 
 bool
-VisualizerUpdateCallback(Open3dVisualizerWrapper *visualizer, open3d::visualization::Visualizer *vis) {
-    double &px = visualizer->GetSetting()->x;
-    double &py = visualizer->GetSetting()->y;
-    double &pz = visualizer->GetSetting()->z;
-    double &roll = visualizer->GetSetting()->roll;
-    double &pitch = visualizer->GetSetting()->pitch;
-    double &yaw = visualizer->GetSetting()->yaw;
-    Eigen::Matrix3d rotation = EulerToRotation3D(roll, pitch, yaw, EulerAngleOrder::kRxyz);
+VisualizerUpdateCallback(const Open3dVisualizerWrapper *visualizer, open3d::visualization::Visualizer *vis) {
+    const double px = visualizer->GetSetting()->x;
+    const double py = visualizer->GetSetting()->y;
+    const double pz = visualizer->GetSetting()->z;
+    const double roll = visualizer->GetSetting()->roll;
+    const double pitch = visualizer->GetSetting()->pitch;
+    const double yaw = visualizer->GetSetting()->yaw;
+    const Eigen::Matrix3d rotation = EulerToRotation3D(roll, pitch, yaw, EulerAngleOrder::kRxyz);
     Eigen::Matrix3Xd ray_directions = rotation * g_user_data.ray_directions;
     Eigen::Matrix3Xd end_points(3, ray_directions.cols());
     Eigen::VectorXb is_hit(ray_directions.cols());
-    auto t0 = std::chrono::high_resolution_clock::now();
+    const auto t0 = std::chrono::high_resolution_clock::now();
 #pragma omp parallel for default(none) shared(px, py, pz, ray_directions, end_points, is_hit, g_user_data)
     for (long i = 0; i < ray_directions.cols(); ++i) {
-        double &vx = ray_directions(0, i);
-        double &vy = ray_directions(1, i);
-        double &vz = ray_directions(2, i);
+        const double &vx = ray_directions(0, i);
+        const double &vy = ray_directions(1, i);
+        const double &vz = ray_directions(2, i);
         double &ex = end_points(0, i);
         double &ey = end_points(1, i);
         double &ez = end_points(2, i);
         is_hit[i] = g_user_data.octree->CastRay(px, py, pz, vx, vy, vz, g_user_data.ignore_unknown, g_user_data.max_range, ex, ey, ez) != nullptr;
     }
-    auto t1 = std::chrono::high_resolution_clock::now();
+    const auto t1 = std::chrono::high_resolution_clock::now();
     double duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
     ERL_INFO("ray casting takes {:f} ms", duration);
     g_user_data.rays->points_.clear();
@@ -100,7 +100,7 @@ VisualizerUpdateCallback(Open3dVisualizerWrapper *visualizer, open3d::visualizat
     for (long i = 0; i < ray_directions.cols(); ++i) {
         if (is_hit[i]) {
             g_user_data.rays->points_.emplace_back(end_points.col(i));
-            g_user_data.rays->lines_.emplace_back(0, long(g_user_data.rays->points_.size()) - 1);
+            g_user_data.rays->lines_.emplace_back(0, static_cast<long>(g_user_data.rays->points_.size()) - 1);
         }
     }
     if (g_user_data.rays->lines_.empty()) { g_user_data.rays->lines_.emplace_back(0, 0); }

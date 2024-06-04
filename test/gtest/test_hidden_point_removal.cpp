@@ -1,70 +1,43 @@
-#include <open3d/geometry/TriangleMesh.h>
-#include <open3d/geometry/LineSet.h>
-#include <open3d/geometry/PointCloud.h>
-#include <open3d/t/geometry/RaycastingScene.h>
-#include <open3d/t/geometry/TriangleMesh.h>
-#include <open3d/io/PointCloudIO.h>
-#include <open3d/io/TriangleMeshIO.h>
-#include <open3d/visualization/visualizer/Visualizer.h>
-#include <open3d/visualization/utility/DrawGeometry.h>
-
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/hidden_point_removal.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
-#include "erl_common/test_helper.hpp"
 
-class OctreeNode : public erl::geometry::OccupancyOctreeNode {
-public:
+#include <open3d/geometry/LineSet.h>
+#include <open3d/geometry/PointCloud.h>
+#include <open3d/geometry/TriangleMesh.h>
+#include <open3d/io/PointCloudIO.h>
+#include <open3d/io/TriangleMeshIO.h>
+#include <open3d/t/geometry/RaycastingScene.h>
+#include <open3d/t/geometry/TriangleMesh.h>
+#include <open3d/visualization/utility/DrawGeometry.h>
+#include <open3d/visualization/visualizer/Visualizer.h>
+
+struct OctreeNode : public erl::geometry::OccupancyOctreeNode {
     std::size_t geometry_id = -1;
     std::size_t vertex_id = -1;
-
-    OctreeNode()
-        : erl::geometry::OccupancyOctreeNode() {}
 };
 
 class Octree : public erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting> {
 
 public:
-    using Super = erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>;
+    using Super = OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>;
     using Setting = erl::geometry::OccupancyOctreeBaseSetting;
 
+    Octree()
+        : Octree(std::make_shared<Setting>()) {}
+
     explicit Octree(const std::shared_ptr<Setting> &setting)
-        : erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>(setting) {
-        s_init_.EnsureLinking();
-    }
+        : OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>(setting) {}
 
 protected:
-    [[nodiscard]] inline std::shared_ptr<erl::geometry::AbstractOctree>
+    [[nodiscard]] std::shared_ptr<AbstractOctree>
     Create() const override {
-        return std::make_shared<Octree>(std::make_shared<Setting>());
+        return std::make_shared<Octree>();
     }
-
-    /**
-     * Static member object which ensures that this OcTree's prototype
-     * ends up in the s_class_id_mapping_ only once. You need this as a
-     * static member in any derived octree class in order to read .ot
-     * files through the AbstractOcTree factory. You should also call
-     * ensureLinking() once from the constructor.
-     */
-    class StaticMemberInitializer {
-    public:
-        StaticMemberInitializer() {
-            auto tree = std::make_shared<Octree>(std::make_shared<Setting>());
-            tree->ClearKeyRays();
-            AbstractOctree::RegisterTreeType(tree);
-        }
-
-        /**
-         * Dummy function to ensure that MSVC does not drop the
-         * StaticMemberInitializer, causing this tree failing to register.
-         * Needs to be called from the constructor of this octree.
-         */
-        void
-        EnsureLinking() {}
-    };
-
-    /// to ensure static initialization (only once)
-    inline static StaticMemberInitializer s_init_ = {};
 };
+
+ERL_REGISTER_OCTREE_NODE(OctreeNode);
+ERL_REGISTER_OCTREE(Octree);
 
 TEST(ERL_GEOMETRY, HiddenPointRemoval) {
 
@@ -74,14 +47,14 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
     std::cout << "ply_path: " << ply_path << std::endl;
 
     enum class Mode {
-        kOpen3D_HiddenPointRemoval = 1,
-        kERL_HiddenPointRemoval,
-        kOpen3D_RaycastingScene,
-        kOctomap_Raytracing,
+        kOpen3DHiddenPointRemoval = 1,
+        kErlHiddenPointRemoval,
+        kOpen3DRaycastingScene,
+        kOctomapRaytracing,
     };
 
     try {
-        Mode mode = Mode::kERL_HiddenPointRemoval;
+        Mode mode = Mode::kErlHiddenPointRemoval;
         bool show_rays = true;
 
         auto camera_mesh = open3d::geometry::TriangleMesh::CreateSphere(0.005);
@@ -109,12 +82,12 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
         Eigen::Matrix3Xd points(3, point_cloud->points_.size());
         Eigen::Vector3d camera_position(0, 0, 0);
         long point_cnt = 0;
-        for (auto &point: point_cloud->points_) {
+        for (const Eigen::Vector3d &point: point_cloud->points_) {
             points.col(point_cnt++) = point;
             camera_position += point;
         }
-        camera_position /= double(point_cnt);
-        for (auto &point: camera_mesh->vertices_) { point += camera_position; }
+        camera_position /= static_cast<double>(point_cnt);
+        camera_mesh->Translate(camera_position);
 
         Eigen::Vector3d bunny_size = bunny_mesh->GetMaxBound() - bunny_mesh->GetMinBound();
         double bunny_scale = bunny_size.maxCoeff();
@@ -131,7 +104,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
         Octree octree(octree_setting);
         for (std::size_t i = 0; i < bunny_mesh->vertices_.size(); ++i) {
             Eigen::Vector3d &vertex = bunny_mesh->vertices_[i];
-            auto node = static_cast<OctreeNode *>(octree.UpdateNode(vertex[0], vertex[1], vertex[2], 20.0f, true));
+            auto node = octree.UpdateNode(vertex[0], vertex[1], vertex[2], 20.0f, true);
             node->geometry_id = 0;
             node->vertex_id = i;
         }
@@ -143,9 +116,12 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
             radius_scale = std::max(radius_scale, 10.0);
 
             switch (mode) {
-                case Mode::kOpen3D_HiddenPointRemoval: {
-                    double radius = 0;
-                    for (auto &point: point_cloud->points_) { radius = std::max(radius, (point - camera_position).norm()); }
+                case Mode::kOpen3DHiddenPointRemoval: {
+                    double radius = std::accumulate(  //
+                        point_cloud->points_.begin(),
+                        point_cloud->points_.end(),
+                        0.0,
+                        [&](const double acc, const Eigen::Vector3d &point) { return std::max(acc, (point - camera_position).norm()); });
                     radius *= radius_scale;
                     std::cout << "point cloud center: " << point_cloud->GetCenter().transpose() << std::endl;
                     std::cout << "camera position: " << camera_position.transpose() << std::endl;
@@ -159,7 +135,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                     rays->lines_.resize(mesh->vertices_.size());
                     rays->points_[0] = camera_position;
                     std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
-                    for (long i = 0; i < (long) mesh->vertices_.size(); ++i) {
+                    for (long i = 0; i < static_cast<long>(mesh->vertices_.size()); ++i) {
                         rays->points_[i + 1] = mesh->vertices_[i];
                         rays->lines_[i] = Eigen::Vector2i(0, i + 1);
                         bunny_mesh->vertex_colors_[visible_point_indices[i]] = Eigen::Vector3d(1, 0, 0);
@@ -167,7 +143,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                     rays->colors_.resize(rays->lines_.size(), Eigen::Vector3d(0, 0, 1));
                     break;
                 }
-                case Mode::kERL_HiddenPointRemoval: {
+                case Mode::kErlHiddenPointRemoval: {
                     // compute visible points
                     std::vector<long> visible_point_indices;
                     erl::geometry::HiddenPointRemoval(points, camera_position, radius_scale, visible_point_indices, true);
@@ -176,7 +152,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                     rays->lines_.resize(visible_point_indices.size());
                     rays->points_[0] = camera_position;
                     std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
-                    for (long i = 0; i < (long) visible_point_indices.size(); ++i) {
+                    for (long i = 0; i < static_cast<long>(visible_point_indices.size()); ++i) {
                         rays->points_[i + 1] = points.col(visible_point_indices[i]);
                         rays->lines_[i] = Eigen::Vector2i(0, i + 1);
                         bunny_mesh->vertex_colors_[visible_point_indices[i]] = Eigen::Vector3d(1, 0, 0);
@@ -184,13 +160,13 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                     rays->colors_.resize(rays->lines_.size(), Eigen::Vector3d(0, 0, 1));
                     break;
                 }
-                case Mode::kOpen3D_RaycastingScene: {
+                case Mode::kOpen3DRaycastingScene: {
                     std::vector<float> query_rays_data(6 * bunny_mesh->triangles_.size());
                     for (std::size_t i = 0; i < bunny_mesh->triangles_.size(); ++i) {
                         std::size_t ii = i * 6;
-                        query_rays_data[ii + 0] = float(camera_position[0]);
-                        query_rays_data[ii + 1] = float(camera_position[1]);
-                        query_rays_data[ii + 2] = float(camera_position[2]);
+                        query_rays_data[ii + 0] = static_cast<float>(camera_position[0]);
+                        query_rays_data[ii + 1] = static_cast<float>(camera_position[1]);
+                        query_rays_data[ii + 2] = static_cast<float>(camera_position[2]);
                         Eigen::Vector3i triangle = bunny_mesh->triangles_[i];
                         Eigen::Vector3d pos = (bunny_mesh->vertices_[triangle[0]] +  //
                                                bunny_mesh->vertices_[triangle[1]] +  //
@@ -198,13 +174,13 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                                               3.0;
                         Eigen::Vector3d dir = pos - camera_position;
                         dir.normalize();
-                        query_rays_data[ii + 3] = float(dir[0]);
-                        query_rays_data[ii + 4] = float(dir[1]);
-                        query_rays_data[ii + 5] = float(dir[2]);
+                        query_rays_data[ii + 3] = static_cast<float>(dir[0]);
+                        query_rays_data[ii + 4] = static_cast<float>(dir[1]);
+                        query_rays_data[ii + 5] = static_cast<float>(dir[2]);
                     }
-                    auto num_rays = long(bunny_mesh->triangles_.size());
+                    auto num_rays = static_cast<long>(bunny_mesh->triangles_.size());
                     open3d::core::Tensor query_rays(query_rays_data, {num_rays, 6}, open3d::core::Dtype::Float32);
-                    auto result = scene.CastRays(query_rays, int(std::thread::hardware_concurrency()));
+                    auto result = scene.CastRays(query_rays, static_cast<int>(std::thread::hardware_concurrency()));
                     auto ts_hit = result["t_hit"].ToFlatVector<float>();
                     auto geometry_ids = result["geometry_ids"].ToFlatVector<uint32_t>();
                     auto primitive_ids = result["primitive_ids"].ToFlatVector<uint32_t>();
@@ -229,7 +205,7 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                     rays->colors_.resize(rays->lines_.size(), Eigen::Vector3d(0, 0, 1));
                     break;
                 }
-                case Mode::kOctomap_Raytracing: {
+                case Mode::kOctomapRaytracing: {
                     std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
                     std::vector<Eigen::Vector3d> ends(bunny_mesh->vertices_.size());
                     std::vector<int> hits(bunny_mesh->vertices_.size(), -1);
@@ -250,10 +226,9 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                                 ends[i][1],
                                 ends[i][2])) {
                             erl::geometry::OctreeKey key = octree.CoordToKey(ends[i][0], ends[i][1], ends[i][2]);
-                            auto node = octree.Search(key);
-                            if (node->geometry_id == 0) {
+                            if (auto node = octree.Search(key); node->geometry_id == 0) {
                                 bunny_mesh->vertex_colors_[node->vertex_id] = Eigen::Vector3d(1, 0, 0);
-                                hits[i] = int(node->vertex_id);
+                                hits[i] = static_cast<int>(node->vertex_id);
                             }
                         }
                     }
@@ -341,23 +316,23 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
         key_to_callback[GLFW_KEY_F3] = [&](open3d::visualization::Visualizer *vis) -> bool {
             std::cout << "Toggle mode" << std::endl;
             switch (mode) {
-                case Mode::kOpen3D_HiddenPointRemoval: {
-                    mode = Mode::kERL_HiddenPointRemoval;
+                case Mode::kOpen3DHiddenPointRemoval: {
+                    mode = Mode::kErlHiddenPointRemoval;
                     std::cout << "Mode: kERL_HiddenPointRemoval" << std::endl;
                     break;
                 }
-                case Mode::kERL_HiddenPointRemoval: {
-                    mode = Mode::kOpen3D_RaycastingScene;
+                case Mode::kErlHiddenPointRemoval: {
+                    mode = Mode::kOpen3DRaycastingScene;
                     std::cout << "Mode: kOpen3D_RaycastingScene" << std::endl;
                     break;
                 }
-                case Mode::kOpen3D_RaycastingScene: {
-                    mode = Mode::kOctomap_Raytracing;
+                case Mode::kOpen3DRaycastingScene: {
+                    mode = Mode::kOctomapRaytracing;
                     std::cout << "Mode: kOctomap_Raytracing" << std::endl;
                     break;
                 }
-                case Mode::kOctomap_Raytracing: {
-                    mode = Mode::kOpen3D_HiddenPointRemoval;
+                case Mode::kOctomapRaytracing: {
+                    mode = Mode::kOpen3DHiddenPointRemoval;
                     std::cout << "Mode: kOpen3D_HiddenPointRemoval" << std::endl;
                     break;
                 }

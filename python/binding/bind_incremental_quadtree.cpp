@@ -5,8 +5,8 @@ using namespace erl::common;
 using namespace erl::geometry;
 
 void
-BindIncrementalQuadTree(py::module &m) {
-    auto py_quadtree = py::class_<IncrementalQuadtree, std::shared_ptr<IncrementalQuadtree>>(m, ERL_AS_STRING(IncrementalQuadtree));
+BindIncrementalQuadTree(const py::module &m) {
+    auto py_quadtree = py::class_<IncrementalQuadtree, std::shared_ptr<IncrementalQuadtree>>(m, "IncrementalQuadtree");
 
     // IncrementalQuadtree::Children
     auto py_quadtree_children = py::class_<IncrementalQuadtree::Children>(py_quadtree, "Children");
@@ -37,8 +37,11 @@ BindIncrementalQuadTree(py::module &m) {
     // bindings of QuadTree
     py_quadtree
         .def(
-            py::init(py::overload_cast<std::shared_ptr<IncrementalQuadtree::Setting>, const Aabb2D &, const std::function<std::shared_ptr<NodeContainer>()> &>(
-                &IncrementalQuadtree::Create)),
+            py::init([](std::shared_ptr<IncrementalQuadtree::Setting> setting,
+                        const Aabb2D &area,
+                        const std::function<std::shared_ptr<NodeContainer>()> &node_container_constructor) {
+                return IncrementalQuadtree::Create(std::move(setting), area, node_container_constructor);
+            }),
             py::arg("setting"),
             py::arg("area"),
             py::arg("node_container_constructor"))
@@ -92,7 +95,7 @@ BindIncrementalQuadTree(py::module &m) {
             })
         .def(
             "collect_nodes_of_type",
-            [](const IncrementalQuadtree &quadtree, int type) -> std::vector<std::shared_ptr<Node>> {
+            [](const IncrementalQuadtree &quadtree, const int type) -> std::vector<std::shared_ptr<Node>> {
                 std::vector<std::shared_ptr<Node>> out;
                 quadtree.CollectNodesOfType(type, out);
                 return out;
@@ -100,7 +103,7 @@ BindIncrementalQuadTree(py::module &m) {
             py::arg("type"))
         .def(
             "collect_nodes_of_type_in_area",
-            [](const IncrementalQuadtree &quadtree, int type, const Aabb2D &area) -> std::vector<std::shared_ptr<Node>> {
+            [](const IncrementalQuadtree &quadtree, const int type, const Aabb2D &area) -> std::vector<std::shared_ptr<Node>> {
                 std::vector<std::shared_ptr<Node>> out;
                 quadtree.CollectNodesOfTypeInArea(type, area, out);
                 return out;
@@ -113,7 +116,7 @@ BindIncrementalQuadTree(py::module &m) {
             [](const IncrementalQuadtree &self,
                const Eigen::Ref<const Eigen::Vector2d> &ray_origin,
                const Eigen::Ref<const Eigen::Vector2d> &ray_direction,
-               double hit_distance_threshold) -> std::pair<double, std::shared_ptr<Node>> {
+               const double hit_distance_threshold) -> std::pair<double, std::shared_ptr<Node>> {
                 double ray_travel_distance = 0.0;
                 std::shared_ptr<Node> hit_node = nullptr;
                 self.RayTracing(ray_origin, ray_direction, hit_distance_threshold, ray_travel_distance, hit_node);
@@ -127,7 +130,7 @@ BindIncrementalQuadTree(py::module &m) {
             [](const IncrementalQuadtree &self,
                const Eigen::Ref<const Eigen::Matrix2Xd> &ray_origins,
                const Eigen::Ref<const Eigen::Matrix2Xd> &ray_directions,
-               double hit_distance_threshold) -> std::pair<std::vector<double>, std::vector<std::shared_ptr<Node>>> {
+               const double hit_distance_threshold) -> std::pair<std::vector<double>, std::vector<std::shared_ptr<Node>>> {
                 std::vector<double> ray_travel_distances;
                 std::vector<std::shared_ptr<Node>> hit_nodes;
                 self.RayTracing(ray_origins, ray_directions, hit_distance_threshold, 0, ray_travel_distances, hit_nodes);
@@ -139,10 +142,10 @@ BindIncrementalQuadTree(py::module &m) {
         .def(
             "ray_tracing",
             [](const IncrementalQuadtree &self,
-               int node_type,
+               const int node_type,
                const Eigen::Ref<const Eigen::Vector2d> &ray_origin,
                const Eigen::Ref<const Eigen::Vector2d> &ray_direction,
-               double hit_distance_threshold) -> std::pair<double, std::shared_ptr<Node>> {
+               const double hit_distance_threshold) -> std::pair<double, std::shared_ptr<Node>> {
                 double ray_travel_distance = 0.0;
                 std::shared_ptr<Node> hit_node = nullptr;
                 self.RayTracing(node_type, ray_origin, ray_direction, hit_distance_threshold, ray_travel_distance, hit_node);
@@ -155,11 +158,11 @@ BindIncrementalQuadTree(py::module &m) {
         .def(
             "ray_tracing",
             [](const IncrementalQuadtree &self,
-               int node_type,
+               const int node_type,
                const Eigen::Ref<const Eigen::Matrix2Xd> &ray_origins,
                const Eigen::Ref<const Eigen::Matrix2Xd> &ray_directions,
-               double hit_distance_threshold,
-               int num_threads) -> std::pair<std::vector<double>, std::vector<std::shared_ptr<Node>>> {
+               const double hit_distance_threshold,
+               const int num_threads) -> std::pair<std::vector<double>, std::vector<std::shared_ptr<Node>>> {
                 std::vector<double> ray_travel_distances;
                 std::vector<std::shared_ptr<Node>> hit_nodes;
                 self.RayTracing(node_type, ray_origins, ray_directions, hit_distance_threshold, num_threads, ray_travel_distances, hit_nodes);

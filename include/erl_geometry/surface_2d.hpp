@@ -33,68 +33,66 @@ namespace erl::geometry {
 
         Surface2D(const Surface2D &surface) = default;
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumVertices() const {
             return vertices.cols();
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumLines() const {
             return lines_to_vertices.cols();
         }
 
-        [[nodiscard]] inline long
+        [[nodiscard]] long
         GetNumObjects() const {
             return objects_to_lines.cols();
         }
 
-        [[nodiscard]] inline long
-        GetNumVerticesOfObject(int idx_object) const {
+        [[nodiscard]] long
+        GetNumVerticesOfObject(const int idx_object) const {
             return objects_to_vertices[idx_object].size();
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         NormalsAvailable() const {
             return normals.cols() == vertices.cols();
         }
 
-        [[nodiscard]] inline bool
+        [[nodiscard]] bool
         OutsideFlagsAvailable() const {
             return outside_flags.size() == objects_to_lines.cols();
         }
 
-        [[nodiscard]] inline Eigen::Matrix2Xd
-        GetObjectVertices(int idx_object) const {
+        [[nodiscard]] Eigen::Matrix2Xd
+        GetObjectVertices(const int idx_object) const {
             return vertices(Eigen::indexing::all, objects_to_vertices[idx_object]);
         }
 
-        [[nodiscard]] inline Eigen::Matrix2Xd
-        GetObjectNormals(int idx_object) const {
+        [[nodiscard]] Eigen::Matrix2Xd
+        GetObjectNormals(const int idx_object) const {
             return normals(Eigen::indexing::all, objects_to_vertices[idx_object]);
         }
 
-        [[nodiscard]] inline std::pair<int, int>
+        [[nodiscard]] std::pair<int, int>
         GetVertexNeighbors(int idx_vertex_0) const {
 
             const auto &object_to_vertices = objects_to_vertices[vertices_to_objects[idx_vertex_0]];
-            long n_obj_vtx = object_to_vertices.size();
-            auto last_vtx_idx = n_obj_vtx - 1;
-            auto itr = std::find(object_to_vertices.begin(), object_to_vertices.end(), idx_vertex_0);
-            if (itr != object_to_vertices.end()) {
+            const long n_obj_vtx = object_to_vertices.size();
+            const auto last_vtx_idx = n_obj_vtx - 1;
+            if (const auto itr = std::find(object_to_vertices.begin(), object_to_vertices.end(), idx_vertex_0); itr != object_to_vertices.end()) {
                 idx_vertex_0 = static_cast<int>(std::distance(object_to_vertices.begin(), itr));
-                auto idx_vertex_1 = (idx_vertex_0 == 0 ? object_to_vertices[last_vtx_idx] : object_to_vertices[idx_vertex_0 - 1]);
-                auto idx_vertex_2 = (idx_vertex_0 == last_vtx_idx ? object_to_vertices[0] : object_to_vertices[idx_vertex_0 + 1]);
+                auto idx_vertex_1 = idx_vertex_0 == 0 ? object_to_vertices[last_vtx_idx] : object_to_vertices[idx_vertex_0 - 1];
+                auto idx_vertex_2 = idx_vertex_0 == last_vtx_idx ? object_to_vertices[0] : object_to_vertices[idx_vertex_0 + 1];
                 return {idx_vertex_1, idx_vertex_2};
-            } else {
-                return {-1, -1};
             }
+            return {-1, -1};
         }
 
     private:
         void
         ComputeObjectsToVertices() {
-            long n_vtx = GetNumVertices();
-            long n_obj = GetNumObjects();
+            const long n_vtx = GetNumVertices();
+            const long n_obj = GetNumObjects();
 
             objects_to_vertices.clear();
             objects_to_vertices.reserve(n_obj);
@@ -107,10 +105,10 @@ namespace erl::geometry {
 
                 Eigen::VectorXi object_to_vertices(idx_l_1 - idx_l_0 + 1);
                 for (int j = idx_l_0; j < idx_l_1; ++j) {
-                    vertices_to_objects(lines_to_vertices(0, j)) = int(i);
+                    vertices_to_objects(lines_to_vertices(0, j)) = static_cast<int>(i);
                     object_to_vertices(j - idx_l_0) = lines_to_vertices(0, j);
                 }
-                vertices_to_objects(lines_to_vertices(1, idx_l_1 - 1)) = int(i);
+                vertices_to_objects(lines_to_vertices(1, idx_l_1 - 1)) = static_cast<int>(i);
                 object_to_vertices(idx_l_1 - idx_l_0) = lines_to_vertices(1, idx_l_1 - 1);
 
                 objects_to_vertices.push_back(std::move(object_to_vertices));

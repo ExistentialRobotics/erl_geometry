@@ -1,12 +1,15 @@
 #pragma once
 
-#include <omp.h>
-#include <list>
-#include "erl_common/random.hpp"
+#include "aabb.hpp"
 #include "abstract_occupancy_quadtree.hpp"
 #include "occupancy_nd_tree_setting.hpp"
 #include "quadtree_impl.hpp"
-#include "aabb.hpp"
+
+#include "erl_common/random.hpp"
+
+#include <omp.h>
+
+#include <list>
 
 namespace erl::geometry {
 
@@ -18,7 +21,7 @@ namespace erl::geometry {
         bool
         operator==(const NdTreeSetting& rhs) const override {
             if (OccupancyNdTreeSetting::operator==(rhs)) {
-                auto that = reinterpret_cast<const OccupancyQuadtreeBaseSetting&>(rhs);
+                const auto that = reinterpret_cast<const OccupancyQuadtreeBaseSetting&>(rhs);
                 return use_change_detection == that.use_change_detection &&  //
                        use_aabb_limit == that.use_aabb_limit &&              //
                        aabb == that.aabb;
@@ -70,7 +73,7 @@ namespace erl::geometry {
          * Sample positions from the free space.
          */
         void
-        SamplePositions(std::size_t num_positions, std::vector<Eigen::Vector2d>& positions) const {
+        SamplePositions(const std::size_t num_positions, std::vector<Eigen::Vector2d>& positions) const {
             positions.clear();
             positions.reserve(num_positions);
             double min_x, min_y, max_x, max_y;
@@ -101,10 +104,10 @@ namespace erl::geometry {
         InsertPointCloud(
             const Eigen::Ref<const Eigen::Matrix2Xd>& points,
             const Eigen::Ref<const Eigen::Vector2d>& sensor_origin,
-            double max_range,
-            bool parallel,
-            bool lazy_eval,
-            bool discretize) {
+            const double max_range,
+            const bool parallel,
+            const bool lazy_eval,
+            const bool discretize) {
             static QuadtreeKeyVector free_cells, occupied_cells;  // static to avoid memory allocation
             // compute cells to update
             if (discretize) {
@@ -130,12 +133,12 @@ namespace erl::geometry {
         ComputeDiscreteUpdateForPointCloud(
             const Eigen::Ref<const Eigen::Matrix2Xd>& points,
             const Eigen::Ref<const Eigen::Vector2d>& sensor_origin,
-            double max_range,
-            bool parallel,
+            const double max_range,
+            const bool parallel,
             QuadtreeKeyVector& free_cells,
             QuadtreeKeyVector& occupied_cells) {
 
-            long num_points = points.cols();
+            const long num_points = points.cols();
             if (num_points == 0) { return; }
 
             Eigen::Matrix2Xd new_points(2, num_points);
@@ -155,12 +158,12 @@ namespace erl::geometry {
         ComputeUpdateForPointCloud(
             const Eigen::Ref<const Eigen::Matrix2Xd>& points,
             const Eigen::Ref<const Eigen::Vector2d>& sensor_origin,
-            double max_range,
-            bool parallel,
+            const double max_range,
+            const bool parallel,
             QuadtreeKeyVector& free_cells,
             QuadtreeKeyVector& occupied_cells) {
 
-            long num_points = points.cols();
+            const long num_points = points.cols();
             if (num_points == 0) { return; }
 
             static QuadtreeKeySet free_cells_set;  // static to avoid memory allocation
@@ -175,31 +178,31 @@ namespace erl::geometry {
             omp_set_num_threads(this->m_key_rays_.size());
 
             // insert occupied endpoint
-            auto setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const bool& kAabbLimit = setting->use_aabb_limit;
-            const Aabb2D& kAabb = setting->aabb;
+            const auto setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
+            const bool& aabb_limit = setting->use_aabb_limit;
+            const Aabb2D& aabb = setting->aabb;
             for (long i = 0; i < num_points; ++i) {
-                const auto& kP = points.col(i);
+                const auto& p = points.col(i);
 
                 double& dx = diffs[i][0];
                 double& dy = diffs[i][1];
                 double& range = ranges[i];
 
-                dx = kP[0] - sensor_origin[0];
-                dy = kP[1] - sensor_origin[1];
+                dx = p[0] - sensor_origin[0];
+                dy = p[1] - sensor_origin[1];
                 range = std::sqrt(dx * dx + dy * dy);
 
                 QuadtreeKey key;
-                if (kAabbLimit) {                                                          // bounding box is specified
-                    if ((kAabb.contains(kP) && (max_range < 0. || range <= max_range)) &&  // inside bounding box and range limit
-                        this->CoordToKeyChecked(kP[0], kP[1], key)) {                      // key is valid
+                if (aabb_limit) {                                                          // bounding box is specified
+                    if ((aabb.contains(p) && (max_range < 0. || range <= max_range)) &&  // inside bounding box and range limit
+                        this->CoordToKeyChecked(p[0], p[1], key)) {                      // key is valid
                         auto& indices = m_end_point_mapping_[key];
                         if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
                         indices.push_back(i);
                     }
                 } else {
                     if ((max_range < 0. || (range <= max_range)) &&    // range limit
-                        this->CoordToKeyChecked(kP[0], kP[1], key)) {  // key is valid
+                        this->CoordToKeyChecked(p[0], p[1], key)) {  // key is valid
                         auto& indices = m_end_point_mapping_[key];
                         if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
                         indices.push_back(i);
@@ -213,15 +216,15 @@ namespace erl::geometry {
             // insert free cells
 #pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, sx, sy, ranges, diffs, free_cells, free_cells_set)
             for (long i = 0; i < num_points; ++i) {
-                const auto& kP = points.col(i);
+                const auto& p = points.col(i);
                 uint32_t thread_idx = omp_get_thread_num();
                 QuadtreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
 
-                double& range = ranges[i];
-                double ex = kP[0];
-                double ey = kP[1];
+                const double& range = ranges[i];
+                double ex = p[0];
+                double ey = p[1];
                 if ((max_range >= 0.) && (range > max_range)) {  // crop ray at max_range
-                    double r = max_range / range;
+                    const double r = max_range / range;
                     ex = sx + diffs[i][0] * r;
                     ey = sy + diffs[i][1] * r;
                 }
@@ -231,8 +234,8 @@ namespace erl::geometry {
                 {
                     for (auto& key: key_ray) {
                         if (m_end_point_mapping_.find(key) != m_end_point_mapping_.end()) { continue; }  // skip keys marked as occupied
-                        auto it = free_cells_set.emplace(key);
-                        if (it.second) { free_cells.push_back(key); }
+                        const auto [_, new_key] = free_cells_set.emplace(key);
+                        if (new_key) { free_cells.push_back(key); }
                     }
                 }
             }
@@ -252,11 +255,11 @@ namespace erl::geometry {
         InsertPointCloudRays(
             const Eigen::Ref<const Eigen::Matrix2Xd>& points,
             const Eigen::Ref<const Eigen::Vector2d>& sensor_origin,
-            double max_range,
-            bool parallel,
-            bool lazy_eval) {
+            const double max_range,
+            const bool parallel,
+            const bool lazy_eval) {
 
-            long num_points = points.cols();
+            const long num_points = points.cols();
             if (num_points == 0) { return; }
 
             omp_set_num_threads(this->m_key_rays_.size());
@@ -270,7 +273,7 @@ namespace erl::geometry {
 #pragma omp critical
                 {
                     for (auto& key: key_ray) { UpdateNode(key, false, lazy_eval); }
-                    double range = (kP - sensor_origin).norm();
+                    const double range = (kP - sensor_origin).norm();
                     if (max_range <= 0. || range <= max_range) { UpdateNode(kP[0], kP[1], true, lazy_eval); }
                 }
             }
@@ -289,13 +292,13 @@ namespace erl::geometry {
          * @return
          */
         virtual bool
-        InsertRay(double sx, double sy, double ex, double ey, double max_range, bool lazy_eval) {
-            double dx = ex - sx;
-            double dy = ey - sy;
-            double range = std::sqrt(dx * dx + dy * dy);
+        InsertRay(double sx, double sy, double ex, double ey, const double max_range, const bool lazy_eval) {
+            const double dx = ex - sx;
+            const double dy = ey - sy;
+            const double range = std::sqrt(dx * dx + dy * dy);
             auto& key_ray = this->m_key_rays_[0];
             if (max_range > 0 && range > max_range) {  // cut ray at max_range
-                double r = max_range / range;
+                const double r = max_range / range;
                 ex = sx + dx * r;
                 ey = sy + dy * r;
                 if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { return false; }
@@ -315,10 +318,10 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Vector2d>& position,
             const Eigen::Ref<const Eigen::Matrix2d>& rotation,
             const Eigen::Ref<const Eigen::VectorXd>& angles,
-            bool ignore_unknown,
-            double max_range,
-            bool prune_rays,
-            bool parallel,
+            const bool ignore_unknown,
+            const double max_range,
+            const bool prune_rays,
+            const bool parallel,
             std::vector<long>& hit_ray_indices,
             std::vector<Eigen::Vector2d>& hit_positions,
             std::vector<const Node*>& hit_nodes) const {
@@ -378,10 +381,10 @@ namespace erl::geometry {
         CastRays(
             const Eigen::Ref<const Eigen::Matrix2Xd>& positions,
             const Eigen::Ref<const Eigen::Matrix2Xd>& directions,
-            bool ignore_unknown,
-            double max_range,
-            bool prune_rays,
-            bool parallel,
+            const bool ignore_unknown,
+            const double max_range,
+            const bool prune_rays,
+            const bool parallel,
             std::vector<long>& hit_ray_indices,
             std::vector<Eigen::Vector2d>& hit_positions,
             std::vector<const Node*>& hit_nodes) const {
@@ -484,12 +487,12 @@ namespace erl::geometry {
          * @return node pointer if the ray hits an occupied cell, nullptr otherwise.
          */
         const Node*
-        CastRay(double px, double py, double vx, double vy, bool ignore_unknown, double max_range, double& ex, double& ey) const {
+        CastRay(double px, double py, double vx, double vy, const bool ignore_unknown, const double max_range, double& ex, double& ey) const {
             // Similar to QuadtreeImpl::ComputeRayKeys, but with extra hitting checks
 
             QuadtreeKey current_key;
             if (!this->CoordToKeyChecked(px, py, current_key)) {
-                ERL_WARN("Ray starting from (%f, %f) is out of range.\n", px, py);
+                ERL_WARN("Ray starting from ({}, {}) is out of range.\n", px, py);
                 return nullptr;
             }
 
@@ -505,10 +508,10 @@ namespace erl::geometry {
                 return nullptr;
             }
 
-            double v_norm = std::sqrt(vx * vx + vy * vy);
+            const double v_norm = std::sqrt(vx * vx + vy * vy);
             vx /= v_norm;
             vy /= v_norm;
-            bool max_range_set = max_range > 0.;
+            const bool max_range_set = max_range > 0.;
 
             // compute step direction
             int step[2];
@@ -539,7 +542,7 @@ namespace erl::geometry {
                 t_max[0] = std::numeric_limits<double>::infinity();
                 t_delta[0] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = this->KeyToCoord(current_key[0]) + static_cast<double>(step[0]) * 0.5 * resolution;
+                const double voxel_border = this->KeyToCoord(current_key[0]) + static_cast<double>(step[0]) * 0.5 * resolution;
                 t_max[0] = (voxel_border - px) / vx;
                 t_delta[0] = resolution / std::abs(vx);
             }
@@ -547,14 +550,14 @@ namespace erl::geometry {
                 t_max[1] = std::numeric_limits<double>::infinity();
                 t_delta[1] = std::numeric_limits<double>::infinity();
             } else {
-                double voxel_border = this->KeyToCoord(current_key[1]) + static_cast<double>(step[1]) * 0.5 * resolution;
+                const double voxel_border = this->KeyToCoord(current_key[1]) + static_cast<double>(step[1]) * 0.5 * resolution;
                 t_max[1] = (voxel_border - py) / vy;
                 t_delta[1] = resolution / std::abs(vy);
             }
 
             // incremental phase
-            double max_range_sq = max_range * max_range;
-            long max_key_val = (this->m_tree_key_offset_ << 1) - 1;
+            const double max_range_sq = max_range * max_range;
+            const long max_key_val = (this->m_tree_key_offset_ << 1) - 1;
             while (true) {
                 if (t_max[0] < t_max[1]) {
                     t_max[0] += t_delta[0];
@@ -569,24 +572,23 @@ namespace erl::geometry {
                     current_key[0] = next_key_val;
                 } else {
                     t_max[1] += t_delta[1];
-                    long next_key_val = static_cast<long>(current_key[1]) + step[1];
+                    const long next_key_val = static_cast<long>(current_key[1]) + step[1];
                     // check overflow
                     if ((step[1] < 0 && next_key_val <= 0) || (step[1] > 0 && next_key_val >= max_key_val)) {
                         ERL_DEBUG("y coordinate hits boundary, aborting ray cast.");
                         current_key[1] = next_key_val < 0 ? 0 : max_key_val;
                         this->KeyToCoord(current_key, ex, ey);
                         return nullptr;
-                    } else {
-                        current_key[1] = next_key_val;
                     }
+                    current_key[1] = next_key_val;
                 }
 
                 // generate world coordinates from key
                 this->KeyToCoord(current_key, ex, ey);
                 // check if max_range is reached
                 if (max_range_set) {
-                    double dx = ex - px;
-                    double dy = ey - py;
+                    const double dx = ex - px;
+                    const double dy = ey - py;
                     if ((dx * dx + dy * dy) > max_range_sq) { return nullptr; }
                 }
                 // search node of the new key
@@ -630,7 +632,7 @@ namespace erl::geometry {
          * @return
          */
         Node*
-        UpdateNode(double x, double y, bool occupied, bool lazy_eval) {
+        UpdateNode(double x, double y, const bool occupied, const bool lazy_eval) {
             QuadtreeKey key;
             if (!this->CoordToKeyChecked(x, y, key)) { return nullptr; }
             return UpdateNode(key, occupied, lazy_eval);
@@ -644,21 +646,21 @@ namespace erl::geometry {
          * UpdateInnerOccupancy() after all updates are done.
          */
         Node*
-        UpdateNode(const QuadtreeKey& key, bool occupied, bool lazy_eval) {
+        UpdateNode(const QuadtreeKey& key, const bool occupied, const bool lazy_eval) {
             const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            float log_odds_delta = occupied ? setting->log_odd_hit : setting->log_odd_miss;
+            const float log_odds_delta = occupied ? setting->log_odd_hit : setting->log_odd_miss;
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
         Node*
-        UpdateNode(double x, double y, float log_odds_delta, bool lazy_eval) {
+        UpdateNode(double x, double y, const float log_odds_delta, const bool lazy_eval) {
             QuadtreeKey key;
             if (!this->CoordToKeyChecked(x, y, key)) { return nullptr; }
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
         Node*
-        UpdateNode(const QuadtreeKey& key, float log_odds_delta, bool lazy_eval) {
+        UpdateNode(const QuadtreeKey& key, const float log_odds_delta, const bool lazy_eval) {
             auto leaf = const_cast<Node*>(this->Search(key));
             auto log_odds_delta_double = static_cast<double>(log_odds_delta);
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
@@ -669,7 +671,7 @@ namespace erl::geometry {
                 if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= setting->log_odd_min) { return leaf; }
             }
 
-            bool create_root = this->m_root_ == nullptr;
+            const bool create_root = this->m_root_ == nullptr;
             if (create_root) {
                 this->m_root_ = std::make_shared<Node>();
                 ++this->m_tree_size_;
@@ -680,7 +682,7 @@ namespace erl::geometry {
 
     private:
         Node*
-        UpdateNodeRecurs(Node* node, bool node_just_created, const QuadtreeKey& key, double log_odds_delta, bool lazy_eval) {
+        UpdateNodeRecurs(Node* node, const bool node_just_created, const QuadtreeKey& key, const double log_odds_delta, const bool lazy_eval) {
             ERL_DEBUG_ASSERT(node != nullptr, "node is nullptr.");
 
             const uint32_t depth = node->GetDepth();
@@ -712,7 +714,7 @@ namespace erl::geometry {
                 if (node_just_created) {
                     m_changed_keys_.emplace(key, true);
                 } else if (occ_before != this->IsNodeOccupied(node)) {  // occupancy changed, track it
-                    auto it = m_changed_keys_.find(key);
+                    const auto it = m_changed_keys_.find(key);
                     if (it == m_changed_keys_.end()) {  // not found
                         m_changed_keys_.emplace(key, false);
                     } else if (!it->second) {
@@ -764,7 +766,7 @@ namespace erl::geometry {
             UpdateInnerNodeOccupancy(node);
         }
 
-        inline void
+        void
         UpdateInnerNodeOccupancy(Node* node) {
             node->SetLogOdds(node->GetMaxChildLogOdds());
         }
@@ -840,8 +842,8 @@ namespace erl::geometry {
                     // 0b10: free leaf
                     // 0b01: occupied leaf
                     // 0b11: inner node
-                    bool bit0 = child[i * 2];
-                    bool bit1 = child[i * 2 + 1];
+                    const bool bit0 = child[i * 2];
+                    const bool bit1 = child[i * 2 + 1];
                     Node* child_node = nullptr;
                     if (bit0) {
                         if (bit1) {  // 0b11, inner node

@@ -1,9 +1,10 @@
 #pragma once
 
-#include <utility>
+#include "space_2d.hpp"
 
 #include "erl_common/eigen.hpp"
-#include "space_2d.hpp"
+
+#include <utility>
 
 namespace erl::geometry {
 
@@ -11,13 +12,13 @@ namespace erl::geometry {
     public:
         enum class Mode { kDdf = 0, kSddfV1 = 1, kSddfV2 = 2 };
 
-        static inline const char *
+        static const char *
         GetModeName(Mode mode) {
             const char *mode_names[3] = {"kDdf", "kSddfV1", "kSddfV2"};
-            return mode_names[int(mode)];
+            return mode_names[static_cast<int>(mode)];
         }
 
-        static inline Mode
+        static Mode
         GetModeFromName(const std::string &mode_name) {
             if (mode_name == "kDdf") { return Mode::kDdf; }
             if (mode_name == "kSddfV1") { return Mode::kSddfV1; }
@@ -47,21 +48,21 @@ namespace erl::geometry {
             ERL_ASSERTM(m_space_ != nullptr, "space cannot be nullptr!");
         }
 
-        [[nodiscard]] inline std::shared_ptr<Setting>
+        [[nodiscard]] std::shared_ptr<Setting>
         GetSetting() const {
             return m_setting_;
         }
 
-        [[nodiscard]] inline Eigen::VectorXd
+        [[nodiscard]] Eigen::VectorXd
         GetAngles() const {
-            if (m_setting_->max_angle - m_setting_->min_angle == 2 * M_PI) {
-                double d = 2 * M_PI / m_setting_->num_lines;
+            if (m_setting_->max_angle - m_setting_->min_angle == 2.0 * M_PI) {
+                const double d = 2.0 * M_PI / m_setting_->num_lines;
                 return Eigen::VectorXd::LinSpaced(m_setting_->num_lines, m_setting_->min_angle, m_setting_->max_angle - d);
             }
             return Eigen::VectorXd::LinSpaced(m_setting_->num_lines, m_setting_->min_angle, m_setting_->max_angle);
         }
 
-        [[nodiscard]] inline Eigen::Matrix2Xd
+        [[nodiscard]] Eigen::Matrix2Xd
         GetRayDirectionsInFrame() const {
             Eigen::Matrix2Xd directions(2, m_setting_->num_lines);
             Eigen::VectorXd angles = GetAngles();
@@ -69,16 +70,16 @@ namespace erl::geometry {
             return directions;
         }
 
-        [[nodiscard]] inline Eigen::VectorXd
-        Scan(double rotation_angle, const Eigen::Ref<const Eigen::Vector2d> &translation, bool parallel) const {
-            Eigen::Matrix2d rotation = Eigen::Rotation2Dd(rotation_angle).toRotationMatrix();
+        [[nodiscard]] Eigen::VectorXd
+        Scan(const double rotation_angle, const Eigen::Ref<const Eigen::Vector2d> &translation, const bool parallel) const {
+            const Eigen::Matrix2d rotation = Eigen::Rotation2Dd(rotation_angle).toRotationMatrix();
             return Scan(rotation, translation, parallel);
         }
 
-        [[nodiscard]] inline Eigen::VectorXd
-        Scan(const Eigen::Ref<const Eigen::Matrix2d> &rotation, const Eigen::Ref<const Eigen::Vector2d> &translation, bool parallel) const {
-            Eigen::Matrix2Xd directions = rotation * GetRayDirectionsInFrame();
-            Eigen::Matrix2Xd positions = translation.replicate(1, m_setting_->num_lines);
+        [[nodiscard]] Eigen::VectorXd
+        Scan(const Eigen::Ref<const Eigen::Matrix2d> &rotation, const Eigen::Ref<const Eigen::Vector2d> &translation, const bool parallel) const {
+            const Eigen::Matrix2Xd directions = rotation * GetRayDirectionsInFrame();
+            const Eigen::Matrix2Xd positions = translation.replicate(1, m_setting_->num_lines);
             switch (m_setting_->mode) {
                 case Mode::kDdf:
                     return m_space_->ComputeDdf(positions, directions, parallel);
@@ -88,12 +89,12 @@ namespace erl::geometry {
                     return m_space_->ComputeSddfV2(positions, directions, m_setting_->sign_method, parallel);
             }
 
-            throw std::runtime_error("Unknown mode: " + std::to_string(int(m_setting_->mode)));
+            throw std::runtime_error("Unknown mode: " + std::to_string(static_cast<int>(m_setting_->mode)));
         }
 
-        [[nodiscard]] inline std::vector<Eigen::VectorXd>
-        ScanMultiPoses(const std::vector<Eigen::Matrix3d> &poses, bool parallel = false) const {
-            auto n = int(poses.size());
+        [[nodiscard]] std::vector<Eigen::VectorXd>
+        ScanMultiPoses(const std::vector<Eigen::Matrix3d> &poses, const bool parallel = false) const {
+            const auto n = static_cast<int>(poses.size());
             std::vector<Eigen::VectorXd> out(n);
 
 #pragma omp parallel for if (parallel) default(none) shared(poses, n, out, Eigen::Dynamic)
@@ -108,65 +109,44 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-namespace YAML {
+template<>
+struct YAML::convert<erl::geometry::Lidar2D::Mode> {
+    static Node
+    encode(const erl::geometry::Lidar2D::Mode &rhs) {
+        Node node;
+        node = erl::geometry::Lidar2D::GetModeName(rhs);
+        return node;
+    }
 
-    template<>
-    struct convert<erl::geometry::Lidar2D::Mode> {
-        inline static Node
-        encode(const erl::geometry::Lidar2D::Mode &rhs) {
-            Node node;
-            node = erl::geometry::Lidar2D::GetModeName(rhs);
-            return node;
-        }
+    static bool
+    decode(const Node &node, erl::geometry::Lidar2D::Mode &rhs) {
+        if (!node.IsScalar()) { return false; }
+        rhs = erl::geometry::Lidar2D::GetModeFromName(node.as<std::string>());
+        return true;
+    }
+};
 
-        inline static bool
-        decode(const Node &node, erl::geometry::Lidar2D::Mode &rhs) {
-            if (!node.IsScalar()) { return false; }
-            rhs = erl::geometry::Lidar2D::GetModeFromName(node.as<std::string>());
-            return true;
-        }
-    };
+template<>
+struct YAML::convert<erl::geometry::Lidar2D::Setting> {
+    static Node
+    encode(const erl::geometry::Lidar2D::Setting &rhs) {
+        Node node;
+        node["min_angle"] = rhs.min_angle;
+        node["max_angle"] = rhs.max_angle;
+        node["num_lines"] = rhs.num_lines;
+        node["mode"] = rhs.mode;
+        node["sign_method"] = rhs.sign_method;
+        return node;
+    }
 
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::Lidar2D::Mode &rhs) {
-//        out << erl::geometry::Lidar2D::GetModeName(rhs);
-//        return out;
-//    }
-
-    template<>
-    struct convert<erl::geometry::Lidar2D::Setting> {
-        inline static Node
-        encode(const erl::geometry::Lidar2D::Setting &rhs) {
-            Node node;
-            node["min_angle"] = rhs.min_angle;
-            node["max_angle"] = rhs.max_angle;
-            node["num_lines"] = rhs.num_lines;
-            node["mode"] = rhs.mode;
-            node["sign_method"] = rhs.sign_method;
-            return node;
-        }
-
-        inline static bool
-        decode(const Node &node, erl::geometry::Lidar2D::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.min_angle = node["min_angle"].as<double>();
-            rhs.max_angle = node["max_angle"].as<double>();
-            rhs.num_lines = node["num_lines"].as<int>();
-            rhs.mode = node["mode"].as<erl::geometry::Lidar2D::Mode>();
-            rhs.sign_method = node["sign_method"].as<erl::geometry::Space2D::SignMethod>();
-            return true;
-        }
-    };
-
-//    inline Emitter &
-//    operator<<(Emitter &out, const erl::geometry::Lidar2D::Setting &rhs) {
-//        out << BeginMap;
-//        out << Key << "min_angle" << Value << rhs.min_angle;
-//        out << Key << "max_angle" << Value << rhs.max_angle;
-//        out << Key << "num_lines" << Value << rhs.num_lines;
-//        out << Key << "mode" << Value << rhs.mode;
-//        out << Key << "sign_method" << Value << rhs.sign_method;
-//        out << EndMap;
-//        return out;
-//    }
-}  // namespace YAML
+    static bool
+    decode(const Node &node, erl::geometry::Lidar2D::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.min_angle = node["min_angle"].as<double>();
+        rhs.max_angle = node["max_angle"].as<double>();
+        rhs.num_lines = node["num_lines"].as<int>();
+        rhs.mode = node["mode"].as<erl::geometry::Lidar2D::Mode>();
+        rhs.sign_method = node["sign_method"].as<erl::geometry::Space2D::SignMethod>();
+        return true;
+    }
+};

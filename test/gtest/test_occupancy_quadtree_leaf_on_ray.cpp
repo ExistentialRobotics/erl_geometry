@@ -1,8 +1,9 @@
+#include "erl_common/angle_utils.hpp"
 #include "erl_common/opencv.hpp"
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
-#include "erl_common/angle_utils.hpp"
-#include "erl_common/test_helper.hpp"
+
 #include <boost/program_options.hpp>
 
 using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<erl::geometry::OccupancyQuadtree>;
@@ -62,9 +63,9 @@ Draw(UserData *data) {
 }
 
 void
-MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
+MouseCallback(const int event, const int mouse_x, const int mouse_y, const int flags, void *userdata) {
     (void) flags;
-    auto data = static_cast<UserData *>(userdata);
+    const auto data = static_cast<UserData *>(userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) {
         std::cout << "Left button of the mouse is clicked - position (" << mouse_x << ", " << mouse_y << ")" << std::endl;
@@ -89,18 +90,18 @@ struct Options {
     bool bidirectional = true;
 };
 
-Options options;
+Options g_options;
 
 TEST(OccupancyQuadtree, IterateLeafOnRay) {
     UserData data;
-    data.occupied_only = options.occupied_only;
+    data.occupied_only = g_options.occupied_only;
     auto tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.1;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(tree_setting);
-    ERL_ASSERTM(data.tree->ReadBinary(options.tree_bt_file), "Fail to load the tree.");
+    ERL_ASSERTM(data.tree->ReadBinary(g_options.tree_bt_file), "Fail to load the tree.");
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
-    setting->resolution = options.resolution;
-    setting->padding = options.padding;
+    setting->resolution = g_options.resolution;
+    setting->padding = g_options.padding;
     setting->border_color = cv::Scalar(255, 0, 0);
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
     data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
@@ -111,7 +112,7 @@ TEST(OccupancyQuadtree, IterateLeafOnRay) {
     cv::setMouseCallback(UserData::window_name, MouseCallback, &data);
 
     while (true) {
-        auto key = cv::waitKey(0);
+        const auto key = cv::waitKey(0);
         if (key == 27) { break; }
         if (key == 'a') {
             data.angle += erl::common::DegreeToRadian(1);
@@ -134,11 +135,11 @@ main(int argc, char *argv[]) {
         // clang-format off
         desc.add_options()
             ("help", "produce help message")
-            ("resolution", po::value<double>(&options.resolution)->default_value(options.resolution)->value_name("res"), "resolution of the display image")
-            ("padding", po::value<int>(&options.padding)->default_value(options.padding), "padding of the display image")
-            ("occupied-only", po::bool_switch(&options.occupied_only)->default_value(options.occupied_only), "show occupied only")
-            ("single-direction", po::bool_switch(&options.bidirectional)->default_value(options.bidirectional), "single direction")
-            ("tree-bt-file", po::value<std::string>(&options.tree_bt_file)->value_name("tree_bt_file")->default_value(options.tree_bt_file), "occupancy tree binary format file");
+            ("resolution", po::value<double>(&g_options.resolution)->default_value(g_options.resolution)->value_name("res"), "resolution of the display image")
+            ("padding", po::value<int>(&g_options.padding)->default_value(g_options.padding), "padding of the display image")
+            ("occupied-only", po::bool_switch(&g_options.occupied_only)->default_value(g_options.occupied_only), "show occupied only")
+            ("single-direction", po::bool_switch(&g_options.bidirectional)->default_value(g_options.bidirectional), "single direction")
+            ("tree-bt-file", po::value<std::string>(&g_options.tree_bt_file)->value_name("tree_bt_file")->default_value(g_options.tree_bt_file), "occupancy tree binary format file");
         positional_options.add("tree-bt-file", 1);
         // clang-format on
 

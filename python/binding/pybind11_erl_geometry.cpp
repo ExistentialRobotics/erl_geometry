@@ -1,38 +1,38 @@
-#include <open3d/io/TriangleMeshIO.h>
 #include "erl_common/grid_map.hpp"
 #include "erl_common/pybind11.hpp"
-#include "erl_common/string_utils.hpp"
 #include "erl_common/yaml.hpp"
 #include "erl_geometry/aabb.hpp"
 #include "erl_geometry/bresenham_2d.hpp"
-#include "erl_geometry/grid_collision_checker_se2.hpp"
+#include "erl_geometry/depth_camera_3d.hpp"
 #include "erl_geometry/grid_collision_checker_3d.hpp"
+#include "erl_geometry/grid_collision_checker_se2.hpp"
+#include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/lidar_2d.hpp"
+#include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/lidar_frame_2d.hpp"
+#include "erl_geometry/lidar_frame_3d.hpp"
 #include "erl_geometry/log_odd_map_2d.hpp"
 #include "erl_geometry/marching_square.hpp"
 #include "erl_geometry/node.hpp"
 #include "erl_geometry/node_container.hpp"
 #include "erl_geometry/node_container_multi_types.hpp"
 #include "erl_geometry/point_collision_checker.hpp"
+#include "erl_geometry/rgbd_frame_3d.hpp"
 #include "erl_geometry/space_2d.hpp"
 #include "erl_geometry/surface_2d.hpp"
-#include "erl_geometry/winding_number.hpp"
 #include "erl_geometry/utils.hpp"
-#include "erl_geometry/house_expo_map.hpp"
-#include "erl_geometry/lidar_3d.hpp"
-#include "erl_geometry/depth_camera_3d.hpp"
-#include "erl_geometry/lidar_frame_3d.hpp"
-#include "erl_geometry/rgbd_frame_3d.hpp"
+#include "erl_geometry/winding_number.hpp"
+
+#include <open3d/io/TriangleMeshIO.h>
 
 using namespace erl::common;
 using namespace erl::geometry;
 
 template<typename Scalar, int Dim>
-static typename std::enable_if<Dim <= 3>::type
+static std::enable_if_t<Dim <= 3>
 BindAabb(py::module &m, const char *py_class_name) {
 
-    typedef Aabb<Scalar, Dim> Cls;
+    using Cls = Aabb<Scalar, Dim>;
 
     auto py_aabb = py::class_<Cls>(m, py_class_name)
                        .def(py::init<typename Cls::Point, typename Cls::Scalar>(), py::arg("center"), py::arg("half_size"))
@@ -79,7 +79,7 @@ BindAabb(py::module &m, const char *py_class_name) {
 }
 
 static void
-BindNode(py::module &m) {
+BindNode(const py::module &m) {
     py::class_<NodeData, std::shared_ptr<NodeData>>(m, "NodeData").def("__str__", [](const NodeData &node_data) -> std::string {
         std::stringstream ss;
         node_data.Print(ss);
@@ -94,7 +94,7 @@ BindNode(py::module &m) {
 }
 
 static void
-BindNodeContainer(py::module &m) {
+BindNodeContainer(const py::module &m) {
     py::class_<NodeContainer, std::shared_ptr<NodeContainer>>(m, "NodeContainer")
         .def_property_readonly("node_types", &NodeContainer::GetNodeTypes)
         .def("node_type_name", &NodeContainer::GetNodeTypeName, py::arg("type"))
@@ -127,9 +127,8 @@ BindNodeContainer(py::module &m) {
 }
 
 static void
-BindNodeContainerMultiTypes(py::module &m) {
-    auto py_node_container =
-        py::class_<NodeContainerMultiTypes, NodeContainer, std::shared_ptr<NodeContainerMultiTypes>>(m, ERL_AS_STRING(NodeContainerMultiTypes));
+BindNodeContainerMultiTypes(const py::module &m) {
+    auto py_node_container = py::class_<NodeContainerMultiTypes, NodeContainer, std::shared_ptr<NodeContainerMultiTypes>>(m, "NodeContainerMultiTypes");
     py::class_<NodeContainerMultiTypes::Setting, YamlableBase, std::shared_ptr<NodeContainerMultiTypes::Setting>>(py_node_container, "Setting")
         .def(py::init<>())
         .def(py::init<int, int, double>(), py::arg("num_node_types"), py::arg("capacity_per_type") = 1, py::arg("min_squared_distance") = 0.04)
@@ -139,15 +138,17 @@ BindNodeContainerMultiTypes(py::module &m) {
     py_node_container.def(py::init<>(&NodeContainerMultiTypes::Create), py::arg("setting"));
 }
 
-void BindIncrementalQuadTree(py::module &m);
+void
+BindIncrementalQuadTree(const py::module &m);
 void
 BindNdTreeDeps(py::module &m);
-void BindOccupancyTrees(py::module &m);
+void
+BindOccupancyTrees(py::module &m);
 
 static void
-BindSurface2D(py::module &m) {
+BindSurface2D(const py::module &m) {
 
-    py::class_<Surface2D, std::shared_ptr<Surface2D>>(m, ERL_AS_STRING(Surface2D))
+    py::class_<Surface2D, std::shared_ptr<Surface2D>>(m, "Surface2D")
         .def(
             py::init<Eigen::Matrix2Xd, Eigen::Matrix2Xd, Eigen::Matrix2Xi, Eigen::Matrix2Xi, Eigen::VectorXb>(),
             py::arg("vertices"),
@@ -169,13 +170,13 @@ BindSurface2D(py::module &m) {
         .def_property_readonly("outside_flags_available", &Surface2D::OutsideFlagsAvailable)
         .def(
             "get_object_vertices",
-            [](Surface2D &surface, int idx_object) {
+            [](const Surface2D &surface, const int idx_object) {
                 return Eigen::Matrix2Xd(surface.GetObjectVertices(idx_object));
             },  // cast Eigen::Ref -> Eigen::Matrix2Xfp -> numpy array
             py::arg("index_object"))
         .def(
             "get_object_normals",
-            [](Surface2D &surface, int idx_object) {
+            [](const Surface2D &surface, const int idx_object) {
                 return Eigen::Matrix2Xd(surface.GetObjectNormals(idx_object));
             },  // cast Eigen::Ref -> Eigen::Matrix2Xfp -> numpy array
             py::arg("index_object"))
@@ -183,8 +184,8 @@ BindSurface2D(py::module &m) {
 }
 
 static void
-BindSpace2D(py::module &m) {
-    auto py_space = py::class_<Space2D, std::shared_ptr<Space2D>>(m, ERL_AS_STRING(Space2D));
+BindSpace2D(const py::module &m) {
+    auto py_space = py::class_<Space2D, std::shared_ptr<Space2D>>(m, "Space2D");
 
     py::enum_<Space2D::SignMethod>(py_space, "SignMethod", py::arithmetic(), "Algorithm to determine SDF sign.")
         .value(
@@ -242,11 +243,11 @@ BindSpace2D(py::module &m) {
         .def("compute_sdf_greedily", &Space2D::ComputeSdfGreedily, py::arg("q"), py::arg("sign_method"))
         .def(
             "compute_ddf",
-            [](const Space2D &space, const GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel) {
+            [](const Space2D &space, const GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) {
                 auto result = space.ComputeDdf(grid_map_info, query_directions, parallel);
-                long n_rows = result.rows();
-                long n_cols = result.cols();
-                long n_dirs = query_directions.cols();
+                const long n_rows = result.rows();
+                const long n_cols = result.cols();
+                const long n_dirs = query_directions.cols();
                 py::array_t<double> out({n_rows, n_cols, n_dirs});
                 for (long i = 0; i < n_rows; i++) {
                     for (long j = 0; j < n_cols; j++) {
@@ -266,11 +267,11 @@ BindSpace2D(py::module &m) {
             py::arg("parallel") = false)
         .def(
             "compute_sddf_v1",
-            [](const Space2D &space, const GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel) {
+            [](const Space2D &space, const GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) {
                 auto result = space.ComputeSddfV1(grid_map_info, query_directions, parallel);
-                long n_rows = result.rows();
-                long n_cols = result.cols();
-                long n_dirs = query_directions.cols();
+                const long n_rows = result.rows();
+                const long n_cols = result.cols();
+                const long n_dirs = query_directions.cols();
                 py::array_t<double> out({n_rows, n_cols, n_dirs});
                 for (long i = 0; i < n_rows; i++) {
                     for (long j = 0; j < n_cols; j++) {
@@ -295,12 +296,12 @@ BindSpace2D(py::module &m) {
             [](const Space2D &space,
                const GridMapInfo2D &grid_map_info,
                const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
-               Space2D::SignMethod sign_method,
-               bool parallel) {
+               const Space2D::SignMethod sign_method,
+               const bool parallel) {
                 auto result = space.ComputeSddfV2(grid_map_info, query_directions, sign_method, parallel);
-                long n_rows = result.rows();
-                long n_cols = result.cols();
-                long n_dirs = query_directions.cols();
+                const long n_rows = result.rows();
+                const long n_cols = result.cols();
+                const long n_dirs = query_directions.cols();
                 py::array_t<double> out({n_rows, n_cols, n_dirs});
                 for (long i = 0; i < n_rows; i++) {
                     for (long j = 0; j < n_cols; j++) {
@@ -325,7 +326,7 @@ BindSpace2D(py::module &m) {
 }
 
 static void
-BindLidar2D(py::module &m) {
+BindLidar2D(const py::module &m) {
     auto py_lidar = py::class_<Lidar2D, std::shared_ptr<Lidar2D>>(m, "Lidar2D");
 
     py::enum_<Lidar2D::Mode>(py_lidar, "Mode", py::arithmetic(), "Mode of directed distance.")
@@ -368,7 +369,7 @@ BindLidar2D(py::module &m) {
 }
 
 static void
-BindLidarFrame2D(py::module &m) {
+BindLidarFrame2D(const py::module &m) {
     py::class_<LidarFramePartition2D>(m, "LidarFramePartition2D")
         .def_property_readonly("index_begin", &LidarFramePartition2D::GetIndexBegin)
         .def_property_readonly("index_end", &LidarFramePartition2D::GetIndexEnd)
@@ -429,7 +430,7 @@ BindLidarFrame2D(py::module &m) {
             py::arg("position"))
         .def(
             "sample_along_rays",
-            [](const LidarFrame2D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) {
+            [](const LidarFrame2D &self, const long num_samples_per_ray, const double max_in_obstacle_dist, const double sampled_rays_ratio) {
                 Eigen::Matrix2Xd positions_world;
                 Eigen::Matrix2Xd directions_world;
                 Eigen::VectorXd distances;
@@ -445,7 +446,7 @@ BindLidarFrame2D(py::module &m) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
-            [](const LidarFrame2D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) {
+            [](const LidarFrame2D &self, const double range_step, const double max_in_obstacle_dist, const double sampled_rays_ratio) {
                 Eigen::Matrix2Xd positions_world;
                 Eigen::Matrix2Xd directions_world;
                 Eigen::VectorXd distances;
@@ -461,7 +462,7 @@ BindLidarFrame2D(py::module &m) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
-            [](const LidarFrame2D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) {
+            [](const LidarFrame2D &self, const long num_samples_per_ray, const double max_offset, const double sampled_rays_ratio) {
                 Eigen::Matrix2Xd positions_world;
                 Eigen::Matrix2Xd directions_world;
                 Eigen::VectorXd distances;
@@ -478,10 +479,10 @@ BindLidarFrame2D(py::module &m) {
         .def(
             "sample_in_region",
             [](const LidarFrame2D &self,
-               long num_positions,
-               long num_along_ray_samples_per_ray,
-               long num_near_surface_samples_per_ray,
-               double max_in_obstacle_dist) {
+               const long num_positions,
+               const long num_along_ray_samples_per_ray,
+               const long num_near_surface_samples_per_ray,
+               const double max_in_obstacle_dist) {
                 Eigen::Matrix2Xd positions_world;
                 Eigen::Matrix2Xd directions_world;
                 Eigen::VectorXd distances;
@@ -520,8 +521,8 @@ BindLidarFrame2D(py::module &m) {
 }
 
 static void
-BindLogOddMap2D(py::module &m) {
-    auto py_log_odd_map = py::class_<LogOddMap2D, std::shared_ptr<LogOddMap2D>>(m, ERL_AS_STRING(LogOddMap2D));
+BindLogOddMap2D(const py::module &m) {
+    auto py_log_odd_map = py::class_<LogOddMap2D, std::shared_ptr<LogOddMap2D>>(m, "LogOddMap2D");
 
     py::enum_<LogOddMap2D::CellType>(py_log_odd_map, "CellType", py::arithmetic(), "Type of grid cell.")
         .value(LogOddMap2D::GetCellTypeName(LogOddMap2D::CellType::kOccupied), LogOddMap2D::CellType::kOccupied)
@@ -557,11 +558,11 @@ BindLogOddMap2D(py::module &m) {
             "compute_statistics_of_lidar_frame",
             [](const LogOddMap2D &self,
                const Eigen::Ref<const Eigen::Vector2d> &position,
-               double theta,
+               const double theta,
                const Eigen::Ref<const Eigen::VectorXd> &angles_body,
                const Eigen::Ref<const Eigen::VectorXd> &ranges,
-               bool clip_ranges) {
-                std::shared_ptr<LogOddMap2D::LidarFrameMask> mask = nullptr;
+               const bool clip_ranges) {
+                const std::shared_ptr<LogOddMap2D::LidarFrameMask> mask = nullptr;
                 int num_occupied_cells;
                 int num_free_cells;
                 int num_unexplored_cells;
@@ -601,16 +602,16 @@ BindLogOddMap2D(py::module &m) {
 }
 
 static void
-BindCollisionCheckers(py::module &m) {
-    py::class_<CollisionCheckerBase>(m, ERL_AS_STRING(CollisionCheckerBase)).def("is_collided", &CollisionCheckerBase::IsCollided, py::arg("grid_coords"));
+BindCollisionCheckers(const py::module &m) {
+    py::class_<CollisionCheckerBase>(m, "CollisionCheckerBase").def("is_collided", &CollisionCheckerBase::IsCollided, py::arg("grid_coords"));
 
-    py::class_<PointCollisionChecker2D, CollisionCheckerBase>(m, ERL_AS_STRING(PointCollisionChecker2D))
+    py::class_<PointCollisionChecker2D, CollisionCheckerBase>(m, "PointCollisionChecker2D")
         .def(py::init<std::shared_ptr<GridMap<uint8_t, 2>>>(), py::arg("grid_map"));
 
-    py::class_<PointCollisionChecker3D, CollisionCheckerBase>(m, ERL_AS_STRING(PointCollisionChecker3D))
+    py::class_<PointCollisionChecker3D, CollisionCheckerBase>(m, "PointCollisionChecker3D")
         .def(py::init<std::shared_ptr<GridMap<uint8_t, 3>>>(), py::arg("grid_map"));
 
-    py::class_<GridCollisionCheckerSe2, CollisionCheckerBase>(m, ERL_AS_STRING(GridCollisionCheckerSe2))
+    py::class_<GridCollisionCheckerSe2, CollisionCheckerBase>(m, "GridCollisionCheckerSe2")
         .def(
             py::init<std::shared_ptr<GridMap<uint8_t, 2>>, const std::shared_ptr<GridMapInfo3D> &, Eigen::Matrix2Xd>(),
             py::arg("grid_map"),
@@ -618,14 +619,14 @@ BindCollisionCheckers(py::module &m) {
             py::arg("metric_shape"))
         .def("is_collided", py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &>(&GridCollisionCheckerSe2::IsCollided, py::const_), py::arg("pose"));
 
-    py::class_<GridCollisionChecker3D, CollisionCheckerBase>(m, ERL_AS_STRING(GridCollisionChecker3D))
+    py::class_<GridCollisionChecker3D, CollisionCheckerBase>(m, "GridCollisionChecker3D")
         .def(py::init<std::shared_ptr<GridMap<uint8_t, 3>>, Eigen::Matrix3Xd>(), py::arg("grid_map"), py::arg("metric_voxels"))
         .def("is_collided", py::overload_cast<const Eigen::Ref<const Eigen::Matrix4d> &>(&GridCollisionChecker3D::IsCollided, py::const_), py::arg("pose"));
 }
 
 static void
-BindHouseExpo(py::module &m) {
-    py::class_<HouseExpoMap>(m, ERL_AS_STRING(HouseExpoMap))
+BindHouseExpo(const py::module &m) {
+    py::class_<HouseExpoMap>(m, "HouseExpoMap")
         .def(py::init<const char *>(), py::arg("file"))
         .def(py::init<const char *, double>(), py::arg("file"), py::arg("wall_thickness"))
         .def_property_readonly("file", &HouseExpoMap::GetFile)
@@ -640,8 +641,8 @@ BindHouseExpo(py::module &m) {
             })
         .def(
             "extrude_to_3d",
-            [](const HouseExpoMap &map, double room_height, const std::string &filename) {
-                auto mesh = map.ExtrudeTo3D(room_height);
+            [](const HouseExpoMap &map, const double room_height, const std::string &filename) {
+                const std::shared_ptr<open3d::geometry::TriangleMesh> mesh = map.ExtrudeTo3D(room_height);
                 open3d::io::WriteTriangleMesh(filename, *mesh, false, false, true, true, true, false);
             },
             py::arg("room_height"),
@@ -649,7 +650,7 @@ BindHouseExpo(py::module &m) {
 }
 
 static void
-BindLidar3D(py::module &m) {
+BindLidar3D(const py::module &m) {
     auto py_lidar = py::class_<Lidar3D, std::shared_ptr<Lidar3D>>(m, "Lidar3D");
     py::class_<Lidar3D::Setting, erl::common::YamlableBase, std::shared_ptr<Lidar3D::Setting>>(py_lidar, "Setting")
         .def(py::init<>())
@@ -678,15 +679,15 @@ BindLidar3D(py::module &m) {
             "ray_directions_in_frame",
             [](const Lidar3D &self) -> py::array_t<double> {
                 Eigen::MatrixX<Eigen::Vector3d> rays = self.GetRayDirectionsInFrame();
-                long n_azimuths = rays.rows();
-                long n_elevations = rays.cols();
+                const long n_azimuths = rays.rows();
+                const long n_elevations = rays.cols();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kDir = rays(i, j);
-                        out.mutable_at(i, j, 0) = kDir[0];
-                        out.mutable_at(i, j, 1) = kDir[1];
-                        out.mutable_at(i, j, 2) = kDir[2];
+                        const auto &dir = rays(i, j);
+                        out.mutable_at(i, j, 0) = dir[0];
+                        out.mutable_at(i, j, 1) = dir[1];
+                        out.mutable_at(i, j, 2) = dir[2];
                     }
                 }
                 return out;
@@ -695,7 +696,7 @@ BindLidar3D(py::module &m) {
 }
 
 static void
-BindDepthCamera3D(py::module &m) {
+BindDepthCamera3D(const py::module &m) {
     auto py_camera = py::class_<DepthCamera3D, std::shared_ptr<DepthCamera3D>>(m, "DepthCamera3D");
     py::class_<DepthCamera3D::Setting, erl::common::YamlableBase, std::shared_ptr<DepthCamera3D::Setting>>(py_camera, "Setting")
         .def(py::init<>())
@@ -722,15 +723,15 @@ BindDepthCamera3D(py::module &m) {
             "ray_directions_in_frame",
             [](const DepthCamera3D &self) -> py::array_t<double> {
                 Eigen::MatrixX<Eigen::Vector3d> rays = self.GetRayDirectionsInFrame();
-                long n_azimuths = rays.rows();
-                long n_elevations = rays.cols();
+                const long n_azimuths = rays.rows();
+                const long n_elevations = rays.cols();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kDir = rays(i, j);
-                        out.mutable_at(i, j, 0) = kDir[0];
-                        out.mutable_at(i, j, 1) = kDir[1];
-                        out.mutable_at(i, j, 2) = kDir[2];
+                        const auto &dir = rays(i, j);
+                        out.mutable_at(i, j, 0) = dir[0];
+                        out.mutable_at(i, j, 1) = dir[1];
+                        out.mutable_at(i, j, 2) = dir[2];
                     }
                 }
                 return out;
@@ -739,7 +740,7 @@ BindDepthCamera3D(py::module &m) {
 }
 
 static void
-BindLidarFrame3D(py::module &m) {
+BindLidarFrame3D(const py::module &m) {
     py::class_<LidarFrame3D, std::shared_ptr<LidarFrame3D>> lidar_frame(m, "LidarFrame3D");
     py::class_<LidarFrame3D::Setting, YamlableBase, std::shared_ptr<LidarFrame3D::Setting>>(lidar_frame, "Setting")
         .def(py::init<>())
@@ -775,16 +776,16 @@ BindLidarFrame3D(py::module &m) {
         .def_property_readonly(
             "ray_directions_in_frame",
             [](const LidarFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                const long n_azimuths = self.GetAzimuthAnglesInFrame().size();
+                const long n_elevations = self.GetElevationAnglesInFrame().size();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kGetRayDirectionsInFrame = self.GetRayDirectionsInFrame();
+                const Eigen::MatrixX<Eigen::Vector3d> &get_ray_directions_in_frame = self.GetRayDirectionsInFrame();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kDir = kGetRayDirectionsInFrame(i, j);
-                        out.mutable_at(i, j, 0) = kDir[0];
-                        out.mutable_at(i, j, 1) = kDir[1];
-                        out.mutable_at(i, j, 2) = kDir[2];
+                        const auto &dir = get_ray_directions_in_frame(i, j);
+                        out.mutable_at(i, j, 0) = dir[0];
+                        out.mutable_at(i, j, 1) = dir[1];
+                        out.mutable_at(i, j, 2) = dir[2];
                     }
                 }
                 return out;
@@ -792,16 +793,16 @@ BindLidarFrame3D(py::module &m) {
         .def_property_readonly(
             "ray_directions_in_world",
             [](const LidarFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                const long n_azimuths = self.GetAzimuthAnglesInFrame().size();
+                const long n_elevations = self.GetElevationAnglesInFrame().size();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kRayDirectionsInWorld = self.GetRayDirectionsInWorld();
+                const Eigen::MatrixX<Eigen::Vector3d> &ray_directions_in_world = self.GetRayDirectionsInWorld();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kDir = kRayDirectionsInWorld(i, j);
-                        out.mutable_at(i, j, 0) = kDir[0];
-                        out.mutable_at(i, j, 1) = kDir[1];
-                        out.mutable_at(i, j, 2) = kDir[2];
+                        const auto &dir = ray_directions_in_world(i, j);
+                        out.mutable_at(i, j, 0) = dir[0];
+                        out.mutable_at(i, j, 1) = dir[1];
+                        out.mutable_at(i, j, 2) = dir[2];
                     }
                 }
                 return out;
@@ -809,16 +810,16 @@ BindLidarFrame3D(py::module &m) {
         .def_property_readonly(
             "end_points_in_frame",
             [](const LidarFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                const long n_azimuths = self.GetAzimuthAnglesInFrame().size();
+                const long n_elevations = self.GetElevationAnglesInFrame().size();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kEndPointsInFrame = self.GetEndPointsInFrame();
+                const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_frame = self.GetEndPointsInFrame();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kPoint = kEndPointsInFrame(i, j);
-                        out.mutable_at(i, j, 0) = kPoint[0];
-                        out.mutable_at(i, j, 1) = kPoint[1];
-                        out.mutable_at(i, j, 2) = kPoint[2];
+                        const auto &point = end_points_in_frame(i, j);
+                        out.mutable_at(i, j, 0) = point[0];
+                        out.mutable_at(i, j, 1) = point[1];
+                        out.mutable_at(i, j, 2) = point[2];
                     }
                 }
                 return out;
@@ -826,16 +827,16 @@ BindLidarFrame3D(py::module &m) {
         .def_property_readonly(
             "end_points_in_world",
             [](const LidarFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetNumAzimuthLines();
-                long n_elevations = self.GetNumElevationLines();
+                const long n_azimuths = self.GetNumAzimuthLines();
+                const long n_elevations = self.GetNumElevationLines();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kEndPointsInWorld = self.GetEndPointsInWorld();
+                const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_world = self.GetEndPointsInWorld();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kPoint = kEndPointsInWorld(i, j);
-                        out.mutable_at(i, j, 0) = kPoint[0];
-                        out.mutable_at(i, j, 1) = kPoint[1];
-                        out.mutable_at(i, j, 2) = kPoint[2];
+                        const auto &point = end_points_in_world(i, j);
+                        out.mutable_at(i, j, 0) = point[0];
+                        out.mutable_at(i, j, 1) = point[1];
+                        out.mutable_at(i, j, 2) = point[2];
                     }
                 }
                 return out;
@@ -849,7 +850,7 @@ BindLidarFrame3D(py::module &m) {
         .def_property_readonly("partitions", &LidarFrame3D::GetPartitions)
         .def(
             "compute_closest_end_point",
-            [](const LidarFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world, bool brute_force) -> py::dict {
+            [](const LidarFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world, const bool brute_force) -> py::dict {
                 long azimuth_index = -1;
                 long elevation_index = -1;
                 double distance = 0.0;
@@ -864,7 +865,7 @@ BindLidarFrame3D(py::module &m) {
             py::arg("brute_force") = false)
         .def(
             "sample_along_rays",
-            [](const LidarFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
+            [](const LidarFrame3D &self, const long num_samples_per_ray, const double max_in_obstacle_dist, const double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -880,7 +881,7 @@ BindLidarFrame3D(py::module &m) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
-            [](const LidarFrame3D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
+            [](const LidarFrame3D &self, const double range_step, const double max_in_obstacle_dist, const double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -896,7 +897,7 @@ BindLidarFrame3D(py::module &m) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
-            [](const LidarFrame3D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) -> py::dict {
+            [](const LidarFrame3D &self, const long num_samples_per_ray, const double max_offset, const double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -913,11 +914,11 @@ BindLidarFrame3D(py::module &m) {
         .def(
             "sample_in_region_hpr",
             [](const LidarFrame3D &self,
-               long num_positions,
-               long num_near_surface_samples_per_ray,
-               long num_along_ray_samples_per_ray,
-               double max_in_obstacle_dist,
-               bool parallel) -> py::dict {
+               const long num_positions,
+               const long num_near_surface_samples_per_ray,
+               const long num_along_ray_samples_per_ray,
+               const double max_in_obstacle_dist,
+               const bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -944,7 +945,11 @@ BindLidarFrame3D(py::module &m) {
             py::arg("parallel"))
         .def(
             "sample_in_region_vrs",
-            [](const LidarFrame3D &self, long num_hit_points, long num_samples_per_azimuth_segment, long num_azimuth_segments, bool parallel) -> py::dict {
+            [](const LidarFrame3D &self,
+               const long num_hit_points,
+               const long num_samples_per_azimuth_segment,
+               const long num_azimuth_segments,
+               const bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -983,7 +988,7 @@ BindLidarFrame3D(py::module &m) {
 }
 
 static void
-BindRgbdFrame3D(py::module &m) {
+BindRgbdFrame3D(const py::module &m) {
     py::class_<RgbdFrame3D, std::shared_ptr<RgbdFrame3D>> rgbd_frame(m, "RgbdFrame3D");
     py::class_<RgbdFrame3D::Setting, LidarFrame3D::Setting, std::shared_ptr<RgbdFrame3D::Setting>>(rgbd_frame, "Setting")
         .def(py::init<>())
@@ -1020,16 +1025,16 @@ BindRgbdFrame3D(py::module &m) {
         .def_property_readonly(
             "ray_directions_in_frame",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                const long n_azimuths = self.GetAzimuthAnglesInFrame().size();
+                const long n_elevations = self.GetElevationAnglesInFrame().size();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kGetRayDirectionsInFrame = self.GetRayDirectionsInFrame();
+                const Eigen::MatrixX<Eigen::Vector3d> &get_ray_directions_in_frame = self.GetRayDirectionsInFrame();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kDir = kGetRayDirectionsInFrame(i, j);
-                        out.mutable_at(i, j, 0) = kDir[0];
-                        out.mutable_at(i, j, 1) = kDir[1];
-                        out.mutable_at(i, j, 2) = kDir[2];
+                        const auto &dir = get_ray_directions_in_frame(i, j);
+                        out.mutable_at(i, j, 0) = dir[0];
+                        out.mutable_at(i, j, 1) = dir[1];
+                        out.mutable_at(i, j, 2) = dir[2];
                     }
                 }
                 return out;
@@ -1037,16 +1042,16 @@ BindRgbdFrame3D(py::module &m) {
         .def_property_readonly(
             "ray_directions_in_world",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                const long n_azimuths = self.GetAzimuthAnglesInFrame().size();
+                const long n_elevations = self.GetElevationAnglesInFrame().size();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kRayDirectionsInWorld = self.GetRayDirectionsInWorld();
+                const Eigen::MatrixX<Eigen::Vector3d> &ray_directions_in_world = self.GetRayDirectionsInWorld();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kDir = kRayDirectionsInWorld(i, j);
-                        out.mutable_at(i, j, 0) = kDir[0];
-                        out.mutable_at(i, j, 1) = kDir[1];
-                        out.mutable_at(i, j, 2) = kDir[2];
+                        const auto &dir = ray_directions_in_world(i, j);
+                        out.mutable_at(i, j, 0) = dir[0];
+                        out.mutable_at(i, j, 1) = dir[1];
+                        out.mutable_at(i, j, 2) = dir[2];
                     }
                 }
                 return out;
@@ -1054,16 +1059,16 @@ BindRgbdFrame3D(py::module &m) {
         .def_property_readonly(
             "end_points_in_frame",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetAzimuthAnglesInFrame().size();
-                long n_elevations = self.GetElevationAnglesInFrame().size();
+                const long n_azimuths = self.GetAzimuthAnglesInFrame().size();
+                const long n_elevations = self.GetElevationAnglesInFrame().size();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kEndPointsInFrame = self.GetEndPointsInFrame();
+                const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_frame = self.GetEndPointsInFrame();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kPoint = kEndPointsInFrame(i, j);
-                        out.mutable_at(i, j, 0) = kPoint[0];
-                        out.mutable_at(i, j, 1) = kPoint[1];
-                        out.mutable_at(i, j, 2) = kPoint[2];
+                        const auto &point = end_points_in_frame(i, j);
+                        out.mutable_at(i, j, 0) = point[0];
+                        out.mutable_at(i, j, 1) = point[1];
+                        out.mutable_at(i, j, 2) = point[2];
                     }
                 }
                 return out;
@@ -1071,16 +1076,16 @@ BindRgbdFrame3D(py::module &m) {
         .def_property_readonly(
             "end_points_in_world",
             [](const RgbdFrame3D &self) -> py::array_t<double> {
-                long n_azimuths = self.GetNumAzimuthLines();
-                long n_elevations = self.GetNumElevationLines();
+                const long n_azimuths = self.GetNumAzimuthLines();
+                const long n_elevations = self.GetNumElevationLines();
                 py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                const Eigen::MatrixX<Eigen::Vector3d> &kEndPointsInWorld = self.GetEndPointsInWorld();
+                const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_world = self.GetEndPointsInWorld();
                 for (long i = 0; i < n_azimuths; ++i) {
                     for (long j = 0; j < n_elevations; ++j) {
-                        auto &kPoint = kEndPointsInWorld(i, j);
-                        out.mutable_at(i, j, 0) = kPoint[0];
-                        out.mutable_at(i, j, 1) = kPoint[1];
-                        out.mutable_at(i, j, 2) = kPoint[2];
+                        const auto &point = end_points_in_world(i, j);
+                        out.mutable_at(i, j, 0) = point[0];
+                        out.mutable_at(i, j, 1) = point[1];
+                        out.mutable_at(i, j, 2) = point[2];
                     }
                 }
                 return out;
@@ -1094,7 +1099,7 @@ BindRgbdFrame3D(py::module &m) {
         .def_property_readonly("partitions", [](const RgbdFrame3D &self) { return self.GetPartitions(); })
         .def(
             "compute_closest_end_point",
-            [](const RgbdFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world, bool brute_force) -> py::dict {
+            [](const RgbdFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world, const bool brute_force) -> py::dict {
                 long azimuth_index = -1;
                 long elevation_index = -1;
                 double distance = 0.0;
@@ -1109,7 +1114,7 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("brute_force") = false)
         .def(
             "sample_along_rays",
-            [](const RgbdFrame3D &self, long num_samples_per_ray, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
+            [](const RgbdFrame3D &self, const long num_samples_per_ray, const double max_in_obstacle_dist, const double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -1125,7 +1130,7 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
-            [](const RgbdFrame3D &self, double range_step, double max_in_obstacle_dist, double sampled_rays_ratio) -> py::dict {
+            [](const RgbdFrame3D &self, const double range_step, const double max_in_obstacle_dist, const double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -1141,7 +1146,7 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
-            [](const RgbdFrame3D &self, long num_samples_per_ray, double max_offset, double sampled_rays_ratio) -> py::dict {
+            [](const RgbdFrame3D &self, const long num_samples_per_ray, const double max_offset, const double sampled_rays_ratio) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -1158,11 +1163,11 @@ BindRgbdFrame3D(py::module &m) {
         .def(
             "sample_in_region_hpr",
             [](const RgbdFrame3D &self,
-               long num_positions,
-               long num_near_surface_samples_per_ray,
-               long num_along_ray_samples_per_ray,
-               double max_in_obstacle_dist,
-               bool parallel) -> py::dict {
+               const long num_positions,
+               const long num_near_surface_samples_per_ray,
+               const long num_along_ray_samples_per_ray,
+               const double max_in_obstacle_dist,
+               const bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -1188,7 +1193,11 @@ BindRgbdFrame3D(py::module &m) {
             py::arg("parallel"))
         .def(
             "sample_in_region_vrs",
-            [](const RgbdFrame3D &self, long num_hit_points, long num_samples_per_azimuth_segment, long num_azimuth_segments, bool parallel) -> py::dict {
+            [](const RgbdFrame3D &self,
+               const long num_hit_points,
+               const long num_samples_per_azimuth_segment,
+               const long num_azimuth_segments,
+               const bool parallel) -> py::dict {
                 Eigen::Matrix3Xd positions_world;
                 Eigen::Matrix3Xd directions_world;
                 Eigen::VectorXd distances;
@@ -1243,7 +1252,7 @@ BindUtils(py::module &m) {
         .def("compute_pixels_of_polygon_contour", &ComputePixelsOfPolygonContour, py::arg("polygon_vertices"))
         .def(
             "marching_square",
-            [](const Eigen::Ref<const Eigen::MatrixXd> &img, double iso_value) {
+            [](const Eigen::Ref<const Eigen::MatrixXd> &img, const double iso_value) {
                 Eigen::Matrix2Xd vertices;
                 Eigen::Matrix2Xi lines_to_vertices;
                 Eigen::Matrix2Xi objects_to_lines;

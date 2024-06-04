@@ -1,11 +1,12 @@
-#include <filesystem>
+#include "erl_common/test_helper.hpp"
+#include "erl_geometry/lidar_3d.hpp"
+#include "erl_geometry/occupancy_octree.hpp"
+#include "erl_geometry/open3d_visualizer_wrapper.hpp"
+#include "erl_geometry/utils.hpp"
+
 #include <open3d/io/TriangleMeshIO.h>
 
-#include "erl_common/test_helper.hpp"
-#include "erl_geometry/occupancy_octree.hpp"
-#include "erl_geometry/lidar_3d.hpp"
-#include "erl_geometry/utils.hpp"
-#include "erl_geometry/open3d_visualizer_wrapper.hpp"
+#include <filesystem>
 
 // parameters
 #define WINDOW_NAME          "OccupancyOctree_Build"
@@ -93,76 +94,75 @@ TEST(OccupancyOctree, Build) {
             vis->UpdateGeometry();
             wrapper->SetAnimationCallback(nullptr);  // stop calling this callback
             return false;
-        } else {
-            auto t_start = std::chrono::high_resolution_clock::now();
-            Eigen::Matrix4d &pose = path_3d[pose_idx];
-            pose_idx += STRIDE;
-            Eigen::Matrix3d orientation = pose.topLeftCorner<3, 3>();
-            Eigen::Vector3d sensor_origin = pose.topRightCorner<3, 1>();
-
-            auto t0 = std::chrono::high_resolution_clock::now();
-            Eigen::MatrixXd ranges = lidar.Scan(orientation, sensor_origin);
-            auto t1 = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-            std::cout << "==== " << pose_idx << " ====" << std::endl  //
-                      << "Scan time: " << duration << " ms." << std::endl;
-
-            line_set_traj->points_.emplace_back(sensor_origin);
-            if (line_set_traj->points_.size() > 1) { line_set_traj->lines_.emplace_back(line_set_traj->points_.size() - 2, line_set_traj->points_.size() - 1); }
-            line_set_rays->points_.clear();
-            line_set_rays->lines_.clear();
-            line_set_rays->points_.emplace_back(sensor_origin);
-
-            Eigen::Matrix3Xd points(3, ranges.size());
-            long cnt_points = 0;
-            for (long i = 0; i < ranges.rows(); ++i) {
-                for (long j = 0; j < ranges.cols(); ++j) {
-                    const double &kRange = ranges(i, j);
-                    if (std::isinf(kRange) || std::isnan(kRange)) { continue; }
-                    Eigen::Vector3d point = sensor_origin + kRange * orientation * ray_directions(i, j);
-                    points.col(cnt_points++) = point;
-                    point_cloud->points_.emplace_back(point);
-                    line_set_rays->points_.emplace_back(point);
-                    line_set_rays->lines_.emplace_back(0, static_cast<long>(line_set_rays->points_.size()) - 1);
-                }
-            }
-            points.conservativeResize(3, cnt_points);
-
-            octree->ClearChangedKey();
-            t0 = std::chrono::high_resolution_clock::now();
-            octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
-            octree->UpdateInnerOccupancy();
-            octree->Prune();
-            t1 = std::chrono::high_resolution_clock::now();
-            duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-            std::cout << "Insert time: " << duration << " ms." << std::endl;
-            std::cout << "Number of points: " << points.cols() << std::endl;
-
-            for (auto itr = octree->BeginChangedKey(); itr != octree->EndChangedKey(); ++itr) {
-                double x, y, z;
-                octree->KeyToCoord(itr->first, x, y, z);
-                Eigen::Vector3i voxel_index(
-                    std::floor(x / voxel_grid->voxel_size_),
-                    std::floor(y / voxel_grid->voxel_size_),
-                    std::floor(z / voxel_grid->voxel_size_));
-                if (octree->IsNodeOccupied(octree->Search(itr->first))) {
-                    voxel_grid->AddVoxel(open3d::geometry::Voxel(voxel_index, Eigen::Vector3d(0.5, 0.5, 0.5)));
-                } else {
-                    voxel_grid->RemoveVoxel(voxel_index);
-                }
-            }
-
-            line_set_traj->PaintUniformColor({1, 0, 0});
-            line_set_rays->PaintUniformColor({0, 1, 0});
-            if (line_set_traj->lines_.empty()) { vis->ResetViewPoint(true); }
-            if (point_cloud->points_.size() > MAX_POINT_CLOUD_SIZE) { point_cloud->points_.swap(point_cloud->RandomDownSample(0.5)->points_); }
-
-            auto t_end = std::chrono::high_resolution_clock::now();
-            auto duration_total = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-            std::cout << "Callback time: " << duration_total << " ms." << std::endl;
-
-            return (animation_cnt++ % ANIMATION_INTERVAL == 0);
         }
+        const auto t_start = std::chrono::high_resolution_clock::now();
+        Eigen::Matrix4d &pose = path_3d[pose_idx];
+        pose_idx += STRIDE;
+        const Eigen::Matrix3d orientation = pose.topLeftCorner<3, 3>();
+        Eigen::Vector3d sensor_origin = pose.topRightCorner<3, 1>();
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+        Eigen::MatrixXd ranges = lidar.Scan(orientation, sensor_origin);
+        auto t1 = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "==== " << pose_idx << " ====" << std::endl  //
+                  << "Scan time: " << duration << " ms." << std::endl;
+
+        line_set_traj->points_.emplace_back(sensor_origin);
+        if (line_set_traj->points_.size() > 1) { line_set_traj->lines_.emplace_back(line_set_traj->points_.size() - 2, line_set_traj->points_.size() - 1); }
+        line_set_rays->points_.clear();
+        line_set_rays->lines_.clear();
+        line_set_rays->points_.emplace_back(sensor_origin);
+
+        Eigen::Matrix3Xd points(3, ranges.size());
+        long cnt_points = 0;
+        for (long i = 0; i < ranges.rows(); ++i) {
+            for (long j = 0; j < ranges.cols(); ++j) {
+                const double &range = ranges(i, j);
+                if (std::isinf(range) || std::isnan(range)) { continue; }
+                Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
+                points.col(cnt_points++) = point;
+                point_cloud->points_.emplace_back(point);
+                line_set_rays->points_.emplace_back(point);
+                line_set_rays->lines_.emplace_back(0, static_cast<long>(line_set_rays->points_.size()) - 1);
+            }
+        }
+        points.conservativeResize(3, cnt_points);
+
+        octree->ClearChangedKey();
+        t0 = std::chrono::high_resolution_clock::now();
+        octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
+        octree->UpdateInnerOccupancy();
+        octree->Prune();
+        t1 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "Insert time: " << duration << " ms." << std::endl;
+        std::cout << "Number of points: " << points.cols() << std::endl;
+
+        for (auto itr = octree->BeginChangedKey(); itr != octree->EndChangedKey(); ++itr) {
+            double x, y, z;
+            octree->KeyToCoord(itr->first, x, y, z);
+            Eigen::Vector3i voxel_index(
+                std::floor(x / voxel_grid->voxel_size_),
+                std::floor(y / voxel_grid->voxel_size_),
+                std::floor(z / voxel_grid->voxel_size_));
+            if (octree->IsNodeOccupied(octree->Search(itr->first))) {
+                voxel_grid->AddVoxel(open3d::geometry::Voxel(voxel_index, Eigen::Vector3d(0.5, 0.5, 0.5)));
+            } else {
+                voxel_grid->RemoveVoxel(voxel_index);
+            }
+        }
+
+        line_set_traj->PaintUniformColor({1, 0, 0});
+        line_set_rays->PaintUniformColor({0, 1, 0});
+        if (line_set_traj->lines_.empty()) { vis->ResetViewPoint(true); }
+        if (point_cloud->points_.size() > MAX_POINT_CLOUD_SIZE) { point_cloud->points_.swap(point_cloud->RandomDownSample(0.5)->points_); }
+
+        const auto t_end = std::chrono::high_resolution_clock::now();
+        const auto duration_total = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+        std::cout << "Callback time: " << duration_total << " ms." << std::endl;
+
+        return animation_cnt++ % ANIMATION_INTERVAL == 0;
     };
 
     visualizer.SetAnimationCallback(callback);
@@ -215,9 +215,9 @@ TEST(OccupancyOctree, BuildProfiling) {
         long cnt_points = 0;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                const double &kRange = ranges(i, j);
-                if (std::isinf(kRange) || std::isnan(kRange)) { continue; }
-                Eigen::Vector3d point = sensor_origin + kRange * orientation * ray_directions(i, j);
+                const double &range = ranges(i, j);
+                if (std::isinf(range) || std::isnan(range)) { continue; }
+                Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
                 points.col(cnt_points++) = point;
             }
         }

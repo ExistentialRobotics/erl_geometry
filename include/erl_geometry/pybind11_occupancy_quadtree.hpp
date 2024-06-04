@@ -8,7 +8,7 @@ template<class Quadtree, class Node>
 auto
 BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_name) {
     py::class_<Quadtree, std::shared_ptr<Quadtree>> tree(m, tree_name);
-    py::class_<Node, py::raw_ptr_wrapper<Node>> node(m, node_name);
+    py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
 
     using namespace erl::common;
     using namespace erl::geometry;
@@ -28,37 +28,33 @@ BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_nam
             "write_raw",
             [](Quadtree &self, const std::string &filename) -> bool { return self.Write(filename); },
             py::arg("filename"))
-        .def("read_raw", [](Quadtree &self, const std::string &filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
+        .def(
+            "read_raw",
+            [](Quadtree &self, const std::string &filename) -> bool { return self.LoadData(filename); },
+            py::arg("filename"));
 
     // AbstractOccupancyQuadtree methods
     tree.def(
             "write_binary",
-            [](Quadtree &self, const std::string &filename, bool prune_at_first) -> bool {
-                if (prune_at_first) {
-                    return self.WriteBinary(filename);
-                } else {
-                    return const_cast<const Quadtree &>(self).WriteBinary(filename);
-                }
+            [](Quadtree &self, const std::string &filename, const bool prune_at_first) -> bool {
+                if (prune_at_first) { return self.WriteBinary(filename); }
+                return const_cast<const Quadtree &>(self).WriteBinary(filename);
             },
             py::arg("filename"),
             py::arg("prune_at_first"))
-        .def("read_binary", [](Quadtree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); }, py::arg("filename"));
+        .def(
+            "read_binary",
+            [](Quadtree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); },
+            py::arg("filename"));
 
     // OccupancyQuadtreeBase methods, except iterators
     tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Quadtree::Setting> &setting) { return std::make_shared<Quadtree>(setting); }), py::arg("setting"))
         .def(
-            py::init<>([](const std::string &filename, bool is_binary) {
-                if (is_binary) {
-                    return std::make_shared<Quadtree>(filename);
-                } else {
-                    std::shared_ptr<Quadtree> tree = Quadtree::template ReadAs<Quadtree>(filename);
-                    if (tree) {
-                        return tree;
-                    } else {
-                        throw std::runtime_error("Failed to read Quadtree from " + filename);
-                    }
-                }
+            py::init<>([](const std::string &filename, const bool is_binary) {
+                if (is_binary) { return std::make_shared<Quadtree>(filename); }
+                if (std::shared_ptr<Quadtree> quadtree = Quadtree::template ReadAs<Quadtree>(filename)) { return quadtree; }
+                throw std::runtime_error("Failed to read Quadtree from " + filename);
             }),
             py::arg("filename"),
             py::arg("is_binary"))
@@ -235,47 +231,31 @@ BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_nam
         .def(
             "coord_to_key_checked",
             [](const Quadtree &self, double coordinate) {
-                QuadtreeKey::KeyType key;
-                if (self.CoordToKeyChecked(coordinate, key)) {
-                    return std::optional<QuadtreeKey::KeyType>(key);
-                } else {
-                    return std::optional<QuadtreeKey::KeyType>();
-                }
+                if (QuadtreeKey::KeyType key; self.CoordToKeyChecked(coordinate, key)) { return std::optional<QuadtreeKey::KeyType>(key); }
+                return std::optional<QuadtreeKey::KeyType>();
             },
             py::arg("coordinate"))
         .def(
             "coord_to_key_checked",
             [](const Quadtree &self, double coordinate, uint32_t depth) {
-                QuadtreeKey::KeyType key;
-                if (self.CoordToKeyChecked(coordinate, depth, key)) {
-                    return std::optional<QuadtreeKey::KeyType>(key);
-                } else {
-                    return std::optional<QuadtreeKey::KeyType>();
-                }
+                if (QuadtreeKey::KeyType key; self.CoordToKeyChecked(coordinate, depth, key)) { return std::optional<QuadtreeKey::KeyType>(key); }
+                return std::optional<QuadtreeKey::KeyType>();
             },
             py::arg("coordinate"),
             py::arg("depth"))
         .def(
             "coord_to_key_checked",
             [](const Quadtree &self, double x, double y) {
-                QuadtreeKey key;
-                if (self.CoordToKeyChecked(x, y, key)) {
-                    return std::optional<QuadtreeKey>(key);
-                } else {
-                    return std::optional<QuadtreeKey>();
-                }
+                if (QuadtreeKey key; self.CoordToKeyChecked(x, y, key)) { return std::optional<QuadtreeKey>(key); }
+                return std::optional<QuadtreeKey>();
             },
             py::arg("x"),
             py::arg("y"))
         .def(
             "coord_to_key_checked",
             [](const Quadtree &self, double x, double y, uint32_t depth) {
-                QuadtreeKey key;
-                if (self.CoordToKeyChecked(x, y, depth, key)) {
-                    return std::optional<QuadtreeKey>(key);
-                } else {
-                    return std::optional<QuadtreeKey>();
-                }
+                if (QuadtreeKey key; self.CoordToKeyChecked(x, y, depth, key)) { return std::optional<QuadtreeKey>(key); }
+                return std::optional<QuadtreeKey>();
             },
             py::arg("x"),
             py::arg("y"),
@@ -297,48 +277,32 @@ BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_nam
         .def(
             "compute_west_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, uint32_t depth) {
-                QuadtreeKey neighbor_key;
-                if (self.ComputeWestNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<QuadtreeKey>(neighbor_key);
-                } else {
-                    return std::optional<QuadtreeKey>();
-                }
+                if (QuadtreeKey neighbor_key; self.ComputeWestNeighborKey(key, depth, neighbor_key)) { return std::optional<QuadtreeKey>(neighbor_key); }
+                return std::optional<QuadtreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_east_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, uint32_t depth) {
-                QuadtreeKey neighbor_key;
-                if (self.ComputeEastNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<QuadtreeKey>(neighbor_key);
-                } else {
-                    return std::optional<QuadtreeKey>();
-                }
+                if (QuadtreeKey neighbor_key; self.ComputeEastNeighborKey(key, depth, neighbor_key)) { return std::optional<QuadtreeKey>(neighbor_key); }
+                return std::optional<QuadtreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_north_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, uint32_t depth) {
-                QuadtreeKey neighbor_key;
-                if (self.ComputeNorthNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<QuadtreeKey>(neighbor_key);
-                } else {
-                    return std::optional<QuadtreeKey>();
-                }
+                if (QuadtreeKey neighbor_key; self.ComputeNorthNeighborKey(key, depth, neighbor_key)) { return std::optional<QuadtreeKey>(neighbor_key); }
+                return std::optional<QuadtreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
         .def(
             "compute_south_neighbor_key",
             [](const Quadtree &self, const QuadtreeKey &key, uint32_t depth) {
-                QuadtreeKey neighbor_key;
-                if (self.ComputeSouthNeighborKey(key, depth, neighbor_key)) {
-                    return std::optional<QuadtreeKey>(neighbor_key);
-                } else {
-                    return std::optional<QuadtreeKey>();
-                }
+                if (QuadtreeKey neighbor_key; self.ComputeSouthNeighborKey(key, depth, neighbor_key)) { return std::optional<QuadtreeKey>(neighbor_key); }
+                return std::optional<QuadtreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
@@ -364,12 +328,8 @@ BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_nam
         .def(
             "compute_ray_keys",
             [](const Quadtree &self, double sx, double sy, double ex, double ey) {
-                QuadtreeKeyRay ray;
-                if (self.ComputeRayKeys(sx, sy, ex, ey, ray)) {
-                    return std::optional<QuadtreeKeyRay>(ray);
-                } else {
-                    return std::optional<QuadtreeKeyRay>();
-                }
+                if (QuadtreeKeyRay ray; self.ComputeRayKeys(sx, sy, ex, ey, ray)) { return std::optional<QuadtreeKeyRay>(ray); }
+                return std::optional<QuadtreeKeyRay>();
             },
             py::arg("sx"),
             py::arg("sy"),
@@ -378,12 +338,8 @@ BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_nam
         .def(
             "compute_ray_coords",
             [](const Quadtree &self, double sx, double sy, double ex, double ey) {
-                std::vector<Eigen::Vector2d> ray;
-                if (self.ComputeRayCoords(sx, sy, ex, ey, ray)) {
-                    return std::optional<std::vector<Eigen::Vector2d>>(ray);
-                } else {
-                    return std::optional<std::vector<Eigen::Vector2d>>();
-                }
+                if (std::vector<Eigen::Vector2d> ray; self.ComputeRayCoords(sx, sy, ex, ey, ray)) { return std::optional<std::vector<Eigen::Vector2d>>(ray); }
+                return std::optional<std::vector<Eigen::Vector2d>>();
             },
             py::arg("sx"),
             py::arg("sy"),
@@ -408,17 +364,17 @@ BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_nam
         .def(
             "visualize",
             [](std::shared_ptr<Quadtree> &self,
-               bool leaf_only,
+               const bool leaf_only,
                std::optional<Eigen::Vector2d> area_min,
                std::optional<Eigen::Vector2d> area_max,
-               double resolution,
-               int padding,
+               const double resolution,
+               const int padding,
                Eigen::Vector4i bg_color,
                Eigen::Vector4i fg_color,
                Eigen::Vector4i occupied_color,
                Eigen::Vector4i free_color,
                Eigen::Vector4i border_color,
-               int border_thickness) {
+               const int border_thickness) {
                 auto drawer_setting = std::make_shared<typename Quadtree::Drawer::Setting>();
                 if (area_min.has_value()) {
                     drawer_setting->area_min = area_min.value();

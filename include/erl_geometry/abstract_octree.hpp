@@ -1,9 +1,12 @@
 #pragma once
 
-#include <memory>
-#include <map>
-#include <string>
 #include "nd_tree_setting.hpp"
+
+#include "erl_common/string_utils.hpp"
+
+#include <map>
+#include <memory>
+#include <string>
 
 namespace erl::geometry {
 
@@ -13,8 +16,7 @@ namespace erl::geometry {
     class AbstractOctree {
     protected:
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
-        inline static std::map<std::string, std::shared_ptr<AbstractOctree>> s_class_id_mapping_ = {};  // cppcheck-suppress unusedStructMember
-        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractOctree";             // cppcheck-suppress unusedStructMember
+        inline static std::map<std::string, std::shared_ptr<AbstractOctree>> s_class_id_mapping_ = {};
 
     public:
         AbstractOctree() = delete;  // no default constructor
