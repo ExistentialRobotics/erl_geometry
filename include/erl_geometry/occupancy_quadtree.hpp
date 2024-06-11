@@ -22,7 +22,26 @@ namespace erl::geometry {
             ERL_ASSERTM(this->LoadData(filename), "Failed to read OccupancyQuadtree from file: {}", filename);
         }
 
-        OccupancyQuadtree(const OccupancyQuadtree &) = delete;  // no copy constructor
+        /**
+         *
+         * @param map_info instance of GridMapInfo2D to provide min, max and resolution of the map
+         * @param image_map 1-channel cv::Mat image of the map, where rows is x and cols is y
+         * @param occupied_threshold a pixel is considered occupied if its value is greater than this threshold
+         * @param padding padding around the map with obstacles
+         */
+        OccupancyQuadtree(
+            const std::shared_ptr<common::GridMapInfo2D> &map_info,
+            const cv::Mat &image_map,
+            const double occupied_threshold,
+            const int padding = 0)
+            : OccupancyQuadtreeBase<OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>(map_info, image_map, occupied_threshold, padding) {}
+
+        OccupancyQuadtree(const OccupancyQuadtree &) = default;
+        OccupancyQuadtree &
+        operator=(const OccupancyQuadtree &) = default;
+        OccupancyQuadtree(OccupancyQuadtree &&) = default;
+        OccupancyQuadtree &
+        operator=(OccupancyQuadtree &&) = default;
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractQuadtree>

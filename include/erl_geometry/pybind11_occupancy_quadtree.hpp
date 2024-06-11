@@ -6,7 +6,7 @@
 
 template<class Quadtree, class Node>
 auto
-BindOccupancyQuadtree(py::module &m, const char *tree_name, const char *node_name) {
+BindOccupancyQuadtree(const py::module &m, const char *tree_name, const char *node_name) {
     py::class_<Quadtree, std::shared_ptr<Quadtree>> tree(m, tree_name);
     py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
 

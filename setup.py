@@ -1,4 +1,3 @@
-import glob
 import importlib
 import os
 import shutil
@@ -52,9 +51,11 @@ cmake_path = None
 for path in cmake_paths:
     if os.path.exists(path):
         cmake_path = path
+        break
+cmake_path = os.environ.get("CMAKE_EXECUTABLE", cmake_path)
 assert cmake_path is not None, f"cmake is not found in {cmake_paths}"
 
-# load configuration
+# load configuration from environment variables
 cmake_build_type = os.environ.get("BUILD_TYPE", cmake_build_type)
 cmake_ignore_conda_libraries = os.environ.get("IGNORE_CONDA_LIBRARIES", cmake_ignore_conda_libraries)
 cmake_use_lapack = os.environ.get("USE_LAPACK", cmake_use_lapack)
@@ -85,6 +86,7 @@ print(f"Egg-info directory: {egg_info_dir}")
 print(f"Build directory: {build_dir}")
 print(f"Clean before build: {clean_before_build}")
 print(f"Number of threads: {n_proc}")
+print(f"cmake executable: {cmake_path}")
 print(f"Python executable: {sys.executable}")
 print(f"Python version: {sys.version}")
 print(f"CMAKE_BUILD_TYPE: {cmake_build_type}")

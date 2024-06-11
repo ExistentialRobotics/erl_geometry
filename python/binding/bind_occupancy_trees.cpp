@@ -1,17 +1,16 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_geometry/occupancy_nd_tree_setting.hpp"
-#include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
-#include "erl_geometry/pybind11_occupancy_quadtree.hpp"
+#include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/pybind11_occupancy_octree.hpp"
-#include "erl_geometry/pybind11_occupancy_quadtree_drawer.hpp"
 #include "erl_geometry/pybind11_occupancy_octree_drawer.hpp"
-
-using namespace erl::common;
-using namespace erl::geometry;
+#include "erl_geometry/pybind11_occupancy_quadtree.hpp"
+#include "erl_geometry/pybind11_occupancy_quadtree_drawer.hpp"
 
 void
-BindOccupancyTrees(py::module &m) {
+BindOccupancyTrees(const py::module &m) {
+    using namespace erl::common;
+    using namespace erl::geometry;
 
     // common tree settings
     py::class_<OccupancyNdTreeSetting, YamlableBase, std::shared_ptr<OccupancyNdTreeSetting>>(m, "OccupancyNdTreeSetting")

@@ -41,7 +41,8 @@ MouseCallback(const int event, const int mouse_x, const int mouse_y, const int f
             if (const double vx = std::cos(angles[i]), vy = std::sin(angles[i]);
                 !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ false, /*max_range*/ -1, ex, ey) ||
                 !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ true, /*max_range*/ -1, ex, ey)) {
-                std::cout << "Fail to cast ray for angle " << erl::common::RadianToDegree(angles[i]) << std::endl;
+                ERL_DEBUG("Fail to cast ray for angle {}.", erl::common::RadianToDegree(angles[i]));
+                continue;
             }
             cv::line(
                 img,
@@ -66,7 +67,7 @@ TEST(OccupancyQuadtree, RayCasting) {
     const std::string file = (g_test_data_dir / "house_expo_room_1451_2d.bt").string();
     ASSERT_TRUE(data.tree->ReadBinary(file)) << "Fail to load the tree.";
     auto setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
-    setting->resolution = 0.0025;
+    // setting->resolution = 0.0025;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);

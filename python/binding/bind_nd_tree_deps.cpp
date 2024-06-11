@@ -1,12 +1,11 @@
 #include "erl_common/pybind11.hpp"
-
-#include "erl_geometry/quadtree_key.hpp"
-#include "erl_geometry/octree_key.hpp"
-#include "erl_geometry/nd_tree_setting.hpp"
 #include "erl_geometry/abstract_octree_node.hpp"
+#include "erl_geometry/nd_tree_setting.hpp"
+#include "erl_geometry/octree_key.hpp"
+#include "erl_geometry/quadtree_key.hpp"
 
 void
-BindNdTreeDeps(py::module &m) {
+BindNdTreeDeps(const py::module &m) {
     using namespace erl::common;
     using namespace erl::geometry;
 

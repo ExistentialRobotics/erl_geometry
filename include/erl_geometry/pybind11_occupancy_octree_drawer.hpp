@@ -5,7 +5,7 @@
 
 template<class Drawer, class Tree>
 void
-BindOccupancyOctreeDrawer(py::module &m, const char *name) {
+BindOccupancyOctreeDrawer(const py::module &m, const char *name) {
     using namespace erl::common;
 
     py::class_<Drawer> drawer(m, name);

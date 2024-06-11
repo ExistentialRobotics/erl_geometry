@@ -2,7 +2,7 @@
 
 #include "space_2d.hpp"
 
-#include "erl_common/eigen.hpp"
+#include <fmt/format.h>
 
 #include <utility>
 
@@ -11,21 +11,6 @@ namespace erl::geometry {
     class Lidar2D {
     public:
         enum class Mode { kDdf = 0, kSddfV1 = 1, kSddfV2 = 2 };
-
-        static const char *
-        GetModeName(Mode mode) {
-            const char *mode_names[3] = {"kDdf", "kSddfV1", "kSddfV2"};
-            return mode_names[static_cast<int>(mode)];
-        }
-
-        static Mode
-        GetModeFromName(const std::string &mode_name) {
-            if (mode_name == "kDdf") { return Mode::kDdf; }
-            if (mode_name == "kSddfV1") { return Mode::kSddfV1; }
-            if (mode_name == "kSddfV2") { return Mode::kSddfV2; }
-
-            throw std::runtime_error("Unknown mode: " + mode_name);
-        }
 
         struct Setting : common::Yamlable<Setting> {
             double min_angle = -M_PI;
@@ -109,19 +94,42 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
+// ReSharper disable CppInconsistentNaming
+template<>
+struct fmt::formatter<erl::geometry::Lidar2D::Mode> {
+    template<typename ParseContext>
+    constexpr auto
+    parse(ParseContext &ctx) {
+        return ctx.begin();
+    }
+
+    template<typename FormatContext>
+    auto
+    format(erl::geometry::Lidar2D::Mode mode, FormatContext &ctx) const {
+        static const char *mode_names[3] = {"kDdf", "kSddfV1", "kSddfV2"};
+        return format_to(ctx.out(), mode_names[static_cast<int>(mode)]);
+    }
+};
+
 template<>
 struct YAML::convert<erl::geometry::Lidar2D::Mode> {
     static Node
     encode(const erl::geometry::Lidar2D::Mode &rhs) {
-        Node node;
-        node = erl::geometry::Lidar2D::GetModeName(rhs);
-        return node;
+        static const char *mode_names[3] = {"kDdf", "kSddfV1", "kSddfV2"};
+        return Node(mode_names[static_cast<int>(rhs)]);
     }
 
     static bool
     decode(const Node &node, erl::geometry::Lidar2D::Mode &rhs) {
-        if (!node.IsScalar()) { return false; }
-        rhs = erl::geometry::Lidar2D::GetModeFromName(node.as<std::string>());
+        if (const std::string &mode_name = node.as<std::string>(); mode_name == "kDdf") {
+            rhs = erl::geometry::Lidar2D::Mode::kDdf;
+        } else if (mode_name == "kSddfV1") {
+            rhs = erl::geometry::Lidar2D::Mode::kSddfV1;
+        } else if (mode_name == "kSddfV2") {
+            rhs = erl::geometry::Lidar2D::Mode::kSddfV2;
+        } else {
+            return false;
+        }
         return true;
     }
 };
@@ -150,3 +158,5 @@ struct YAML::convert<erl::geometry::Lidar2D::Setting> {
         return true;
     }
 };
+
+// ReSharper restore CppInconsistentNaming

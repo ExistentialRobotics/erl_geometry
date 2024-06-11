@@ -19,8 +19,8 @@ struct Options {
     std::string house_expo_traj_file = (g_test_data_dir / "house_expo_room_1451.csv").string();
     std::string ros_bag_dat_file = (g_test_data_dir / "ros_bag.dat").string();
     bool use_gazebo_data = false;
-    bool use_house_expo_data = false;
-    bool use_ros_bag_data = true;
+    bool use_house_expo_data = true;
+    bool use_ros_bag_data = false;
     bool hold = false;
     int stride = 1;
     double quadtree_resolution = 0.05;

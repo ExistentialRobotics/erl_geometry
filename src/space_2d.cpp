@@ -191,7 +191,7 @@ namespace erl::geometry {
 
         Eigen::VectorXd sdf(query_points.cols());
 
-#pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, use_kdtree, sign_method, m_kdtree_, sdf)
+#pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, use_kdtree, sign_method, m_kdtree_, sdf, Eigen::Dynamic)
         for (int i = 0; i < query_points.cols(); ++i) {
             if (use_kdtree) {
                 sdf[i] = ComputeSdfWithKdtree(query_points.col(i), sign_method);
@@ -271,7 +271,7 @@ namespace erl::geometry {
     Space2D::ComputeDdf(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) const {
         Eigen::MatrixX<Eigen::VectorXd> out(grid_map_info.Height(), grid_map_info.Width());
 
-#pragma omp parallel for if (parallel) default(none) shared(grid_map_info, query_directions, out)
+#pragma omp parallel for if (parallel) default(none) shared(grid_map_info, query_directions, out, Eigen::Dynamic)
         for (int v = 0; v < grid_map_info.Height(); ++v) {
             for (int u = 0; u < grid_map_info.Width(); ++u) {
                 Eigen::Vector2d point = grid_map_info.PixelToMeterForPoints(Eigen::Vector2i(u, v));
@@ -402,7 +402,7 @@ namespace erl::geometry {
             query_directions.cols());
         Eigen::VectorXd sddf(query_points.cols());
 
-#pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, query_directions, sign_method, sddf)
+#pragma omp parallel for if (parallel) default(none) shared(m_surface_, query_points, query_directions, sign_method, sddf, Eigen::Dynamic)
         for (int i = 0; i < query_points.cols(); ++i) {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();

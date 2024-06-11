@@ -2,7 +2,6 @@
 
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/logging.hpp"
-#include "erl_geometry/bresenham_2d.hpp"
 
 #include <utility>
 
@@ -66,7 +65,7 @@ namespace erl::geometry {
                 auto &occupied_mask_value = m_mask_.occupied_mask.at<uint8_t>(x, y);
                 auto &unexplored_mask_value = m_mask_.unexplored_mask.at<uint8_t>(x, y);
 
-                if (mask_value == CellType::kOccupied) {
+                if (mask_value == kOccupied) {
                     log_odd_value += log_odd_occupied;
                 } else {
                     log_odd_value += log_odd_free;
@@ -80,28 +79,28 @@ namespace erl::geometry {
                 possibility_value = 1.0 / (1.0 + std::exp(-log_odd_value));
 
                 if (possibility_value > m_setting_->threshold_occupied) {
-                    if (occupancy_value == CellType::kFree) {  // kFree -> kOccupied
+                    if (occupancy_value == kFree) {  // kFree -> kOccupied
                         m_num_free_cells_--;
                         m_num_occupied_cells_++;
                         free_mask_value = 0;
-                    } else if (occupancy_value == CellType::kUnexplored) {  // kUnexplored -> kOccupied
+                    } else if (occupancy_value == kUnexplored) {  // kUnexplored -> kOccupied
                         m_num_unexplored_cells_--;
                         m_num_occupied_cells_++;
                         unexplored_mask_value = 0;
                     }
-                    occupancy_value = CellType::kOccupied;
+                    occupancy_value = kOccupied;
                     occupied_mask_value = 1;
                 } else if (possibility_value < m_setting_->threshold_free) {
-                    if (occupancy_value == CellType::kOccupied) {  // kOccupied -> kFree
+                    if (occupancy_value == kOccupied) {  // kOccupied -> kFree
                         m_num_occupied_cells_--;
                         m_num_free_cells_++;
                         occupied_mask_value = 0;
-                    } else if (occupancy_value == CellType::kUnexplored) {  // kUnexplored -> kFree
+                    } else if (occupancy_value == kUnexplored) {  // kUnexplored -> kFree
                         m_num_unexplored_cells_--;
                         m_num_free_cells_++;
                         unexplored_mask_value = 0;
                     }
-                    occupancy_value = CellType::kFree;
+                    occupancy_value = kFree;
                     free_mask_value = 1;
                 }
             }
@@ -627,7 +626,7 @@ namespace erl::geometry {
                     continue;
                 }
 
-                if (const uint8_t &occupancy_value = m_occupancy_map_.at<uint8_t>(x, y); occupancy_value == kOccupied) {
+                if (const auto &occupancy_value = m_occupancy_map_.at<uint8_t>(x, y); occupancy_value == kOccupied) {
                     num_occupied_cells++;
                 } else if (occupancy_value == kFree) {
                     num_free_cells++;

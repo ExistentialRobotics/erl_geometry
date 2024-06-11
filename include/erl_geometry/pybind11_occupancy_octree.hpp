@@ -4,11 +4,10 @@
 #include "open3d_visualizer_wrapper.hpp"
 
 #include "erl_common/pybind11.hpp"
-#include "erl_common/yaml.hpp"
 
 template<class Octree, class Node>
 auto
-BindOccupancyOctree(py::module &m, const char *tree_name, const char *node_name) {
+BindOccupancyOctree(const py::module &m, const char *tree_name, const char *node_name) {
     py::class_<Octree, std::shared_ptr<Octree>> tree(m, tree_name);
     py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
 

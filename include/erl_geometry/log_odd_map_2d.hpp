@@ -78,7 +78,7 @@ namespace erl::geometry {
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        std::shared_ptr<common::GridMapInfo<2>> m_grid_map_info_ = nullptr;
+        std::shared_ptr<common::GridMapInfo2D> m_grid_map_info_ = nullptr;
         cv::Mat m_log_map_ = {};
         cv::Mat m_possibility_map_ = {};
         cv::Mat m_occupancy_map_ = {};
@@ -158,46 +158,39 @@ namespace erl::geometry {
             return m_setting_;
         }
 
-        [[nodiscard]] Eigen::MatrixXd
+        [[nodiscard]] std::shared_ptr<const common::GridMapInfo2D>
+        GetGridMapInfo() const {
+            return m_grid_map_info_;
+        }
+
+        [[nodiscard]] cv::Mat
         GetLogMap() const {
-            Eigen::MatrixXd log_map;
-            cv::cv2eigen(m_log_map_, log_map);
-            return log_map;
+            return m_log_map_;
         }
 
-        [[nodiscard]] Eigen::MatrixXd
+        [[nodiscard]] cv::Mat
         GetPossibilityMap() const {
-            Eigen::MatrixXd possibility_map;
-            cv::cv2eigen(m_possibility_map_, possibility_map);
-            return possibility_map;
+            return m_possibility_map_;
         }
 
-        [[nodiscard]] Eigen::MatrixX8U
+        [[nodiscard]] cv::Mat
         GetOccupancyMap() const {
-            Eigen::MatrixX8U occupancy_map;
-            cv::cv2eigen(m_occupancy_map_, occupancy_map);
-            return occupancy_map;
+            return m_occupancy_map_;
         }
 
-        [[nodiscard]] Eigen::MatrixX8U
+        [[nodiscard]] cv::Mat
         GetUnexploredMask() const {
-            Eigen::MatrixX8U unexplored_mask;
-            cv::cv2eigen(m_mask_.unexplored_mask, unexplored_mask);
-            return unexplored_mask;
+            return m_mask_.unexplored_mask;
         }
 
-        [[nodiscard]] Eigen::MatrixX8U
+        [[nodiscard]] cv::Mat
         GetOccupiedMask() const {
-            Eigen::MatrixX8U occupied_mask;
-            cv::cv2eigen(m_mask_.occupied_mask, occupied_mask);
-            return occupied_mask;
+            return m_mask_.occupied_mask;
         }
 
-        [[nodiscard]] Eigen::MatrixX8U
+        [[nodiscard]] cv::Mat
         GetFreeMask() const {
-            Eigen::MatrixX8U free_mask;
-            cv::cv2eigen(m_mask_.free_mask, free_mask);
-            return free_mask;
+            return m_mask_.free_mask;
         }
 
         [[nodiscard]] std::size_t
@@ -220,32 +213,26 @@ namespace erl::geometry {
             return m_cleaned_mask_;
         }
 
-        [[nodiscard]] Eigen::MatrixX8U
+        [[nodiscard]] cv::Mat
         GetCleanedFreeMask() const {
-            Eigen::MatrixX8U free_mask;
-            cv::cv2eigen(m_cleaned_mask_.free_mask, free_mask);
-            return free_mask;
+            return m_cleaned_mask_.free_mask;
         }
 
-        [[nodiscard]] Eigen::MatrixX8U
+        [[nodiscard]] cv::Mat
         GetCleanedOccupiedMask() const {
-            Eigen::MatrixX8U occupied_mask;
-            cv::cv2eigen(m_cleaned_mask_.occupied_mask, occupied_mask);
-            return occupied_mask;
+            return m_cleaned_mask_.occupied_mask;
         }
 
-        [[nodiscard]] Eigen::MatrixX8U
+        [[nodiscard]] cv::Mat
         GetCleanedUnexploredMask() const {
-            Eigen::MatrixX8U unexplored_mask;
-            cv::cv2eigen(m_cleaned_mask_.unexplored_mask, unexplored_mask);
-            return unexplored_mask;
+            return m_cleaned_mask_.unexplored_mask;
         }
 
         [[nodiscard]] std::vector<Eigen::Matrix2Xi>
         GetFrontiers(bool clean_at_first = true, int approx_iters = 4) const;
 
     private:
-        [[nodiscard]] std::shared_ptr<LogOddMap2D::LidarFrameMask>
+        [[nodiscard]] std::shared_ptr<LidarFrameMask>
         ComputeLidarFrameMask(
             const Eigen::Ref<const Eigen::Vector2d> &position,
             double theta,
@@ -254,9 +241,9 @@ namespace erl::geometry {
             bool clip_ranges,
             bool ray_mode,  // true: ray mode, false: area mode
             bool in_map_only,
-            const std::shared_ptr<LogOddMap2D::LidarFrameMask> &old_mask) const;
+            const std::shared_ptr<LidarFrameMask> &old_mask) const;
 
-        [[nodiscard]] std::shared_ptr<LogOddMap2D::LidarFrameMask>
+        [[nodiscard]] std::shared_ptr<LidarFrameMask>
         ComputeLidarFramesMask(
             const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
             const Eigen::Ref<const Eigen::VectorXd> &lidar_angles_body,
@@ -266,7 +253,7 @@ namespace erl::geometry {
 
         void
         ComputeStatisticsOfLidarFrameMask(
-            const std::shared_ptr<LogOddMap2D::LidarFrameMask> &mask,
+            const std::shared_ptr<LidarFrameMask> &mask,
             int &num_occupied_cells,
             int &num_free_cells,
             int &num_unexplored_cells,

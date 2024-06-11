@@ -13,7 +13,6 @@ namespace erl::geometry {
         Eigen::VectorXi vertices_to_objects;               // the i-th element is the index of the object that the i-th vertex belongs to
         std::vector<Eigen::VectorXi> objects_to_vertices;  // each item is a list of vertex indices of an object
 
-    public:
         Surface2D() = delete;
 
         Surface2D(

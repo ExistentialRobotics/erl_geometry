@@ -1,8 +1,71 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_geometry/incremental_quadtree.hpp"
+#include "erl_geometry/node.hpp"
+#include "erl_geometry/node_container.hpp"
+#include "erl_geometry/node_container_multi_types.hpp"
 
 using namespace erl::common;
 using namespace erl::geometry;
+
+static void
+BindNode(const py::module &m) {
+    py::class_<NodeData, std::shared_ptr<NodeData>>(m, "NodeData").def("__str__", [](const NodeData &node_data) -> std::string {
+        std::stringstream ss;
+        node_data.Print(ss);
+        return ss.str();
+    });
+
+    auto py_node = py::class_<Node, std::shared_ptr<Node>>(m, "Node")
+                       .def(py::init<int, Eigen::VectorXd, std::shared_ptr<NodeData>>(), py::arg("type"), py::arg("position"), py::arg("node_data") = nullptr)
+                       .def_readwrite("position", &Node::position);
+    ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_node, Node, node_data);
+    ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_node, Node, type);
+}
+
+static void
+BindNodeContainer(const py::module &m) {
+    py::class_<NodeContainer, std::shared_ptr<NodeContainer>>(m, "NodeContainer")
+        .def_property_readonly("node_types", &NodeContainer::GetNodeTypes)
+        .def("node_type_name", &NodeContainer::GetNodeTypeName, py::arg("type"))
+        .def("size", py::overload_cast<>(&NodeContainer::Size, py::const_))
+        .def("size_of_type", py::overload_cast<int>(&NodeContainer::Size, py::const_), py::arg("type"))
+        .def("empty", py::overload_cast<>(&NodeContainer::Empty, py::const_))
+        .def("empty_of_type", py::overload_cast<int>(&NodeContainer::Empty, py::const_))
+        .def("clear", &NodeContainer::Clear)
+        .def("collect_nodes", py::overload_cast<>(&NodeContainer::CollectNodes, py::const_))
+        .def("collect_nodes_of_type", py::overload_cast<int>(&NodeContainer::CollectNodesOfType, py::const_), py::arg("type"))
+        .def(
+            "collect_nodes_of_type_in_aabb_2d",
+            py::overload_cast<int, const Aabb2D &>(&NodeContainer::CollectNodesOfTypeInAabb2D, py::const_),
+            py::arg("type"),
+            py::arg("aabb_2d"))
+        .def(
+            "collect_nodes_of_type_in_aabb_3d",
+            py::overload_cast<int, const Aabb3D &>(&NodeContainer::CollectNodesOfTypeInAabb3D, py::const_),
+            py::arg("type"),
+            py::arg("aabb_3d"))
+        .def(
+            "insert",
+            [](NodeContainer &node_container, const std::shared_ptr<Node> &node) -> bool {
+                bool too_close = false;
+                node_container.Insert(node, too_close);
+                return too_close;
+            },
+            py::arg("node"))
+        .def("remove", &NodeContainer::Remove, py::arg("node"));
+}
+
+static void
+BindNodeContainerMultiTypes(const py::module &m) {
+    auto py_node_container = py::class_<NodeContainerMultiTypes, NodeContainer, std::shared_ptr<NodeContainerMultiTypes>>(m, "NodeContainerMultiTypes");
+    py::class_<NodeContainerMultiTypes::Setting, YamlableBase, std::shared_ptr<NodeContainerMultiTypes::Setting>>(py_node_container, "Setting")
+        .def(py::init<>())
+        .def(py::init<int, int, double>(), py::arg("num_node_types"), py::arg("capacity_per_type") = 1, py::arg("min_squared_distance") = 0.04)
+        .def_readwrite("num_node_types", &NodeContainerMultiTypes::Setting::num_node_types)
+        .def_readwrite("node_type_capacity", &NodeContainerMultiTypes::Setting::node_type_capacity)
+        .def_readwrite("node_type_min_squared_distance", &NodeContainerMultiTypes::Setting::node_type_min_squared_distance);
+    py_node_container.def(py::init<>(&NodeContainerMultiTypes::Create), py::arg("setting"));
+}
 
 void
 BindIncrementalQuadTree(const py::module &m) {
