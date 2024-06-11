@@ -5,7 +5,7 @@
 
 template<class Drawer, class Tree>
 void
-BindOccupancyQuadtreeDrawer(const py::module &m, const char *name) {
+BindOccupancyQuadtreeDrawer(const py::handle &m, const char *name) {
     using namespace erl::common;
 
     py::class_<Drawer> drawer(m, name);
@@ -21,5 +21,21 @@ BindOccupancyQuadtreeDrawer(const py::module &m, const char *name) {
         .def_readwrite("border_thickness", &Drawer::Setting::border_thickness)
         .def_readwrite("occupied_color", &Drawer::Setting::occupied_color)
         .def_readwrite("free_color", &Drawer::Setting::free_color);
-    drawer.def(py::init<std::shared_ptr<typename Drawer::Setting>, std::shared_ptr<const Tree>>(), py::arg("setting"), py::arg("quadtree") = nullptr);
+    drawer.def(py::init<std::shared_ptr<typename Drawer::Setting>, std::shared_ptr<const Tree>>(), py::arg("setting"), py::arg("quadtree") = nullptr)
+        .def_property_readonly("setting", &Drawer::GetSetting)
+        .def_property_readonly("grid_map_info", &Drawer::GetGridMapInfo)
+        .def("set_draw_tree_callback", &Drawer::SetDrawTreeCallback, py::arg("callback"))
+        .def("set_draw_leaf_callback", &Drawer::SetDrawLeafCallback, py::arg("callback"))
+        .def(
+            "draw_tree",
+            [](const Drawer &self) {
+                cv::Mat mat;
+                self.DrawTree(mat);
+                return mat;
+            })
+        .def("draw_leaves", [](const Drawer &self) {
+            cv::Mat mat;
+            self.DrawLeaves(mat);
+            return mat;
+        });
 }

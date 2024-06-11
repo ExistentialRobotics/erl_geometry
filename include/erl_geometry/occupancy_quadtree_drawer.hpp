@@ -31,6 +31,11 @@ namespace erl::geometry {
         using AbstractQuadtreeDrawer::DrawLeaves;
         using AbstractQuadtreeDrawer::DrawTree;
 
+        [[nodiscard]] std::shared_ptr<Setting>
+        GetSetting() const {
+            return m_setting_;
+        }
+
         void
         SetDrawTreeCallback(std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> draw_tree) {
             m_draw_tree_ = std::move(draw_tree);

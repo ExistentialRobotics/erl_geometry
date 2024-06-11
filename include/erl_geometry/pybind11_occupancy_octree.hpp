@@ -2,6 +2,7 @@
 
 #include "occupancy_octree_base.hpp"
 #include "open3d_visualizer_wrapper.hpp"
+#include "pybind11_occupancy_octree_drawer.hpp"
 
 #include "erl_common/pybind11.hpp"
 
@@ -680,5 +681,8 @@ BindOccupancyOctree(const py::module &m, const char *tree_name, const char *node
             py::arg("leaf_only") = true,
             py::arg("min_node_depth") = 0,
             py::arg("max_node_depth") = 0);
+
+    BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<Octree>, Octree>(tree, "Drawer");
+
     return std::make_pair(tree, node);
 }

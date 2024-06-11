@@ -3,9 +3,7 @@
 #include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/pybind11_occupancy_octree.hpp"
-#include "erl_geometry/pybind11_occupancy_octree_drawer.hpp"
 #include "erl_geometry/pybind11_occupancy_quadtree.hpp"
-#include "erl_geometry/pybind11_occupancy_quadtree_drawer.hpp"
 
 void
 BindOccupancyTrees(const py::module &m) {
@@ -37,10 +35,6 @@ BindOccupancyTrees(const py::module &m) {
         .def_readwrite("use_aabb_limit", &OccupancyOctreeBaseSetting::use_aabb_limit)
         .def_readwrite("aabb", &OccupancyOctreeBaseSetting::aabb);
 
-    // quadtree
     BindOccupancyQuadtree<OccupancyQuadtree, OccupancyQuadtreeNode>(m, "OccupancyQuadtree", "OccupancyQuadtreeNode");
-    BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<OccupancyQuadtree>, OccupancyQuadtree>(m, "OccupancyQuadtreeDrawer");
-
     BindOccupancyOctree<OccupancyOctree, OccupancyOctreeNode>(m, "OccupancyOctree", "OccupancyOctreeNode");
-    BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<OccupancyOctree>, OccupancyOctree>(m, "OccupancyOctreeDrawer");
 }

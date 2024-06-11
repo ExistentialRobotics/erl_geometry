@@ -46,6 +46,11 @@ namespace erl::geometry {
         using AbstractOctreeDrawer::DrawLeaves;
         using AbstractOctreeDrawer::DrawTree;
 
+        [[nodiscard]] std::shared_ptr<Setting>
+        GetSetting() const {
+            return m_setting_;
+        }
+
         void
         SetOctree(std::shared_ptr<const AbstractOctree> octree) override {
             m_octree_ = std::move(octree);
