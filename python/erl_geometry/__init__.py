@@ -18,6 +18,7 @@ __all__ = [
     "compute_intersection_between_ray_and_aabb_2d",
     "Aabb2D",
     "Aabb3D",
+    "CityStreetMap",
     "Node",
     "NodeData",
     "NodeContainer",

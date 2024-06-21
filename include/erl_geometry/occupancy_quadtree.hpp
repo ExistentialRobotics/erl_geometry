@@ -34,7 +34,7 @@ namespace erl::geometry {
             const cv::Mat &image_map,
             const double occupied_threshold,
             const int padding = 0)
-            : OccupancyQuadtreeBase<OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>(map_info, image_map, occupied_threshold, padding) {}
+            : OccupancyQuadtreeBase(map_info, image_map, occupied_threshold, padding) {}
 
         OccupancyQuadtree(const OccupancyQuadtree &) = default;
         OccupancyQuadtree &

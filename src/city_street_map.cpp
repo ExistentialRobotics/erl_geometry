@@ -5,7 +5,7 @@
 namespace erl::geometry {
 
     cv::Mat
-    CityStreetMap::Load(const std::string &filename) {
+    CityStreetMap::LoadMap(const std::string &filename) {
         std::ifstream file(filename);
         ERL_ASSERTM(file.is_open(), "Failed to open file: {}", filename);
 
@@ -63,6 +63,31 @@ namespace erl::geometry {
         }
         ERL_ASSERTM(rows == height, "Height mismatch: {} != {}", rows, height);
         return map;
+    }
+
+    std::vector<CityStreetMap::Scene>
+    CityStreetMap::LoadScenes(const std::string &filename) {
+        std::ifstream file(filename);
+        ERL_ASSERTM(file.is_open(), "Failed to open file: {}", filename);
+
+        std::string token;
+        file >> token;
+        ERL_ASSERTM(token == "version", "Invalid file: {}", filename);
+        file >> token;
+        ERL_INFO("CityStreetMap::LoadScenes: version {}", token);
+
+        std::vector<Scene> scenes;
+        while (!file.eof()) {
+            Scene scene;
+            // clang-format off
+            file >> scene.bucket >> scene.map >> scene.map_width >> scene.map_height
+                 >> scene.start_x >> scene.start_y >> scene.goal_x >> scene.goal_y
+                 >> scene.optimal_length;
+            // clang-format on
+            scenes.push_back(std::move(scene));
+        }
+
+        return scenes;
     }
 
 }  // namespace erl::geometry

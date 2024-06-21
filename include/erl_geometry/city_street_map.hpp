@@ -21,8 +21,23 @@ namespace erl::geometry {
         static constexpr char kSwamp = 'S';
         static constexpr char kWater = 'W';
 
+        struct Scene {
+            int bucket;
+            std::string map;
+            int map_width;
+            int map_height;
+            int start_x;
+            int start_y;
+            int goal_x;
+            int goal_y;
+            double optimal_length;
+        };
+
         static cv::Mat
-        Load(const std::string &filename);
+        LoadMap(const std::string &filename);
+
+        static std::vector<Scene>
+        LoadScenes(const std::string &filename);
     };
 
 }  // namespace erl::geometry

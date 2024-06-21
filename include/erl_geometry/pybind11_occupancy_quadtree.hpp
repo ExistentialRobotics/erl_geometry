@@ -16,13 +16,21 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
     using namespace erl::geometry;
 
     // Node methods
+    /// AbstractQuadtreeNode methods
+    node.def_property_readonly("node_type", &Node::GetNodeType)
+        .def_property_readonly("depth", &Node::GetDepth)
+        .def_property_readonly("child_index", &Node::GetChildIndex)
+        .def_property_readonly("num_children", &Node::GetNumChildren)
+        .def_property_readonly("has_any_child", &Node::HasAnyChild)
+        .def("has_child", &Node::HasChild, py::arg("child_idx"))
+        .def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+    /// OccupancyQuadtreeNode methods
     node.def_property_readonly("occupancy", &Node::GetOccupancy)
         .def_property_readonly("log_odds", &Node::GetLogOdds)
         .def_property_readonly("mean_child_log_odds", &Node::GetMeanChildLogOdds)
         .def_property_readonly("max_child_log_odds", &Node::GetMaxChildLogOdds)
         .def("allow_update_log_odds", &Node::AllowUpdateLogOdds, py::arg("delta"))
-        .def("add_log_odds", &Node::AddLogOdds, py::arg("log_odds"))
-        .def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+        .def("add_log_odds", &Node::AddLogOdds, py::arg("log_odds"));
 
     // AbstractQuadtree methods
     tree.def("apply_setting", &Quadtree::ApplySetting, "apply the latest setting to the tree")
@@ -47,7 +55,8 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
         .def(
             "read_binary",
             [](Quadtree& self, const std::string& filename) -> bool { return self.ReadBinary(filename); },
-            py::arg("filename"));
+            py::arg("filename"))
+        .def("is_node_occupied", &Quadtree::IsNodeOccupied, py::arg("node"));
 
     // OccupancyQuadtreeBase methods, except iterators
     tree.def(py::init<>())
@@ -156,8 +165,8 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
                 const Node* hit_node = self.CastRay(px, py, vx, vy, ignore_unknown, max_range, ex, ey);
                 py::dict result;
                 result["hit_node"] = hit_node;
-                result["end_x"] = ex;
-                result["end_y"] = ey;
+                result["ex"] = ex;
+                result["ey"] = ey;
                 return result;
             },
             py::arg("px"),
@@ -511,11 +520,23 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
         .def("next", [](typename Quadtree::NodeOnRayIterator& self) { return ++self; })
         .def_property_readonly("is_end", [](const typename Quadtree::NodeOnRayIterator& self) { return self == typename Quadtree::NodeOnRayIterator(); });
 
-    tree.def("iter_leaf", &Quadtree::BeginLeaf, py::arg("max_depth") = 0)
-        .def("iter_leaf_of_node", &Quadtree::BeginLeafOfNode, py::arg("node_key"), py::arg("node_depth"), py::arg("max_depth") = 0)
+    tree.def(
+            "iter_leaf",
+            [](Quadtree& self, const uint32_t max_depth) { return py::wrap_iterator(self.BeginLeaf(max_depth), self.EndLeaf()); },
+            py::arg("max_depth") = 0)
+        .def(
+            "iter_leaf_of_node",
+            [](Quadtree& self, const QuadtreeKey& node_key, const uint32_t node_depth, const uint32_t max_depth) {
+                return py::wrap_iterator(self.BeginLeafOfNode(node_key, node_depth, max_depth), self.EndLeafOfNode());
+            },
+            py::arg("node_key"),
+            py::arg("node_depth"),
+            py::arg("max_depth") = 0)
         .def(
             "iter_leaf_in_aabb",
-            py::overload_cast<double, double, double, double, uint32_t>(&Quadtree::BeginLeafInAabb, py::const_),
+            [](Quadtree& self, const double aabb_min_x, const double aabb_min_y, const double aabb_max_x, const double aabb_max_y, const uint32_t max_depth) {
+                return py::wrap_iterator(self.BeginLeafInAabb(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, max_depth), self.EndLeafInAabb());
+            },
             py::arg("aabb_min_x"),
             py::arg("aabb_min_y"),
             py::arg("aabb_max_x"),
@@ -523,14 +544,21 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
             py::arg("max_depth") = 0)
         .def(
             "iter_leaf_in_aabb",
-            py::overload_cast<const QuadtreeKey&, const QuadtreeKey&, uint32_t>(&Quadtree::BeginLeafInAabb, py::const_),
+            [](Quadtree& self, const QuadtreeKey& aabb_min_key, const QuadtreeKey& aabb_max_key, const uint32_t max_depth) {
+                return py::wrap_iterator(self.BeginLeafInAabb(aabb_min_key, aabb_max_key, max_depth), self.EndLeafInAabb());
+            },
             py::arg("aabb_min_key"),
             py::arg("aabb_max_key"),
             py::arg("max_depth") = 0)
-        .def("iter_node", &Quadtree::BeginTree, py::arg("max_depth") = 0)
+        .def(
+            "iter_node",
+            [](Quadtree& self, const uint32_t max_depth) { return py::wrap_iterator(self.BeginTree(max_depth), self.EndTree()); },
+            py::arg("max_depth") = 0)
         .def(
             "iter_node_in_aabb",
-            py::overload_cast<double, double, double, double, uint32_t>(&Quadtree::BeginTreeInAabb, py::const_),
+            [](Quadtree& self, const double aabb_min_x, const double aabb_min_y, const double aabb_max_x, const double aabb_max_y, const uint32_t max_depth) {
+                return py::wrap_iterator(self.BeginTreeInAabb(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, max_depth), self.EndTreeInAabb());
+            },
             py::arg("aabb_min_x"),
             py::arg("aabb_min_y"),
             py::arg("aabb_max_x"),
@@ -538,63 +566,92 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
             py::arg("max_depth") = 0)
         .def(
             "iter_node_in_aabb",
-            py::overload_cast<const QuadtreeKey&, const QuadtreeKey&, uint32_t>(&Quadtree::BeginTreeInAabb, py::const_),
+            [](Quadtree& self, const QuadtreeKey& aabb_min_key, const QuadtreeKey& aabb_max_key, const uint32_t max_depth) {
+                return py::wrap_iterator(self.BeginTreeInAabb(aabb_min_key, aabb_max_key, max_depth), self.EndTreeInAabb());
+            },
             py::arg("aabb_min_key"),
             py::arg("aabb_max_key"),
             py::arg("max_depth") = 0)
         .def(
             "iter_west_leaf_neighbor",
-            py::overload_cast<double, double, uint32_t>(&Quadtree::BeginWestLeafNeighbor, py::const_),
+            [](Quadtree& self, const double x, const double y, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginWestLeafNeighbor(x, y, max_leaf_depth), self.EndWestLeafNeighbor());
+            },
             py::arg("x"),
             py::arg("y"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_west_leaf_neighbor",
-            py::overload_cast<const QuadtreeKey&, uint32_t, uint32_t>(&Quadtree::BeginWestLeafNeighbor, py::const_),
+            [](Quadtree& self, const QuadtreeKey& key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginWestLeafNeighbor(key, key_depth, max_leaf_depth), self.EndWestLeafNeighbor());
+            },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_east_leaf_neighbor",
-            py::overload_cast<double, double, uint32_t>(&Quadtree::BeginEastLeafNeighbor, py::const_),
+            [](Quadtree& self, const double x, const double y, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginEastLeafNeighbor(x, y, max_leaf_depth), self.EndEastLeafNeighbor());
+            },
             py::arg("x"),
             py::arg("y"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_east_leaf_neighbor",
-            py::overload_cast<const QuadtreeKey&, uint32_t, uint32_t>(&Quadtree::BeginEastLeafNeighbor, py::const_),
+            [](Quadtree& self, const QuadtreeKey& key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginEastLeafNeighbor(key, key_depth, max_leaf_depth), self.EndEastLeafNeighbor());
+            },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_north_leaf_neighbor",
-            py::overload_cast<double, double, uint32_t>(&Quadtree::BeginNorthLeafNeighbor, py::const_),
+            [](Quadtree& self, const double x, const double y, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginNorthLeafNeighbor(x, y, max_leaf_depth), self.EndNorthLeafNeighbor());
+            },
             py::arg("x"),
             py::arg("y"),
-            py::arg("max_leaf_depth") = 0
-
-            )
+            py::arg("max_leaf_depth") = 0)
         .def(
             "iter_north_leaf_neighbor",
-            py::overload_cast<const QuadtreeKey&, uint32_t, uint32_t>(&Quadtree::BeginNorthLeafNeighbor, py::const_),
+            [](Quadtree& self, const QuadtreeKey& key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginNorthLeafNeighbor(key, key_depth, max_leaf_depth), self.EndNorthLeafNeighbor());
+            },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_south_leaf_neighbor",
-            py::overload_cast<double, double, uint32_t>(&Quadtree::BeginSouthLeafNeighbor, py::const_),
+            [](Quadtree& self, const double x, const double y, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginSouthLeafNeighbor(x, y, max_leaf_depth), self.EndSouthLeafNeighbor());
+            },
             py::arg("x"),
             py::arg("y"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_south_leaf_neighbor",
-            py::overload_cast<const QuadtreeKey&, uint32_t, uint32_t>(&Quadtree::BeginSouthLeafNeighbor, py::const_),
+            [](Quadtree& self, const QuadtreeKey& key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(self.BeginSouthLeafNeighbor(key, key_depth, max_leaf_depth), self.EndSouthLeafNeighbor());
+            },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_node_on_ray",
-            &Quadtree::BeginNodeOnRay,
+            [](Quadtree& self,
+               const double px,
+               const double py,
+               const double vx,
+               const double vy,
+               const double max_range,
+               const bool bidirectional,
+               const bool leaf_only,
+               const uint32_t min_node_depth,
+               const uint32_t max_node_depth) {
+                return py::wrap_iterator(
+                    self.BeginNodeOnRay(px, py, vx, vy, max_range, bidirectional, leaf_only, min_node_depth, max_node_depth),
+                    self.EndNodeOnRay());
+            },
             py::arg("px"),
             py::arg("py"),
             py::arg("vx"),

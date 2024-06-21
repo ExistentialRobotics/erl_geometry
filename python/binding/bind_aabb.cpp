@@ -39,6 +39,8 @@ BindAabbTemplate(const py::module &m, const char *py_class_name) {
     ERL_PYBIND_WRAP_PROPERTY_AS_READONLY(py_aabb, Cls, half_sizes);
 
     py_aabb
+        .def_property_readonly("min", py::overload_cast<>(&Cls::min, py::const_))
+        .def_property_readonly("max", py::overload_cast<>(&Cls::max, py::const_))
         .def(
             "__contains__",
             [](const Cls &aabb, const Eigen::Vector<Scalar, Dim> &point) { return aabb.contains(point); },

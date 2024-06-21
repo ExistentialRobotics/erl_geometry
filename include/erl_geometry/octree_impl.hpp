@@ -132,8 +132,8 @@ namespace erl::geometry {
     protected:
         void
         ApplySettingToOctreeImpl() {
-            const double &resolution = this->m_setting_->resolution;
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const double resolution = this->m_setting_->resolution;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             m_resolution_inv_ = 1.0 / resolution;
             m_tree_key_offset_ = 1 << (tree_depth - 1);
 
@@ -317,15 +317,15 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] double
-        GetNodeSize(const uint32_t &depth) const {
+        GetNodeSize(const uint32_t depth) const {
             ERL_DEBUG_ASSERT(depth <= this->m_setting_->tree_depth, "Depth must be in [0, %u], but got %u.\n", this->m_setting_->tree_depth, depth);
             return m_size_lookup_table_[depth];
         }
 
         [[nodiscard]] Aabb3D
-        GetNodeAabb(const OctreeKey &key, const uint32_t &depth) const {
+        GetNodeAabb(const OctreeKey &key, const uint32_t depth) const {
             Eigen::Vector3d center;
-            this->KeyToCoord(key, center.x(), center.y(), center.z());
+            this->KeyToCoord(key, depth, center.x(), center.y(), center.z());
             const double half_size = GetNodeSize(depth) * 0.5;
             return {center, half_size};
         }
@@ -408,7 +408,7 @@ namespace erl::geometry {
          */
         [[nodiscard]] OctreeKey::KeyType
         CoordToKey(const double coordinate, uint32_t depth) const {
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
             const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
             const uint32_t diff = tree_depth - depth;
@@ -538,7 +538,7 @@ namespace erl::geometry {
          */
         [[nodiscard]] OctreeKey::KeyType
         AdjustKeyToDepth(const OctreeKey::KeyType key, uint32_t depth) const {
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
             const uint32_t diff = tree_depth - depth;
             if (!diff) { return key; }
@@ -560,7 +560,7 @@ namespace erl::geometry {
         void
         ComputeCommonAncestorKey(const OctreeKey &key1, const OctreeKey &key2, OctreeKey &ancestor_key, uint32_t &ancestor_depth) const {
             const OctreeKey::KeyType mask = (key1[0] ^ key2[0]) | (key1[1] ^ key2[1]) | (key1[2] ^ key2[2]);  // 0: same bit, 1: different bit
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             if (!mask) {  // keys are identical
                 ancestor_key = key1;
                 ancestor_depth = tree_depth;
@@ -594,7 +594,7 @@ namespace erl::geometry {
 
         bool
         ComputeEastNeighborKey(const OctreeKey &key, const uint32_t depth, OctreeKey &neighbor_key) const {
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             const OctreeKey::KeyType offset = 1 << (tree_depth - depth);
             if ((1 << tree_depth) - key[0] <= offset) { return false; }  // no east neighbor (key[0] + offset >= 2^max_depth)
             neighbor_key[0] = key[0] + offset;
@@ -605,7 +605,7 @@ namespace erl::geometry {
 
         bool
         ComputeNorthNeighborKey(const OctreeKey &key, const uint32_t depth, OctreeKey &neighbor_key) const {
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             const OctreeKey::KeyType offset = 1 << (tree_depth - depth);
             if ((1 << tree_depth) - key[1] <= offset) { return false; }  // no north neighbor (key[1] + offset >= 2^max_depth)
             neighbor_key[0] = key[0];
@@ -636,7 +636,7 @@ namespace erl::geometry {
 
         bool
         ComputeTopNeighborKey(const OctreeKey &key, const uint32_t depth, OctreeKey &neighbor_key) const {
-            const uint32_t &tree_depth = this->m_setting_->tree_depth;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             const OctreeKey::KeyType offset = 1 << (tree_depth - depth);
             if ((1 << tree_depth) - key[2] <= offset) { return false; }  // no top neighbor (key[2] + offset >= 2^max_depth)
             neighbor_key[0] = key[0];
@@ -663,10 +663,10 @@ namespace erl::geometry {
          */
         [[nodiscard]] double
         KeyToCoord(const OctreeKey::KeyType key, const uint32_t depth) const {
-            const uint32_t &kTreeDepth = this->m_setting_->tree_depth;
+            const uint32_t tree_depth = this->m_setting_->tree_depth;
             if (depth == 0) { return 0.0; }
-            if (depth == kTreeDepth) { return KeyToCoord(key); }
-            uint32_t &&diff = kTreeDepth - depth;
+            if (depth == tree_depth) { return KeyToCoord(key); }
+            uint32_t &&diff = tree_depth - depth;
             double &&r = this->GetNodeSize(depth);
             return (std::floor((static_cast<double>(key) - static_cast<double>(m_tree_key_offset_)) / static_cast<double>(1 << diff)) + 0.5) * r;
         }
@@ -742,7 +742,7 @@ namespace erl::geometry {
                 : m_tree_(nullptr),
                   m_max_node_depth_(0) {}
 
-            explicit IteratorBase(const OctreeImpl *tree, const uint32_t &max_node_depth)
+            explicit IteratorBase(const OctreeImpl *tree, const uint32_t max_node_depth)
                 : m_tree_(tree),
                   m_max_node_depth_(max_node_depth) {
                 if (m_tree_ == nullptr) { return; }
@@ -841,10 +841,10 @@ namespace erl::geometry {
             SingleIncrement1() {
                 StackElement top = m_stack_.back();
                 m_stack_.pop_back();
-                const uint32_t &kNodeDepth = top.node->GetDepth();
-                if (kNodeDepth == m_max_node_depth_) { return; }
+                const uint32_t node_depth = top.node->GetDepth();
+                if (node_depth == m_max_node_depth_) { return; }
 
-                uint32_t next_depth = kNodeDepth + 1;
+                uint32_t next_depth = node_depth + 1;
                 ERL_DEBUG_ASSERT(next_depth <= m_max_node_depth_, "Wrong depth: %u (max: %u).\n", next_depth, m_max_node_depth_);
                 OctreeKey next_key;
                 const OctreeKey::KeyType center_offset_key = m_tree_->m_tree_key_offset_ >> next_depth;
@@ -986,10 +986,10 @@ namespace erl::geometry {
             SingleIncrement2() {
                 typename IteratorBase::StackElement top = this->m_stack_.back();
                 this->m_stack_.pop_back();
-                const uint32_t &kNodeDepth = top.node->GetDepth();
-                if (kNodeDepth == this->m_max_node_depth_) { return; }
+                const uint32_t node_depth = top.node->GetDepth();
+                if (node_depth == this->m_max_node_depth_) { return; }
 
-                uint32_t next_depth = kNodeDepth + 1;
+                uint32_t next_depth = node_depth + 1;
                 ERL_DEBUG_ASSERT(next_depth <= this->m_max_node_depth_, "Wrong depth: %u (max: %u).\n", next_depth, this->m_max_node_depth_);
                 OctreeKey next_key;
                 const OctreeKey::KeyType center_offset_key = this->m_tree_->m_tree_key_offset_ >> next_depth;
@@ -1235,8 +1235,8 @@ namespace erl::geometry {
                 s.node = nullptr;
                 while (s.node == nullptr && key_changing_dim1 < m_max_key_changing_dim1_ && key_changing_dim2 < m_max_key_changing_dim2_) {
                     s.node = const_cast<Node *>(this->m_tree_->Search(m_neighbor_key_));
-                    const uint32_t &kNodeDepth = s.node->GetDepth();
-                    if (s.node == nullptr || kNodeDepth > this->m_max_node_depth_) {  // not found
+                    const uint32_t node_depth = s.node->GetDepth();
+                    if (s.node == nullptr || node_depth > this->m_max_node_depth_) {  // not found
                         s.node = nullptr;
                         ++key_changing_dim2;
                         if (key_changing_dim2 >= m_max_key_changing_dim2_) {  // go to next row
@@ -1247,7 +1247,7 @@ namespace erl::geometry {
                     }
 
                     // found a neighbor
-                    s.key = this->m_tree_->AdjustKeyToDepth(m_neighbor_key_, kNodeDepth);
+                    s.key = this->m_tree_->AdjustKeyToDepth(m_neighbor_key_, node_depth);
                     // avoid duplicate
                     if (s.key[changing_dim1] != key_changing_dim1) {  // node's center is not on the current row
                         s.node = nullptr;
@@ -1260,7 +1260,7 @@ namespace erl::geometry {
                     }
                     // while loop ends here, update key_changing_dim2 to the next value
                     const uint32_t max_depth = this->m_tree_->GetTreeDepth();
-                    key_changing_dim2 = s.key[changing_dim2] + (kNodeDepth == max_depth ? 1 : (1 << (max_depth - kNodeDepth - 1)));
+                    key_changing_dim2 = s.key[changing_dim2] + (node_depth == max_depth ? 1 : (1 << (max_depth - node_depth - 1)));
                 }
                 // check if we have reached the end
                 if (s.node == nullptr && key_changing_dim1 >= m_max_key_changing_dim1_ && key_changing_dim2 >= m_max_key_changing_dim2_) { this->Terminate(); }
@@ -1587,13 +1587,13 @@ namespace erl::geometry {
              * @param max_node_depth 0 means using the tree's max depth
              */
             NodeOnRayIterator(
-                const double &px,
-                const double &py,
-                const double &pz,
-                const double &vx,
-                const double &vy,
-                const double &vz,
-                const double &max_range,
+                const double px,
+                const double py,
+                const double pz,
+                const double vx,
+                const double vy,
+                const double vz,
+                const double max_range,
                 const bool &bidirectional,
                 const OctreeImpl *tree,
                 const bool leaf_only = false,
@@ -1640,14 +1640,14 @@ namespace erl::geometry {
 
                 bool
                 operator()(const typename IteratorBase::StackElement &lhs, const typename IteratorBase::StackElement &rhs) const {
-                    const double &kLhsDist = lhs.template GetData<double>();
-                    const double &kRhsDist = rhs.template GetData<double>();
-                    if (kLhsDist >= 0) {
-                        if (kRhsDist >= 0) { return kLhsDist > kRhsDist; }  // both are positive
+                    const double lhs_dist = lhs.template GetData<double>();
+                    const double rhs_dist = rhs.template GetData<double>();
+                    if (lhs_dist >= 0) {
+                        if (rhs_dist >= 0) { return lhs_dist > rhs_dist; }  // both are positive
                         return false;
                     }
-                    if (kRhsDist >= 0) { return true; }
-                    return kLhsDist < kRhsDist;  // both are negative
+                    if (rhs_dist >= 0) { return true; }
+                    return lhs_dist < rhs_dist;  // both are negative
                 }
             };
 
@@ -2006,7 +2006,7 @@ namespace erl::geometry {
             }
 
             // compute t_max and t_delta
-            const double &resolution = this->m_setting_->resolution;
+            const double resolution = this->m_setting_->resolution;
             double t_max[3];
             double t_delta[3];
             if (step[0] == 0) {
@@ -2263,11 +2263,11 @@ namespace erl::geometry {
          */
         bool
         DeleteNodeRecurs(Node *node, const OctreeKey &key, uint32_t max_depth) {
-            const uint32_t &kDepth = node->GetDepth();
-            if (kDepth >= max_depth) { return true; }  // return true to delete this node
+            const uint32_t depth = node->GetDepth();
+            if (depth >= max_depth) { return true; }  // return true to delete this node
             ERL_DEBUG_ASSERT(node != nullptr, "node should not be nullptr.");
 
-            uint32_t child_idx = OctreeKey::ComputeChildIndex(key, this->m_setting_->tree_depth - kDepth - 1);
+            uint32_t child_idx = OctreeKey::ComputeChildIndex(key, this->m_setting_->tree_depth - depth - 1);
             if (!node->HasChild(child_idx)) {                           // child does not exist, but maybe node is pruned
                 if (!node->HasAnyChild() && (node != m_root_.get())) {  // this node is pruned
                     ExpandNode(node);                                   // expand it, tree size is updated in ExpandNode

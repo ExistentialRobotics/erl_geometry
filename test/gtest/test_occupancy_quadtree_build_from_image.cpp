@@ -5,7 +5,7 @@
 TEST(OccupancyQuadtree, BuildFromImage) {
     GTEST_PREPARE_OUTPUT_DIR();
 
-    const cv::Mat map = erl::geometry::CityStreetMap::Load(gtest_src_dir / "Berlin_0_1024.map");
+    const cv::Mat map = erl::geometry::CityStreetMap::LoadMap(gtest_src_dir / "Berlin_0_1024.map");
     std::shared_ptr<erl::common::GridMapInfo2D> map_info = std::make_shared<erl::common::GridMapInfo2D>(
         /*map_shape*/ Eigen::Vector2i(1024, 1024),
         /*map_min*/ Eigen::Vector2d(-10.0, -10.0),
@@ -49,9 +49,9 @@ TEST(OccupancyQuadtree, BuildFromImage) {
             const Eigen::VectorXd angles = Eigen::VectorXd::LinSpaced(361, 0, 2 * M_PI).head(360);
 
             std::vector<Eigen::Vector2d> hit_positions;
-            std::vector<const erl::geometry::OccupancyQuadtreeNode *> hit_nodes;
 
             {
+                std::vector<const erl::geometry::OccupancyQuadtreeNode *> hit_nodes;
                 constexpr bool ignore_unknown = false;  // if true, unknown cells are treated as free cells
                 constexpr double max_range = -1;
                 constexpr bool prune_rays = false;
