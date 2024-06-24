@@ -1104,9 +1104,9 @@ namespace erl::geometry {
             // post-increment
             LeafIterator
             operator++(int) {
-                const LeafIterator kResult = *this;
+                const LeafIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment

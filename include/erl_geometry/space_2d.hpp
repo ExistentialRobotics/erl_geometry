@@ -10,7 +10,8 @@
 
 namespace erl::geometry {
     class Space2D {
-        using KdTree = KdTreeEigenAdaptor<double, 2>;
+        // using KdTree = KdTreeEigenAdaptor<double, 2>;
+        using KdTree = nanoflann::KDTreeEigenMatrixAdaptor<Eigen::Matrix2Xd, 2, nanoflann::metric_L2_Simple, false>;  // false: column-major, #rows = dim
 
         std::shared_ptr<Surface2D> m_surface_;
         std::unique_ptr<KdTree> m_kdtree_;
@@ -56,7 +57,7 @@ namespace erl::geometry {
 
         Space2D(const Space2D &other)
             : m_surface_(std::make_shared<Surface2D>(*other.m_surface_)),
-              m_kdtree_(std::make_unique<KdTree>(*other.m_kdtree_)) {}
+              m_kdtree_(std::make_unique<KdTree>(2, other.m_kdtree_->m_data_matrix)) {}
 
         [[nodiscard]] const std::shared_ptr<Surface2D> &
         GetSurface() const {

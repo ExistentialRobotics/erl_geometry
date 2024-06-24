@@ -74,7 +74,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector2d> &position_world,
         long &end_point_index,
         double &distance,
-        const bool brute_force) const {
+        const bool brute_force) {
         if (brute_force) {
             end_point_index = -1;
             distance = std::numeric_limits<double>::infinity();
@@ -92,7 +92,7 @@ namespace erl::geometry {
         if (!m_kd_tree_->Ready()) { std::const_pointer_cast<KdTree2d>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_); }
         end_point_index = -1;
         distance = std::numeric_limits<double>::infinity();
-        m_kd_tree_->Knn(1, position_world, end_point_index, distance);
+        m_kd_tree_->Nearest(position_world, end_point_index, distance);
         distance = std::sqrt(distance);
     }
 
@@ -113,20 +113,20 @@ namespace erl::geometry {
 
         long index = 0;
         for (const long &hit_ray_idx: hit_ray_indices) {
-            const long &kRayIdx = m_hit_ray_indices_[hit_ray_idx];
-            double range = m_ranges_[kRayIdx];
+            const long ray_idx = m_hit_ray_indices_[hit_ray_idx];
+            double range = m_ranges_[ray_idx];
             double range_step = (range + max_in_obstacle_dist) / static_cast<double>(n_samples_per_ray);
-            const Eigen::Vector2d &kDirWorld = m_dirs_world_.col(kRayIdx);
+            const Eigen::Vector2d &dir_world = m_dirs_world_.col(ray_idx);
 
             positions_world.col(index) << m_translation_;
-            directions_world.col(index) << kDirWorld;
+            directions_world.col(index) << dir_world;
             distances[index++] = range;
 
-            Eigen::Vector2d shift = range_step * kDirWorld;
+            Eigen::Vector2d shift = range_step * dir_world;
             for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_per_ray; ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(index) << positions_world.col(index - 1) + shift;
-                directions_world.col(index) << kDirWorld;
+                directions_world.col(index) << dir_world;
                 distances[index++] = range;
             }
         }
@@ -158,16 +158,16 @@ namespace erl::geometry {
         long sample_idx = 0;
         for (auto &[ray_idx, n_samples_of_ray]: n_samples_per_ray) {
             double range = m_ranges_[ray_idx];
-            const Eigen::Vector2d &kDirWorld = m_dirs_world_.col(ray_idx);
+            const Eigen::Vector2d &dir_world = m_dirs_world_.col(ray_idx);
             positions_world.col(sample_idx) << m_translation_;
-            directions_world.col(sample_idx) << kDirWorld;
+            directions_world.col(sample_idx) << dir_world;
             distances[sample_idx++] = range;
 
-            Eigen::Vector2d shift = range_step * kDirWorld;
+            Eigen::Vector2d shift = range_step * dir_world;
             for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_of_ray; ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(sample_idx) << positions_world.col(sample_idx - 1) + shift;
-                directions_world.col(sample_idx) << kDirWorld;
+                directions_world.col(sample_idx) << dir_world;
                 distances[sample_idx++] = range;
             }
         }

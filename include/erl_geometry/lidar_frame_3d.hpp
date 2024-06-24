@@ -51,7 +51,6 @@ namespace erl::geometry {
         double m_max_valid_range_ = std::numeric_limits<double>::infinity();
         std::vector<LidarFramePartition3D> m_partitions_ = {};
         bool m_partitioned_ = false;
-
         std::shared_ptr<KdTree3d> m_kd_tree_ = std::make_shared<KdTree3d>();
 
     public:
@@ -196,7 +195,7 @@ namespace erl::geometry {
             long &end_point_azimuth_index,
             long &end_point_elevation_index,
             double &distance,
-            bool brute_force = false) const;
+            bool brute_force = false);
 
         void
         SampleAlongRays(

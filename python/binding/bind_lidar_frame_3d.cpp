@@ -115,7 +115,7 @@ BindLidarFrame3D(const py::module &m) {
         .def_property_readonly("partitions", &LidarFrame3D::GetPartitions)
         .def(
             "compute_closest_end_point",
-            [](const LidarFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world, const bool brute_force) -> py::dict {
+            [](LidarFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world, const bool brute_force) -> py::dict {
                 long azimuth_index = -1;
                 long elevation_index = -1;
                 double distance = 0.0;

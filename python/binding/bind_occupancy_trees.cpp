@@ -11,7 +11,7 @@ BindOccupancyTrees(const py::module &m) {
     using namespace erl::geometry;
 
     // common tree settings
-    py::class_<OccupancyNdTreeSetting, YamlableBase, std::shared_ptr<OccupancyNdTreeSetting>>(m, "OccupancyNdTreeSetting")
+    py::class_<OccupancyNdTreeSetting, NdTreeSetting, std::shared_ptr<OccupancyNdTreeSetting>>(m, "OccupancyNdTreeSetting")
         .def(py::init<>())
         .def_readwrite("log_odd_min", &OccupancyNdTreeSetting::log_odd_min)
         .def_readwrite("log_odd_max", &OccupancyNdTreeSetting::log_odd_max)
@@ -24,12 +24,12 @@ BindOccupancyTrees(const py::module &m) {
             "probability_occupied_threshold",
             &OccupancyNdTreeSetting::GetProbabilityOccupiedThreshold,
             &OccupancyNdTreeSetting::SetProbabilityOccupiedThreshold);
-    py::class_<OccupancyQuadtreeBaseSetting, YamlableBase, std::shared_ptr<OccupancyQuadtreeBaseSetting>>(m, "OccupancyQuadtreeBaseSetting")
+    py::class_<OccupancyQuadtreeBaseSetting, OccupancyNdTreeSetting, std::shared_ptr<OccupancyQuadtreeBaseSetting>>(m, "OccupancyQuadtreeBaseSetting")
         .def(py::init<>())
         .def_readwrite("use_change_detection", &OccupancyQuadtreeBaseSetting::use_change_detection)
         .def_readwrite("use_aabb_limit", &OccupancyQuadtreeBaseSetting::use_aabb_limit)
         .def_readwrite("aabb", &OccupancyQuadtreeBaseSetting::aabb);
-    py::class_<OccupancyOctreeBaseSetting, YamlableBase, std::shared_ptr<OccupancyOctreeBaseSetting>>(m, "OccupancyOctreeBaseSetting")
+    py::class_<OccupancyOctreeBaseSetting, OccupancyNdTreeSetting, std::shared_ptr<OccupancyOctreeBaseSetting>>(m, "OccupancyOctreeBaseSetting")
         .def(py::init<>())
         .def_readwrite("use_change_detection", &OccupancyOctreeBaseSetting::use_change_detection)
         .def_readwrite("use_aabb_limit", &OccupancyOctreeBaseSetting::use_aabb_limit)

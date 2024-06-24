@@ -17,13 +17,13 @@ BindNdTreeDeps(const py::module &m) {
     py::class_<QuadtreeKey>(m, "QuadtreeKey")
         .def("__eq__", [](const QuadtreeKey &self, const QuadtreeKey &other) { return self == other; })
         .def("__ne__", [](const QuadtreeKey &self, const QuadtreeKey &other) { return self != other; })
-        .def("__getitem__", [](const QuadtreeKey &self, int idx) { return self[idx]; });
+        .def("__getitem__", [](const QuadtreeKey &self, const int idx) { return self[idx]; });
     // QuadtreeKeyRay is std::vector<QuadtreeKey>
 
     py::class_<OctreeKey>(m, "OctreeKey")
         .def("__eq__", [](const OctreeKey &self, const OctreeKey &other) { return self == other; })
         .def("__ne__", [](const OctreeKey &self, const OctreeKey &other) { return self != other; })
-        .def("__getitem__", [](const OctreeKey &self, int idx) { return self[idx]; });
+        .def("__getitem__", [](const OctreeKey &self, const int idx) { return self[idx]; });
     // OctreeKeyRay is std::vector<OctreeKey>
 
     py::class_<AbstractOctreeNode, py::RawPtrWrapper<AbstractOctreeNode>>(m, "AbstractOctreeNode")

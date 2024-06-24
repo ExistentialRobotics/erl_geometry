@@ -54,7 +54,6 @@ namespace erl::geometry {
         double m_max_valid_range_ = 0.0;
         std::vector<LidarFramePartition2D> m_partitions_ = {};
         bool m_partitioned_ = false;
-
         std::shared_ptr<KdTree2d> m_kd_tree_ = std::make_shared<KdTree2d>();
 
     public:
@@ -176,8 +175,7 @@ namespace erl::geometry {
         }
 
         void
-        ComputeClosestEndPoint(const Eigen::Ref<const Eigen::Vector2d> &position_world, long &end_point_index, double &distance, bool brute_force = false)
-            const;
+        ComputeClosestEndPoint(const Eigen::Ref<const Eigen::Vector2d> &position_world, long &end_point_index, double &distance, bool brute_force = false);
 
         void
         SampleAlongRays(
@@ -263,6 +261,7 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
+// ReSharper disable CppInconsistentNaming
 template<>
 struct YAML::convert<erl::geometry::LidarFrame2D::Setting> {
     static Node
@@ -291,3 +290,5 @@ struct YAML::convert<erl::geometry::LidarFrame2D::Setting> {
         return true;
     }
 };  // namespace YAML
+
+// ReSharper restore CppInconsistentNaming

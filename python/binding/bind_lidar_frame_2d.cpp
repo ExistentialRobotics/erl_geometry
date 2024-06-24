@@ -54,7 +54,7 @@ BindLidarFrame2D(const py::module &m) {
         .def_property_readonly("is_valid", &LidarFrame2D::IsValid)
         .def(
             "compute_closest_end_point",
-            [](const LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position) {
+            [](LidarFrame2D &self, const Eigen::Ref<const Eigen::Vector2d> &position) {
                 long end_point_index = -1;
                 double distance = 0.0;
                 self.ComputeClosestEndPoint(position, end_point_index, distance);

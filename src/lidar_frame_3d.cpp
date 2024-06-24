@@ -93,7 +93,7 @@ namespace erl::geometry {
         long &end_point_azimuth_index,
         long &end_point_elevation_index,
         double &distance,
-        const bool brute_force) const {
+        const bool brute_force) {
         if (brute_force) {
             end_point_azimuth_index = -1;
             end_point_elevation_index = -1;
@@ -116,7 +116,7 @@ namespace erl::geometry {
         if (!m_kd_tree_->Ready()) { std::const_pointer_cast<KdTree3d>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_.data()->data(), m_end_pts_world_.size()); }
         long end_point_index = -1;
         distance = std::numeric_limits<double>::infinity();
-        m_kd_tree_->Knn(1, position_world, end_point_index, distance);
+        m_kd_tree_->Nearest(position_world, end_point_index, distance);
         // end_point_index = end_point_elevation_index * m_azimuth_frame_.size() + end_point_azimuth_index (column-major)
         const long num_azimuths = GetNumAzimuthLines();
         end_point_elevation_index = end_point_index / num_azimuths;
@@ -146,17 +146,17 @@ namespace erl::geometry {
             const long elevation_idx = m_hit_ray_indices_(1, ray_idx);
             double range = m_ranges_(azimuth_idx, elevation_idx);
             double range_step = (range + max_in_obstacle_dist) / static_cast<double>(num_samples_per_ray);
-            const Eigen::Vector3d &kDirWorld = m_dirs_world_(azimuth_idx, elevation_idx);
+            const Eigen::Vector3d &dir_world = m_dirs_world_(azimuth_idx, elevation_idx);
 
             positions_world.col(index) << m_translation_;  // operator<< is at least 2x faster than operator= for Eigen matrix
-            directions_world.col(index) << kDirWorld;      // operator<< is almost the same fast as element-wise assignment
+            directions_world.col(index) << dir_world;      // operator<< is almost the same fast as element-wise assignment
             distances[index++] = range;                    // for vector, element-wise assignment is faster than operator<<
 
-            Eigen::Vector3d shift = range_step * kDirWorld;
+            Eigen::Vector3d shift = range_step * dir_world;
             for (long i = 1; i < num_samples_per_ray; ++i) {
                 range -= range_step;
                 positions_world.col(index) << positions_world.col(index - 1) + shift;
-                directions_world.col(index) << kDirWorld;
+                directions_world.col(index) << dir_world;
                 distances[index++] = range;
             }
         }
@@ -192,16 +192,16 @@ namespace erl::geometry {
             auto &[azimuth_idx, elevation_idx] = ray_idx;
 
             double range = m_ranges_(azimuth_idx, elevation_idx);
-            const Eigen::Vector3d &kDirWorld = m_dirs_world_(azimuth_idx, elevation_idx);
+            const Eigen::Vector3d &dir_world = m_dirs_world_(azimuth_idx, elevation_idx);
             positions_world.col(sample_idx) << m_translation_;
-            directions_world.col(sample_idx) << kDirWorld;
+            directions_world.col(sample_idx) << dir_world;
             distances[sample_idx++] = range;
 
-            Eigen::Vector3d shift = range_step * kDirWorld;
+            Eigen::Vector3d shift = range_step * dir_world;
             for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_of_ray; ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(sample_idx) << positions_world.col(sample_idx - 1) + shift;
-                directions_world.col(sample_idx) << kDirWorld;
+                directions_world.col(sample_idx) << dir_world;
                 distances[sample_idx++] = range;
             }
         }
@@ -225,13 +225,13 @@ namespace erl::geometry {
         std::uniform_real_distribution<double> uniform(-max_offset, max_offset);
         long sample_idx = 0;
         for (const long &hit_ray_idx: hit_ray_indices) {
-            const long &kAzimuthIdx = m_hit_ray_indices_(0, hit_ray_idx);
-            const long &kElevationIdx = m_hit_ray_indices_(1, hit_ray_idx);
-            const Eigen::Vector3d &kDirWorld = m_dirs_world_(kAzimuthIdx, kElevationIdx);
+            const long azimuth_idx = m_hit_ray_indices_(0, hit_ray_idx);
+            const long elevation_idx = m_hit_ray_indices_(1, hit_ray_idx);
+            const Eigen::Vector3d &dir_world = m_dirs_world_(azimuth_idx, elevation_idx);
             for (long i = 0; i < num_samples_per_ray; ++i) {
                 const double offset = uniform(common::g_random_engine);
-                positions_world.col(sample_idx) << m_translation_ + (m_ranges_(kAzimuthIdx, kElevationIdx) + offset) * kDirWorld;
-                directions_world.col(sample_idx) << kDirWorld;
+                positions_world.col(sample_idx) << m_translation_ + (m_ranges_(azimuth_idx, elevation_idx) + offset) * dir_world;
+                directions_world.col(sample_idx) << dir_world;
                 distances[sample_idx++] = -offset;
             }
         }
