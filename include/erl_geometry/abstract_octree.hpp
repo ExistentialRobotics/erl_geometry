@@ -250,5 +250,5 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
     };
 
-#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = AbstractOctree::RegisterTreeType<Derived>()
+#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctree::RegisterTreeType<Derived>()
 }  // namespace erl::geometry

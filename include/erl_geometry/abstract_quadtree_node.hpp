@@ -237,5 +237,5 @@ namespace erl::geometry {
         }
     };
 
-#define ERL_REGISTER_QUADTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = AbstractQuadtreeNode::RegisterNodeType<Derived>()
+#define ERL_REGISTER_QUADTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtreeNode::RegisterNodeType<Derived>()
 }  // namespace erl::geometry

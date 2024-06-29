@@ -237,5 +237,5 @@ namespace erl::geometry {
         }
     };
 
-#define ERL_REGISTER_OCTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = AbstractOctreeNode::RegisterNodeType<Derived>()
+#define ERL_REGISTER_OCTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctreeNode::RegisterNodeType<Derived>()
 }  // namespace erl::geometry
