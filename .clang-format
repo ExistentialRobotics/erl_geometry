@@ -42,7 +42,7 @@ CompactNamespaces: false
 ContinuationIndentWidth: 4
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^<.+\.hpp>'
+  - Regex: '^<.+(\.h|\.hpp)>'
     Priority: 3
     SortPriority: 3
     CaseSensitive: false

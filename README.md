@@ -5,15 +5,6 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
 - [Axis Aligned Bounding Box (Aabb)](include/erl_geometry/aabb.hpp): Axis Aligned Bounding Box (Aabb), derived
   from `Eigen::AlignedBox`.
 - [KdTree](include/erl_geometry/kdtree_eigen_adaptor.hpp): create kd-tree from Eigen matrix.
-- [Incremental Quadtree](include/erl_geometry/incremental_quadtree.hpp): support incremental construction, keep the
-  tree depth as shallow as possible, i.e. deeper depth is created only when an inserted node is very close to existing
-  nodes in the tree. Allow custom data storage:
-    - [Node](include/erl_geometry/node.hpp): node in the quadtree.
-    - [Node Container](include/erl_geometry/node_container.hpp): abstract class of container for nodes.
-    - [Node Container of Single Type](include/erl_geometry/node_container_single_type.hpp): container for nodes of
-      single type.
-    - [Node Container of Multiple Types](include/erl_geometry/node_container_multi_types.hpp): container for nodes of
-      multiple types.
 - Occupancy Quadtree: developed based on [Octomap](https://octomap.github.io/)
     - [Occupancy Quadtree](include/erl_geometry/occupancy_quadtree.hpp): implementation of occupancy quadtree.
     - [Abstract Quadtree](include/erl_geometry/abstract_quadtree.hpp): abstract class for quadtree.
@@ -49,9 +40,6 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
 - [Log Odd Map 2D](include/erl_geometry/log_odd_map_2d.hpp): 2D occupancy grid map based on log odd.
 - Collision Detection
     - [Winding Number](include/erl_geometry/winding_number.hpp): check if a point is in a polygon.
-    - [Grid Collision Check 2D](include/erl_geometry/grid_collision_checker_se2.hpp): check if a shape hits obstacles.
-    - [Grid Collision Check 3D](include/erl_geometry/grid_collision_checker_3d.hpp): check if a shape hits obstacles.
-    - [Point Collision Checker](include/erl_geometry/point_collision_checker.hpp): check if a point is in obstacle.
 - Surface Extraction
     - [Marching Square](include/erl_geometry/marching_square.hpp): extract surface from 2D scalar field.
 - Polygon Triangulation
@@ -78,10 +66,10 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
 - Datasets
     - [HouseExpo](python/erl_geometry/house_expo/README.md)
     - [GazeboSequence](python/erl_geometry/gazebo/sequence.py)
+    - [CityStreetMaps](include/erl_geometry/city_street_map.hpp)
 - Others
     - [Compute Intersections](include/erl_geometry/utils.hpp)
     - [Euler Angle](include/erl_geometry/euler_angle.hpp)
-    - [Azimuth Elevation](include/erl_geometry/azimuth_elevation.hpp)
     - [Compute ConvexHull](include/erl_geometry/convex_hull.hpp)
     - [Hidden Point Removal](include/erl_geometry/hidden_point_removal.hpp)
 

@@ -45,8 +45,10 @@ namespace erl::geometry {
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractQuadtree>
-        Create() const override {
-            return std::make_shared<OccupancyQuadtree>();
+        Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
+            auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
+            if (tree_setting == nullptr) { tree_setting = std::make_shared<Setting>(); }
+            return std::make_shared<OccupancyQuadtree>(std::move(tree_setting));
         }
     };
 

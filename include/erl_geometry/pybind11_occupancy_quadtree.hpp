@@ -1,6 +1,7 @@
 #pragma once
 
 #include "occupancy_quadtree_base.hpp"
+#include "occupancy_quadtree_drawer.hpp"
 #include "pybind11_occupancy_quadtree_drawer.hpp"
 
 #include "erl_common/pybind11.hpp"
@@ -61,14 +62,6 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
     // OccupancyQuadtreeBase methods, except iterators
     tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Quadtree::Setting>& setting) { return std::make_shared<Quadtree>(setting); }), py::arg("setting"))
-        .def(
-            py::init<>([](const std::shared_ptr<GridMapInfo2D>& map_info, const cv::Mat& image_map, const double occupied_threshold, const int padding) {
-                return std::make_shared<Quadtree>(map_info, image_map, occupied_threshold, padding);
-            }),
-            py::arg("map_info"),
-            py::arg("image_map"),
-            py::arg("occupied_threshold"),
-            py::arg("padding") = 0)
         .def(
             py::init<>([](const std::string& filename, const bool is_binary) {
                 if (is_binary) { return std::make_shared<Quadtree>(filename); }
@@ -662,7 +655,7 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
             py::arg("min_node_depth") = 0,
             py::arg("max_node_depth") = 0);
 
-    tree.def("Setting", [](){ return std::make_shared<typename Quadtree::Setting>(); });
+    tree.def("Setting", []() { return std::make_shared<typename Quadtree::Setting>(); });
     BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<Quadtree>, Quadtree>(tree, "Drawer");
 
     return std::pair(tree, node);

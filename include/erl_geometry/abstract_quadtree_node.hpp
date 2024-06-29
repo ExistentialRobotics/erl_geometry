@@ -4,6 +4,7 @@
 #include "erl_common/string_utils.hpp"
 
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -18,7 +19,7 @@ namespace erl::geometry {
         int m_child_index_ = -1;
         AbstractQuadtreeNode **m_children_ = nullptr;
         uint32_t m_num_children_ = 0;
-        inline static std::map<std::string, std::shared_ptr<AbstractQuadtreeNode>> s_class_id_mapping_ = {};
+        inline static std::map<std::string, std::function<std::shared_ptr<AbstractQuadtreeNode>(uint32_t, int)>> s_class_id_mapping_ = {};
 
     public:
         // rules of five: https://www.youtube.com/watch?v=juAZDfsaMvY
@@ -42,43 +43,11 @@ namespace erl::geometry {
          * is responsible for memory management. So, shallow copy is impossible, which will lead to double free.
          * @param other
          */
-        AbstractQuadtreeNode(const AbstractQuadtreeNode &other)
-            : m_depth_(other.m_depth_),
-              m_child_index_(other.m_child_index_),
-              m_num_children_(other.m_num_children_) {
-            if (other.m_children_ == nullptr) { return; }
-            this->AllocateChildrenPtr();
-            ERL_ASSERTM(m_children_ != nullptr, "Failed to allocate memory.");
-            for (int i = 0; i < 4; ++i) {
-                const AbstractQuadtreeNode *child = other.m_children_[i];
-                if (child == nullptr) { continue; }
-                m_children_[i] = child->Clone();
-            }
-        }
+        AbstractQuadtreeNode(const AbstractQuadtreeNode &other);
 
         // copy assignment
         AbstractQuadtreeNode &
-        operator=(const AbstractQuadtreeNode &other) {
-            if (this == &other) { return *this; }
-            m_depth_ = other.m_depth_;
-            m_child_index_ = other.m_child_index_;
-            m_num_children_ = other.m_num_children_;
-            if (other.m_children_ == nullptr) {
-                this->DeleteChildrenPtr();
-                return *this;
-            }
-            this->AllocateChildrenPtr();
-            ERL_ASSERTM(m_children_ != nullptr, "Failed to allocate memory.");
-            for (int i = 0; i < 4; ++i) {
-                const AbstractQuadtreeNode *child = other.m_children_[i];
-                if (child == nullptr) {
-                    m_children_[i] = nullptr;
-                } else {
-                    m_children_[i] = child->Clone();
-                }
-            }
-            return *this;
-        }
+        operator=(const AbstractQuadtreeNode &other);
 
         // move constructor
         AbstractQuadtreeNode(AbstractQuadtreeNode &&other) noexcept
@@ -123,19 +92,27 @@ namespace erl::geometry {
         [[nodiscard]] virtual AbstractQuadtreeNode *
         Create(uint32_t depth, int child_index) const = 0;
 
-        static AbstractQuadtreeNode *
-        CreateNode(const std::string &node_type, uint32_t depth, int child_index) {
+        static std::shared_ptr<AbstractQuadtreeNode>
+        CreateNode(const std::string &node_type, const uint32_t depth, const int child_index) {
             const auto it = s_class_id_mapping_.find(node_type);
             if (it == s_class_id_mapping_.end()) {
                 ERL_WARN("Unknown Octree node type: {}", node_type);
                 return nullptr;
             }
-            return it->second->Create(depth, child_index);
+            return it->second(depth, child_index);
         }
 
-        static void
-        RegisterNodeType(const std::shared_ptr<AbstractQuadtreeNode> &node) {
-            s_class_id_mapping_[node->GetNodeType()] = node;
+        template<typename Derived>
+        static bool
+        RegisterNodeType() {
+            const std::string node_type = demangle(typeid(Derived).name());
+            if (s_class_id_mapping_.find(node_type) != s_class_id_mapping_.end()) {
+                ERL_WARN("{} is already registered.", node_type);
+                return false;
+            }
+
+            s_class_id_mapping_[node_type] = [](uint32_t depth, int child_index) { return std::make_shared<Derived>(depth, child_index); };
+            return true;
         }
 
         /**
@@ -167,19 +144,7 @@ namespace erl::geometry {
         //-- comparison
 
         [[nodiscard]] virtual bool
-        operator==(const AbstractQuadtreeNode &other) const {  // NOLINT(*-no-recursion)
-            // we don't do polymorphic check because it is expensive to do so here.
-            // polymorphic check should be done by the tree: if two trees are the same type, their nodes should be the same type.
-            // Unless we hack it by assigning nodes of wrong type to the tree, which is not supposed to happen.
-            if (m_depth_ != other.m_depth_ || m_child_index_ != other.m_child_index_ || m_num_children_ != other.m_num_children_) { return false; }
-            if (m_num_children_ == 0) { return true; }
-            for (int i = 0; i < 4; ++i) {
-                if (m_children_[i] == nullptr && other.m_children_[i] == nullptr) { continue; }
-                if (m_children_[i] == nullptr || other.m_children_[i] == nullptr) { return false; }
-                if (*m_children_[i] != *other.m_children_[i]) { return false; }
-            }
-            return true;
-        }
+        operator==(const AbstractQuadtreeNode &other) const;
 
         bool
         operator!=(const AbstractQuadtreeNode &other) const {  // NOLINT(*-no-recursion)
@@ -196,17 +161,7 @@ namespace erl::geometry {
         }
 
         void
-        DeleteChildrenPtr() {
-            if (m_children_ == nullptr) { return; }
-            if (m_num_children_ > 0) {
-                for (int i = 0; i < 4; ++i) {
-                    if (m_children_[i] != nullptr) { delete m_children_[i]; }
-                }
-                m_num_children_ = 0;
-            }
-            delete[] m_children_;
-            m_children_ = nullptr;
-        }
+        DeleteChildrenPtr();
 
         [[nodiscard]] uint32_t
         GetNumChildren() const {
@@ -282,10 +237,5 @@ namespace erl::geometry {
         }
     };
 
-#define ERL_REGISTER_QUADTREE_NODE(node_type)                                                 \
-    inline const volatile bool kRegistered##node_type = []() {                                \
-        erl::geometry::AbstractQuadtreeNode::RegisterNodeType(std::make_shared<node_type>()); \
-        ERL_DEBUG(#node_type " is registered.");                                              \
-        return true;                                                                          \
-    }()
+#define ERL_REGISTER_QUADTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = AbstractQuadtreeNode::RegisterNodeType<Derived>()
 }  // namespace erl::geometry

@@ -11,6 +11,8 @@ namespace erl::geometry {
      * AbstractOccupancyQuadtree is a base class that implements generic occupancy quadtree functionality.
      */
     class AbstractOccupancyQuadtree : public AbstractQuadtree {
+        std::shared_ptr<OccupancyNdTreeSetting> m_setting_ = nullptr;
+
     protected:
         // binary file header identifier
         inline static const std::string sk_BinaryFileHeader_ = "# OccupancyQuadtree binary file";  // cppcheck-suppress unusedStructMember
@@ -18,8 +20,9 @@ namespace erl::geometry {
     public:
         AbstractOccupancyQuadtree() = delete;  // no default constructor
 
-        explicit AbstractOccupancyQuadtree(const std::shared_ptr<OccupancyNdTreeSetting>& setting)
-            : AbstractQuadtree(setting) {}
+        explicit AbstractOccupancyQuadtree(std::shared_ptr<OccupancyNdTreeSetting> setting)
+            : AbstractQuadtree(setting),
+              m_setting_(std::move(setting)) {}
 
         AbstractOccupancyQuadtree(const AbstractOccupancyQuadtree& other) = default;
         AbstractOccupancyQuadtree&
@@ -87,14 +90,13 @@ namespace erl::geometry {
         //-- occupancy queries
         [[nodiscard]] bool
         IsNodeOccupied(const OccupancyQuadtreeNode* node) const {
-            return node->GetLogOdds() >= reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get())->log_odd_occ_threshold;
+            return node->GetLogOdds() >= m_setting_->log_odd_occ_threshold;
         }
 
         [[nodiscard]] bool
         IsNodeAtThreshold(const OccupancyQuadtreeNode* node) const {
             const float log_odds = node->GetLogOdds();
-            const auto* setting = reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get());
-            return log_odds >= setting->log_odd_max || log_odds <= setting->log_odd_min;
+            return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
         }
 
         //-- update functions

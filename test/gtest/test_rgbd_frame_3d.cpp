@@ -1,14 +1,14 @@
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/rgbd_frame_3d.hpp"
 
-#include <open3d/geometry/TriangleMesh.h>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
+#include <open3d/geometry/TriangleMesh.h>
 #include <open3d/io/TriangleMeshIO.h>
-#include <open3d/t/geometry/TriangleMesh.h>
 #include <open3d/t/geometry/RaycastingScene.h>
-#include <open3d/visualization/visualizer/Visualizer.h>
+#include <open3d/t/geometry/TriangleMesh.h>
 #include <open3d/visualization/utility/DrawGeometry.h>
+#include <open3d/visualization/visualizer/Visualizer.h>
 
 TEST(ERL_GEOMETRY, RgbdFrame3D) {
     using namespace erl::common;
@@ -84,7 +84,7 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     cv::cv2eigen(depth_img, depth);
                     std::cout << "rgbd image size: " << depth.rows() << " x " << depth.cols() << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->Update(rotation, camera_position, depth, false, false);  // depth not scaled yet, do not partition rays
+                    rgbd_frame_3d->UpdateRanges(rotation, camera_position, depth, false, false);  // depth not scaled yet, do not partition rays
                     auto toc = std::chrono::high_resolution_clock::now();
                     std::cout << "rgbd_frame_3d->Update takes " << std::chrono::duration<double, std::milli>(toc - tic).count() << " ms" << std::endl;
                 }

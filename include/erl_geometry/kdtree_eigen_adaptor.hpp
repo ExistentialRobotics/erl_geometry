@@ -3,9 +3,9 @@
 #include "erl_common/eigen.hpp"
 #include "erl_common/logging.hpp"
 
-#include <memory>
-
 #include <nanoflann.hpp>
+
+#include <memory>
 
 // ReSharper disable CppInconsistentNaming
 namespace erl::geometry {
@@ -74,7 +74,6 @@ namespace erl::geometry {
 
         void
         Clear() {
-            m_data_matrix_.resize(0, 0);
             m_tree_ = nullptr;
         }
 

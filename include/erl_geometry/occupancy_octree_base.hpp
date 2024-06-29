@@ -7,9 +7,9 @@
 
 #include "erl_common/random.hpp"
 
-#include <omp.h>
-
 #include <list>
+
+#include <omp.h>
 
 namespace erl::geometry {
 
@@ -33,6 +33,9 @@ namespace erl::geometry {
     template<class Node, class Setting>
     class OccupancyOctreeBase : public OctreeImpl<Node, AbstractOccupancyOctree, Setting> {
         static_assert(std::is_base_of_v<OccupancyOctreeNode, Node>);
+        static_assert(std::is_base_of_v<OccupancyOctreeBaseSetting, Setting>);
+
+        std::shared_ptr<OccupancyOctreeBaseSetting> m_setting_ = nullptr;
 
     protected:
         OctreeKeyBoolMap m_changed_keys_ = {};
@@ -43,7 +46,8 @@ namespace erl::geometry {
         OccupancyOctreeBase() = delete;  // no default constructor
 
         explicit OccupancyOctreeBase(const std::shared_ptr<Setting>& setting)
-            : OctreeImpl<Node, AbstractOccupancyOctree, Setting>(setting) {}
+            : OctreeImpl<Node, AbstractOccupancyOctree, Setting>(setting),
+              m_setting_(std::static_pointer_cast<OccupancyOctreeBaseSetting>(setting)) {}
 
         OccupancyOctreeBase(const OccupancyOctreeBase& other) = default;
         OccupancyOctreeBase&
@@ -180,33 +184,32 @@ namespace erl::geometry {
             omp_set_num_threads(this->m_key_rays_.size());
 
             // insert occupied endpoint
-            const auto* setting = reinterpret_cast<OccupancyOctreeBaseSetting*>(this->m_setting_.get());
-            const bool& kAabbLimit = setting->use_aabb_limit;
-            const Aabb3D& kAabb = setting->aabb;
+            const bool aabb_limit = m_setting_->use_aabb_limit;
+            const Aabb3D& aabb = m_setting_->aabb;
             for (long i = 0; i < num_points; ++i) {
-                const auto& kP = points.col(i);
+                const auto& point = points.col(i);
 
                 double& dx = diffs[i][0];
                 double& dy = diffs[i][1];
                 double& dz = diffs[i][2];
                 double& range = ranges[i];
 
-                dx = kP[0] - sensor_origin[0];
-                dy = kP[1] - sensor_origin[1];
-                dz = kP[2] - sensor_origin[2];
+                dx = point[0] - sensor_origin[0];
+                dy = point[1] - sensor_origin[1];
+                dz = point[2] - sensor_origin[2];
                 range = std::sqrt(dx * dx + dy * dy + dz * dz);
 
                 OctreeKey key;
-                if (kAabbLimit) {                                                          // bounding box is specified
-                    if ((kAabb.contains(kP) && (max_range < 0. || range <= max_range)) &&  // inside bounding box and range limit
-                        this->CoordToKeyChecked(kP[0], kP[1], kP[2], key)) {               // key is valid
+                if (aabb_limit) {                                                            // bounding box is specified
+                    if ((aabb.contains(point) && (max_range < 0. || range <= max_range)) &&  // inside bounding box and range limit
+                        this->CoordToKeyChecked(point[0], point[1], point[2], key)) {        // key is valid
                         auto& indices = m_end_point_mapping_[key];
                         if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
                         indices.push_back(i);
                     }
                 } else {
-                    if ((max_range < 0. || (range <= max_range)) &&           // range limit
-                        this->CoordToKeyChecked(kP[0], kP[1], kP[2], key)) {  // key is valid
+                    if ((max_range < 0. || (range <= max_range)) &&                    // range limit
+                        this->CoordToKeyChecked(point[0], point[1], point[2], key)) {  // key is valid
                         auto& indices = m_end_point_mapping_[key];
                         if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
                         indices.push_back(i);
@@ -724,8 +727,7 @@ namespace erl::geometry {
          */
         Node*
         UpdateNode(const OctreeKey& key, const bool occupied, const bool lazy_eval) {
-            const auto* setting = reinterpret_cast<OccupancyOctreeBaseSetting*>(this->m_setting_.get());
-            const float log_odds_delta = occupied ? setting->log_odd_hit : setting->log_odd_miss;
+            const float log_odds_delta = occupied ? m_setting_->log_odd_hit : m_setting_->log_odd_miss;
             return this->UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
@@ -743,9 +745,8 @@ namespace erl::geometry {
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
             if (leaf) {
                 if (!leaf->AllowUpdateLogOdds(log_odds_delta_double)) { return leaf; }
-                const auto* setting = reinterpret_cast<OccupancyOctreeBaseSetting*>(this->m_setting_.get());
-                if (log_odds_delta_double >= 0 && leaf->GetLogOdds() >= setting->log_odd_max) { return leaf; }
-                if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= setting->log_odd_min) { return leaf; }
+                if (log_odds_delta_double >= 0 && leaf->GetLogOdds() >= m_setting_->log_odd_max) { return leaf; }
+                if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= m_setting_->log_odd_min) { return leaf; }
             }
 
             const bool create_root = this->m_root_ == nullptr;
@@ -809,9 +810,8 @@ namespace erl::geometry {
         UpdateNodeLogOdds(Node* node, float log_odd_delta) {
             node->AddLogOdds(log_odd_delta);
             const float l = node->GetLogOdds();
-            const auto* setting = reinterpret_cast<OccupancyOctreeBaseSetting*>(this->m_setting_.get());
-            const double& log_odd_min = setting->log_odd_min;
-            const double& log_odd_max = setting->log_odd_max;
+            const double log_odd_min = m_setting_->log_odd_min;
+            const double log_odd_max = m_setting_->log_odd_max;
             if (l < log_odd_min) {
                 node->SetLogOdds(log_odd_min);
                 return;
@@ -857,17 +857,16 @@ namespace erl::geometry {
             if (this->m_root_ == nullptr) { return; }
             std::list<Node*> stack;
             stack.emplace_back(static_cast<Node*>(this->m_root_.get()));
-            const auto* setting = reinterpret_cast<OccupancyOctreeBaseSetting*>(this->m_setting_.get());
-            const double& kLogOddMin = setting->log_odd_min;
-            const double& kLogOddMax = setting->log_odd_max;
+            const double log_odd_min = m_setting_->log_odd_min;
+            const double log_odd_max = m_setting_->log_odd_max;
             while (!stack.empty()) {
                 Node* node = stack.back();
                 stack.pop_back();
 
                 if (this->IsNodeOccupied(node)) {
-                    node->SetLogOdds(kLogOddMax);
+                    node->SetLogOdds(log_odd_max);
                 } else {
-                    node->SetLogOdds(kLogOddMin);
+                    node->SetLogOdds(log_odd_min);
                 }
 
                 if (node->HasAnyChild()) {
@@ -896,9 +895,8 @@ namespace erl::geometry {
             std::list<std::pair<Node*, bool>> stack;  // node, is_new_node
             stack.emplace_back(this->m_root_.get(), true);
 
-            const auto* setting = reinterpret_cast<OccupancyOctreeBaseSetting*>(this->m_setting_.get());
-            const double& log_odd_min = setting->log_odd_min;
-            const double& log_odd_max = setting->log_odd_max;
+            const double log_odd_min = m_setting_->log_odd_min;
+            const double log_odd_max = m_setting_->log_odd_max;
 
             while (!stack.empty()) {
                 auto& top = stack.back();

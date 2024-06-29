@@ -8,13 +8,13 @@
 namespace erl::geometry {
 
     std::shared_ptr<AbstractOctree>
-    AbstractOctree::CreateTree(const std::string &tree_id) {
+    AbstractOctree::CreateTree(const std::string &tree_id, const std::shared_ptr<NdTreeSetting> &setting) {
         const auto it = s_class_id_mapping_.find(tree_id);
         if (it == s_class_id_mapping_.end()) {
             ERL_WARN("Unknown Octree type: {}", tree_id);
             return nullptr;
         }
-        return it->second->Create();
+        return it->second(setting);
     }
 
     bool
@@ -83,7 +83,7 @@ namespace erl::geometry {
         if (!ReadHeader(s, tree_id, size)) { return nullptr; }
 
         ERL_DEBUG("Reading Octree of type {}, size {}", tree_id, size);
-        auto tree = CreateTree(tree_id);
+        auto tree = CreateTree(tree_id, nullptr);
         if (!tree) { return nullptr; }
         tree->ReadSetting(s);
         tree->ApplySetting();

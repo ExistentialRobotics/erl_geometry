@@ -1,7 +1,7 @@
 #pragma once
 
-#include "logodd.hpp"
 #include "abstract_octree_node.hpp"
+#include "logodd.hpp"
 
 #include <cstdint>
 

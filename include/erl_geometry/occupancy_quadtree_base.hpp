@@ -33,6 +33,9 @@ namespace erl::geometry {
     template<class Node, class Setting>
     class OccupancyQuadtreeBase : public QuadtreeImpl<Node, AbstractOccupancyQuadtree, Setting> {
         static_assert(std::is_base_of_v<OccupancyQuadtreeNode, Node>);
+        static_assert(std::is_base_of_v<OccupancyQuadtreeBaseSetting, Setting>);
+
+        std::shared_ptr<OccupancyQuadtreeBaseSetting> m_setting_ = nullptr;
 
     protected:
         QuadtreeKeyBoolMap m_changed_keys_ = {};
@@ -43,7 +46,8 @@ namespace erl::geometry {
         OccupancyQuadtreeBase() = delete;  // no default constructor
 
         explicit OccupancyQuadtreeBase(const std::shared_ptr<Setting>& setting)
-            : QuadtreeImpl<Node, AbstractOccupancyQuadtree, Setting>(setting) {}
+            : QuadtreeImpl<Node, AbstractOccupancyQuadtree, Setting>(setting),
+              m_setting_(std::static_pointer_cast<OccupancyQuadtreeBaseSetting>(setting)) {}
 
         OccupancyQuadtreeBase(
             const std::shared_ptr<common::GridMapInfo2D>& map_info,
@@ -233,9 +237,8 @@ namespace erl::geometry {
             omp_set_num_threads(this->m_key_rays_.size());
 
             // insert occupied endpoint
-            const auto setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const bool& aabb_limit = setting->use_aabb_limit;
-            const Aabb2D& aabb = setting->aabb;
+            const bool aabb_limit = m_setting_->use_aabb_limit;
+            const Aabb2D& aabb = m_setting_->aabb;
             for (long i = 0; i < num_points; ++i) {
                 const auto& p = points.col(i);
 
@@ -265,12 +268,11 @@ namespace erl::geometry {
                 }
             }
 
-            const double& sx = sensor_origin[0];
-            const double& sy = sensor_origin[1];
-
             // insert free cells
-#pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, sx, sy, ranges, diffs, free_cells, free_cells_set)
+#pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, ranges, diffs, free_cells, free_cells_set)
             for (long i = 0; i < num_points; ++i) {
+                const double sx = sensor_origin[0];
+                const double sy = sensor_origin[1];
                 const auto& p = points.col(i);
                 uint32_t thread_idx = omp_get_thread_num();
                 QuadtreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
@@ -684,8 +686,7 @@ namespace erl::geometry {
          */
         Node*
         UpdateNode(const QuadtreeKey& key, const bool occupied, const bool lazy_eval) {
-            const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const float log_odds_delta = occupied ? setting->log_odd_hit : setting->log_odd_miss;
+            const float log_odds_delta = occupied ? m_setting_->log_odd_hit : m_setting_->log_odd_miss;
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
@@ -703,9 +704,8 @@ namespace erl::geometry {
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
             if (leaf) {
                 if (!leaf->AllowUpdateLogOdds(log_odds_delta_double)) { return leaf; }
-                const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-                if (log_odds_delta_double >= 0 && leaf->GetLogOdds() >= setting->log_odd_max) { return leaf; }
-                if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= setting->log_odd_min) { return leaf; }
+                if (log_odds_delta_double >= 0 && leaf->GetLogOdds() >= m_setting_->log_odd_max) { return leaf; }
+                if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= m_setting_->log_odd_min) { return leaf; }
             }
 
             const bool create_root = this->m_root_ == nullptr;
@@ -768,9 +768,8 @@ namespace erl::geometry {
         UpdateNodeLogOdds(Node* node, float log_odd_delta) {
             node->AddLogOdds(log_odd_delta);
             const float l = node->GetLogOdds();
-            const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const double& log_odd_min = setting->log_odd_min;
-            const double& log_odd_max = setting->log_odd_max;
+            const double log_odd_min = m_setting_->log_odd_min;
+            const double log_odd_max = m_setting_->log_odd_max;
             if (l < log_odd_min) {
                 node->SetLogOdds(log_odd_min);
                 return;
@@ -816,9 +815,8 @@ namespace erl::geometry {
             if (this->m_root_ == nullptr) { return; }
             std::list<Node*> stack;
             stack.emplace_back(static_cast<Node*>(this->m_root_.get()));
-            const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const double log_odd_min = setting->log_odd_min;
-            const double log_odd_max = setting->log_odd_max;
+            const double log_odd_min = m_setting_->log_odd_min;
+            const double log_odd_max = m_setting_->log_odd_max;
             while (!stack.empty()) {
                 Node* node = stack.back();
                 stack.pop_back();
@@ -855,9 +853,8 @@ namespace erl::geometry {
             std::list<std::pair<Node*, bool>> stack;  // node, is_new_node
             stack.emplace_back(this->m_root_.get(), true);
 
-            const auto* setting = reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get());
-            const double& log_odd_min = setting->log_odd_min;
-            const double& log_odd_max = setting->log_odd_max;
+            const double log_odd_min = m_setting_->log_odd_min;
+            const double log_odd_max = m_setting_->log_odd_max;
 
             while (!stack.empty()) {
                 auto& top = stack.back();

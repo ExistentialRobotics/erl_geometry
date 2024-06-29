@@ -4,6 +4,7 @@
 
 #include "erl_common/string_utils.hpp"
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -14,16 +15,17 @@ namespace erl::geometry {
      * AbstractQuadtree is a base class for all quadtree implementations. It provides a common interface for factory pattern and file I/O.
      */
     class AbstractQuadtree {
-    protected:
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
-        inline static std::map<std::string, std::shared_ptr<AbstractQuadtree>> s_class_id_mapping_ = {};  // cppcheck-suppress unusedStructMember
-        inline static const std::string sk_FileHeader_ = "# erl::geometry::AbstractQuadtree";             // cppcheck-suppress unusedStructMember
+
+    protected:
+        inline static std::map<std::string, std::function<std::shared_ptr<AbstractQuadtree>(const std::shared_ptr<NdTreeSetting>&)>> s_class_id_mapping_ = {};
 
     public:
         AbstractQuadtree() = delete;  // no default constructor
 
-        explicit AbstractQuadtree(const std::shared_ptr<NdTreeSetting>& setting)
-            : m_setting_(setting) {
+        explicit AbstractQuadtree(std::shared_ptr<NdTreeSetting> setting)
+            : m_setting_(std::move(setting)) {
+            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
             ERL_DEBUG_WARN_ONCE_COND(
                 typeid(*this) != typeid(AbstractQuadtree) && s_class_id_mapping_.find(GetTreeType()) == s_class_id_mapping_.end(),
                 "Tree type {} not registered, do you forget to use ERL_REGISTER_QUADTREE({})?",
@@ -55,19 +57,33 @@ namespace erl::geometry {
          * @return A new tree of the same type.
          */
         [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>
-        Create() const = 0;
+        Create(const std::shared_ptr<NdTreeSetting>& setting) const = 0;
 
         /**
          * Create a new tree of the given type.
          * @param tree_id
+         * @param setting
          * @return
          */
         static std::shared_ptr<AbstractQuadtree>
-        CreateTree(const std::string& tree_id);
+        CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting);
 
-        static void
-        RegisterTreeType(const std::shared_ptr<AbstractQuadtree>& tree) {
-            s_class_id_mapping_[tree->GetTreeType()] = tree;
+        template<typename Derived>
+        static bool
+        RegisterTreeType() {
+            const std::string tree_type = demangle(typeid(Derived).name());
+            if (s_class_id_mapping_.find(tree_type) != s_class_id_mapping_.end()) {
+                ERL_WARN("{} is already registered.", tree_type);
+                return false;
+            }
+
+            s_class_id_mapping_[tree_type] = [](const std::shared_ptr<NdTreeSetting>& setting) {
+                auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
+                if (tree_setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }
+                return std::make_shared<Derived>(tree_setting);
+            };
+            ERL_DEBUG("{} is registered.", tree_type);
+            return true;
         }
 
         //-- setting
@@ -234,12 +250,5 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
     };
 
-#define ERL_REGISTER_QUADTREE(tree_type)                         \
-    inline const volatile bool kRegistered##tree_type = []() {   \
-        auto tree = std::make_shared<tree_type>();               \
-        tree->ClearKeyRays();                                    \
-        erl::geometry::AbstractQuadtree::RegisterTreeType(tree); \
-        ERL_DEBUG(#tree_type " is registered.");                 \
-        return true;                                             \
-    }()
+#define ERL_REGISTER_QUADTREE(Derived) inline const volatile bool kRegistered##Derived = AbstractQuadtree::RegisterTreeType<Derived>()
 }  // namespace erl::geometry

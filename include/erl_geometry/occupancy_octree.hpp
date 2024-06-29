@@ -1,8 +1,8 @@
 #pragma once
 
 #include "occupancy_octree_base.hpp"
-#include "occupancy_octree_node.hpp"
 #include "occupancy_octree_drawer.hpp"
+#include "occupancy_octree_node.hpp"
 
 namespace erl::geometry {
 
@@ -31,8 +31,10 @@ namespace erl::geometry {
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractOctree>
-        Create() const override {
-            return std::make_shared<OccupancyOctree>();
+        Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
+            auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
+            if (tree_setting == nullptr) { tree_setting = std::make_shared<Setting>(); }
+            return std::make_shared<OccupancyOctree>(tree_setting);
         }
     };
 

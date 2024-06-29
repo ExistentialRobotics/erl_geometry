@@ -11,7 +11,7 @@ namespace erl::geometry {
     SphericalProjection(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
         const Eigen::Ref<const Eigen::Vector3d> &camera_position,
-        double radius,
+        const double radius,
         Eigen::Matrix3Xd &projected_points,
         Eigen::VectorXd &norms) {
         const long num_points = points.cols();
@@ -31,14 +31,14 @@ namespace erl::geometry {
     HiddenPointRemoval(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
         const Eigen::Ref<const Eigen::Vector3d> &view_position,
-        double radius,
+        const double radius,
         std::vector<long> &visible_point_indices,
         const bool fast,
         const bool joggle_inputs) {
         ERL_DEBUG_ASSERT(radius > 0.0, "radius ({}) should be positive.", radius);
 
         // perform spherical projection
-        long num_points = points.cols();
+        const long num_points = points.cols();
         ERL_DEBUG_ASSERT(num_points > 0, "num_points = {}, it should be > 0.", num_points);
         Eigen::Matrix3Xd projected_points(3, num_points + 1);
         Eigen::VectorXd norms(num_points);
@@ -75,7 +75,7 @@ namespace erl::geometry {
     HiddenPointRemoval(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
         const Eigen::Ref<const Eigen::Vector3d> &view_position,
-        double radius,
+        const double radius,
         Eigen::Matrix3Xl &mesh_triangles,
         Eigen::Matrix3Xd &mesh_vertices,
         std::vector<long> &visible_point_indices,
@@ -84,7 +84,7 @@ namespace erl::geometry {
         ERL_DEBUG_ASSERT(radius > 0.0, "radius ({}) should be positive.", radius);
 
         // perform spherical projection
-        long num_points = points.cols();
+        const long num_points = points.cols();
         ERL_DEBUG_ASSERT(num_points > 0, "num_points = {}, it should be > 0.", num_points);
         Eigen::Matrix3Xd projected_points(3, num_points + 1);
         Eigen::VectorXd norms(num_points);

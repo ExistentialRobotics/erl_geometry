@@ -71,6 +71,7 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
+// ReSharper disable CppInconsistentNaming
 template<>
 struct YAML::convert<erl::geometry::Lidar3D::Setting> {
 
@@ -98,3 +99,5 @@ struct YAML::convert<erl::geometry::Lidar3D::Setting> {
         return true;
     }
 };  // namespace YAML
+
+// ReSharper restore CppInconsistentNaming
