@@ -44,55 +44,55 @@ namespace erl::geometry {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
-        [[nodiscard]] inline std::shared_ptr<Setting>
+        [[nodiscard]] std::shared_ptr<const Setting>
         GetSetting() const {
             return m_setting_;
         }
 
         [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
         GetRayDirectionsInFrame() const override;
+
+        [[nodiscard]] static Eigen::Matrix4d
+        CameraToOptical() {
+            Eigen::Matrix4d camera_to_optical;
+            // clang-format off
+            camera_to_optical << 0,  0, 1, 0,
+                                -1,  0, 0, 0,
+                                 0, -1, 0, 0,
+                                 0,  0, 0, 1;
+            // clang-format on
+            return camera_to_optical;
+        }
     };
 
 }  // namespace erl::geometry
 
-namespace YAML {
-    template<>
-    struct convert<erl::geometry::DepthCamera3D::Setting> {
-        inline static Node
-        encode(const erl::geometry::DepthCamera3D::Setting &rhs) {
-            Node node;
-            node["image_height"] = rhs.image_height;
-            node["image_width"] = rhs.image_width;
-            node["camera_fx"] = rhs.camera_fx;
-            node["camera_fy"] = rhs.camera_fy;
-            node["camera_cx"] = rhs.camera_cx;
-            node["camera_cy"] = rhs.camera_cy;
-            return node;
-        }
+// ReSharper disable CppInconsistentNaming
+template<>
+struct YAML::convert<erl::geometry::DepthCamera3D::Setting> {
+    static Node
+    encode(const erl::geometry::DepthCamera3D::Setting &rhs) {
+        Node node;
+        node["image_height"] = rhs.image_height;
+        node["image_width"] = rhs.image_width;
+        node["camera_fx"] = rhs.camera_fx;
+        node["camera_fy"] = rhs.camera_fy;
+        node["camera_cx"] = rhs.camera_cx;
+        node["camera_cy"] = rhs.camera_cy;
+        return node;
+    }
 
-        inline static bool
-        decode(const Node &node, erl::geometry::DepthCamera3D::Setting &rhs) {
-            if (!node.IsMap()) { return false; }
-            rhs.image_height = node["image_height"].as<int>();
-            rhs.image_width = node["image_width"].as<int>();
-            rhs.camera_fx = node["camera_fx"].as<double>();
-            rhs.camera_fy = node["camera_fy"].as<double>();
-            rhs.camera_cx = node["camera_cx"].as<double>();
-            rhs.camera_cy = node["camera_cy"].as<double>();
-            return true;
-        }
-    };
+    static bool
+    decode(const Node &node, erl::geometry::DepthCamera3D::Setting &rhs) {
+        if (!node.IsMap()) { return false; }
+        rhs.image_height = node["image_height"].as<int>();
+        rhs.image_width = node["image_width"].as<int>();
+        rhs.camera_fx = node["camera_fx"].as<double>();
+        rhs.camera_fy = node["camera_fy"].as<double>();
+        rhs.camera_cx = node["camera_cx"].as<double>();
+        rhs.camera_cy = node["camera_cy"].as<double>();
+        return true;
+    }
+};  // namespace YAML
 
-    // inline Emitter &
-    // operator<<(Emitter &out, const erl::geometry::DepthCamera3D::Setting &rhs) {
-    //     out << BeginMap;
-    //     out << Key << "image_height" << Value << rhs.image_height;
-    //     out << Key << "image_width" << Value << rhs.image_width;
-    //     out << Key << "camera_fx" << Value << rhs.camera_fx;
-    //     out << Key << "camera_fy" << Value << rhs.camera_fy;
-    //     out << Key << "camera_cx" << Value << rhs.camera_cx;
-    //     out << Key << "camera_cy" << Value << rhs.camera_cy;
-    //     out << EndMap;
-    //     return out;
-    // }
-}  // namespace YAML
+// ReSharper disable CppInconsistentNaming

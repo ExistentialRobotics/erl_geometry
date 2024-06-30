@@ -43,6 +43,11 @@ namespace erl::geometry {
             m_partitioned_ = false;
         }
 
+        bool
+        PointIsInFrame(const Eigen::Vector3d &xyz_frame) const override {
+            return CoordsIsInFrame(ComputeFrameCoords(xyz_frame));
+        }
+
         [[nodiscard]] Eigen::Vector2d
         ComputeFrameCoords(const Eigen::Vector3d &dir_frame) const override {
             Eigen::Vector2d frame_coords;

@@ -10,16 +10,19 @@ namespace erl::geometry {
         const bool add_noise,
         const double noise_stddev) const {
         Eigen::MatrixX<Eigen::Vector3d> directions = GetRayDirectionsInFrame();
-        long m = directions.rows();
-        long n = directions.cols();
-        Eigen::MatrixXd scales(m, n);
+        const long n_rows = directions.rows();
+        const long n_cols = directions.cols();
+        Eigen::MatrixXd scales(n_rows, n_cols);
+        // ReSharper disable once CppDFAUnusedValue
         Eigen::Vector3f ray_start = translation.cast<float>();
         // column major
-        open3d::core::Tensor rays({m, n, 6}, open3d::core::Dtype::Float32);
+        open3d::core::Tensor rays({n_rows, n_cols, 6}, open3d::core::Dtype::Float32);
+        // ReSharper disable once CppDFAUnusedValue
         auto *rays_ptr = rays.GetDataPtr<float>();
-        for (long v = 0; v < n; ++v) {
-            const long base0 = v * m;
-            for (long u = 0; u < m; ++u) {
+#pragma omp parallel for default(none) shared(n_rows, n_cols, orientation, directions, scales, ray_start, rays_ptr)
+        for (long v = 0; v < n_cols; ++v) {
+            const long base0 = v * n_rows;
+            for (long u = 0; u < n_rows; ++u) {
                 long base1 = base0 + u;
 
                 Eigen::Vector3d direction = orientation * directions.data()[base1];
@@ -42,20 +45,23 @@ namespace erl::geometry {
         std::vector<float> ranges = cast_results.at("t_hit").ToFlatVector<float>();
         const std::vector<uint32_t> geometry_ids = cast_results.at("geometry_ids").ToFlatVector<uint32_t>();
         const uint32_t invalid_id = open3d::t::geometry::RaycastingScene::INVALID_ID();
-        for (std::size_t i = 0; i < geometry_ids.size(); ++i) {
-            if (geometry_ids[i] == invalid_id) {
-                ranges[i] = std::numeric_limits<float>::infinity();
-            } else {
-                ranges[i] /= static_cast<float>(scales.data()[i]);  // scale back
-            }
-        }
-
-        const Eigen::Map<Eigen::MatrixXf> ranges_mat(ranges.data(), m, n);
-        Eigen::MatrixXd ranges_mat_d = ranges_mat.cast<double>();
-
-        if (add_noise) {
+        Eigen::MatrixXd ranges_mat_d(n_rows, n_cols);
+        std::vector<uint64_t> random_seeds(n_cols);
+        for (long i = 0; i < n_cols; ++i) { random_seeds[i] = common::g_random_engine(); }
+#pragma omp parallel for default(none) shared(n_rows, n_cols, ranges, ranges_mat_d, geometry_ids, scales, invalid_id, random_seeds, add_noise, noise_stddev)
+        for (long v = 0; v < n_cols; ++v) {
+            const long base0 = v * n_rows;
+            std::mt19937_64 generator(random_seeds[v]);
             std::normal_distribution<double> distribution(0, noise_stddev);
-            for (int i = 0; i < ranges_mat_d.size(); ++i) { ranges_mat_d.data()[i] += distribution(common::g_random_engine); }
+            for (long u = 0; u < n_rows; ++u) {
+                if (const long i = base0 + u; geometry_ids[i] == invalid_id) {
+                    ranges_mat_d(u, v) = std::numeric_limits<double>::infinity();
+                } else {
+                    double &range = ranges_mat_d(u, v);
+                    range = static_cast<double>(ranges[i]) / scales.data()[i];
+                    if (add_noise) { range += distribution(generator); }
+                }
+            }
         }
 
         return ranges_mat_d;

@@ -112,8 +112,11 @@ namespace erl::geometry {
             return m_frame_coords_;
         }
 
+        [[nodiscard]] virtual bool
+        PointIsInFrame(const Eigen::Vector3d &xyz_frame) const = 0;
+
         [[nodiscard]] bool
-        IsInFrame(const Eigen::Vector2d &frame_coords) const {
+        CoordsIsInFrame(const Eigen::Vector2d &frame_coords) const {
             const Eigen::Vector2d &top_left = m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
             const Eigen::Vector2d &bottom_right = m_frame_coords_(  //
                 m_frame_coords_.rows() - m_setting_->row_margin - 1,

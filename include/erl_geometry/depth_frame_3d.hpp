@@ -6,9 +6,9 @@
 
 namespace erl::geometry {
 
-    class RgbdFramePartition3D;
+    class DepthFramePartition3D;
 
-    class RgbdFrame3D : public RangeSensorFrame3D {
+    class DepthFrame3D : public RangeSensorFrame3D {
     public:
         struct Setting : public common::OverrideYamlable<RangeSensorFrame3D::Setting, Setting> {
             Eigen::Matrix4d camera_to_optical = Eigen::Matrix4d::Identity();  // used when camera frame is not aligned with optical frame
@@ -33,16 +33,16 @@ namespace erl::geometry {
     protected:
         std::shared_ptr<Setting> m_setting_ = nullptr;
         Eigen::Matrix4d m_camera_extrinsic_ = Eigen::Matrix4d::Identity();
-        std::vector<RgbdFramePartition3D> m_partitions_ = {};
+        std::vector<DepthFramePartition3D> m_partitions_ = {};
         bool m_partitioned_ = false;
 
     public:
-        explicit RgbdFrame3D(std::shared_ptr<Setting> setting);
+        explicit DepthFrame3D(std::shared_ptr<Setting> setting);
 
         static const std::string &
         GetFrameType() {
-            static const std::string frame_type = "rgbd";
-            return frame_type;
+            static const std::string kFrameType = "depth";
+            return kFrameType;
         }
 
         [[nodiscard]] std::shared_ptr<const Setting>
@@ -58,17 +58,23 @@ namespace erl::geometry {
 
         [[nodiscard]] long
         GetImageHeight() const {
-            return m_ranges_.rows();
+            return m_frame_coords_.rows();
         }
 
         [[nodiscard]] long
         GetImageWidth() const {
-            return m_ranges_.cols();
+            return m_frame_coords_.cols();
         }
 
         [[nodiscard]] bool
         IsPartitioned() const {
             return m_partitioned_;
+        }
+
+        bool
+        PointIsInFrame(const Eigen::Vector3d &xyz_frame) const override {
+            if (xyz_frame[2] < 0) { return false; }  // behind the camera
+            return CoordsIsInFrame(ComputeFrameCoords(xyz_frame));
         }
 
         [[nodiscard]] Eigen::Vector2d
@@ -96,13 +102,13 @@ namespace erl::geometry {
             return m_camera_extrinsic_.topLeftCorner<3, 3>() * xyz_frame + m_camera_extrinsic_.topRightCorner<3, 1>();
         }
 
-        Eigen::MatrixXd
-        DepthImageToDepth(const Eigen::MatrixXd &depth_img) {
+        [[nodiscard]] Eigen::MatrixXd
+        DepthImageToDepth(const Eigen::MatrixXd &depth_img) const {
             return depth_img / m_setting_->depth_scale;
         }
 
-        Eigen::MatrixXd
-        DepthToDepthImage(const Eigen::MatrixXd &depth) {
+        [[nodiscard]] Eigen::MatrixXd
+        DepthToDepthImage(const Eigen::MatrixXd &depth) const {
             return depth * m_setting_->depth_scale;
         }
 
@@ -142,7 +148,7 @@ namespace erl::geometry {
             return intrinsic;
         }
 
-        [[nodiscard]] const std::vector<RgbdFramePartition3D> &
+        [[nodiscard]] const std::vector<DepthFramePartition3D> &
         GetPartitions() const {
             ERL_ASSERTM(m_partitioned_, "LidarFrame3D::GetPartitions() is called before partitioning.");
             return m_partitions_;
@@ -156,15 +162,15 @@ namespace erl::geometry {
         UpdateFrameCoords();
     };
 
-    class RgbdFramePartition3D {};
+    class DepthFramePartition3D {};
 
-    ERL_REGISTER_RANGE_SENSOR_FRAME_3D(RgbdFrame3D);
+    ERL_REGISTER_RANGE_SENSOR_FRAME_3D(DepthFrame3D);
 }  // namespace erl::geometry
 
 template<>
-struct YAML::convert<erl::geometry::RgbdFrame3D::Setting> {
+struct YAML::convert<erl::geometry::DepthFrame3D::Setting> {
     static Node
-    encode(const erl::geometry::RgbdFrame3D::Setting &rhs) {
+    encode(const erl::geometry::DepthFrame3D::Setting &rhs) {
         Node node = convert<erl::geometry::RangeSensorFrame3D::Setting>::encode(rhs);
         node["camera_to_optical"] = rhs.camera_to_optical;
         node["image_height"] = rhs.image_height;
@@ -178,7 +184,7 @@ struct YAML::convert<erl::geometry::RgbdFrame3D::Setting> {
     }
 
     static bool
-    decode(const Node &node, erl::geometry::RgbdFrame3D::Setting &rhs) {
+    decode(const Node &node, erl::geometry::DepthFrame3D::Setting &rhs) {
         if (!convert<erl::geometry::RangeSensorFrame3D::Setting>::decode(node, rhs)) { return false; }
         rhs.camera_to_optical = node["camera_to_optical"].as<Eigen::Matrix4d>();
         rhs.image_height = node["image_height"].as<int>();

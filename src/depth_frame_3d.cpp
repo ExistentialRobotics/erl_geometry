@@ -1,4 +1,4 @@
-#include "erl_geometry/rgbd_frame_3d.hpp"
+#include "erl_geometry/depth_frame_3d.hpp"
 
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/exception.hpp"
@@ -6,7 +6,7 @@
 
 namespace erl::geometry {
 
-    RgbdFrame3D::RgbdFrame3D(std::shared_ptr<Setting> setting)
+    DepthFrame3D::DepthFrame3D(std::shared_ptr<Setting> setting)
         : RangeSensorFrame3D(setting),
           m_setting_(std::move(setting)) {
         ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
@@ -19,7 +19,7 @@ namespace erl::geometry {
     }
 
     std::pair<long, long>
-    RgbdFrame3D::Setting::Resize(double factor) {
+    DepthFrame3D::Setting::Resize(double factor) {
         const long old_image_height = image_height;
         const long old_image_width = image_width;
         image_height = static_cast<int>(image_height * factor);
@@ -34,7 +34,7 @@ namespace erl::geometry {
     }
 
     void
-    RgbdFrame3D::UpdateRanges(
+    DepthFrame3D::UpdateRanges(
         const Eigen::Ref<const Eigen::Matrix3d> &rotation,
         const Eigen::Ref<const Eigen::Vector3d> &translation,
         Eigen::MatrixXd depth,
@@ -47,7 +47,7 @@ namespace erl::geometry {
 
         m_rotation_ << rotation;
         m_translation_ << translation;
-        m_camera_extrinsic_ = m_setting_->camera_to_optical * GetPoseMatrix();
+        m_camera_extrinsic_ = GetPoseMatrix() * m_setting_->camera_to_optical;
         m_ranges_ = std::move(depth);
 
         m_partitions_.clear();
@@ -65,8 +65,7 @@ namespace erl::geometry {
         m_hit_points_world_.reserve(image_height * image_width);
 
         // compute directions and end points
-        Eigen::Matrix4d extrinsic = GetCameraExtrinsicMatrix();
-#pragma omp parallel for default(none) shared(image_height, image_width, extrinsic, Eigen::Dynamic)
+#pragma omp parallel for default(none) shared(image_height, image_width, Eigen::Dynamic)
         for (long u = 0; u < image_width; ++u) {
             for (long v = 0; v < image_height; ++v) {
                 double &range = m_ranges_(v, u);
@@ -81,13 +80,13 @@ namespace erl::geometry {
                 range = end_pt_frame.norm();                         // range is now the actual range
 
                 // transform directions and end_points to world
-                auto rotation_ref = extrinsic.topLeftCorner<3, 3>();
-                auto translation_ref = extrinsic.topRightCorner<3, 1>();
+                auto rotation_ref = m_camera_extrinsic_.topLeftCorner<3, 3>();
+                auto translation_ref = m_camera_extrinsic_.topRightCorner<3, 1>();
                 m_dirs_world_(v, u) << rotation_ref * dir_frame;
                 m_end_pts_world_(v, u) << rotation_ref * end_pt_frame + translation_ref;
 
                 // max valid range
-                if (std::isnan(range) || range < m_setting_->valid_range_min || range <= m_setting_->valid_range_max) { continue; }
+                if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { continue; }
                 m_mask_hit_(v, u) = true;
             }
         }
@@ -107,12 +106,12 @@ namespace erl::geometry {
     }
 
     void
-    RgbdFrame3D::PartitionRays() {
+    DepthFrame3D::PartitionRays() {
         throw NotImplemented(__PRETTY_FUNCTION__);
     }
 
     void
-    RgbdFrame3D::UpdateFrameCoords() {
+    DepthFrame3D::UpdateFrameCoords() {
         const long image_height = m_setting_->image_height;
         const long image_width = m_setting_->image_width;
         m_frame_coords_.resize(image_height, image_width);

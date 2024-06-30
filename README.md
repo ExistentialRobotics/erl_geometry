@@ -61,8 +61,8 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
     - [LiDAR Frame 3D](include/erl_geometry/lidar_frame_3d.hpp): data structure to store 3D LiDAR scan and sample from
       it.
     - [Depth Camera 3D](include/erl_geometry/depth_camera_3d.hpp): generate 3D depth image with a given scene.
-    - [RGBD Frame 3D](include/erl_geometry/rgbd_frame_3d.hpp): data structure to store a RGBD image (currently only
-      depth) and sample from it.
+    - [Depth Frame 3D](include/erl_geometry/depth_frame_3d.hpp): data structure to store a depth image and sample from
+      it.
 - Datasets
     - [HouseExpo](python/erl_geometry/house_expo/README.md)
     - [GazeboSequence](python/erl_geometry/gazebo/sequence.py)
