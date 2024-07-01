@@ -160,7 +160,7 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                 auto lidar_frame_3d = std::make_shared<LidarFrame3D>(lidar_frame_3d_setting);
                 if (!surface_samples_ready || !region_samples_hpr_ready || !region_samples_vrs_ready || !along_ray_samples_ready) {
                     auto tic = std::chrono::high_resolution_clock::now();
-                    lidar_frame_3d->Update(rotation, lidar_position, azimuths, elevations, ranges, false);
+                    lidar_frame_3d->UpdateRanges(rotation, lidar_position, ranges, false);
                     auto toc = std::chrono::high_resolution_clock::now();
                     std::cout << "lidar_frame_3d->Update takes " << std::chrono::duration<double, std::milli>(toc - tic).count() << " ms" << std::endl;
                 }

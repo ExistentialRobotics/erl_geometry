@@ -16,7 +16,7 @@ namespace erl::geometry {
                 m_setting_->window_left,
                 m_setting_->window_top),
             "Failed creating OpenGL window.");
-        m_visualizer_->GetRenderOption().mesh_show_back_face_ = true;
+        m_visualizer_->GetRenderOption().mesh_show_back_face_ = m_setting_->mesh_show_back_face;
 
         AddKeyboardCallbacks();
         m_visualizer_->AddGeometry(m_axis_mesh_);
@@ -208,7 +208,7 @@ namespace erl::geometry {
     }
 
     std::shared_ptr<open3d::geometry::TriangleMesh>
-    Open3dVisualizerWrapper::CreateAxisMesh(const Eigen::Ref<Eigen::Matrix4d> &pose, const double axis_length) {
+    Open3dVisualizerWrapper::CreateAxisMesh(const Eigen::Matrix4d &pose, const double axis_length) {
         auto axis_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
         constexpr double cylinder_radius = 0.0025;
         constexpr double cone_radius = 0.0075;

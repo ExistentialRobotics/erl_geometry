@@ -55,8 +55,10 @@ TEST(OccupancyOctree, Build) {
     octree_setting->use_change_detection = true;
     // once hit, the cell will be occupied almost forever
     auto octree = std::make_shared<OccupancyOctree>(octree_setting);
-    Open3dVisualizerWrapper visualizer;
-    visualizer.GetSetting()->window_name = WINDOW_NAME;
+    const auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
+    visualizer_setting->window_name = WINDOW_NAME;
+    visualizer_setting->mesh_show_back_face = false;
+    Open3dVisualizerWrapper visualizer(visualizer_setting);
     auto point_cloud = std::make_shared<open3d::geometry::PointCloud>();
     auto line_set_traj = std::make_shared<open3d::geometry::LineSet>();
     auto line_set_rays = std::make_shared<open3d::geometry::LineSet>();

@@ -13,11 +13,11 @@ namespace erl::geometry {
         const long n_rows = directions.rows();
         const long n_cols = directions.cols();
         Eigen::MatrixXd scales(n_rows, n_cols);
-        // ReSharper disable once CppDFAUnusedValue
+        // ReSharper disable once CppDFAUnusedValue, CppDFAUnreadVariable
         Eigen::Vector3f ray_start = translation.cast<float>();
         // column major
         open3d::core::Tensor rays({n_rows, n_cols, 6}, open3d::core::Dtype::Float32);
-        // ReSharper disable once CppDFAUnusedValue
+        // ReSharper disable once CppDFAUnusedValue, CppDFAUnreadVariable
         auto *rays_ptr = rays.GetDataPtr<float>();
 #pragma omp parallel for default(none) shared(n_rows, n_cols, orientation, directions, scales, ray_start, rays_ptr)
         for (long v = 0; v < n_cols; ++v) {

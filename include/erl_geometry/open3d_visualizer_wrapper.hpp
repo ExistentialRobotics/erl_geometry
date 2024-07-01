@@ -29,6 +29,7 @@ namespace erl::geometry {
             double yaw = 0.0;
             double translate_step = 0.1;
             double angle_step = 0.1;
+            bool mesh_show_back_face = false;
         };
 
     private:
@@ -47,7 +48,7 @@ namespace erl::geometry {
             Init();
         }
 
-        [[nodiscard]] std::shared_ptr<Setting>
+        [[nodiscard]] std::shared_ptr<const Setting>
         GetSetting() const {
             return m_setting_;
         }
@@ -106,15 +107,15 @@ namespace erl::geometry {
             m_visualizer_->DestroyVisualizerWindow();
         }
 
+        static std::shared_ptr<open3d::geometry::TriangleMesh>
+        CreateAxisMesh(const Eigen::Matrix4d &pose, double axis_length = 0.1);
+
     private:
         void
         Init();
 
         void
         AddKeyboardCallbacks();
-
-        static std::shared_ptr<open3d::geometry::TriangleMesh>
-        CreateAxisMesh(const Eigen::Ref<Eigen::Matrix4d> &pose, double axis_length = 0.1);
     };
 }  // namespace erl::geometry
 
@@ -136,6 +137,7 @@ struct YAML::convert<erl::geometry::Open3dVisualizerWrapper::Setting> {
         node["yaw"] = rhs.yaw;
         node["translate_step"] = rhs.translate_step;
         node["angle_step"] = rhs.angle_step;
+        node["mesh_show_back_face"] = rhs.mesh_show_back_face;
         return node;
     }
 
@@ -155,6 +157,7 @@ struct YAML::convert<erl::geometry::Open3dVisualizerWrapper::Setting> {
         rhs.yaw = node["yaw"].as<double>();
         rhs.translate_step = node["translate_step"].as<double>();
         rhs.angle_step = node["angle_step"].as<double>();
+        rhs.mesh_show_back_face = node["mesh_show_back_face"].as<bool>();
         return true;
     }
 };

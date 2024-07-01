@@ -19,8 +19,8 @@ namespace erl::geometry {
             double azimuth_max = M_PI;
             double elevation_min = -M_PI / 12;  // 15 degree
             double elevation_max = M_PI / 12;   // 15 degree
-            int num_azimuth_lines = 900;        // angular resolution: 0.4 degree
-            int num_elevation_lines = 16;       // angular resolution: 2 degree
+            long num_azimuth_lines = 900;       // angular resolution: 0.4 degree
+            long num_elevation_lines = 16;      // angular resolution: 2 degree
         };
 
     private:
@@ -55,7 +55,7 @@ namespace erl::geometry {
         [[nodiscard]] Eigen::VectorXd
         GetAzimuthAngles() const {
             if (m_setting_->azimuth_max - m_setting_->azimuth_min == 2.0 * M_PI) {
-                const double d = 2.0 * M_PI / m_setting_->num_azimuth_lines;
+                const double d = 2.0 * M_PI / static_cast<double>(m_setting_->num_azimuth_lines);
                 return Eigen::VectorXd::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max - d);
             }
             return Eigen::VectorXd::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max);
@@ -94,8 +94,8 @@ struct YAML::convert<erl::geometry::Lidar3D::Setting> {
         rhs.azimuth_max = node["azimuth_max"].as<double>();
         rhs.elevation_min = node["elevation_min"].as<double>();
         rhs.elevation_max = node["elevation_max"].as<double>();
-        rhs.num_azimuth_lines = node["num_azimuth_lines"].as<int>();
-        rhs.num_elevation_lines = node["num_elevation_lines"].as<int>();
+        rhs.num_azimuth_lines = node["num_azimuth_lines"].as<long>();
+        rhs.num_elevation_lines = node["num_elevation_lines"].as<long>();
         return true;
     }
 };  // namespace YAML

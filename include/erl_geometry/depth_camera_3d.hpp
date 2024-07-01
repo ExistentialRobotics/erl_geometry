@@ -12,8 +12,8 @@ namespace erl::geometry {
 
     public:
         struct Setting : common::Yamlable<Setting> {
-            int image_height = 680;
-            int image_width = 1200;
+            long image_height = 680;
+            long image_width = 1200;
             double camera_fx = 600.0;
             double camera_fy = 600.0;
             double camera_cx = 599.5;
@@ -85,8 +85,8 @@ struct YAML::convert<erl::geometry::DepthCamera3D::Setting> {
     static bool
     decode(const Node &node, erl::geometry::DepthCamera3D::Setting &rhs) {
         if (!node.IsMap()) { return false; }
-        rhs.image_height = node["image_height"].as<int>();
-        rhs.image_width = node["image_width"].as<int>();
+        rhs.image_height = node["image_height"].as<long>();
+        rhs.image_width = node["image_width"].as<long>();
         rhs.camera_fx = node["camera_fx"].as<double>();
         rhs.camera_fy = node["camera_fy"].as<double>();
         rhs.camera_cx = node["camera_cx"].as<double>();
