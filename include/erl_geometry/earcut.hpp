@@ -27,6 +27,7 @@
  */
 
 #pragma once
+#include "erl_common/eigen.hpp"
 #include "erl_common/logging.hpp"
 
 #include <algorithm>
