@@ -38,6 +38,11 @@ namespace erl::geometry {
         operator!=(const Aabb &rhs) const {
             return !(*this == rhs);
         }
+
+        [[nodiscard]] Aabb
+        Intersection(const Aabb &rhs) const {
+            return {this->m_min.cwiseMax(rhs.m_min), this->m_max.cwiseMin(rhs.m_max)};
+        }
     };
 
     using Aabb2D = Aabb<double, 2>;

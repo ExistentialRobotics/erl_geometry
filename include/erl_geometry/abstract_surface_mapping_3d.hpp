@@ -9,7 +9,7 @@ namespace erl::geometry {
     public:
         virtual ~AbstractSurfaceMapping3D() = default;
 
-        virtual geometry::OctreeKeySet
+        virtual OctreeKeySet
         GetChangedClusters() = 0;
 
         [[nodiscard]] virtual unsigned int
@@ -28,4 +28,4 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::MatrixXd> &ranges) = 0;
     };
 
-}  // namespace erl::sdf_mapping
+}  // namespace erl::geometry

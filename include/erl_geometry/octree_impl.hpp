@@ -712,6 +712,18 @@ namespace erl::geometry {
             z = KeyToCoord(key[2], depth);
         }
 
+        void
+        KeyToCoord(const OctreeKey &key, const uint32_t depth, Eigen::Vector3d &coord) const {
+            KeyToCoord(key, depth, coord.x(), coord.y(), coord.z());
+        }
+
+        [[nodiscard]] Eigen::Vector3d
+        KeyToCoord(const OctreeKey &key, const uint32_t depth) const {
+            Eigen::Vector3d coord;
+            KeyToCoord(key, depth, coord.x(), coord.y(), coord.z());
+            return coord;
+        }
+
         //-- iterator implementation
         class IteratorBase {
         public:
@@ -1776,14 +1788,19 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] LeafInAabbIterator
+        BeginLeafInAabb(const Aabb3D &aabb, const uint32_t max_depth = 0) const {
+            return LeafInAabbIterator(aabb.min().x(), aabb.min().y(), aabb.min().z(), aabb.max().x(), aabb.max().y(), aabb.max().z(), this, max_depth);
+        }
+
+        [[nodiscard]] LeafInAabbIterator
         BeginLeafInAabb(
-            double aabb_min_x,  //
+            double aabb_min_x,
             double aabb_min_y,
             double aabb_min_z,
             double aabb_max_x,
             double aabb_max_y,
             double aabb_max_z,
-            uint32_t max_depth = 0) const {
+            const uint32_t max_depth = 0) const {
             return LeafInAabbIterator(aabb_min_x, aabb_min_y, aabb_min_z, aabb_max_x, aabb_max_y, aabb_max_z, this, max_depth);
         }
 
@@ -1805,6 +1822,11 @@ namespace erl::geometry {
         [[nodiscard]] TreeIterator
         EndTree() const {
             return TreeIterator();
+        }
+
+        [[nodiscard]] TreeInAabbIterator
+        BeginTreeInAabb(const Aabb3D &aabb, const uint32_t max_depth = 0) const {
+            return TreeInAabbIterator(aabb.min().x(), aabb.min().y(), aabb.min().z(), aabb.max().x(), aabb.max().y(), aabb.max().z(), this, max_depth);
         }
 
         [[nodiscard]] TreeInAabbIterator

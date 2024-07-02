@@ -645,6 +645,18 @@ namespace erl::geometry {
             y = KeyToCoord(key[1], depth);
         }
 
+        void
+        KeyToCoord(const QuadtreeKey &key, const uint32_t depth, Eigen::Vector2d &coord) const {
+            KeyToCoord(key, depth, coord.x(), coord.y());
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        KeyToCoord(const QuadtreeKey &key, const uint32_t depth) const {
+            Eigen::Vector2d coord;
+            KeyToCoord(key, depth, coord.x(), coord.y());
+            return coord;
+        }
+
         //-- iterator implementation
         class IteratorBase {
         public:
@@ -1564,12 +1576,12 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] LeafInAabbIterator
-        BeginLeafInAabb(
-            double aabb_min_x,  //
-            double aabb_min_y,
-            double aabb_max_x,
-            double aabb_max_y,
-            uint32_t max_depth = 0) const {
+        BeginLeafInAabb(const Aabb2D &aabb, const uint32_t max_depth = 0) const {
+            return LeafInAabbIterator(aabb.min().x(), aabb.min().y(), aabb.max().x(), aabb.max().y(), this, max_depth);
+        }
+
+        [[nodiscard]] LeafInAabbIterator
+        BeginLeafInAabb(double aabb_min_x, double aabb_min_y, double aabb_max_x, double aabb_max_y, uint32_t max_depth = 0) const {
             return LeafInAabbIterator(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, this, max_depth);
         }
 
@@ -1594,12 +1606,12 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] TreeInAabbIterator
-        BeginTreeInAabb(
-            double aabb_min_x,  //
-            double aabb_min_y,
-            double aabb_max_x,
-            double aabb_max_y,
-            uint32_t max_depth = 0) const {
+        BeginTreeInAabb(const Aabb2D &aabb, const uint32_t max_depth = 0) const {
+            return TreeInAabbIterator(aabb.min().x(), aabb.min().y(), aabb.max().x(), aabb.max().y(), this, max_depth);
+        }
+
+        [[nodiscard]] TreeInAabbIterator
+        BeginTreeInAabb(double aabb_min_x, double aabb_min_y, double aabb_max_x, double aabb_max_y, uint32_t max_depth = 0) const {
             return TreeInAabbIterator(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, this, max_depth);
         }
 
