@@ -1,11 +1,12 @@
-#include <iostream>
+#include "erl_common/angle_utils.hpp"
+#include "erl_common/assert.hpp"
+#include "erl_geometry/aabb.hpp"
+#include "erl_geometry/utils.hpp"
+
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "erl_common/assert.hpp"
-#include "erl_common/angle_utils.hpp"
-#include "erl_geometry/aabb.hpp"
-#include "erl_geometry/utils.hpp"
+#include <iostream>
 
 erl::geometry::Aabb2D aabb(Eigen::Vector2d(200, 300), 100);
 cv::Mat image(500, 400, CV_8UC3, cv::Scalar(255, 255, 255));

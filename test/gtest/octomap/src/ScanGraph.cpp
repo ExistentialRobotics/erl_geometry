@@ -31,13 +31,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <iomanip>
-#include <fstream>
-#include <sstream>
-#include <stdlib.h>
-
 #include <octomap/math/Pose6D.h>
 #include <octomap/ScanGraph.h>
+#include <stdlib.h>
+
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 
 namespace octomap {
 

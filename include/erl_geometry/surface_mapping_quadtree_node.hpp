@@ -1,6 +1,7 @@
 #pragma once
-#include "erl_common/eigen.hpp"
 #include "occupancy_quadtree_node.hpp"
+
+#include "erl_common/eigen.hpp"
 
 namespace erl::geometry {
 
@@ -138,4 +139,4 @@ namespace erl::geometry {
     };
 
     ERL_REGISTER_QUADTREE_NODE(SurfaceMappingQuadtreeNode);
-}  // namespace erl::sdf_mapping
+}  // namespace erl::geometry

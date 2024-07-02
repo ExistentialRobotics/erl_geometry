@@ -31,8 +31,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <cassert>
 #include <octomap/CountingOcTree.h>
+
+#include <cassert>
 
 namespace octomap {
 

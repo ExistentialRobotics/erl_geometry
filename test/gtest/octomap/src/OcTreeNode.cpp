@@ -31,14 +31,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <inttypes.h>
+#include <math.h>
+#include <octomap/OcTreeNode.h>
+#include <stdlib.h>
+
 #include <bitset>
 #include <cassert>
-#include <math.h>
 #include <fstream>
-#include <stdlib.h>
-#include <inttypes.h>
-
-#include <octomap/OcTreeNode.h>
 
 namespace octomap {
 

@@ -1,5 +1,5 @@
-#include "erl_common/test_helper.hpp"
 #include "erl_common/angle_utils.hpp"
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/euler_angle.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"

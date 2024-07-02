@@ -4,7 +4,6 @@
 #include "erl_common/yaml.hpp"
 
 #include <Eigen/Core>
-
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
 

@@ -3,9 +3,9 @@
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/logging.hpp"
 
-#include <utility>
-
 #include <opencv2/imgproc.hpp>
+
+#include <utility>
 
 namespace erl::geometry {
     LogOddMap2D::LogOddMap2D(std::shared_ptr<Setting> setting, std::shared_ptr<common::GridMapInfo2D> grid_map_info)

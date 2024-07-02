@@ -31,10 +31,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <octomap/math/Vector3.h>
-#include <cassert>
 #include <math.h>
+#include <octomap/math/Vector3.h>
 #include <string.h>
+
+#include <cassert>
 
 namespace octomath {
 

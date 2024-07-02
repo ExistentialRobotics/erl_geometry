@@ -7,9 +7,9 @@
 
 #include "erl_common/random.hpp"
 
-#include <list>
-
 #include <omp.h>
+
+#include <list>
 
 namespace erl::geometry {
 

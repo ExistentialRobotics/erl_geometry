@@ -31,13 +31,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <octomap/math/Vector3.h>
+#include <math.h>
 #include <octomap/math/Quaternion.h>
 #include <octomap/math/Utils.h>
+#include <octomap/math/Vector3.h>
 
-#include <cassert>
-#include <math.h>
 #include <algorithm>
+#include <cassert>
 
 // used from Vector: norm2, unit, *
 

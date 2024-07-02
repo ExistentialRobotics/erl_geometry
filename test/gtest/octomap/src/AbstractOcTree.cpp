@@ -32,8 +32,8 @@
  */
 
 #include <octomap/AbstractOcTree.h>
-#include <octomap/OcTree.h>
 #include <octomap/CountingOcTree.h>
+#include <octomap/OcTree.h>
 
 namespace octomap {
     AbstractOcTree::AbstractOcTree() {}

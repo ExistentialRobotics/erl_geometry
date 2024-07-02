@@ -1,5 +1,6 @@
-#include "erl_geometry/marching_square.hpp"
 #include "erl_common/assert.hpp"
+#include "erl_geometry/marching_square.hpp"
+
 #include <iostream>
 
 /** Output:

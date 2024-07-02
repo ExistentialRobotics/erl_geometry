@@ -1,6 +1,7 @@
 #pragma once
-#include "erl_common/eigen.hpp"
 #include "occupancy_octree_node.hpp"
+
+#include "erl_common/eigen.hpp"
 
 namespace erl::geometry {
 
@@ -138,4 +139,4 @@ namespace erl::geometry {
     };
 
     ERL_REGISTER_OCTREE_NODE(SurfaceMappingOctreeNode);
-}  // namespace erl::sdf_mapping
+}  // namespace erl::geometry

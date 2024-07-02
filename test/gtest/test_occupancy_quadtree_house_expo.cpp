@@ -1,10 +1,10 @@
-#include "erl_common/test_helper.hpp"
 #include "erl_common/csv.hpp"
 #include "erl_common/random.hpp"
+#include "erl_common/test_helper.hpp"
 #include "erl_geometry/house_expo_map.hpp"
+#include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
-#include "erl_geometry/lidar_2d.hpp"
 
 TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     std::filesystem::path test_data_dir = std::filesystem::path(__FILE__).parent_path();

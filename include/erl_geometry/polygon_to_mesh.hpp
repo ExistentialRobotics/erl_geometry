@@ -1,7 +1,8 @@
 #pragma once
 
-#include <open3d/geometry/TriangleMesh.h>
 #include "earcut.hpp"
+
+#include <open3d/geometry/TriangleMesh.h>
 
 namespace erl::geometry {
 

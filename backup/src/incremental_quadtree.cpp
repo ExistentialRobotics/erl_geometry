@@ -5,10 +5,10 @@
 #include "erl_geometry/incremental_quadtree.hpp"
 #include "erl_geometry/utils.hpp"
 
+#include <opencv2/imgproc.hpp>
+
 #include <algorithm>
 #include <utility>
-
-#include <opencv2/imgproc.hpp>
 
 namespace erl::geometry {
 

@@ -7,11 +7,11 @@
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/yaml.hpp"
 
+#include <opencv2/core.hpp>
+
 #include <functional>
 #include <unordered_map>
 #include <utility>
-
-#include <opencv2/core.hpp>
 
 namespace erl::geometry {
 

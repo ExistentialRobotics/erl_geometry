@@ -769,7 +769,7 @@ BindOccupancyOctree(const py::module &m, const char *tree_name, const char *node
             py::arg("min_node_depth") = 0,
             py::arg("max_node_depth") = 0);
 
-    tree.def("Setting", [](){ return std::make_shared<typename Octree::Setting>(); });
+    tree.def("Setting", []() { return std::make_shared<typename Octree::Setting>(); });
     BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<Octree>, Octree>(tree, "Drawer");
 
     return std::make_pair(tree, node);

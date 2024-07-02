@@ -1,9 +1,10 @@
-#include <iostream>
+#include "erl_common/eigen.hpp"
+#include "erl_common/grid_map_info.hpp"
+
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "erl_common/eigen.hpp"
-#include "erl_common/grid_map_info.hpp"
+#include <iostream>
 
 auto grid_map_info =
     std::make_shared<erl::common::GridMapInfo2D>(Eigen::Vector2d(-3, -3), Eigen::Vector2d(3, 3), Eigen::Vector2d(0.01, 0.01), Eigen::Vector2i(10, 10));
@@ -17,8 +18,8 @@ cv::Mat img_60 = cv::Mat(grid_map_info->Shape(1), grid_map_info->Shape(0), CV_8U
 
 void
 MouseCallback270(int event, int x, int y, int flags, void *userdata) {
-    (void)(flags);
-    (void)(userdata);
+    (void) (flags);
+    (void) (userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) { std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl; }
     if (event == cv::EVENT_MOUSEMOVE) {
@@ -76,8 +77,8 @@ MouseCallback270(int event, int x, int y, int flags, void *userdata) {
 
 void
 MouseCallback60(int event, int x, int y, int flags, void *userdata) {
-    (void)(flags);
-    (void)(userdata);
+    (void) (flags);
+    (void) (userdata);
 
     if (event == cv::EVENT_LBUTTONDOWN) { std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl; }
     if (event == cv::EVENT_MOUSEMOVE) {

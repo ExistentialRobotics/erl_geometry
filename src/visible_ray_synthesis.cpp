@@ -1,8 +1,8 @@
 #include "erl_geometry/visible_ray_synthesis.hpp"
 
+#include "erl_common/angle_utils.hpp"
 #include "erl_common/logging.hpp"
 #include "erl_common/random.hpp"
-#include "erl_common/angle_utils.hpp"
 
 #include <absl/container/flat_hash_map.h>
 #include <Eigen/Geometry>

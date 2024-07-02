@@ -1,10 +1,10 @@
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-
 #include "erl_common/eigen.hpp"
 #include "erl_common/grid_map_info.hpp"
 #include "erl_geometry/incremental_quadtree.hpp"
 #include "erl_geometry/node_container_multi_types.hpp"
+
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 cv::Mat quadtree_image;
 Eigen::Vector<double, 360> angles = Eigen::Vector<double, 360>::LinSpaced(360, -M_PI, M_PI);
