@@ -45,6 +45,8 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         PointIsInFrame(const Eigen::Vector3d &xyz_frame) const override {
+            const double range = xyz_frame.norm();
+            if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { return false; }
             return CoordsIsInFrame(ComputeFrameCoords(xyz_frame.normalized()));
         }
 

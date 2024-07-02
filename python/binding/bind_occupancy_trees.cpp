@@ -4,6 +4,8 @@
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/pybind11_occupancy_octree.hpp"
 #include "erl_geometry/pybind11_occupancy_quadtree.hpp"
+#include "erl_geometry/surface_mapping_octree.hpp"
+#include "erl_geometry/surface_mapping_quadtree.hpp"
 
 void
 BindOccupancyTrees(const py::module& m) {
@@ -45,4 +47,6 @@ BindOccupancyTrees(const py::module& m) {
         py::arg("occupied_threshold"),
         py::arg("padding") = 0);
     BindOccupancyOctree<OccupancyOctree, OccupancyOctreeNode>(m, "OccupancyOctree", "OccupancyOctreeNode");
+
+    BindOccupancyQuadtree<SurfaceMappingQuadtree, SurfaceMappingQuadtreeNode>(m, "SurfaceMappingQuadtree", "SurfaceMappingQuadtreeNode");
 }

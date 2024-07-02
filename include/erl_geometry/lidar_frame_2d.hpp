@@ -7,8 +7,6 @@
 #include "erl_common/random.hpp"
 #include "erl_common/yaml.hpp"
 
-#include <utility>
-
 namespace erl::geometry {
     class LidarFramePartition2D;
 
@@ -23,8 +21,9 @@ namespace erl::geometry {
         struct Setting : public common::Yamlable<Setting> {
             double valid_range_min = 0.0;
             double valid_range_max = std::numeric_limits<double>::infinity();
-            double valid_angle_min = -M_PI;
-            double valid_angle_max = M_PI;
+            double angle_min = -M_PI;
+            double angle_max = M_PI;
+            long num_rays = 360;
             double discontinuity_factor = 10;
             double rolling_diff_discount = 0.9;
             int min_partition_size = 5;
@@ -40,16 +39,16 @@ namespace erl::geometry {
         Eigen::VectorXd m_angles_world_ = {};
         Eigen::VectorXd m_ranges_ = {};
 
-        Eigen::Matrix2Xd m_dirs_frame_ = {};
-        Eigen::Matrix2Xd m_dirs_world_ = {};
+        std::vector<Eigen::Vector2d> m_dirs_frame_ = {};
+        std::vector<Eigen::Vector2d> m_dirs_world_ = {};
 
-        Eigen::Matrix2Xd m_end_pts_frame_ = {};
-        Eigen::Matrix2Xd m_end_pts_world_ = {};
+        std::vector<Eigen::Vector2d> m_end_pts_frame_ = {};
+        std::vector<Eigen::Vector2d> m_end_pts_world_ = {};
 
-        Eigen::VectorXb m_mask_hit_ = {};           // if i-th element is true, then i-th vertex is a hit
-        Eigen::VectorXb m_mask_continuous_ = {};    // if i-th element is true, then (i-1, i) edge is continuous
-        Eigen::VectorXl m_hit_ray_indices_ = {};    // hit ray indices
-        Eigen::Matrix2Xd m_hit_points_world_ = {};  // hit points in world
+        Eigen::VectorXb m_mask_hit_ = {};                       // if i-th element is true, then i-th vertex is a hit
+        Eigen::VectorXb m_mask_continuous_ = {};                // if i-th element is true, then (i-1, i) edge is continuous
+        std::vector<long> m_hit_ray_indices_ = {};              // hit ray indices
+        std::vector<Eigen::Vector2d> m_hit_points_world_ = {};  // hit points in world
 
         double m_max_valid_range_ = 0.0;
         std::vector<LidarFramePartition2D> m_partitions_ = {};
@@ -57,16 +56,44 @@ namespace erl::geometry {
         std::shared_ptr<KdTree2d> m_kd_tree_ = std::make_shared<KdTree2d>();
 
     public:
-        explicit LidarFrame2D(std::shared_ptr<Setting> setting)
-            : m_setting_(std::move(setting)) {
-            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
+        explicit LidarFrame2D(std::shared_ptr<Setting> setting);
+
+        [[nodiscard]] bool
+        AngleIsInFrame(const double angle_frame) const {
+            return angle_frame >= m_angles_frame_[0] && angle_frame <= m_angles_frame_[m_angles_frame_.size() - 1];
+        }
+
+        [[nodiscard]] bool
+        PointIsInFrame(const Eigen::Vector2d &xy_frame) const {
+            if (xy_frame.norm() > m_max_valid_range_) { return false; }
+            const double angle_frame = std::atan2(xy_frame[1], xy_frame[0]);
+            return AngleIsInFrame(angle_frame);
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        WorldToFrameSo2(const Eigen::Vector2d &vec_global) const {
+            return m_rotation_.transpose() * vec_global;
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        FrameToWorldSo2(const Eigen::Vector2d &vec_local) const {
+            return m_rotation_ * vec_local;
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        WorldToFrameSe2(const Eigen::Vector2d &vec_global) const {
+            return m_rotation_.transpose() * (vec_global - m_translation_);
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        FrameToWorldSe2(const Eigen::Vector2d &vec_local) const {
+            return m_rotation_ * vec_local + m_translation_;
         }
 
         void
-        Update(
+        UpdateRanges(
             const Eigen::Ref<const Eigen::Matrix2d> &rotation,
             const Eigen::Ref<const Eigen::Vector2d> &translation,
-            Eigen::VectorXd angles,
             Eigen::VectorXd ranges,
             bool partition_rays = false);
 
@@ -82,7 +109,7 @@ namespace erl::geometry {
 
         [[nodiscard]] long
         GetNumHitRays() const {
-            return m_hit_ray_indices_.size();
+            return static_cast<long>(m_hit_ray_indices_.size());
         }
 
         [[nodiscard]] const Eigen::Matrix2d &
@@ -123,32 +150,37 @@ namespace erl::geometry {
             return m_ranges_;
         }
 
-        [[nodiscard]] const Eigen::Matrix2Xd &
+        [[nodiscard]] const std::vector<Eigen::Vector2d> &
         GetRayDirectionsInFrame() const {
             return m_dirs_frame_;
         }
 
-        [[nodiscard]] const Eigen::Matrix2Xd &
+        [[nodiscard]] const std::vector<Eigen::Vector2d> &
         GetRayDirectionsInWorld() const {
             return m_dirs_world_;
         }
 
-        [[nodiscard]] const Eigen::Matrix2Xd &
+        [[nodiscard]] const std::vector<Eigen::Vector2d> &
         GetEndPointsInFrame() const {
             return m_end_pts_frame_;
         }
 
-        [[nodiscard]] const Eigen::Matrix2Xd &
+        [[nodiscard]] const std::vector<Eigen::Vector2d> &
         GetEndPointsInWorld() const {
             return m_end_pts_world_;
         }
 
-        [[nodiscard]] const Eigen::VectorXl &
+        const Eigen::VectorXb &
+        GetHitMask() {
+            return m_mask_hit_;
+        }
+
+        [[nodiscard]] const std::vector<long> &
         GetHitRayIndices() const {
             return m_hit_ray_indices_;
         }
 
-        [[nodiscard]] const Eigen::Matrix2Xd &
+        [[nodiscard]] const std::vector<Eigen::Vector2d> &
         GetHitPointsWorld() const {
             return m_hit_points_world_;
         }
@@ -269,8 +301,9 @@ struct YAML::convert<erl::geometry::LidarFrame2D::Setting> {
         Node node;
         node["valid_range_min"] = rhs.valid_range_min;
         node["valid_range_max"] = rhs.valid_range_max;
-        node["valid_angle_min"] = rhs.valid_angle_min;
-        node["valid_angle_max"] = rhs.valid_angle_max;
+        node["angle_min"] = rhs.angle_min;
+        node["angle_max"] = rhs.angle_max;
+        node["num_rays"] = rhs.num_rays;
         node["discontinuity_factor"] = rhs.discontinuity_factor;
         node["rolling_diff_discount"] = rhs.rolling_diff_discount;
         node["min_partition_size"] = rhs.min_partition_size;
@@ -282,8 +315,9 @@ struct YAML::convert<erl::geometry::LidarFrame2D::Setting> {
         if (!node.IsMap()) { return false; }
         rhs.valid_range_min = node["valid_range_min"].as<double>();
         rhs.valid_range_max = node["valid_range_max"].as<double>();
-        rhs.valid_angle_min = node["valid_angle_min"].as<double>();
-        rhs.valid_angle_max = node["valid_angle_max"].as<double>();
+        rhs.angle_min = node["angle_min"].as<double>();
+        rhs.angle_max = node["angle_max"].as<double>();
+        rhs.num_rays = node["num_rays"].as<long>();
         rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
         rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
         rhs.min_partition_size = node["min_partition_size"].as<int>();

@@ -67,7 +67,7 @@ namespace erl::geometry {
         for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
             for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
                 double &range = m_ranges_(azimuth_idx, elevation_idx);
-                if (range == 0 || std::isnan(range)) { continue; }  // zero or nan depth! Not allowed.
+                if (range == 0 || std::isnan(range) || std::isinf(range)) { continue; }  // zero, nan or inf depth! Not allowed.
 
                 // directions
                 const Eigen::Vector3d &dir_frame = m_dirs_frame_(azimuth_idx, elevation_idx);
@@ -88,7 +88,7 @@ namespace erl::geometry {
         for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
             for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
                 if (!m_mask_hit_(azimuth_idx, elevation_idx)) { continue; }
-                if (const double range = m_ranges_(azimuth_idx, elevation_idx); range > m_max_valid_range_) { m_max_valid_range_ = range; }
+                if (const double &range = m_ranges_(azimuth_idx, elevation_idx); range > m_max_valid_range_) { m_max_valid_range_ = range; }
                 m_hit_ray_indices_.emplace_back(azimuth_idx, elevation_idx);
                 m_hit_points_world_.emplace_back(m_end_pts_world_(azimuth_idx, elevation_idx));
             }

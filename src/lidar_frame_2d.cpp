@@ -6,16 +6,26 @@
 
 namespace erl::geometry {
 
+    LidarFrame2D::LidarFrame2D(std::shared_ptr<Setting> setting)
+        : m_setting_(std::move(setting)) {
+        ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
+
+        m_angles_frame_ = Eigen::VectorXd::LinSpaced(m_setting_->num_rays, m_setting_->angle_min, m_setting_->angle_max);
+        m_dirs_frame_.clear();
+        m_dirs_frame_.reserve(m_setting_->num_rays);
+        for (long i = 0; i < m_setting_->num_rays; ++i) { m_dirs_frame_.emplace_back(std::cos(m_angles_frame_[i]), std::sin(m_angles_frame_[i])); }
+    }
+
     void
-    LidarFrame2D::Update(
+    LidarFrame2D::UpdateRanges(
         const Eigen::Ref<const Eigen::Matrix2d> &rotation,
         const Eigen::Ref<const Eigen::Vector2d> &translation,
-        Eigen::VectorXd angles,
         Eigen::VectorXd ranges,
         const bool partition_rays) {
+
         m_rotation_ = rotation;
+        m_rotation_angle_ = Eigen::Rotation2Dd(m_rotation_).angle();
         m_translation_ = translation;
-        m_angles_frame_ = std::move(angles);
         m_ranges_ = std::move(ranges);
         m_partitions_.clear();
         m_partitioned_ = false;
@@ -26,44 +36,46 @@ namespace erl::geometry {
         ERL_ASSERTM(n > 0, "angles and ranges are empty.");
 
         m_angles_world_.resize(n);
-        m_rotation_angle_ = Eigen::Rotation2Dd(m_rotation_).angle();
 
         // compute directions, end points, max valid range and hit mask
-        m_dirs_frame_.resize(2, n);
-        m_dirs_world_.resize(2, n);
-        m_end_pts_frame_.resize(2, n);
-        m_end_pts_world_.resize(2, n);
+        m_dirs_world_.resize(n);
+        m_end_pts_frame_.resize(n);
+        m_end_pts_world_.resize(n);
         m_mask_hit_.setConstant(n, false);
-        m_hit_ray_indices_.resize(n);
-        m_hit_points_world_.resize(2, n);
 
-        m_max_valid_range_ = 0.0;
-        long num_hit_points = 0;
+        m_hit_ray_indices_.clear();
+        m_hit_ray_indices_.reserve(n);
+        m_hit_points_world_.clear();
+        m_hit_points_world_.reserve(n);
+
+        // #pragma omp parallel for default(none) shared(n, Eigen::Dynamic)
         for (long i = 0; i < n; ++i) {
-            const double angle = common::WrapAnglePi(m_angles_frame_[i]);
             const double &range = m_ranges_[i];
+            if (range == 0 || std::isnan(range) || std::isinf(range)) { continue; }
+            const double &angle = m_angles_frame_[i];
             m_angles_world_[i] = common::WrapAnglePi(angle + m_rotation_angle_);
 
             // directions
-            auto dir_frame = m_dirs_frame_.col(i);
-            dir_frame << std::cos(angle), std::sin(angle);
-            m_dirs_world_.col(i) << m_rotation_ * dir_frame;
+            const Eigen::Vector2d &dir_frame = m_dirs_frame_[i];
+            m_dirs_world_[i] << m_rotation_ * dir_frame;
 
             // end points
-            auto end_pt_frame = m_end_pts_frame_.col(i);
+            Eigen::Vector2d &end_pt_frame = m_end_pts_frame_[i];
             end_pt_frame << range * dir_frame;
-            m_end_pts_world_.col(i) << m_rotation_ * end_pt_frame + m_translation_;
+            m_end_pts_world_[i] << m_rotation_ * end_pt_frame + m_translation_;
 
             // max valid range
-            if (std::isnan(range) || range < m_setting_->valid_range_min || range <= m_setting_->valid_range_max) { continue; }
-            if (angle < m_setting_->valid_angle_min || angle <= m_setting_->valid_angle_max) { continue; }
+            if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { continue; }
             m_mask_hit_[i] = true;
-            if (range > m_max_valid_range_) { m_max_valid_range_ = range; }
-            m_hit_ray_indices_[num_hit_points] = i;
-            m_hit_points_world_.col(num_hit_points++) << m_end_pts_world_.col(i);
         }
-        m_hit_ray_indices_.conservativeResize(num_hit_points);
-        m_hit_points_world_.conservativeResize(2, num_hit_points);
+
+        m_max_valid_range_ = 0.0;
+        for (long i = 0; i < n; ++i) {
+            if (!m_mask_hit_[i]) { continue; }
+            if (const double &range = m_ranges_[i]; range > m_max_valid_range_) { m_max_valid_range_ = range; }
+            m_hit_ray_indices_.emplace_back(i);
+            m_hit_points_world_.emplace_back(m_end_pts_world_[i]);
+        }
 
         if (!partition_rays) { return; }  // do not partition rays
         PartitionRays();
@@ -78,10 +90,9 @@ namespace erl::geometry {
         if (brute_force) {
             end_point_index = -1;
             distance = std::numeric_limits<double>::infinity();
-            const long n_vertices = m_end_pts_world_.cols();
-            for (long i = 0; i < n_vertices; ++i) {
-                if (const double d = (m_end_pts_world_.col(i) - position_world).squaredNorm(); d < distance) {
-                    end_point_index = i;
+            for (std::size_t i = 0; i < m_end_pts_world_.size(); ++i) {
+                if (const double d = (m_end_pts_world_[i] - position_world).squaredNorm(); d < distance) {
+                    end_point_index = static_cast<long>(i);
                     distance = d;
                 }
             }
@@ -89,7 +100,9 @@ namespace erl::geometry {
             return;
         }
 
-        if (!m_kd_tree_->Ready()) { std::const_pointer_cast<KdTree2d>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_); }
+        if (!m_kd_tree_->Ready()) {
+            std::const_pointer_cast<KdTree2d>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_[0].data(), static_cast<long>(m_end_pts_world_.size()));
+        }
         end_point_index = -1;
         distance = std::numeric_limits<double>::infinity();
         m_kd_tree_->Nearest(position_world, end_point_index, distance);
@@ -116,7 +129,7 @@ namespace erl::geometry {
             const long ray_idx = m_hit_ray_indices_[hit_ray_idx];
             double range = m_ranges_[ray_idx];
             double range_step = (range + max_in_obstacle_dist) / static_cast<double>(n_samples_per_ray);
-            const Eigen::Vector2d &dir_world = m_dirs_world_.col(ray_idx);
+            const Eigen::Vector2d &dir_world = m_dirs_world_[ray_idx];
 
             positions_world.col(index) << m_translation_;
             directions_world.col(index) << dir_world;
@@ -158,7 +171,7 @@ namespace erl::geometry {
         long sample_idx = 0;
         for (auto &[ray_idx, n_samples_of_ray]: n_samples_per_ray) {
             double range = m_ranges_[ray_idx];
-            const Eigen::Vector2d &dir_world = m_dirs_world_.col(ray_idx);
+            const Eigen::Vector2d &dir_world = m_dirs_world_[ray_idx];
             positions_world.col(sample_idx) << m_translation_;
             directions_world.col(sample_idx) << dir_world;
             distances[sample_idx++] = range;
@@ -193,7 +206,7 @@ namespace erl::geometry {
         for (const long &hit_ray_idx: ray_indices) {
             const long ray_idx = m_hit_ray_indices_[hit_ray_idx];
             const double range = m_ranges_[ray_idx];
-            auto dir_world = m_dirs_world_.col(ray_idx);
+            const Eigen::Vector2d &dir_world = m_dirs_world_[ray_idx];
             for (long ray_sample_idx = 0; ray_sample_idx < num_samples_per_ray; ++ray_sample_idx) {
                 const double offset = uniform(common::g_random_engine);
                 positions_world.col(sample_idx) << m_translation_ + (range + offset) * dir_world;
@@ -214,11 +227,12 @@ namespace erl::geometry {
         Eigen::VectorXd &distances) const {
         ERL_ASSERTM(num_positions > 0, "num_positions ({}) must be positive.", num_positions);
 
-        std::uniform_int_distribution<long> uniform_int_dist(0, m_hit_points_world_.cols() - 1);
+        std::uniform_int_distribution<long> uniform_int_dist(0, static_cast<long>(m_hit_points_world_.size() - 1));
         std::uniform_real_distribution<double> uniform_real_dist(0.1, 0.8);
         std::uniform_real_distribution<double> uniform_ns(-max_in_obstacle_dist, max_in_obstacle_dist);
 
-        const long max_num_samples = num_positions * m_hit_ray_indices_.cols() * (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
+        const long max_num_samples = num_positions * static_cast<long>(m_hit_ray_indices_.size())  //
+                                     * (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
         positions_world.resize(2, max_num_samples);
         directions_world.resize(2, max_num_samples);
         distances.resize(max_num_samples);
@@ -233,7 +247,7 @@ namespace erl::geometry {
             const long hit_ray_index = m_hit_ray_indices_[hit_index];
             double r = uniform_real_dist(common::g_random_engine);
             r *= m_ranges_[hit_ray_index];
-            Eigen::Vector2d position_scan = m_translation_ + r * m_dirs_world_.col(hit_ray_index);
+            Eigen::Vector2d position_scan = m_translation_ + r * m_dirs_world_[hit_ray_index];
             ComputeRaysAt(position_scan, dirs, dists, visible_hit_point_indices);
 
             const auto num_rays = static_cast<long>(visible_hit_point_indices.size());
@@ -281,9 +295,9 @@ namespace erl::geometry {
         Eigen::VectorXd &distances,
         std::vector<long> &visible_hit_point_indices) const {
         visible_hit_point_indices.clear();
-        const long max_num_rays = m_end_pts_world_.cols();
+        const auto max_num_rays = static_cast<long>(m_end_pts_world_.size());
         Eigen::Matrix2Xd area_vertices(2, max_num_rays + 1);
-        area_vertices.block(0, 0, 2, max_num_rays) << m_end_pts_world_;
+        area_vertices.block(0, 0, 2, max_num_rays) << Eigen::Map<const Eigen::Matrix2Xd>(m_end_pts_world_.data()->data(), 2, max_num_rays);
         area_vertices.col(max_num_rays) << m_translation_;
         if (WindingNumber(position_world, area_vertices) <= 0) { return; }  // not inside
 
@@ -292,20 +306,20 @@ namespace erl::geometry {
 
         visible_hit_point_indices.reserve(max_num_rays);
         for (long ray_idx = 0; ray_idx < max_num_rays; ++ray_idx) {
-            Eigen::Vector2d vec = m_end_pts_world_.col(ray_idx) - position_world;
+            Eigen::Vector2d vec = m_end_pts_world_[ray_idx] - position_world;
             double min_dist = vec.norm();
             vec /= min_dist;
             double lam, dist;
-            ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_translation_, m_end_pts_world_.col(0), lam, dist);
+            ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_translation_, m_end_pts_world_[0], lam, dist);
             if (lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
-            ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_end_pts_world_.col(max_num_rays - 1), m_translation_, lam, dist);
+            ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_end_pts_world_[max_num_rays - 1], m_translation_, lam, dist);
             if (lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
 
             long arg_min = ray_idx;
             for (long ray_idx2 = 1; ray_idx2 < max_num_rays; ++ray_idx2) {
                 if (ray_idx2 == ray_idx || ray_idx2 == ray_idx + 1) { continue; }        // skip neighboring edges
                 if (!m_mask_hit_[ray_idx2 - 1] || !m_mask_hit_[ray_idx2]) { continue; }  // the vertex is not a hit
-                ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_end_pts_world_.col(ray_idx2 - 1), m_end_pts_world_.col(ray_idx2), lam, dist);
+                ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_end_pts_world_[ray_idx2 - 1], m_end_pts_world_[ray_idx2], lam, dist);
                 if (lam < 0 || lam > 1) { continue; }  // the intersection is not on the segment
                 if (dist > 0 && dist < min_dist) {
                     min_dist = dist;
