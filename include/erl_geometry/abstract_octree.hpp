@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aabb.hpp"
 #include "nd_tree_setting.hpp"
 
 #include "erl_common/string_utils.hpp"
@@ -147,18 +148,118 @@ namespace erl::geometry {
         GetMemoryUsage() const = 0;
         [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsagePerNode() const = 0;
+
+        Eigen::Vector3d
+        GetMetricMin() {
+            Eigen::Vector3d min;
+            GetMetricMin(min.x(), min.y(), min.z());
+            return min;
+        }
+
+        [[nodiscard]] Eigen::Vector3d
+        GetMetricMin() const {
+            Eigen::Vector3d min;
+            GetMetricMin(min.x(), min.y(), min.z());
+            return min;
+        }
+
+        void
+        GetMetricMin(Eigen::Vector3d& min) {
+            GetMetricMin(min.x(), min.y(), min.z());
+        }
+
+        void
+        GetMetricMin(Eigen::Vector3d& min) const {
+            GetMetricMin(min.x(), min.y(), min.z());
+        }
+
         virtual void
         GetMetricMin(double& x, double& y, double& z) = 0;
         virtual void
         GetMetricMin(double& x, double& y, double& z) const = 0;
+
+        Eigen::Vector3d
+        GetMetricMax() {
+            Eigen::Vector3d max;
+            GetMetricMax(max.x(), max.y(), max.z());
+            return max;
+        }
+
+        [[nodiscard]] Eigen::Vector3d
+        GetMetricMax() const {
+            Eigen::Vector3d max;
+            GetMetricMax(max.x(), max.y(), max.z());
+            return max;
+        }
+
+        void
+        GetMetricMax(Eigen::Vector3d& max) {
+            GetMetricMax(max.x(), max.y(), max.z());
+        }
+
+        void
+        GetMetricMax(Eigen::Vector3d& max) const {
+            GetMetricMax(max.x(), max.y(), max.z());
+        }
+
         virtual void
         GetMetricMax(double& x, double& y, double& z) = 0;
         virtual void
         GetMetricMax(double& x, double& y, double& z) const = 0;
+
+        Aabb3D
+        GetMetricAabb() {
+            Eigen::Vector3d min, max;
+            GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
+            return {min, max};
+        }
+
+        [[nodiscard]] Aabb3D
+        GetMetricAabb() const {
+            Eigen::Vector3d min, max;
+            GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
+            return {min, max};
+        }
+
+        std::pair<Eigen::Vector3d, Eigen::Vector3d>
+        GetMetricMinMax() {
+            Eigen::Vector3d min, max;
+            GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
+            return {std::move(min), std::move(max)};
+        }
+
+        [[nodiscard]] std::pair<Eigen::Vector3d, Eigen::Vector3d>
+        GetMetricMinMax() const {
+            Eigen::Vector3d min, max;
+            GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
+            return {std::move(min), std::move(max)};
+        }
+
+        void
+        GetMetricMinMax(Eigen::Vector3d& min, Eigen::Vector3d& max) {
+            GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
+        }
+
+        void
+        GetMetricMinMax(Eigen::Vector3d& min, Eigen::Vector3d& max) const {
+            GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
+        }
+
         virtual void
         GetMetricMinMax(double& min_x, double& min_y, double& min_z, double& max_x, double& max_y, double& max_z) = 0;
         virtual void
         GetMetricMinMax(double& min_x, double& min_y, double& min_z, double& max_x, double& max_y, double& max_z) const = 0;
+
+        void
+        GetMetricSize(Eigen::Vector3d& size) {
+            GetMetricSize(size.x(), size.y(), size.z());
+        }
+
+        void
+        GetMetricSize(Eigen::Vector3d& size) const {
+            GetMetricSize(size.x(), size.y(), size.z());
+        }
+
         virtual void
         GetMetricSize(double& x, double& y, double& z) = 0;
         virtual void

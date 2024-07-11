@@ -158,6 +158,8 @@ namespace erl::geometry {
         }
 
     public:
+        using Interface::GetMetricMin;
+
         void
         GetMetricMin(double &min_x, double &min_y, double &min_z) override {
             ComputeMinMax();
@@ -192,6 +194,8 @@ namespace erl::geometry {
             }
         }
 
+        using Interface::GetMetricMax;
+
         void
         GetMetricMax(double &max_x, double &max_y, double &max_z) override {
             this->ComputeMinMax();
@@ -225,6 +229,8 @@ namespace erl::geometry {
                 if (node_max_z > max_z) { max_z = node_max_z; }
             }
         }
+
+        using Interface::GetMetricMinMax;
 
         void
         GetMetricMinMax(double &min_x, double &min_y, double &min_z, double &max_x, double &max_y, double &max_z) override {
@@ -273,6 +279,8 @@ namespace erl::geometry {
                 if (node_min_z < min_z) { min_z = node_min_z; }
             }
         }
+
+        using Interface::GetMetricSize;
 
         void
         GetMetricSize(double &x, double &y, double &z) override {
@@ -411,7 +419,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] OctreeKey::KeyType
-        CoordToKey(const double coordinate, uint32_t depth) const {
+        CoordToKey(const double coordinate, const uint32_t depth) const {
             const uint32_t tree_depth = m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
             const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
@@ -541,7 +549,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] OctreeKey::KeyType
-        AdjustKeyToDepth(const OctreeKey::KeyType key, uint32_t depth) const {
+        AdjustKeyToDepth(const OctreeKey::KeyType key, const uint32_t depth) const {
             const uint32_t tree_depth = m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
             const uint32_t diff = tree_depth - depth;
@@ -778,10 +786,10 @@ namespace erl::geometry {
                 if (m_stack_.size() != other.m_stack_.size()) { return false; }
                 if (m_stack_.empty()) { return true; }
 
-                const StackElement &kTop = m_stack_.back();
+                const StackElement &top = m_stack_.back();
                 auto &other_top = other.m_stack_.back();
-                if (kTop.node != other_top.node) { return false; }
-                if (kTop.key != other_top.key) { return false; }
+                if (top.node != other_top.node) { return false; }
+                if (top.key != other_top.key) { return false; }
                 return true;
             }
 
@@ -812,20 +820,20 @@ namespace erl::geometry {
 
             [[nodiscard]] double
             GetX() const {
-                const StackElement &kTop = m_stack_.back();
-                return m_tree_->KeyToCoord(kTop.key[0], kTop.node->GetDepth());
+                const StackElement &top = m_stack_.back();
+                return m_tree_->KeyToCoord(top.key[0], top.node->GetDepth());
             }
 
             [[nodiscard]] double
             GetY() const {
-                const StackElement &kTop = m_stack_.back();
-                return m_tree_->KeyToCoord(kTop.key[1], kTop.node->GetDepth());
+                const StackElement &top = m_stack_.back();
+                return m_tree_->KeyToCoord(top.key[1], top.node->GetDepth());
             }
 
             [[nodiscard]] double
             GetZ() const {
-                const StackElement &kTop = m_stack_.back();
-                return m_tree_->KeyToCoord(kTop.key[2], kTop.node->GetDepth());
+                const StackElement &top = m_stack_.back();
+                return m_tree_->KeyToCoord(top.key[2], top.node->GetDepth());
             }
 
             [[nodiscard]] double
@@ -845,8 +853,8 @@ namespace erl::geometry {
 
             [[maybe_unused]] [[nodiscard]] OctreeKey
             GetIndexKey() const {
-                const StackElement &kTop = m_stack_.back();
-                return m_tree_->AdjustKeyToDepth(kTop.key, kTop.node->GetDepth());
+                const StackElement &top = m_stack_.back();
+                return m_tree_->AdjustKeyToDepth(top.key, top.node->GetDepth());
             }
 
         protected:
@@ -929,9 +937,9 @@ namespace erl::geometry {
             // post-increment
             TreeIterator
             operator++(int) {
-                const TreeIterator kResult = *this;
+                const TreeIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1042,9 +1050,9 @@ namespace erl::geometry {
             // post-increment
             TreeInAabbIterator
             operator++(int) {
-                const TreeInAabbIterator kResult = *this;
+                const TreeInAabbIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1086,9 +1094,9 @@ namespace erl::geometry {
             // post-increment
             LeafInAabbIterator
             operator++(int) {
-                const LeafInAabbIterator kResult = *this;
+                const LeafInAabbIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1168,9 +1176,9 @@ namespace erl::geometry {
             // post-increment
             LeafOfNodeIterator
             operator++(int) {
-                const LeafOfNodeIterator kResult = *this;
+                const LeafOfNodeIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1318,9 +1326,9 @@ namespace erl::geometry {
             // post-increment
             WestLeafNeighborIterator
             operator++(int) {
-                const WestLeafNeighborIterator kResult = *this;
+                const WestLeafNeighborIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1366,9 +1374,9 @@ namespace erl::geometry {
             // post-increment
             EastLeafNeighborIterator
             operator++(int) {
-                const EastLeafNeighborIterator kResult = *this;
+                const EastLeafNeighborIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1415,9 +1423,9 @@ namespace erl::geometry {
             // post-increment
             NorthLeafNeighborIterator
             operator++(int) {
-                const NorthLeafNeighborIterator kResult = *this;
+                const NorthLeafNeighborIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1463,9 +1471,9 @@ namespace erl::geometry {
             // post-increment
             SouthLeafNeighborIterator
             operator++(int) {
-                const SouthLeafNeighborIterator kResult = *this;
+                const SouthLeafNeighborIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1512,9 +1520,9 @@ namespace erl::geometry {
             // post-increment
             auto
             operator++(int) {
-                const TopLeafNeighborIterator kResult = *this;
+                const TopLeafNeighborIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1561,9 +1569,9 @@ namespace erl::geometry {
             // post-increment
             auto
             operator++(int) {
-                const BottomLeafNeighborIterator kResult = *this;
+                const BottomLeafNeighborIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment
@@ -1638,9 +1646,9 @@ namespace erl::geometry {
             // post-increment
             NodeOnRayIterator
             operator++(int) {
-                const NodeOnRayIterator kResult = *this;
+                const NodeOnRayIterator result = *this;
                 ++(*this);
-                return kResult;
+                return result;
             }
 
             // pre-increment

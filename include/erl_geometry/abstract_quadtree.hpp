@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aabb.hpp"
 #include "nd_tree_setting.hpp"
 
 #include "erl_common/string_utils.hpp"
@@ -147,18 +148,132 @@ namespace erl::geometry {
         GetMemoryUsage() const = 0;
         [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsagePerNode() const = 0;
+
+        Eigen::Vector2d
+        GetMetricMin() {
+            Eigen::Vector2d min;
+            GetMetricMin(min.x(), min.y());
+            return min;
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        GetMetricMin() const {
+            Eigen::Vector2d min;
+            GetMetricMin(min.x(), min.y());
+            return min;
+        }
+
+        void
+        GetMetricMin(Eigen::Vector2d& min) {
+            GetMetricMin(min.x(), min.y());
+        }
+
+        void
+        GetMetricMin(Eigen::Vector2d& min) const {
+            GetMetricMin(min.x(), min.y());
+        }
+
         virtual void
         GetMetricMin(double& x, double& y) = 0;
         virtual void
         GetMetricMin(double& x, double& y) const = 0;
+
+        Eigen::Vector2d
+        GetMetricMax() {
+            Eigen::Vector2d max;
+            GetMetricMax(max.x(), max.y());
+            return max;
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        GetMetricMax() const {
+            Eigen::Vector2d max;
+            GetMetricMax(max.x(), max.y());
+            return max;
+        }
+
+        void
+        GetMetricMax(Eigen::Vector2d& max) {
+            GetMetricMax(max.x(), max.y());
+        }
+
+        void
+        GetMetricMax(Eigen::Vector2d& max) const {
+            GetMetricMax(max.x(), max.y());
+        }
+
         virtual void
         GetMetricMax(double& x, double& y) = 0;
         virtual void
         GetMetricMax(double& x, double& y) const = 0;
+
+        Aabb2D
+        GetMetricAabb() {
+            Eigen::Vector2d min, max;
+            GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+            return {min, max};
+        }
+
+        [[nodiscard]] Aabb2D
+        GetMetricAabb() const {
+            Eigen::Vector2d min, max;
+            GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+            return {min, max};
+        }
+
+        std::pair<Eigen::Vector2d, Eigen::Vector2d>
+        GetMetricMinMax() {
+            Eigen::Vector2d min, max;
+            GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+            return {min, max};
+        }
+
+        [[nodiscard]] std::pair<Eigen::Vector2d, Eigen::Vector2d>
+        GetMetricMinMax() const {
+            Eigen::Vector2d min, max;
+            GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+            return {min, max};
+        }
+
+        void
+        GetMetricMinMax(Eigen::Vector2d& min, Eigen::Vector2d& max) {
+            GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+        }
+
+        void
+        GetMetricMinMax(Eigen::Vector2d& min, Eigen::Vector2d& max) const {
+            GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+        }
+
         virtual void
         GetMetricMinMax(double& min_x, double& min_y, double& max_x, double& max_y) = 0;
         virtual void
         GetMetricMinMax(double& min_x, double& min_y, double& max_x, double& max_y) const = 0;
+
+        Eigen::Vector2d
+        GetMetricSize() {
+            Eigen::Vector2d size;
+            GetMetricSize(size.x(), size.y());
+            return size;
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        GetMetricSize() const {
+            Eigen::Vector2d size;
+            GetMetricSize(size.x(), size.y());
+            return size;
+        }
+
+        void
+        GetMetricSize(Eigen::Vector2d& size) {
+            GetMetricSize(size.x(), size.y());
+        }
+
+        void
+        GetMetricSize(Eigen::Vector2d& size) const {
+            GetMetricSize(size.x(), size.y());
+        }
+
         virtual void
         GetMetricSize(double& x, double& y) = 0;
         virtual void

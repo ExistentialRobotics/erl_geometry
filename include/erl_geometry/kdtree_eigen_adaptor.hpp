@@ -93,17 +93,25 @@ namespace erl::geometry {
         void
         Knn(size_t k, const Eigen::Ref<const Eigen::Vector<T, Dim>> &point, Eigen::VectorX<IndexType> &indices_out, Eigen::VectorX<NumType> &metric_out) {
             ERL_ASSERTM(m_tree_ != nullptr, "tree is not ready yet. Please call Build() first.");
-            nanoflann::KNNResultSet<NumType, IndexType> result_set(k);
-            result_set.init(&indices_out, &metric_out);  // default metric is squared euclidean distance
-            m_tree_->findNeighbors(result_set, point.data(), nanoflann::SearchParameters());
+            m_tree_->knnSearch(point.data(), k, indices_out.data(), metric_out.data());
         }
 
         void
         Nearest(const Eigen::Ref<const Eigen::Vector<T, Dim>> &point, IndexType &index, NumType &metric) {
             ERL_ASSERTM(m_tree_ != nullptr, "tree is not ready yet. Please call Build() first.");
-            nanoflann::KNNResultSet<NumType, IndexType> result_set(1);
-            result_set.init(&index, &metric);  // default metric is squared euclidean distance
-            m_tree_->findNeighbors(result_set, point.data(), nanoflann::SearchParameters());
+            m_tree_->knnSearch(point.data(), 1, &index, &metric);
+        }
+
+        void
+        RadiusSearch(
+            const Eigen::Ref<const Eigen::Vector<T, Dim>> &point,
+            NumType radius,
+            std::vector<nanoflann::ResultItem<IndexType, NumType>> &indices_dists,
+            const bool sorted) {
+            ERL_ASSERTM(m_tree_ != nullptr, "tree is not ready yet. Please call Build() first.");
+            nanoflann::SearchParameters params;
+            params.sorted = sorted;
+            m_tree_->radiusSearch(point.data(), radius, indices_dists, params);
         }
 
         // Returns the number of points: used by TreeType

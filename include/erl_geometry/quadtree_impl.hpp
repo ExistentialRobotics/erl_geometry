@@ -151,6 +151,8 @@ namespace erl::geometry {
         }
 
     public:
+        using Interface::GetMetricMin;
+
         void
         GetMetricMin(double &min_x, double &min_y) override {
             ComputeMinMax();
@@ -181,6 +183,8 @@ namespace erl::geometry {
             }
         }
 
+        using Interface::GetMetricMax;
+
         void
         GetMetricMax(double &max_x, double &max_y) override {
             this->ComputeMinMax();
@@ -210,6 +214,8 @@ namespace erl::geometry {
                 if (node_max_y > max_y) { max_y = node_max_y; }
             }
         }
+
+        using Interface::GetMetricMinMax;
 
         void
         GetMetricMinMax(double &min_x, double &min_y, double &max_x, double &max_y) override {
@@ -250,6 +256,8 @@ namespace erl::geometry {
                 if (node_min_y < min_y) { min_y = node_min_y; }
             }
         }
+
+        using Interface::GetMetricSize;
 
         void
         GetMetricSize(double &x, double &y) override {
