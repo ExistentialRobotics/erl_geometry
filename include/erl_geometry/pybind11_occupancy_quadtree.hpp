@@ -39,10 +39,7 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
             "write_raw",
             [](Quadtree& self, const std::string& filename) -> bool { return self.Write(filename); },
             py::arg("filename"))
-        .def(
-            "read_raw",
-            [](Quadtree& self, const std::string& filename) -> bool { return self.LoadData(filename); },
-            py::arg("filename"));
+        .def("read_raw", [](Quadtree& self, const std::string& filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
 
     // AbstractOccupancyQuadtree methods
     tree.def(
@@ -204,34 +201,11 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
         .def_property_readonly("tree_center", &Quadtree::GetTreeCenter)
         .def_property_readonly("tree_center_key", &Quadtree::GetTreeCenterKey)
         .def_property_readonly("tree_max_half_size", &Quadtree::GetTreeMaxHalfSize)
-        .def_property_readonly(
-            "metric_min",
-            [](Quadtree& self) {
-                double x, y;
-                self.GetMetricMin(x, y);
-                return std::make_tuple(x, y);
-            })
-        .def_property_readonly(
-            "metric_max",
-            [](Quadtree& self) {
-                double x, y;
-                self.GetMetricMax(x, y);
-                return std::make_tuple(x, y);
-            })
-        .def_property_readonly(
-            "metric_min_max",
-            [](Quadtree& self) {
-                double min_x, min_y, max_x, max_y;
-                self.GetMetricMinMax(min_x, min_y, max_x, max_y);
-                return std::make_tuple(std::make_tuple(min_x, min_y), std::make_tuple(max_x, max_y));
-            })
-        .def_property_readonly(
-            "metric_size",
-            [](Quadtree& self) {
-                double x, y;
-                self.GetMetricSize(x, y);
-                return std::make_tuple(x, y);
-            })
+        .def_property_readonly("metric_min", [](Quadtree& self) { return self.GetMetricMin(); })
+        .def_property_readonly("metric_max", [](Quadtree& self) { return self.GetMetricMax(); })
+        .def_property_readonly("metric_min_max", [](Quadtree& self) { return self.GetMetricMinMax(); })
+        .def_property_readonly("metric_aabb", [](Quadtree& self) { return self.GetMetricAabb(); })
+        .def_property_readonly("metric_size", [](Quadtree& self) { return self.GetMetricSize(); })
         .def("get_node_size", &Quadtree::GetNodeSize, py::arg("depth"))
         .def_property_readonly("number_of_leaf_nodes", &Quadtree::ComputeNumberOfLeafNodes)
         .def_property_readonly("memory_usage", &Quadtree::GetMemoryUsage)

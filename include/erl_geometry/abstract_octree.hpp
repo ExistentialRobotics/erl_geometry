@@ -250,6 +250,20 @@ namespace erl::geometry {
         virtual void
         GetMetricMinMax(double& min_x, double& min_y, double& min_z, double& max_x, double& max_y, double& max_z) const = 0;
 
+        Eigen::Vector3d
+        GetMetricSize() {
+            Eigen::Vector3d size;
+            GetMetricSize(size.x(), size.y(), size.z());
+            return size;
+        }
+
+        [[nodiscard]] Eigen::Vector3d
+        GetMetricSize() const {
+            Eigen::Vector3d size;
+            GetMetricSize(size.x(), size.y(), size.z());
+            return size;
+        }
+
         void
         GetMetricSize(Eigen::Vector3d& size) {
             GetMetricSize(size.x(), size.y(), size.z());

@@ -49,4 +49,5 @@ BindOccupancyTrees(const py::module& m) {
     BindOccupancyOctree<OccupancyOctree, OccupancyOctreeNode>(m, "OccupancyOctree", "OccupancyOctreeNode");
 
     BindOccupancyQuadtree<SurfaceMappingQuadtree, SurfaceMappingQuadtreeNode>(m, "SurfaceMappingQuadtree", "SurfaceMappingQuadtreeNode");
+    BindOccupancyOctree<SurfaceMappingOctree, SurfaceMappingOctreeNode>(m, "SurfaceMappingOctree", "SurfaceMappingOctreeNode");
 }

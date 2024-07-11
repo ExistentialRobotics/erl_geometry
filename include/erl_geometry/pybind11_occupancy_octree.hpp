@@ -38,10 +38,7 @@ BindOccupancyOctree(const py::module &m, const char *tree_name, const char *node
             "write_raw",
             [](Octree &self, const std::string &filename) -> bool { return self.Write(filename); },
             py::arg("filename"))
-        .def(
-            "read_raw",
-            [](Octree &self, const std::string &filename) -> bool { return self.LoadData(filename); },
-            py::arg("filename"));
+        .def("read_raw", [](Octree &self, const std::string &filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
 
     // AbstractOccupancyOctree methods
     tree.def(
@@ -231,34 +228,11 @@ BindOccupancyOctree(const py::module &m, const char *tree_name, const char *node
         .def_property_readonly("tree_center", &Octree::GetTreeCenter)
         .def_property_readonly("tree_center_key", &Octree::GetTreeCenterKey)
         .def_property_readonly("tree_max_half_size", &Octree::GetTreeMaxHalfSize)
-        .def_property_readonly(
-            "metric_min",
-            [](Octree &self) {
-                double x, y, z;
-                self.GetMetricMin(x, y, z);
-                return std::make_tuple(x, y, z);
-            })
-        .def_property_readonly(
-            "metric_max",
-            [](Octree &self) {
-                double x, y, z;
-                self.GetMetricMax(x, y, z);
-                return std::make_tuple(x, y, z);
-            })
-        .def_property_readonly(
-            "metric_min_max",
-            [](Octree &self) {
-                double min_x, min_y, min_z, max_x, max_y, max_z;
-                self.GetMetricMinMax(min_x, min_y, min_z, max_x, max_y, max_z);
-                return std::make_tuple(std::make_tuple(min_x, min_y, min_z), std::make_tuple(max_x, max_y, max_z));
-            })
-        .def_property_readonly(
-            "metric_size",
-            [](Octree &self) {
-                double x, y, z;
-                self.GetMetricSize(x, y, z);
-                return std::make_tuple(x, y, z);
-            })
+        .def_property_readonly("metric_min", [](Octree &self) { return self.GetMetricMin(); })
+        .def_property_readonly("metric_max", [](Octree &self) { return self.GetMetricMax(); })
+        .def_property_readonly("metric_min_max", [](Octree &self) { return self.GetMetricMinMax(); })
+        .def_property_readonly("metric_aabb", [](Octree &self) { return self.GetMetricAabb(); })
+        .def_property_readonly("metric_size", [](Octree &self) { return self.GetMetricSize(); })
         .def("get_node_size", &Octree::GetNodeSize, py::arg("depth"))
         .def_property_readonly("number_of_leaf_nodes", &Octree::ComputeNumberOfLeafNodes)
         .def_property_readonly("memory_usage", &Octree::GetMemoryUsage)
