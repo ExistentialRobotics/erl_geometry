@@ -100,6 +100,13 @@ BindRangeSensorFrame3D(const py::module &m) {
         .def_property_readonly("max_valid_range", [](const RangeSensorFrame3D &self) { return self.GetMaxValidRange(); })
         .def_property_readonly("hit_mask", [](const RangeSensorFrame3D &self) { return self.GetHitMask(); })
         .def_property_readonly("is_valid", [](const RangeSensorFrame3D &self) { return self.IsValid(); })
+        .def("point_is_in_frame", &RangeSensorFrame3D::PointIsInFrame, py::arg("xyz_frame"))
+        .def("coords_is_in_frame", &RangeSensorFrame3D::CoordsIsInFrame, py::arg("frame_coords"))
+        .def("compute_frame_coords", &RangeSensorFrame3D::ComputeFrameCoords, py::arg("xyz_frame"))
+        .def("world_to_frame_so3", &RangeSensorFrame3D::WorldToFrameSo3, py::arg("dir_world"))
+        .def("frame_to_world_so3", &RangeSensorFrame3D::FrameToWorldSo3, py::arg("dir_frame"))
+        .def("world_to_frame_se3", &RangeSensorFrame3D::WorldToFrameSe3, py::arg("xyz_world"))
+        .def("frame_to_world_se3", &RangeSensorFrame3D::FrameToWorldSe3, py::arg("xyz_frame"))
         .def(
             "compute_closest_end_point",
             [](RangeSensorFrame3D &self, const Eigen::Ref<const Eigen::Vector3d> &position_world, const bool brute_force) -> py::dict {

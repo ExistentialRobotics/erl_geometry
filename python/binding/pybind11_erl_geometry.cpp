@@ -43,7 +43,7 @@ void
 BindLidarFrame3D(const py::module &m);
 
 void
-BindRgbdFrame3D(const py::module &m);
+BindDepthFrame3D(const py::module &m);
 
 void
 BindUtils(py::module &m);
@@ -65,6 +65,6 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindDepthCamera3D(m);
     BindRangeSensorFrame3D(m);
     BindLidarFrame3D(m);
-    BindRgbdFrame3D(m);
+    BindDepthFrame3D(m);
     BindUtils(m);
 }

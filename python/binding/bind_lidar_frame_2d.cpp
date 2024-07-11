@@ -17,19 +17,25 @@ BindLidarFrame2D(const py::module &m) {
         .def(py::init<>())
         .def_readwrite("valid_range_min", &LidarFrame2D::Setting::valid_range_min)
         .def_readwrite("valid_range_max", &LidarFrame2D::Setting::valid_range_max)
-        .def_readwrite("valid_angle_min", &LidarFrame2D::Setting::valid_angle_min)
-        .def_readwrite("valid_angle_max", &LidarFrame2D::Setting::valid_angle_max)
+        .def_readwrite("angle_min", &LidarFrame2D::Setting::angle_min)
+        .def_readwrite("angle_max", &LidarFrame2D::Setting::angle_max)
+        .def_readwrite("num_rays", &LidarFrame2D::Setting::num_rays)
         .def_readwrite("discontinuity_factor", &LidarFrame2D::Setting::discontinuity_factor)
         .def_readwrite("rolling_diff_discount", &LidarFrame2D::Setting::rolling_diff_discount)
         .def_readwrite("min_partition_size", &LidarFrame2D::Setting::min_partition_size);
 
     lidar_frame_2d.def(py::init<std::shared_ptr<LidarFrame2D::Setting>>(), py::arg("setting"))
+        .def("angle_is_in_frame", &LidarFrame2D::AngleIsInFrame, py::arg("angle_frame"))
+        .def("point_is_in_frame", &LidarFrame2D::PointIsInFrame, py::arg("xy_frame"))
+        .def("world_to_frame_so2", &LidarFrame2D::WorldToFrameSo2, py::arg("dir_world"))
+        .def("frame_to_world_so2", &LidarFrame2D::FrameToWorldSo2, py::arg("dir_frame"))
+        .def("world_to_frame_se2", &LidarFrame2D::WorldToFrameSe2, py::arg("xy_world"))
+        .def("frame_to_world_se2", &LidarFrame2D::FrameToWorldSe2, py::arg("xy_frame"))
         .def(
-            "update",
-            &LidarFrame2D::Update,
+            "update_ranges",
+            &LidarFrame2D::UpdateRanges,
             py::arg("rotation"),
             py::arg("translation"),
-            py::arg("angles"),
             py::arg("ranges"),
             py::arg("partition_rays") = false)
         .def_property_readonly("setting", &LidarFrame2D::GetSetting)

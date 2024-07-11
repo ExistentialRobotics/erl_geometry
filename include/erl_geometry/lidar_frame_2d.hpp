@@ -71,23 +71,23 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] Eigen::Vector2d
-        WorldToFrameSo2(const Eigen::Vector2d &vec_global) const {
-            return m_rotation_.transpose() * vec_global;
+        WorldToFrameSo2(const Eigen::Vector2d &dir_world) const {
+            return m_rotation_.transpose() * dir_world;
         }
 
         [[nodiscard]] Eigen::Vector2d
-        FrameToWorldSo2(const Eigen::Vector2d &vec_local) const {
-            return m_rotation_ * vec_local;
+        FrameToWorldSo2(const Eigen::Vector2d &dir_frame) const {
+            return m_rotation_ * dir_frame;
         }
 
         [[nodiscard]] Eigen::Vector2d
-        WorldToFrameSe2(const Eigen::Vector2d &vec_global) const {
-            return m_rotation_.transpose() * (vec_global - m_translation_);
+        WorldToFrameSe2(const Eigen::Vector2d &xy_world) const {
+            return m_rotation_.transpose() * (xy_world - m_translation_);
         }
 
         [[nodiscard]] Eigen::Vector2d
-        FrameToWorldSe2(const Eigen::Vector2d &vec_local) const {
-            return m_rotation_ * vec_local + m_translation_;
+        FrameToWorldSe2(const Eigen::Vector2d &xy_local) const {
+            return m_rotation_ * xy_local + m_translation_;
         }
 
         void

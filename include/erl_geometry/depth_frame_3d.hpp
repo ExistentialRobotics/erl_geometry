@@ -71,7 +71,7 @@ namespace erl::geometry {
             return m_partitioned_;
         }
 
-        bool
+        [[nodiscard]] bool
         PointIsInFrame(const Eigen::Vector3d &xyz_frame) const override {
             if (xyz_frame[2] < 0) { return false; }  // behind the camera
             return CoordsIsInFrame(ComputeFrameCoords(xyz_frame));
