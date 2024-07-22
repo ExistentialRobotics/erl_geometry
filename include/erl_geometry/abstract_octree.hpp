@@ -70,9 +70,8 @@ namespace erl::geometry {
         CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting);
 
         template<typename Derived>
-        static bool
-        RegisterTreeType() {
-            const std::string tree_type = demangle(typeid(Derived).name());
+        static std::enable_if_t<std::is_base_of_v<AbstractOctree, Derived>, bool>
+        RegisterTreeType(const std::string& tree_type) {
             if (s_class_id_mapping_.find(tree_type) != s_class_id_mapping_.end()) {
                 ERL_WARN("{} is already registered.", tree_type);
                 return false;
@@ -105,18 +104,18 @@ namespace erl::geometry {
         virtual void
         ApplySetting() = 0;
 
-        void
+        [[nodiscard]] bool
         ReadSetting(std::istream& s) const {
             std::streamsize len;
             s.read(reinterpret_cast<char*>(&len), sizeof(std::size_t));
             std::string yaml_str(len, '\0');
             s.read(yaml_str.data(), len);
-            m_setting_->FromYamlString(yaml_str);
+            return m_setting_->FromYamlString(yaml_str);
         }
 
         void
         WriteSetting(std::ostream& s) const {
-            const std::string yaml_str = m_setting_->AsYamlString();
+            const std::string yaml_str = m_setting_->AsYamlString() + "\n";  // add newline to separate from data
             const auto len = static_cast<std::streamsize>(yaml_str.size());
             s.write(reinterpret_cast<const char*>(&len), sizeof(std::size_t));
             s.write(yaml_str.data(), len);
@@ -365,5 +364,5 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
     };
 
-#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctree::RegisterTreeType<Derived>()
+#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctree::RegisterTreeType<Derived>(#Derived)
 }  // namespace erl::geometry

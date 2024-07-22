@@ -85,7 +85,10 @@ namespace erl::geometry {
         ERL_DEBUG("Reading Octree of type {}, size {}", tree_id, size);
         auto tree = CreateTree(tree_id, nullptr);
         if (!tree) { return nullptr; }
-        tree->ReadSetting(s);
+        if (!tree->ReadSetting(s)) {
+            ERL_WARN("Failed to read setting.");
+            return nullptr;
+        }
         tree->ApplySetting();
 
         std::getline(s, line);  // check if the next line is "data"
@@ -136,7 +139,10 @@ namespace erl::geometry {
             return false;
         }
         this->Clear();
-        this->ReadSetting(s);
+        if (!this->ReadSetting(s)) {
+            ERL_WARN("Failed to read setting.");
+            return false;
+        }
         this->ApplySetting();
 
         std::getline(s, line);  // check if the next line is "data"

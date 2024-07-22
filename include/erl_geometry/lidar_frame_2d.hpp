@@ -253,6 +253,26 @@ namespace erl::geometry {
             Eigen::VectorXd &distances,
             std::vector<long> &visible_hit_point_indices) const;
 
+        [[nodiscard]] bool
+        operator==(const LidarFrame2D &other) const;
+
+        [[nodiscard]] bool
+        operator!=(const LidarFrame2D &other) const {
+            return !(*this == other);
+        }
+
+        [[nodiscard]] bool
+        Write(const std::string &filename) const;
+
+        [[nodiscard]] bool
+        Write(std::ostream &s) const;
+
+        [[nodiscard]] bool
+        Read(const std::string &filename);
+
+        [[nodiscard]] bool
+        Read(std::istream &s);
+
     private:
         void
         PartitionRays();

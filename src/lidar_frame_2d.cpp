@@ -51,7 +51,7 @@ namespace erl::geometry {
         // #pragma omp parallel for default(none) shared(n, Eigen::Dynamic)
         for (long i = 0; i < n; ++i) {
             const double &range = m_ranges_[i];
-            if (range == 0 || std::isnan(range) || std::isinf(range)) { continue; }
+            if (range == 0 || !std::isfinite(range)) { continue; }
             const double &angle = m_angles_frame_[i];
             m_angles_world_[i] = common::WrapAnglePi(angle + m_rotation_angle_);
 
@@ -334,6 +334,359 @@ namespace erl::geometry {
             distances[num_valid_rays] = min_dist;
             visible_hit_point_indices.push_back(ray_idx);
         }
+    }
+
+    bool
+    LidarFrame2D::operator==(const LidarFrame2D &other) const {
+        if (m_setting_ == nullptr && other.m_setting_ != nullptr) { return false; }
+        if (m_setting_ != nullptr && (other.m_setting_ == nullptr || *m_setting_ != *other.m_setting_)) { return false; }
+        if (m_rotation_ != other.m_rotation_) { return false; }
+        if (m_rotation_angle_ != other.m_rotation_angle_) { return false; }
+        if (m_translation_ != other.m_translation_) { return false; }
+        if (m_angles_frame_ != other.m_angles_frame_) { return false; }
+        if (m_angles_world_ != other.m_angles_world_) { return false; }
+        if (m_ranges_ != other.m_ranges_) { return false; }
+        if (m_dirs_frame_ != other.m_dirs_frame_) { return false; }
+        if (m_dirs_world_ != other.m_dirs_world_) { return false; }
+        if (m_end_pts_frame_ != other.m_end_pts_frame_) { return false; }
+        if (m_end_pts_world_ != other.m_end_pts_world_) { return false; }
+        if (m_mask_hit_ != other.m_mask_hit_) { return false; }
+        if (m_mask_continuous_ != other.m_mask_continuous_) { return false; }
+        if (m_hit_ray_indices_ != other.m_hit_ray_indices_) { return false; }
+        if (m_hit_points_world_ != other.m_hit_points_world_) { return false; }
+        if (m_max_valid_range_ != other.m_max_valid_range_) { return false; }
+        if (m_partitioned_ != other.m_partitioned_) { return false; }
+        if (m_partitions_.size() != other.m_partitions_.size()) { return false; }
+        for (std::size_t i = 0; i < m_partitions_.size(); ++i) {
+            const auto &partition = m_partitions_[i];
+            const auto &other_partition = other.m_partitions_[i];
+            if (partition.m_index_begin_ != other_partition.m_index_begin_ || partition.m_index_end_ != other_partition.m_index_end_) { return false; }
+        }
+        return true;
+    }
+
+    bool
+    LidarFrame2D::Write(const std::string &filename) const {
+        ERL_INFO("Writing LidarFrame2D to file: {}", filename);
+        std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
+        std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
+        if (!file.is_open()) {
+            ERL_WARN("Failed to open file: {}", filename);
+            return false;
+        }
+
+        const bool success = Write(file);
+        file.close();
+        return success;
+    }
+
+    static const std::string kFileHeader = "# erl::geometry::LidarFrame2D";
+
+    bool
+    LidarFrame2D::Write(std::ostream &s) const {
+        s << kFileHeader << std::endl  //
+          << "# (feel free to add / change comments, but leave the first line as it is!)" << std::endl
+          << "setting" << std::endl;
+        // write setting
+        if (!m_setting_->Write(s)) {
+            ERL_WARN("Failed to write setting.");
+            return false;
+        }
+        // write data
+        s << "rotation" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_rotation_)) {
+            ERL_WARN("Failed to write rotation.");
+            return false;
+        }
+        s << "rotation_angle" << std::endl;
+        s.write(reinterpret_cast<const char *>(&m_rotation_angle_), sizeof(double));
+        s << "translation" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_translation_)) {
+            ERL_WARN("Failed to write translation.");
+            return false;
+        }
+        s << "angles_frame" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_angles_frame_)) {
+            ERL_WARN("Failed to write angles_frame.");
+            return false;
+        }
+        s << "angles_world" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_angles_world_)) {
+            ERL_WARN("Failed to write angles_world.");
+            return false;
+        }
+        s << "ranges" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_ranges_)) {
+            ERL_WARN("Failed to write ranges.");
+            return false;
+        }
+        s << "dirs_frame " << m_dirs_frame_.size() << std::endl;
+        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_dirs_frame_)) {
+            ERL_WARN("Failed to write dirs_frame.");
+            return false;
+        }
+        s << "dirs_world " << m_dirs_world_.size() << std::endl;
+        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_dirs_world_)) {
+            ERL_WARN("Failed to write dirs_world.");
+            return false;
+        }
+        s << "end_pts_frame " << m_end_pts_frame_.size() << std::endl;
+        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_end_pts_frame_)) {
+            ERL_WARN("Failed to write end_pts_frame.");
+            return false;
+        }
+        s << "end_pts_world " << m_end_pts_world_.size() << std::endl;
+        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_end_pts_world_)) {
+            ERL_WARN("Failed to write end_pts_world.");
+            return false;
+        }
+        s << "mask_hit" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_hit_)) {
+            ERL_WARN("Failed to write mask_hit.");
+            return false;
+        }
+        s << "mask_continuous" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_continuous_)) {
+            ERL_WARN("Failed to write mask_continuous.");
+            return false;
+        }
+        s << "hit_ray_indices " << m_hit_ray_indices_.size() << std::endl;
+        s.write(reinterpret_cast<const char *>(m_hit_ray_indices_.data()), static_cast<std::streamsize>(m_hit_ray_indices_.size() * sizeof(long)));
+        s << "hit_points_world " << m_hit_points_world_.size() << std::endl;
+        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_hit_points_world_)) {
+            ERL_WARN("Failed to write hit_points_world.");
+            return false;
+        }
+        s << "max_valid_range" << std::endl;
+        s.write(reinterpret_cast<const char *>(&m_max_valid_range_), sizeof(double));
+        s << "partitioned " << m_partitioned_ << std::endl;
+        s << "partitions " << m_partitions_.size() << std::endl;
+        for (const auto &partition: m_partitions_) { s << partition.m_index_begin_ << " " << partition.m_index_end_ << std::endl; }
+        s << "end_of_LidarFrame2D" << std::endl;
+        return s.good();
+    }
+
+    bool
+    LidarFrame2D::Read(const std::string &filename) {
+        ERL_INFO("Reading LidarFrame2D from file: {}", std::filesystem::absolute(filename));
+        std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+        if (!file.is_open()) {
+            ERL_WARN("Failed to open file: {}", filename.c_str());
+            return false;
+        }
+
+        const bool success = Read(file);
+        file.close();
+        return success;
+    }
+
+    bool
+    LidarFrame2D::Read(std::istream &s) {
+        if (!s.good()) {
+            ERL_WARN("Input stream is not ready for reading");
+            return false;
+        }
+
+        // check if the first line is valid
+        std::string line;
+        std::getline(s, line);
+        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
+            ERL_WARN("Header does not start with \"{}\"", kFileHeader.c_str());
+            return false;
+        }
+
+        auto skip_line = [&s]() {
+            char c;
+            do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
+        };
+
+        static const char *tokens[] = {
+            "setting",
+            "rotation",
+            "rotation_angle",
+            "translation",
+            "angles_frame",
+            "angles_world",
+            "ranges",
+            "dirs_frame",
+            "dirs_world",
+            "end_pts_frame",
+            "end_pts_world",
+            "mask_hit",
+            "mask_continuous",
+            "hit_ray_indices",
+            "hit_points_world",
+            "max_valid_range",
+            "partitioned",
+            "partitions",
+            "end_of_LidarFrame2D"};
+
+        // read data
+        std::string token;
+        int token_idx = 0;
+        while (s.good()) {
+            s >> token;
+            if (token.compare(0, 1, "#") == 0) {
+                skip_line();  // comment line, skip forward until end of line
+                continue;
+            }
+            // non-comment line
+            if (token != tokens[token_idx]) {
+                ERL_WARN("Expected token {}, got {}.", tokens[token_idx], token);  // check token
+                return false;
+            }
+            // reading state machine
+            switch (token_idx) {
+                case 0: {  // setting
+                    skip_line();
+                    if (!m_setting_->Read(s)) {
+                        ERL_WARN("Failed to read setting.");
+                        return false;
+                    }
+                    break;
+                }
+                case 1: {  // rotation
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_rotation_)) {
+                        ERL_WARN("Failed to read rotation.");
+                        return false;
+                    }
+                    break;
+                }
+                case 2: {  // rotation_angle
+                    skip_line();
+                    s.read(reinterpret_cast<char *>(&m_rotation_angle_), sizeof(double));
+                    break;
+                }
+                case 3: {  // translation
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_translation_)) {
+                        ERL_WARN("Failed to read translation.");
+                        return false;
+                    }
+                    break;
+                }
+                case 4: {  // angles_frame
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_angles_frame_)) {
+                        ERL_WARN("Failed to read angles_frame.");
+                        return false;
+                    }
+                    break;
+                }
+                case 5: {  // angles_world
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_angles_world_)) {
+                        ERL_WARN("Failed to read angles_world.");
+                        return false;
+                    }
+                    break;
+                }
+                case 6: {  // ranges
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_ranges_)) {
+                        ERL_WARN("Failed to read ranges.");
+                        return false;
+                    }
+                    break;
+                }
+                case 7: {  // dirs_frame
+                    skip_line();
+                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_dirs_frame_)) {
+                        ERL_WARN("Failed to read dirs_frame.");
+                        return false;
+                    }
+                    break;
+                }
+                case 8: {  // dirs_world
+                    skip_line();
+                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_dirs_world_)) {
+                        ERL_WARN("Failed to read dirs_world.");
+                        return false;
+                    }
+                    break;
+                }
+                case 9: {  // end_pts_frame
+                    skip_line();
+                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_end_pts_frame_)) {
+                        ERL_WARN("Failed to read end_pts_frame.");
+                        return false;
+                    }
+                    break;
+                }
+                case 10: {  // end_pts_world
+                    skip_line();
+                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_end_pts_world_)) {
+                        ERL_WARN("Failed to read end_pts_world.");
+                        return false;
+                    }
+                    break;
+                }
+                case 11: {  // mask_hit
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_hit_)) {
+                        ERL_WARN("Failed to read mask_hit.");
+                        return false;
+                    }
+                    break;
+                }
+                case 12: {  // mask_continuous
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_continuous_)) {
+                        ERL_WARN("Failed to read mask_continuous.");
+                        return false;
+                    }
+                    break;
+                }
+                case 13: {  // hit_ray_indices
+                    long n;
+                    s >> n;
+                    m_hit_ray_indices_.resize(n);
+                    skip_line();
+                    s.read(reinterpret_cast<char *>(m_hit_ray_indices_.data()), static_cast<std::streamsize>(n * sizeof(long)));
+                    break;
+                }
+                case 14: {  // hit_points_world
+                    skip_line();
+                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_hit_points_world_)) {
+                        ERL_WARN("Failed to read hit_points_world.");
+                        return false;
+                    }
+                    break;
+                }
+                case 15: {  // max_valid_range
+                    skip_line();
+                    s.read(reinterpret_cast<char *>(&m_max_valid_range_), sizeof(double));
+                    break;
+                }
+                case 16: {  // partitioned
+                    s >> m_partitioned_;
+                    break;
+                }
+                case 17: {  // partitions
+                    long n;
+                    s >> n;
+                    m_partitions_.clear();
+                    m_partitions_.reserve(n);
+                    for (long i = 0; i < n; ++i) {
+                        long index_begin, index_end;
+                        s >> index_begin >> index_end;
+                        m_partitions_.emplace_back(this, index_begin, index_end);
+                    }
+                    break;
+                }
+                case 18: {  // end of LidarFrame2D
+                    skip_line();
+                    return true;
+                }
+                default: {  // should not reach here
+                    ERL_FATAL("Internal error, should not reach here.");
+                }
+            }
+            ++token_idx;
+        }
+        ERL_WARN("Failed to read LidarFrame2D. Truncated file?");
+        return false;  // should not reach here
     }
 
     void

@@ -8,6 +8,7 @@
 #include <omp.h>
 
 #include <bitset>
+#include <deque>
 #include <utility>
 
 namespace erl::geometry {

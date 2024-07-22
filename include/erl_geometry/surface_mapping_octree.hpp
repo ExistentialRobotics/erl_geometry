@@ -6,11 +6,11 @@
 
 namespace erl::geometry {
 
-    class SurfaceMappingOctree : public geometry::OccupancyOctreeBase<SurfaceMappingOctreeNode, geometry::OccupancyOctreeBaseSetting> {
+    class SurfaceMappingOctree : public OccupancyOctreeBase<SurfaceMappingOctreeNode, OccupancyOctreeBaseSetting> {
 
     public:
-        using Setting = geometry::OccupancyOctreeBaseSetting;
-        using Drawer = geometry::OccupancyOctreeDrawer<SurfaceMappingOctree>;
+        using Setting = OccupancyOctreeBaseSetting;
+        using Drawer = OccupancyOctreeDrawer<SurfaceMappingOctree>;
 
         explicit SurfaceMappingOctree(const std::shared_ptr<Setting> &setting)
             : OccupancyOctreeBase(setting) {}
@@ -27,7 +27,7 @@ namespace erl::geometry {
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractOctree>
-        Create(const std::shared_ptr<geometry::NdTreeSetting> &setting) const override {
+        Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) { tree_setting = std::make_shared<Setting>(); }
             return std::make_shared<SurfaceMappingOctree>(tree_setting);

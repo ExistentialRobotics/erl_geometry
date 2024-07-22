@@ -56,7 +56,7 @@ TEST(OccupancyOctree, ErlImpl) {
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
                 const double &range = ranges(i, j);
-                if (std::isinf(range) || std::isnan(range)) { continue; }
+                if (!std::isfinite(range)) { continue; }
                 points.col(cnt_points++) = sensor_origin + range * orientation * ray_directions(i, j);
             }
         }
@@ -112,7 +112,7 @@ TEST(OccupancyOctree, Erl_ComputeUpdate) {
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
                 const double &range = ranges(i, j);
-                if (std::isinf(range) || std::isnan(range)) { continue; }
+                if (!std::isfinite(range)) { continue; }
                 points.col(cnt_points++) = sensor_origin + range * orientation * ray_directions(i, j);
             }
         }
@@ -169,7 +169,7 @@ TEST(OccupancyOctree, OctomapImpl) {
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
                 const double &range = ranges(i, j);
-                if (std::isinf(range) || std::isnan(range)) { continue; }
+                if (!std::isfinite(range)) { continue; }
                 Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
                 scan.push_back(static_cast<float>(point[0]), static_cast<float>(point[1]), static_cast<float>(point[2]));
             }
@@ -229,7 +229,7 @@ TEST(OccupancyOctree, Octomap_ComputeUpdate) {
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
                 const double &range = ranges(i, j);
-                if (std::isinf(range) || std::isnan(range)) { continue; }
+                if (!std::isfinite(range)) { continue; }
                 Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
                 scan.push_back(static_cast<float>(point[0]), static_cast<float>(point[1]), static_cast<float>(point[2]));
             }

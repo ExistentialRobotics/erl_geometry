@@ -34,12 +34,16 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractQuadtreeNode *
         Create(const uint32_t depth, const int child_index) const override {
-            return new OccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
+            auto node = new OccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
+            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyQuadtreeNode));
+            return node;
         }
 
         [[nodiscard]] AbstractQuadtreeNode *
         Clone() const override {
-            return new OccupancyQuadtreeNode(*this);
+            auto node = new OccupancyQuadtreeNode(*this);
+            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyQuadtreeNode));
+            return node;
         }
 
         //-- file IO
@@ -73,7 +77,10 @@ namespace erl::geometry {
 
         void
         Expand() override {
-            if (m_children_ == nullptr) { m_children_ = new AbstractQuadtreeNode *[4]; }
+            if (m_children_ == nullptr) {
+                m_children_ = new AbstractQuadtreeNode *[4];
+                ERL_TRACY_RECORD_ALLOC(m_children_, sizeof(AbstractQuadtreeNode *) * 4);
+            }
             for (int i = 0; i < 4; ++i) {
                 AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, i);  // make sure child type is correct if this class is inherited
                 m_children_[i] = child;

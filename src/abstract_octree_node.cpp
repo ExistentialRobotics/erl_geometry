@@ -59,11 +59,15 @@ namespace erl::geometry {
         if (m_children_ == nullptr) { return; }
         if (m_num_children_ > 0) {
             for (int i = 0; i < 8; ++i) {
-                if (m_children_[i] != nullptr) { delete m_children_[i]; }
+                if (m_children_[i] != nullptr) {
+                    delete m_children_[i];
+                    ERL_TRACY_RECORD_FREE(m_children_[i]);
+                }
             }
             m_num_children_ = 0;
         }
         delete[] m_children_;
+        ERL_TRACY_RECORD_FREE(m_children_);
         m_children_ = nullptr;
     }
 

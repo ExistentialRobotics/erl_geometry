@@ -9,19 +9,19 @@
 
 namespace erl::geometry {
 
-    HouseExpoMap::HouseExpoMap(const char *file)
-        : m_file_(file) {
-        std::cout << "Loading " << file << "..." << std::flush;
+    HouseExpoMap::HouseExpoMap(std::string file)
+        : m_file_(std::move(file)) {
+        std::cout << "Loading " << m_file_ << "..." << std::flush;
         std::ifstream ifs;
-        ifs.open(file);
-        if (!ifs.is_open()) { ERL_ASSERTM("Failed to open {} when current path is {}.", file, std::filesystem::current_path()); }
+        ifs.open(m_file_);
+        if (!ifs.is_open()) { ERL_ASSERTM("Failed to open {} when current path is {}.", m_file_, std::filesystem::current_path()); }
         nlohmann::json data = nlohmann::json::parse(ifs);
         FromJson(data, *this);
         ifs.close();
         std::cout << "Done." << std::endl;
     }
 
-    HouseExpoMap::HouseExpoMap(const char *file, double wall_thickness)
+    HouseExpoMap::HouseExpoMap(const std::string &file, double wall_thickness)
         : HouseExpoMap(file) {
         ERL_ASSERTM(wall_thickness >= 0.1, "Wall thickness must be >= 0.1.");
         ERL_INFO("Changing wall thickness to {:f} ...", wall_thickness);
@@ -41,7 +41,7 @@ namespace erl::geometry {
         auto map_image = m_meter_space_->GenerateMapImage(grid_map_info);
         cv::Mat map_mat;
         cv::eigen2cv(map_image, map_mat);
-        int ksize = int(free_threshold / resolution[0]) * 2 + 3;
+        const auto ksize = static_cast<int>(free_threshold / resolution[0]) * 2 + 3;
         cv::erode(map_mat, map_mat, cv::getStructuringElement(cv::MORPH_RECT, {ksize, ksize}));
         cv::cv2eigen(map_mat, map_image);
         m_meter_space_ = std::make_shared<geometry::Space2D>(Eigen::MatrixXd(map_image.cast<double>()), grid_map_info, 0, true);  // y up, x right

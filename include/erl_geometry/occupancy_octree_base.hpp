@@ -122,8 +122,8 @@ namespace erl::geometry {
                 this->ComputeUpdateForPointCloud(points, sensor_origin, max_range, parallel, free_cells, occupied_cells);
             }
             // insert data into tree
-            for (const OctreeKey& kFreeCell: free_cells) { this->UpdateNode(kFreeCell, false, lazy_eval); }
-            for (const OctreeKey& kOccupiedCell: occupied_cells) { this->UpdateNode(kOccupiedCell, true, lazy_eval); }
+            for (const OctreeKey& free_cell: free_cells) { this->UpdateNode(free_cell, false, lazy_eval); }
+            for (const OctreeKey& occupied_cell: occupied_cells) { this->UpdateNode(occupied_cell, true, lazy_eval); }
         }
 
         /**
@@ -150,10 +150,10 @@ namespace erl::geometry {
             Eigen::Matrix3Xd new_points(3, num_points);
             m_discrete_end_point_mapping_.clear();
             for (long i = 0; i < num_points; ++i) {
-                const auto& kP = points.col(i);
-                OctreeKey key = this->CoordToKey(kP[0], kP[1], kP[2]);
+                const auto& point = points.col(i);
+                OctreeKey key = this->CoordToKey(point[0], point[1], point[2]);
                 auto& indices = m_discrete_end_point_mapping_[key];
-                if (indices.empty()) { new_points.col(static_cast<long>(m_discrete_end_point_mapping_.size()) - 1) << kP; }  // new end point!
+                if (indices.empty()) { new_points.col(static_cast<long>(m_discrete_end_point_mapping_.size()) - 1) << point; }  // new end point!
                 indices.push_back(i);
             }
             new_points.conservativeResize(3, static_cast<long>(m_discrete_end_point_mapping_.size()));
@@ -226,14 +226,14 @@ namespace erl::geometry {
             // insert free cells
 #pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, sx, sy, sz, ranges, diffs, free_cells, free_cells_set)
             for (long i = 0; i < num_points; ++i) {
-                const auto& kP = points.col(i);
+                const auto& point = points.col(i);
                 uint32_t thread_idx = omp_get_thread_num();
                 OctreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
 
                 const double& range = ranges[i];
-                double ex = kP[0];
-                double ey = kP[1];
-                double ez = kP[2];
+                double ex = point[0];
+                double ey = point[1];
+                double ez = point[2];
                 if ((max_range >= 0.) && (range > max_range)) {  // crop ray at max_range
                     const double r = max_range / range;
                     ex = sx + diffs[i][0] * r;
@@ -247,8 +247,7 @@ namespace erl::geometry {
                     // slower than ComputeRayKeys, there is always a thread busy with this critical section
                     for (auto& key: key_ray) {
                         if (m_end_point_mapping_.find(key) != m_end_point_mapping_.end()) { continue; }  // skip keys marked as occupied
-                        const auto [_, new_key] = free_cells_set.emplace(key);
-                        if (new_key) { free_cells.push_back(key); }
+                        if (const auto [_, new_key] = free_cells_set.emplace(key); new_key) { free_cells.push_back(key); }
                     }
                 }
             }
@@ -278,16 +277,15 @@ namespace erl::geometry {
             omp_set_num_threads(this->m_key_rays_.size());
 #pragma omp parallel for if (parallel) default(none) shared(num_points, points, sensor_origin, max_range, lazy_eval) schedule(guided)
             for (long i = 0; i < num_points; ++i) {
-                const auto& kP = points.col(i);
+                const auto point = points.col(i);
                 uint32_t thread_idx = omp_get_thread_num();
                 OctreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
-                if (!this->ComputeRayKeys(sensor_origin[0], sensor_origin[1], sensor_origin[2], kP[0], kP[1], kP[2], key_ray)) { continue; }
+                if (!this->ComputeRayKeys(sensor_origin[0], sensor_origin[1], sensor_origin[2], point[0], point[1], point[2], key_ray)) { continue; }
 
 #pragma omp critical
                 {
                     for (auto& key: key_ray) { this->UpdateNode(key, false, lazy_eval); }
-                    const double range = (kP - sensor_origin).norm();
-                    if (max_range <= 0. || range <= max_range) { this->UpdateNode(kP[0], kP[1], kP[2], true, lazy_eval); }
+                    if (max_range <= 0. || (point - sensor_origin).norm() <= max_range) { this->UpdateNode(point[0], point[1], point[2], true, lazy_eval); }
                 }
             }
         }
@@ -614,32 +612,32 @@ namespace erl::geometry {
             }
 
             // compute t_max and t_delta
-            const double& kResolution = this->m_setting_->resolution;
+            const double resolution = this->m_setting_->resolution;
             double t_max[3];
             double t_delta[3];
             if (step[0] == 0) {
                 t_max[0] = std::numeric_limits<double>::infinity();
                 t_delta[0] = std::numeric_limits<double>::infinity();
             } else {
-                const double voxel_border = this->KeyToCoord(current_key[0]) + static_cast<double>(step[0]) * 0.5 * kResolution;
+                const double voxel_border = this->KeyToCoord(current_key[0]) + static_cast<double>(step[0]) * 0.5 * resolution;
                 t_max[0] = (voxel_border - px) / vx;
-                t_delta[0] = kResolution / std::abs(vx);
+                t_delta[0] = resolution / std::abs(vx);
             }
             if (step[1] == 0) {
                 t_max[1] = std::numeric_limits<double>::infinity();
                 t_delta[1] = std::numeric_limits<double>::infinity();
             } else {
-                const double voxel_border = this->KeyToCoord(current_key[1]) + static_cast<double>(step[1]) * 0.5 * kResolution;
+                const double voxel_border = this->KeyToCoord(current_key[1]) + static_cast<double>(step[1]) * 0.5 * resolution;
                 t_max[1] = (voxel_border - py) / vy;
-                t_delta[1] = kResolution / std::abs(vy);
+                t_delta[1] = resolution / std::abs(vy);
             }
             if (step[2] == 0) {
                 t_max[2] = std::numeric_limits<double>::infinity();
                 t_delta[2] = std::numeric_limits<double>::infinity();
             } else {
-                const double voxel_border = this->KeyToCoord(current_key[2]) + static_cast<double>(step[2]) * 0.5 * kResolution;
+                const double voxel_border = this->KeyToCoord(current_key[2]) + static_cast<double>(step[2]) * 0.5 * resolution;
                 t_max[2] = (voxel_border - pz) / vz;
-                t_delta[2] = kResolution / std::abs(vz);
+                t_delta[2] = resolution / std::abs(vz);
             }
 
             // incremental phase
@@ -665,10 +663,7 @@ namespace erl::geometry {
                 this->KeyToCoord(current_key, ex, ey, ez);
                 // check if max_range is reached
                 if (max_range_set) {
-                    const double dx = ex - px;
-                    const double dy = ey - py;
-                    const double dz = ez - pz;
-                    if ((dx * dx + dy * dy + dz * dz) > max_range_sq) { return nullptr; }
+                    if (const double dx = ex - px, dy = ey - py, dz = ez - pz; (dx * dx + dy * dy + dz * dz) > max_range_sq) { return nullptr; }
                 }
                 // search node of the new key
                 const Node* current_node = this->Search(current_key);
@@ -786,14 +781,13 @@ namespace erl::geometry {
                 return returned_node;
             }
             // last level
-            if (reinterpret_cast<OccupancyOctreeBaseSetting*>(this->m_setting_.get())->use_change_detection) {
+            if (this->m_setting_.get()->use_change_detection) {
                 bool occ_before = this->IsNodeOccupied(node);
                 this->UpdateNodeLogOdds(node, log_odds_delta);
                 if (node_just_created) {
                     m_changed_keys_.emplace(key, true);
-                } else if (occ_before != this->IsNodeOccupied(node)) {  // occupancy changed, track it
-                    const auto it = m_changed_keys_.find(key);
-                    if (it == m_changed_keys_.end()) {  // not found
+                } else if (occ_before != this->IsNodeOccupied(node)) {                             // occupancy changed, track it
+                    if (const auto it = m_changed_keys_.find(key); it == m_changed_keys_.end()) {  // not found
                         m_changed_keys_.emplace(key, false);
                     } else if (!it->second) {
                         m_changed_keys_.erase(it);
@@ -995,6 +989,7 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
+// ReSharper disable CppInconsistentNaming
 template<>
 struct YAML::convert<erl::geometry::OccupancyOctreeBaseSetting> {
     static Node
@@ -1016,3 +1011,5 @@ struct YAML::convert<erl::geometry::OccupancyOctreeBaseSetting> {
         return true;
     }
 };  // namespace YAML
+
+// ReSharper restore CppInconsistentNaming

@@ -85,7 +85,10 @@ namespace erl::geometry {
         ERL_DEBUG("Reading Quadtree of type {}, size {}", tree_id, size);
         auto tree = CreateTree(tree_id, nullptr);
         if (!tree) { return nullptr; }
-        tree->ReadSetting(s);
+        if (!tree->ReadSetting(s)) {
+            ERL_WARN("Failed to read setting");
+            return nullptr;
+        }
         tree->ApplySetting();
 
         std::getline(s, line);  // check if the next line is "data"
@@ -136,7 +139,10 @@ namespace erl::geometry {
             return false;
         }
         Clear();
-        ReadSetting(s);
+        if (!ReadSetting(s)) {
+            ERL_WARN("Failed to read setting");
+            return false;
+        }
         ApplySetting();
 
         std::getline(s, line);  // check if the next line is "data"

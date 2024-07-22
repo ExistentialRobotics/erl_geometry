@@ -24,7 +24,7 @@ namespace erl::geometry {
         long &end_point_row_index,
         long &end_point_col_index,
         double &distance,
-        bool brute_force) {
+        const bool brute_force) {
         if (brute_force) {
             end_point_row_index = -1;
             end_point_col_index = -1;
@@ -93,9 +93,9 @@ namespace erl::geometry {
 
     void
     RangeSensorFrame3D::SampleAlongRays(
-        double range_step,
-        double max_in_obstacle_dist,
-        double sampled_rays_ratio,
+        const double range_step,
+        const double max_in_obstacle_dist,
+        const double sampled_rays_ratio,
         Eigen::Matrix3Xd &positions_world,
         Eigen::Matrix3Xd &directions_world,
         Eigen::VectorXd &distances) const {
@@ -331,6 +331,307 @@ namespace erl::geometry {
             distance = dir.norm();
             dir /= distance;
         }
+    }
+
+    bool
+    RangeSensorFrame3D::operator==(const RangeSensorFrame3D &other) const {
+        if (m_setting_ == nullptr && other.m_setting_ != nullptr) { return false; }
+        if (m_setting_ != nullptr && (other.m_setting_ == nullptr || *m_setting_ != *other.m_setting_)) { return false; }
+        if (m_rotation_ != other.m_rotation_) { return false; }
+        if (m_translation_ != other.m_translation_) { return false; }
+        if (m_frame_coords_ != other.m_frame_coords_) { return false; }
+        if (m_ranges_ != other.m_ranges_) { return false; }
+        if (m_dirs_frame_ != other.m_dirs_frame_) { return false; }
+        if (m_dirs_world_ != other.m_dirs_world_) { return false; }
+        if (m_end_pts_frame_ != other.m_end_pts_frame_) { return false; }
+        if (m_end_pts_world_ != other.m_end_pts_world_) { return false; }
+        if (m_mask_hit_ != other.m_mask_hit_) { return false; }
+        if (m_mask_continuous_ != other.m_mask_continuous_) { return false; }
+        if (m_hit_ray_indices_ != other.m_hit_ray_indices_) { return false; }
+        if (m_hit_points_world_ != other.m_hit_points_world_) { return false; }
+        if (m_max_valid_range_ != other.m_max_valid_range_) { return false; }
+        return true;
+    }
+
+    bool
+    RangeSensorFrame3D::Write(const std::string &filename) const {
+        ERL_INFO("Writing RangeSensorFrame3D to file: {}", filename);
+        std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
+        std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
+        if (!file.is_open()) {
+            ERL_WARN("Failed to open file: {}", filename);
+            return false;
+        }
+
+        const bool success = Write(file);
+        file.close();
+        return success;
+    }
+
+    static const std::string kFileHeader = "# erl::geometry::RangeSensorFrame3D";
+
+    bool
+    RangeSensorFrame3D::Write(std::ostream &s) const {
+        s << kFileHeader << std::endl  //
+          << "# (feel free to add / change comments, but leave the first line as it is!)" << std::endl
+          << "setting" << std::endl;
+        // write setting
+        if (!m_setting_->Write(s)) {
+            ERL_WARN("Failed to write setting.");
+            return false;
+        }
+        // write data
+        s << "rotation" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_rotation_)) {
+            ERL_WARN("Failed to write rotation.");
+            return false;
+        }
+        s << "translation" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_translation_)) {
+            ERL_WARN("Failed to write translation.");
+            return false;
+        }
+        s << "frame_coords" << std::endl;
+        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_frame_coords_)) {
+            ERL_WARN("Failed to write frame_coords.");
+            return false;
+        }
+        s << "ranges" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_ranges_)) {
+            ERL_WARN("Failed to write ranges.");
+            return false;
+        }
+        s << "dirs_frame" << std::endl;
+        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_dirs_frame_)) {
+            ERL_WARN("Failed to write dirs_frame.");
+            return false;
+        }
+        s << "dirs_world" << std::endl;
+        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_dirs_world_)) {
+            ERL_WARN("Failed to write dirs_world.");
+            return false;
+        }
+        s << "end_pts_frame" << std::endl;
+        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_end_pts_frame_)) {
+            ERL_WARN("Failed to write end_pts_frame.");
+            return false;
+        }
+        s << "end_pts_world" << std::endl;
+        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_end_pts_world_)) {
+            ERL_WARN("Failed to write end_pts_world.");
+            return false;
+        }
+        s << "mask_hit" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_hit_)) {
+            ERL_WARN("Failed to write mask_hit.");
+            return false;
+        }
+        s << "mask_continuous" << std::endl;
+        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_continuous_)) {
+            ERL_WARN("Failed to write mask_continuous.");
+            return false;
+        }
+        s << "hit_ray_indices " << m_hit_ray_indices_.size() << std::endl;
+        for (const auto &[row, col]: m_hit_ray_indices_) { s << row << " " << col << std::endl; }
+        s << "hit_points_world" << std::endl;
+        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_hit_points_world_)) {
+            ERL_WARN("Failed to write hit_points_world.");
+            return false;
+        }
+        s << "max_valid_range" << std::endl;
+        s.write(reinterpret_cast<const char *>(&m_max_valid_range_), sizeof(double));
+        s << "end_of_RangeSensorFrame3D" << std::endl;
+        return s.good();
+    }
+
+    bool
+    RangeSensorFrame3D::Read(const std::string &filename) {
+        ERL_INFO("Reading RangeSensorFrame3D from file: {}", std::filesystem::absolute(filename));
+        std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+        if (!file.is_open()) {
+            ERL_WARN("Failed to open file: {}", filename.c_str());
+            return false;
+        }
+
+        const bool success = Read(file);
+        file.close();
+        return success;
+    }
+
+    bool
+    RangeSensorFrame3D::Read(std::istream &s) {
+        if (!s.good()) {
+            ERL_WARN("Input stream is not ready for reading");
+            return false;
+        }
+
+        // check if the first line is valid
+        std::string line;
+        std::getline(s, line);
+        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
+            ERL_WARN("Header does not start with \"{}\"", kFileHeader.c_str());
+            return false;
+        }
+
+        auto skip_line = [&s]() {
+            char c;
+            do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
+        };
+
+        static const char *tokens[] = {
+            "setting",
+            "rotation",
+            "translation",
+            "frame_coords",
+            "ranges",
+            "dirs_frame",
+            "dirs_world",
+            "end_pts_frame",
+            "end_pts_world",
+            "mask_hit",
+            "mask_continuous",
+            "hit_ray_indices",
+            "hit_points_world",
+            "max_valid_range",
+            "end_of_RangeSensorFrame3D",
+        };
+
+        // read data
+        std::string token;
+        int token_idx = 0;
+        while (s.good()) {
+            s >> token;
+            if (token.compare(0, 1, "#") == 0) {
+                skip_line();  // comment line, skip forward until end of line
+                continue;
+            }
+            // non-comment line
+            if (token != tokens[token_idx]) {
+                ERL_WARN("Expected token {}, got {}.", tokens[token_idx], token);  // check token
+                return false;
+            }
+            // reading state machine
+            switch (token_idx) {
+                case 0: {  // setting
+                    skip_line();
+                    if (!m_setting_->Read(s)) {
+                        ERL_WARN("Failed to read setting.");
+                        return false;
+                    }
+                    break;
+                }
+                case 1: {  // rotation
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_rotation_)) {
+                        ERL_WARN("Failed to read rotation.");
+                        return false;
+                    }
+                    break;
+                }
+                case 2: {  // translation
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_translation_)) {
+                        ERL_WARN("Failed to read translation.");
+                        return false;
+                    }
+                    break;
+                }
+                case 3: {  // frame_coords
+                    skip_line();
+                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_frame_coords_)) {
+                        ERL_WARN("Failed to read frame_coords.");
+                        return false;
+                    }
+                    break;
+                }
+                case 4: {  // ranges
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_ranges_)) {
+                        ERL_WARN("Failed to read ranges.");
+                        return false;
+                    }
+                    break;
+                }
+                case 5: {  // dirs_frame
+                    skip_line();
+                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_dirs_frame_)) {
+                        ERL_WARN("Failed to read dirs_frame.");
+                        return false;
+                    }
+                    break;
+                }
+                case 6: {  // dirs_world
+                    skip_line();
+                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_dirs_world_)) {
+                        ERL_WARN("Failed to read dirs_world.");
+                        return false;
+                    }
+                    break;
+                }
+                case 7: {  // end_pts_frame
+                    skip_line();
+                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_end_pts_frame_)) {
+                        ERL_WARN("Failed to read end_pts_frame.");
+                        return false;
+                    }
+                    break;
+                }
+                case 8: {  // end_pts_world
+                    skip_line();
+                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_end_pts_world_)) {
+                        ERL_WARN("Failed to read end_pts_world.");
+                        return false;
+                    }
+                    break;
+                }
+                case 9: {  // mask_hit
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_hit_)) {
+                        ERL_WARN("Failed to read mask_hit.");
+                        return false;
+                    }
+                    break;
+                }
+                case 10: {  // mask_continuous
+                    skip_line();
+                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_continuous_)) {
+                        ERL_WARN("Failed to read mask_continuous.");
+                        return false;
+                    }
+                    break;
+                }
+                case 11: {  // hit_ray_indices
+                    long num_hit_ray_indices;
+                    s >> num_hit_ray_indices;
+                    m_hit_ray_indices_.resize(num_hit_ray_indices);
+                    for (long i = 0; i < num_hit_ray_indices; ++i) { s >> m_hit_ray_indices_[i].first >> m_hit_ray_indices_[i].second; }
+                    break;
+                }
+                case 12: {  // hit_points_world
+                    skip_line();
+                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_hit_points_world_)) {
+                        ERL_WARN("Failed to read hit_points_world.");
+                        return false;
+                    }
+                    break;
+                }
+                case 13: {  // max_valid_range
+                    skip_line();
+                    s.read(reinterpret_cast<char *>(&m_max_valid_range_), sizeof(double));
+                    break;
+                }
+                case 14: {  // end of RangeSensorFrame3D
+                    skip_line();
+                    return true;
+                }
+                default: {  // should not reach here
+                    ERL_FATAL("Internal error, should not reach here.");
+                }
+            }
+            ++token_idx;
+        }
+        ERL_WARN("Failed to read RangeSensorFrame3D. Truncated file?");
+        return false;  // should not reach here
     }
 
     void

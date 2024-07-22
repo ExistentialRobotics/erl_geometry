@@ -190,6 +190,8 @@ namespace erl::geometry {
                 const double z = it.GetZ();
                 bool occupied = octree->IsNodeOccupied(*it);
 
+                if (m_setting_->occupied_only && !occupied) { continue; }
+
                 if (occupied && m_setting_->draw_node_boxes) {
                     // auto box = open3d::geometry::TriangleMesh::CreateBox(node_size, node_size, node_size);  // min is (0, 0, 0)
                     // box->Translate(Eigen::Vector3d(x - half_size, y - half_size, z - half_size));           // move to (x, y, z)
@@ -224,14 +226,8 @@ namespace erl::geometry {
                     node_border->lines_.emplace_back(n + 2, n + 6);
                     node_border->lines_.emplace_back(n + 3, n + 7);
                 }
-
-                if (m_setting_->occupied_only) {
-                    if (m_draw_leaf_) { m_draw_leaf_(this, geometries, it); }
-                    continue;
-                }
                 if (m_draw_leaf_) { m_draw_leaf_(this, geometries, it); }
             }
-            // boxes->PaintUniformColor(m_setting_->occupied_color);
             node_border->PaintUniformColor(m_setting_->border_color);
         }
     };

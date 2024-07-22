@@ -43,8 +43,17 @@ namespace erl::geometry {
         explicit Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
             : m_setting_(std::move(setting)) {
             if (!m_setting_) { m_setting_ = std::make_shared<Setting>(); }
-            Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
-            m_axis_mesh_ = CreateAxisMesh(pose);
+            m_axis_mesh_ = CreateAxisMesh(Eigen::Matrix4d::Identity());
+            Init();
+        }
+
+        void
+        Reset() {
+            m_visualizer_->DestroyVisualizerWindow();
+            m_visualizer_ = nullptr;
+            m_keyboard_callback_ = nullptr;
+            m_animation_callback_ = nullptr;
+            ClearGeometries();
             Init();
         }
 
@@ -83,6 +92,7 @@ namespace erl::geometry {
 
         void
         ClearGeometries() const {
+            if (m_visualizer_ == nullptr) { return; }
             m_visualizer_->ClearGeometries();
             m_visualizer_->AddGeometry(m_axis_mesh_);
         }

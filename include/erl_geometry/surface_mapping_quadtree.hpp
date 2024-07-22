@@ -6,11 +6,11 @@
 
 namespace erl::geometry {
 
-    class SurfaceMappingQuadtree : public geometry::OccupancyQuadtreeBase<SurfaceMappingQuadtreeNode, geometry::OccupancyQuadtreeBaseSetting> {
+    class SurfaceMappingQuadtree : public OccupancyQuadtreeBase<SurfaceMappingQuadtreeNode, OccupancyQuadtreeBaseSetting> {
 
     public:
-        using Setting = geometry::OccupancyQuadtreeBaseSetting;
-        using Drawer = geometry::OccupancyQuadtreeDrawer<SurfaceMappingQuadtree>;
+        using Setting = OccupancyQuadtreeBaseSetting;
+        using Drawer = OccupancyQuadtreeDrawer<SurfaceMappingQuadtree>;
 
         explicit SurfaceMappingQuadtree(const std::shared_ptr<Setting> &setting)
             : OccupancyQuadtreeBase(setting) {}
@@ -27,7 +27,7 @@ namespace erl::geometry {
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractQuadtree>
-        Create(const std::shared_ptr<geometry::NdTreeSetting> &setting) const override {
+        Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) { tree_setting = std::make_shared<Setting>(); }
             return std::make_shared<SurfaceMappingQuadtree>(tree_setting);

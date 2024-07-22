@@ -67,7 +67,7 @@ namespace erl::geometry {
         for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
             for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
                 double &range = m_ranges_(azimuth_idx, elevation_idx);
-                if (range == 0 || std::isnan(range) || std::isinf(range)) { continue; }  // zero, nan or inf depth! Not allowed.
+                if (range == 0 || !std::isfinite(range)) { continue; }  // zero, nan or inf depth! Not allowed.
 
                 // directions
                 const Eigen::Vector3d &dir_frame = m_dirs_frame_(azimuth_idx, elevation_idx);
@@ -96,6 +96,154 @@ namespace erl::geometry {
 
         if (!partition_rays) { return; }  // do not partition rays
         PartitionRays();
+    }
+
+    bool
+    LidarFrame3D::operator==(const RangeSensorFrame3D &other) const {
+        if (!RangeSensorFrame3D::operator==(other)) { return false; }
+        const auto *other_ptr = dynamic_cast<const LidarFrame3D *>(&other);
+        if (other_ptr == nullptr) { return false; }
+        if (m_setting_ == nullptr && other_ptr->m_setting_ != nullptr) { return false; }
+        if (m_setting_ != nullptr && (other_ptr->m_setting_ == nullptr || *m_setting_ != *other_ptr->m_setting_)) { return false; }
+        if (m_partitions_.size() != other_ptr->m_partitions_.size()) { return false; }
+        // TODO: compare partitions
+        if (m_partitioned_ != other_ptr->m_partitioned_) { return false; }
+        return true;
+    }
+
+    bool
+    LidarFrame3D::Write(const std::string &filename) const {
+        ERL_INFO("Writing LidarFrame3D to file: {}", filename);
+        std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
+        std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
+        if (!file.is_open()) {
+            ERL_WARN("Failed to open file: {}", filename);
+            return false;
+        }
+
+        const bool success = Write(file);
+        file.close();
+        return success;
+    }
+
+    static const std::string kFileHeader = "# erl::geometry::LidarFrame3D";
+
+    bool
+    LidarFrame3D::Write(std::ostream &s) const {
+        if (!RangeSensorFrame3D::Write(s)) {
+            ERL_WARN("Failed to write parent class RangeSensorFrame3D.");
+            return false;
+        }
+        s << kFileHeader << std::endl  //
+          << "# (feel free to add / change comments, but leave the first line as it is!)" << std::endl
+          << "setting" << std::endl;
+        // write setting
+        if (!m_setting_->Write(s)) {
+            ERL_WARN("Failed to write setting.");
+            return false;
+        }
+        // write data
+        s << "partitions " << m_partitions_.size() << std::endl;
+        // TODO: write partitions
+        s << "partitioned " << m_partitioned_ << std::endl;
+        s << "end_of_LidarFrame3D" << std::endl;
+        return s.good();
+    }
+
+    bool
+    LidarFrame3D::Read(const std::string &filename) {
+        ERL_INFO("Reading LidarFrame3D from file: {}", std::filesystem::absolute(filename));
+        std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+        if (!file.is_open()) {
+            ERL_WARN("Failed to open file: {}", filename.c_str());
+            return false;
+        }
+
+        const bool success = Read(file);
+        file.close();
+        return success;
+    }
+
+    bool
+    LidarFrame3D::Read(std::istream &s) {
+        if (!RangeSensorFrame3D::Read(s)) {
+            ERL_WARN("Failed to read parent class RangeSensorFrame3D.");
+            return false;
+        }
+
+        if (!s.good()) {
+            ERL_WARN("Input stream is not ready for reading");
+            return false;
+        }
+
+        // check if the first line is valid
+        std::string line;
+        std::getline(s, line);
+        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
+            ERL_WARN("Header does not start with \"{}\"", kFileHeader.c_str());
+            return false;
+        }
+
+        auto skip_line = [&s]() {
+            char c;
+            do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
+        };
+
+        static const char *tokens[] = {
+            "setting",
+            "partitions",
+            "partitioned",
+            "end_of_LidarFrame3D",
+        };
+
+        // read data
+        std::string token;
+        int token_idx = 0;
+        while (s.good()) {
+            s >> token;
+            if (token.compare(0, 1, "#") == 0) {
+                skip_line();  // comment line, skip forward until end of line
+                continue;
+            }
+            // non-comment line
+            if (token != tokens[token_idx]) {
+                ERL_WARN("Expected token {}, got {}.", tokens[token_idx], token);  // check token
+                return false;
+            }
+            // reading state machine
+            switch (token_idx) {
+                case 0: {  // setting
+                    skip_line();
+                    if (!m_setting_->Read(s)) {
+                        ERL_WARN("Failed to read setting.");
+                        return false;
+                    }
+                    break;
+                }
+                case 1: {  // partitions
+                    long num_partitions;
+                    s >> num_partitions;
+                    m_partitions_.resize(num_partitions);
+                    skip_line();
+                    // TODO: read partitions
+                    break;
+                }
+                case 2: {  // partitioned
+                    s >> m_partitioned_;
+                    break;
+                }
+                case 3: {  // end_of_LidarFrame3D
+                    skip_line();
+                    return true;
+                }
+                default: {  // should not reach here
+                    ERL_FATAL("Internal error, should not reach here.");
+                }
+            }
+            ++token_idx;
+        }
+        ERL_WARN("Failed to read LidarFrame3D. Truncated file?");
+        return false;  // should not reach here
     }
 
     void

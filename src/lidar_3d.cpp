@@ -20,4 +20,10 @@ namespace erl::geometry {
 
         return directions;
     }
+
+    std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
+    Lidar3D::GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const {
+        return {orientation, translation};
+    }
+
 }  // namespace erl::geometry

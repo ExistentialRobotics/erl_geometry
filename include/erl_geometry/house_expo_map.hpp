@@ -17,9 +17,9 @@ namespace erl::geometry {
         std::shared_ptr<Space2D> m_meter_space_;
 
     public:
-        explicit HouseExpoMap(const char *file);
+        explicit HouseExpoMap(std::string file);
 
-        HouseExpoMap(const char *file, double wall_thickness);
+        HouseExpoMap(const std::string &file, double wall_thickness);
 
         [[nodiscard]] std::string
         GetFile() const {
@@ -31,9 +31,24 @@ namespace erl::geometry {
             return m_room_id_;
         }
 
-        [[nodiscard]] const std::shared_ptr<Space2D> &
+        [[nodiscard]] std::shared_ptr<Space2D>
         GetMeterSpace() {
             return m_meter_space_;
+        }
+
+        [[nodiscard]] std::shared_ptr<const Space2D>
+        GetMeterSpace() const {
+            return m_meter_space_;
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        GetMapMin() const {
+            return m_meter_space_->GetSurface()->vertices.rowwise().minCoeff();
+        }
+
+        [[nodiscard]] Eigen::Vector2d
+        GetMapMax() const {
+            return m_meter_space_->GetSurface()->vertices.rowwise().maxCoeff();
         }
 
         [[nodiscard]] std::shared_ptr<open3d::geometry::TriangleMesh>

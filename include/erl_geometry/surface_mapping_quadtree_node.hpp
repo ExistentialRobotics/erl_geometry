@@ -5,7 +5,7 @@
 
 namespace erl::geometry {
 
-    class SurfaceMappingQuadtreeNode : public geometry::OccupancyQuadtreeNode {
+    class SurfaceMappingQuadtreeNode : public OccupancyQuadtreeNode {
 
     public:
         struct SurfaceData {
@@ -66,21 +66,26 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractQuadtreeNode *
         Create(const uint32_t depth, const int child_index) const override {
-            return new SurfaceMappingQuadtreeNode(depth, child_index, /*log_odds*/ 0);
+            auto node = new SurfaceMappingQuadtreeNode(depth, child_index, /*log_odds*/ 0);
+            ERL_TRACY_RECORD_ALLOC(node, sizeof(SurfaceMappingQuadtreeNode));
+            return node;
         }
 
         [[nodiscard]] AbstractQuadtreeNode *
         Clone() const override {
-            return new SurfaceMappingQuadtreeNode(*this);
+            auto node = new SurfaceMappingQuadtreeNode(*this);
+            ERL_TRACY_RECORD_ALLOC(node, sizeof(SurfaceMappingQuadtreeNode));
+            return node;
         }
 
         bool
         operator==(const AbstractQuadtreeNode &other) const override {
-            if (OccupancyQuadtreeNode::operator==(other)) {
-                const auto &other_node = reinterpret_cast<const SurfaceMappingQuadtreeNode &>(other);
-                return *m_data_ == *other_node.m_data_;
-            }
-            return false;
+            if (!OccupancyQuadtreeNode::operator==(other)) { return false; }
+            const auto *other_ptr = dynamic_cast<const SurfaceMappingQuadtreeNode *>(&other);
+            if (other_ptr == nullptr) { return false; }
+            if (m_data_ == nullptr && other_ptr->m_data_ != nullptr) { return false; }
+            if (m_data_ != nullptr && (other_ptr->m_data_ == nullptr || *m_data_ != *other_ptr->m_data_)) { return false; }
+            return true;
         }
 
         void

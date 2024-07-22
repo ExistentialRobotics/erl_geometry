@@ -28,4 +28,12 @@ namespace erl::geometry {
 
         return directions;
     }
+
+    std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
+    DepthCamera3D::GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const {
+        Eigen::Vector3d t = orientation * kCameraToOptical.topRightCorner<3, 1>() + translation;
+        Eigen::Matrix3d r = orientation * kCameraToOptical.topLeftCorner<3, 3>();
+        return {std::move(r), std::move(t)};
+    }
+
 }  // namespace erl::geometry

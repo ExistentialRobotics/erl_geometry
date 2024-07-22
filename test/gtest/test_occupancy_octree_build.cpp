@@ -121,7 +121,7 @@ TEST(OccupancyOctree, Build) {
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
                 const double &range = ranges(i, j);
-                if (std::isinf(range) || std::isnan(range)) { continue; }
+                if (!std::isfinite(range)) { continue; }
                 Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
                 points.col(cnt_points++) = point;
                 point_cloud->points_.emplace_back(point);

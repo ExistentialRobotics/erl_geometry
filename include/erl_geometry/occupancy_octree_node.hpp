@@ -34,12 +34,16 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractOctreeNode *
         Create(const uint32_t depth, const int child_index) const override {
-            return new OccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
+            auto node = new OccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
+            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyOctreeNode));
+            return node;
         }
 
         [[nodiscard]] AbstractOctreeNode *
         Clone() const override {
-            return new OccupancyOctreeNode(*this);
+            auto node = new OccupancyOctreeNode(*this);
+            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyOctreeNode));
+            return node;
         }
 
         //-- file IO
@@ -73,7 +77,10 @@ namespace erl::geometry {
 
         void
         Expand() override {
-            if (m_children_ == nullptr) { m_children_ = new AbstractOctreeNode *[8]; }
+            if (m_children_ == nullptr) {
+                m_children_ = new AbstractOctreeNode *[8];
+                ERL_TRACY_RECORD_ALLOC(m_children_, sizeof(AbstractOctreeNode *) * 8);
+            }
             for (int i = 0; i < 8; ++i) {
                 AbstractOctreeNode *child = this->Create(m_depth_ + 1, i);  // make sure child type is correct if this class is inherited
                 m_children_[i] = child;

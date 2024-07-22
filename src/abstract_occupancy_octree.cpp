@@ -103,7 +103,10 @@ namespace erl::geometry {
 
         // clear and read setting
         Clear();
-        ReadSetting(s);
+        if (!ReadSetting(s)) {
+            ERL_WARN("Failed to read setting");
+            return false;
+        }
         ApplySetting();
 
         // check if the next line is "data"

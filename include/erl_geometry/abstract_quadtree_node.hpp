@@ -2,6 +2,7 @@
 
 #include "erl_common/logging.hpp"
 #include "erl_common/string_utils.hpp"
+#include "erl_common/tracy.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -103,7 +104,7 @@ namespace erl::geometry {
         }
 
         template<typename Derived>
-        static bool
+        static std::enable_if_t<std::is_base_of_v<AbstractQuadtreeNode, Derived>, bool>
         RegisterNodeType() {
             const std::string node_type = demangle(typeid(Derived).name());
             if (s_class_id_mapping_.find(node_type) != s_class_id_mapping_.end()) {
@@ -157,6 +158,7 @@ namespace erl::geometry {
         AllocateChildrenPtr() {
             if (m_children_ != nullptr) { return; }
             m_children_ = new AbstractQuadtreeNode *[4];
+            ERL_TRACY_RECORD_ALLOC(m_children_, sizeof(AbstractQuadtreeNode *) * 4);
             for (int i = 0; i < 4; ++i) { m_children_[i] = nullptr; }
         }
 
@@ -195,6 +197,7 @@ namespace erl::geometry {
             ERL_DEBUG_ASSERT(child_index < 4, "Child index must be in [0, 3], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "Child %u does not exist.", child_index);
             delete m_children_[child_index];
+            ERL_TRACY_RECORD_FREE(m_children_[child_index]);
             m_children_[child_index] = nullptr;
             m_num_children_--;
         }
@@ -223,6 +226,7 @@ namespace erl::geometry {
             ERL_DEBUG_ASSERT(m_num_children_ == 4, "Prune() can only be called when all children are present.");
             for (int i = 0; i < 4; ++i) {
                 delete m_children_[i];
+                ERL_TRACY_RECORD_FREE(m_children_[i]);
                 m_children_[i] = nullptr;
             }
             m_num_children_ = 0;
@@ -231,7 +235,10 @@ namespace erl::geometry {
         virtual void
         Expand() {
             ERL_DEBUG_ASSERT(m_num_children_ == 0, "Expand() can only be called when no children are present.");
-            if (m_children_ == nullptr) { m_children_ = new AbstractQuadtreeNode *[4]; }
+            if (m_children_ == nullptr) {
+                m_children_ = new AbstractQuadtreeNode *[4];
+                ERL_TRACY_RECORD_ALLOC(m_children_, sizeof(AbstractQuadtreeNode *) * 4);
+            }
             for (int i = 0; i < 4; ++i) { m_children_[i] = this->Create(m_depth_ + 1, i); }
             m_num_children_ = 4;
         }

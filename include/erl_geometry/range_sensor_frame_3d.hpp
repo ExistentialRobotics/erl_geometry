@@ -57,7 +57,7 @@ namespace erl::geometry {
         Create(const std::string &type, const std::shared_ptr<Setting> &setting);
 
         template<typename Derived>
-        static bool
+        static std::enable_if_t<std::is_base_of_v<RangeSensorFrame3D, Derived>, bool>
         RegisterFrameType() {
             if (const std::string &frame_type = Derived::GetFrameType(); s_class_id_mapping_.find(frame_type) != s_class_id_mapping_.end()) {
                 ERL_WARN("Derived RangeSensorFrame3D of type {} is already registered.", frame_type);
@@ -260,6 +260,26 @@ namespace erl::geometry {
             Eigen::VectorXd &distances,
             std::vector<long> &visible_hit_point_indices) const;
 
+        [[nodiscard]] virtual bool
+        operator==(const RangeSensorFrame3D &other) const;
+
+        [[nodiscard]] virtual bool
+        operator!=(const RangeSensorFrame3D &other) const {
+            return !(*this == other);
+        }
+
+        [[nodiscard]] virtual bool
+        Write(const std::string &filename) const;
+
+        [[nodiscard]] virtual bool
+        Write(std::ostream &s) const;
+
+        [[nodiscard]] virtual bool
+        Read(const std::string &filename);
+
+        [[nodiscard]] virtual bool
+        Read(std::istream &s);
+
     protected:
         void
         SampleInRegionHprThread(
@@ -293,6 +313,8 @@ struct YAML::convert<erl::geometry::RangeSensorFrame3D::Setting> {
     static Node
     encode(const erl::geometry::RangeSensorFrame3D::Setting &rhs) {
         Node node;
+        node["row_margin"] = rhs.row_margin;
+        node["col_margin"] = rhs.col_margin;
         node["valid_range_min"] = rhs.valid_range_min;
         node["valid_range_max"] = rhs.valid_range_max;
         node["discontinuity_factor"] = rhs.discontinuity_factor;
@@ -304,6 +326,8 @@ struct YAML::convert<erl::geometry::RangeSensorFrame3D::Setting> {
     static bool
     decode(const Node &node, erl::geometry::RangeSensorFrame3D::Setting &rhs) {
         if (!node.IsMap()) { return false; }
+        rhs.row_margin = node["row_margin"].as<long>();
+        rhs.col_margin = node["col_margin"].as<long>();
         rhs.valid_range_min = node["valid_range_min"].as<double>();
         rhs.valid_range_max = node["valid_range_max"].as<double>();
         rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();

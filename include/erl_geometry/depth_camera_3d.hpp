@@ -24,6 +24,17 @@ namespace erl::geometry {
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
     public:
+        inline static const Eigen::Matrix4d kCameraToOptical = []() -> Eigen::Matrix4d {
+            Eigen::Matrix4d camera_to_optical;
+            // clang-format off
+            camera_to_optical << 0,  0, 1, 0,
+                                -1,  0, 0, 0,
+                                 0, -1, 0, 0,
+                                 0,  0, 0, 1;
+            // clang-format on
+            return camera_to_optical;
+        }();
+
         DepthCamera3D() = delete;
 
         DepthCamera3D(std::shared_ptr<Setting> setting, const Eigen::Ref<const Eigen::Matrix3Xd> &vertices, const Eigen::Ref<const Eigen::Matrix3Xi> &triangles)
@@ -52,17 +63,8 @@ namespace erl::geometry {
         [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
         GetRayDirectionsInFrame() const override;
 
-        [[nodiscard]] static Eigen::Matrix4d
-        CameraToOptical() {
-            Eigen::Matrix4d camera_to_optical;
-            // clang-format off
-            camera_to_optical << 0,  0, 1, 0,
-                                -1,  0, 0, 0,
-                                 0, -1, 0, 0,
-                                 0,  0, 0, 1;
-            // clang-format on
-            return camera_to_optical;
-        }
+        [[nodiscard]] std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
+        GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const override;
     };
 
 }  // namespace erl::geometry

@@ -45,8 +45,7 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         PointIsInFrame(const Eigen::Vector3d &xyz_frame) const override {
-            const double range = xyz_frame.norm();
-            if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { return false; }
+            if (const double range = xyz_frame.norm(); range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { return false; }
             return CoordsIsInFrame(ComputeFrameCoords(xyz_frame.normalized()));
         }
 
@@ -109,6 +108,21 @@ namespace erl::geometry {
             ERL_ASSERTM(m_partitioned_, "LidarFrame3D::GetPartitions() is called before partitioning.");
             return m_partitions_;
         }
+
+        [[nodiscard]] bool
+        operator==(const RangeSensorFrame3D &other) const override;
+
+        [[nodiscard]] bool
+        Write(const std::string &filename) const override;
+
+        [[nodiscard]] bool
+        Write(std::ostream &s) const override;
+
+        [[nodiscard]] bool
+        Read(const std::string &filename) override;
+
+        [[nodiscard]] bool
+        Read(std::istream &s) override;
 
     protected:
         void

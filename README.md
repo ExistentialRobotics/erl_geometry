@@ -64,9 +64,17 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
     - [Depth Frame 3D](include/erl_geometry/depth_frame_3d.hpp): data structure to store a depth image and sample from
       it.
 - Datasets
-    - [HouseExpo](python/erl_geometry/house_expo/README.md)
-    - [GazeboSequence](python/erl_geometry/gazebo/sequence.py)
-    - [CityStreetMaps](include/erl_geometry/city_street_map.hpp)
+    - [HouseExpoMap](include/erl_geometry/house_expo_map.hpp): load 2D map or 3D mesh from HouseExpo dataset.
+    - [HouseExpoMapLidar2D](include/erl_geometry/house_expo_map_lidar_2d.hpp): generate 2D LiDAR scan sequence from a
+      HouseExpo map.
+    - [GazeboRoom2D](include/erl_geometry/gazebo_room_2d.hpp): generate 2D LiDAR scan sequence from a Gazebo room.
+    - [CityStreetMaps](include/erl_geometry/city_street_map.hpp): load 2D map from CityStreet dataset.
+    - [UcsdFah2D](include/erl_geometry/ucsd_fah_2d.hpp): a real 2D LiDAR scan sequence collected from FAH building in
+      UCSD.
+    - [CowAndLady](include/erl_geometry/cow_and_lady.hpp): a real 3D RGBD sequence provided
+      by [ETH Zurich ASL](https://projects.asl.ethz.ch/datasets/doku.php?id=iros2017).
+    - [MeshLidar3D](include/erl_geometry/mesh_lidar_3d.hpp): generate 3D LiDAR scan sequence with a 3D mesh and a SE3
+      trajectory.
 - Others
     - [Compute Intersections](include/erl_geometry/utils.hpp)
     - [Euler Angle](include/erl_geometry/euler_angle.hpp)

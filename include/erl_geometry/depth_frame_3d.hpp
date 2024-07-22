@@ -19,7 +19,6 @@ namespace erl::geometry {
             double camera_fy = 600.0;
             double camera_cx = 599.5;
             double camera_cy = 339.5;
-            double depth_scale = 6553.5;
 
             /**
              * @brief Resize the frame by a factor. Need to call Update() after this.
@@ -102,16 +101,23 @@ namespace erl::geometry {
             return m_camera_extrinsic_.topLeftCorner<3, 3>() * xyz_frame + m_camera_extrinsic_.topRightCorner<3, 1>();
         }
 
-        [[nodiscard]] Eigen::MatrixXd
-        DepthImageToDepth(const Eigen::MatrixXd &depth_img) const {
-            return depth_img / m_setting_->depth_scale;
+        [[nodiscard]] static Eigen::MatrixXd
+        DepthImageToDepth(const Eigen::MatrixXd &depth_img, const double depth_scale) {
+            return depth_img / depth_scale;
         }
 
-        [[nodiscard]] Eigen::MatrixXd
-        DepthToDepthImage(const Eigen::MatrixXd &depth) const {
-            return depth * m_setting_->depth_scale;
+        [[nodiscard]] static Eigen::MatrixXd
+        DepthToDepthImage(const Eigen::MatrixXd &depth, const double depth_scale) {
+            return depth * depth_scale;
         }
 
+        /**
+         * @brief Update the frame with new depth measurements.
+         * @param rotation orientation of the camera frame in the world frame.
+         * @param translation translation of the camera frame in the world frame.
+         * @param depth depth measurements (not depth image) in the camera frame.
+         * @param partition_rays whether to partition the rays.
+         */
         void
         UpdateRanges(
             const Eigen::Ref<const Eigen::Matrix3d> &rotation,
@@ -124,12 +130,13 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Matrix3d> &rotation,
             const Eigen::Ref<const Eigen::Vector3d> &translation,
             const std::string &depth_file,
+            const double depth_scale,
             const bool partition_rays = false) {
             cv::Mat depth_img = cv::imread(depth_file, cv::IMREAD_UNCHANGED);
             depth_img.convertTo(depth_img, CV_64FC1);  // convert to double
             Eigen::MatrixXd depth;
             cv::cv2eigen(depth_img, depth);
-            UpdateRanges(rotation, translation, DepthImageToDepth(depth), partition_rays);
+            UpdateRanges(rotation, translation, DepthImageToDepth(depth, depth_scale), partition_rays);
         }
 
         [[nodiscard]] const Eigen::Matrix4d &
@@ -154,6 +161,21 @@ namespace erl::geometry {
             return m_partitions_;
         }
 
+        [[nodiscard]] bool
+        operator==(const RangeSensorFrame3D &other) const override;
+
+        [[nodiscard]] bool
+        Write(const std::string &filename) const override;
+
+        [[nodiscard]] bool
+        Write(std::ostream &s) const override;
+
+        [[nodiscard]] bool
+        Read(const std::string &filename) override;
+
+        [[nodiscard]] bool
+        Read(std::istream &s) override;
+
     protected:
         void
         PartitionRays();
@@ -167,6 +189,7 @@ namespace erl::geometry {
     ERL_REGISTER_RANGE_SENSOR_FRAME_3D(DepthFrame3D);
 }  // namespace erl::geometry
 
+// ReSharper disable CppInconsistentNaming
 template<>
 struct YAML::convert<erl::geometry::DepthFrame3D::Setting> {
     static Node
@@ -179,7 +202,6 @@ struct YAML::convert<erl::geometry::DepthFrame3D::Setting> {
         node["camera_fy"] = rhs.camera_fy;
         node["camera_cx"] = rhs.camera_cx;
         node["camera_cy"] = rhs.camera_cy;
-        node["depth_scale"] = rhs.depth_scale;
         return node;
     }
 
@@ -193,7 +215,8 @@ struct YAML::convert<erl::geometry::DepthFrame3D::Setting> {
         rhs.camera_fy = node["camera_fy"].as<double>();
         rhs.camera_cx = node["camera_cx"].as<double>();
         rhs.camera_cy = node["camera_cy"].as<double>();
-        rhs.depth_scale = node["depth_scale"].as<double>();
         return true;
     }
 };  // namespace YAML
+
+// ReSharper restore CppInconsistentNaming

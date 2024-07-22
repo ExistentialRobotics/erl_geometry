@@ -2,7 +2,7 @@
 #include "erl_common/progress_bar.hpp"
 #include "erl_common/random.hpp"
 #include "erl_common/test_helper.hpp"
-#include "erl_geometry/gazebo_room.hpp"
+#include "erl_geometry/gazebo_room_2d.hpp"
 #include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
@@ -17,7 +17,7 @@ struct Options {
     std::string gazebo_test_file = (g_test_data_dir / "gazebo_test.dat").string();
     std::string house_expo_map_file = (g_test_data_dir / "house_expo_room_1451.json").string();
     std::string house_expo_traj_file = (g_test_data_dir / "house_expo_room_1451.csv").string();
-    std::string ros_bag_dat_file = (g_test_data_dir / "ros_bag.dat").string();
+    std::string ros_bag_dat_file = (g_test_data_dir / "ucsd_fah_2d.dat").string();
     bool use_gazebo_data = false;
     bool use_house_expo_data = true;
     bool use_ros_bag_data = false;
@@ -47,7 +47,7 @@ TEST(OccupancyQuadtree, Build) {
         for (long k = 0; k < n; ++k) {
             const double &angle = angles[k];
             const double &range = ranges[k];
-            if (std::isinf(range) || std::isnan(range)) { continue; }
+            if (!std::isfinite(range)) { continue; }
             Eigen::Vector2d local_pt(std::cos(angle) * range, std::sin(angle) * range);
             Eigen::Vector2d global_pt = rotation * local_pt + translation;
             points.col(cnt) = global_pt;
@@ -68,7 +68,7 @@ TEST(OccupancyQuadtree, Build) {
     if (g_options.use_gazebo_data) {
         tree_name = "gazebo";
         // load raw data
-        auto train_data_loader = erl::geometry::GazeboRoom::TrainDataLoader(g_options.gazebo_train_file.c_str());
+        auto train_data_loader = erl::geometry::GazeboRoom2D::TrainDataLoader(g_options.gazebo_train_file);
         // prepare buffer
         max_update_cnt = static_cast<long>(train_data_loader.size()) / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
@@ -79,8 +79,8 @@ TEST(OccupancyQuadtree, Build) {
         bar->SetTotal(max_update_cnt);
         for (std::size_t i = 0; i < train_data_loader.size(); i += g_options.stride) {
             auto &df = train_data_loader[i];
-            trajectory.col(j) << df.pose_numpy(0, 2), df.pose_numpy(1, 2);
-            buf_points.push_back(load_scan(df.pose_numpy.block<2, 2>(0, 0), trajectory.col(j), df.angles, df.distances));
+            trajectory.col(j) << df.translation;
+            buf_points.push_back(load_scan(df.rotation, trajectory.col(j), df.angles, df.ranges));
             j++;
             bar->Update();
         }
@@ -89,7 +89,7 @@ TEST(OccupancyQuadtree, Build) {
     } else if (g_options.use_house_expo_data) {
         tree_name = std::filesystem::path(g_options.house_expo_map_file).stem().filename().string() + "_2d";
         // load raw data
-        erl::geometry::HouseExpoMap house_expo_map(g_options.house_expo_map_file.c_str(), 0.2);
+        erl::geometry::HouseExpoMap house_expo_map(g_options.house_expo_map_file, 0.2);
         auto caster = [](const std::string &str) -> double { return std::stod(str); };
         auto csv_trajectory = erl::common::LoadAndCastCsvFile<double>(g_options.house_expo_traj_file.c_str(), caster);
         // prepare buffer
@@ -120,19 +120,19 @@ TEST(OccupancyQuadtree, Build) {
         tree_name = "ros_bag";
         Eigen::MatrixXd ros_bag_data = erl::common::LoadEigenMatrixFromBinaryFile<double, Eigen::Dynamic, Eigen::Dynamic>(g_options.ros_bag_dat_file);
         // prepare buffer
-        max_update_cnt = ros_bag_data.rows() / g_options.stride + 1;
+        max_update_cnt = ros_bag_data.cols() / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
         trajectory.resize(2, max_update_cnt);
         // load data into buffer
-        long num_rays = (ros_bag_data.cols() - 7) / 2;
+        long num_rays = (ros_bag_data.rows() - 7) / 2;
         long j = 0;
         std::shared_ptr<erl::common::ProgressBar> bar = erl::common::ProgressBar::Open();
         bar->SetTotal(max_update_cnt);
-        for (long i = 0; i < ros_bag_data.rows(); i += g_options.stride, j++) {
-            Eigen::Matrix23d pose = ros_bag_data.row(i).segment(1, 6).reshaped(3, 2).transpose();
+        for (long i = 0; i < ros_bag_data.cols(); i += g_options.stride, j++) {
+            Eigen::Matrix23d pose = ros_bag_data.col(i).segment(1, 6).reshaped(2, 3);
             trajectory.col(j) << pose(0, 2), pose(1, 2);
-            Eigen::VectorXd angles = ros_bag_data.row(i).segment(7, num_rays);
-            Eigen::VectorXd ranges = ros_bag_data.row(i).segment(7 + num_rays, num_rays);
+            Eigen::VectorXd angles = ros_bag_data.col(i).segment(7, num_rays);
+            Eigen::VectorXd ranges = ros_bag_data.col(i).segment(7 + num_rays, num_rays);
             buf_points.push_back(load_scan(pose.block<2, 2>(0, 0), trajectory.col(j), angles, ranges));
             bar->Update();
         }

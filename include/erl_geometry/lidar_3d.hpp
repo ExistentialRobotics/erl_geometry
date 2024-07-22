@@ -68,6 +68,9 @@ namespace erl::geometry {
 
         [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
         GetRayDirectionsInFrame() const override;
+
+        [[nodiscard]] std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
+        GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const override;
     };
 }  // namespace erl::geometry
 
