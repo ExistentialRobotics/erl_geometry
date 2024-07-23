@@ -7,6 +7,7 @@ from typing import TypedDict
 from typing import overload
 
 import numpy as np
+import numpy.typing as npt
 from erl_common.storage import GridMapInfo2D
 from erl_common.yaml import YamlableBase
 
@@ -31,11 +32,15 @@ __all__ = [
     "QuadtreeKeyRay",
     "OccupancyQuadtreeNode",
     "OccupancyQuadtree",
+    "SurfaceMappingQuadtreeNode",
+    "SurfaceMappingQuadtree",
     "OccupancyOctreeBaseSetting",
     "OctreeKey",
     "OctreeKeyRay",
     "OccupancyOctreeNode",
     "OccupancyOctree",
+    "SurfaceMappingOctreeNode",
+    "SurfaceMappingOctree",
     "Surface2D",
     "Space2D",
     "Lidar2D",
@@ -45,19 +50,23 @@ __all__ = [
     "Lidar3D",
     "DepthCamera3D",
     "LidarFramePartition3D",
+    "RangeSensorFrame3D",
     "LidarFrame3D",
-    "RgbdFrame3D",
+    "DepthFrame3D",
+    "AbstractSurfaceMapping",
+    "AbstractSurfaceMapping2D",
+    "AbstractSurfaceMapping3D",
 ]
 
 def manually_set_seed(seed: int) -> None: ...
 def marching_square(
-    img: np.ndarray[np.float64], iso_value: float
-) -> Tuple[np.ndarray[np.float64], np.ndarray[np.float64], np.ndarray[np.float64]]: ...
+    img: npt.NDArray[np.float64], iso_value: float
+) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]: ...
 def bresenham_2d(
-    start: np.ndarray[np.float64], end: np.ndarray[np.float64], stop: Callable[[int, int], bool] = None
-) -> np.ndarray[np.float64]: ...
-def compute_pixel_of_polygon_contour(polygon_vertices: np.ndarray[np.int32]) -> np.ndarray[np.int32]: ...
-def winding_number(p: np.ndarray[np.float64], vertices: np.ndarray[np.float64]) -> int: ...
+    start: npt.NDArray[np.float64], end: npt.NDArray[np.float64], stop: Callable[[int, int], bool] = None
+) -> npt.NDArray[np.float64]: ...
+def compute_pixel_of_polygon_contour(polygon_vertices: npt.NDArray[np.int32]) -> npt.NDArray[np.int32]: ...
+def winding_number(p: npt.NDArray[np.float64], vertices: npt.NDArray[np.float64]) -> int: ...
 def compute_nearest_distance_from_point_to_line_segment_2d(
     point_x: float,
     point_y: float,
@@ -67,10 +76,10 @@ def compute_nearest_distance_from_point_to_line_segment_2d(
     line_segment_y2: float,
 ) -> float: ...
 def compute_intersection_between_ray_and_segment_2d(
-    ray_start_point: np.ndarray[np.float64],
-    ray_direction: np.ndarray[np.float64],
-    segment_point1: np.ndarray[np.float64],
-    segment_point2: np.ndarray[np.float64],
+    ray_start_point: npt.NDArray[np.float64],
+    ray_direction: npt.NDArray[np.float64],
+    segment_point1: npt.NDArray[np.float64],
+    segment_point2: npt.NDArray[np.float64],
 ) -> Tuple[float, float]:
     """
     Returns:
@@ -79,18 +88,18 @@ def compute_intersection_between_ray_and_segment_2d(
     ...
 
 def compute_intersection_between_ray_and_aabb_2d(
-    ray_start_point: np.ndarray[np.float64],
-    ray_direction: np.ndarray[np.float64],
-    aabb_min: np.ndarray[np.float64],
-    aabb_max: np.ndarray[np.float64],
+    ray_start_point: npt.NDArray[np.float64],
+    ray_direction: npt.NDArray[np.float64],
+    aabb_min: npt.NDArray[np.float64],
+    aabb_max: npt.NDArray[np.float64],
 ) -> Tuple[float, float, bool]: ...
 def compute_intersection_between_ray_and_aabb_3d(
-    ray_start_point: np.ndarray[np.float64],
-    ray_direction: np.ndarray[np.float64],
-    aabb_min: np.ndarray[np.float64],
-    aabb_max: np.ndarray[np.float64],
+    ray_start_point: npt.NDArray[np.float64],
+    ray_direction: npt.NDArray[np.float64],
+    aabb_min: npt.NDArray[np.float64],
+    aabb_max: npt.NDArray[np.float64],
 ) -> Tuple[float, float, bool]: ...
-def convert_path_2d_to_3d(path_2d: np.ndarray, z: float) -> list[np.ndarray]: ...
+def convert_path_2d_to_3d(path_2d: npt.NDArray, z: float) -> list[npt.NDArray]: ...
 
 class Aabb2D:
     class CornerType(IntEnum):
@@ -99,20 +108,20 @@ class Aabb2D:
         kTopLeft = 2
         kTopRight = 3
 
-    def __init__(self: Aabb2D, center: np.ndarray, half_size: float): ...
+    def __init__(self: Aabb2D, center: npt.NDArray, half_size: float): ...
     @property
-    def center(self: Aabb2D) -> np.ndarray: ...
+    def center(self: Aabb2D) -> npt.NDArray: ...
     @property
     def half_sizes(self: Aabb2D) -> float: ...
     @property
-    def min(self: Aabb2D) -> np.ndarray: ...
+    def min(self: Aabb2D) -> npt.NDArray: ...
     @property
-    def max(self: Aabb2D) -> np.ndarray: ...
+    def max(self: Aabb2D) -> npt.NDArray: ...
     @overload
-    def __contains__(self, point: np.ndarray) -> bool: ...
+    def __contains__(self, point: npt.NDArray) -> bool: ...
     @overload
     def __contains__(self: Aabb2D, aabb: Aabb2D) -> bool: ...
-    def corner(self: Aabb2D, corner_type: int) -> np.ndarray: ...
+    def corner(self: Aabb2D, corner_type: int) -> npt.NDArray: ...
     def intersects(self: Aabb2D, aabb: Aabb2D) -> bool: ...
 
 class Aabb3D:
@@ -126,20 +135,20 @@ class Aabb3D:
         kTopLeftCeil = 6
         kTopRightCeil = 7
 
-    def __init__(self: Aabb2D, center: np.ndarray, half_size: float): ...
+    def __init__(self: Aabb2D, center: npt.NDArray, half_size: float): ...
     @property
-    def center(self: Aabb2D) -> np.ndarray: ...
+    def center(self: Aabb2D) -> npt.NDArray: ...
     @property
     def half_sizes(self: Aabb2D) -> float: ...
     @property
-    def min(self: Aabb2D) -> np.ndarray: ...
+    def min(self: Aabb2D) -> npt.NDArray: ...
     @property
-    def max(self: Aabb2D) -> np.ndarray: ...
+    def max(self: Aabb2D) -> npt.NDArray: ...
     @overload
-    def __contains__(self, point: np.ndarray) -> bool: ...
+    def __contains__(self, point: npt.NDArray) -> bool: ...
     @overload
     def __contains__(self: Aabb2D, aabb: Aabb2D) -> bool: ...
-    def corner(self: Aabb2D, corner_type: int) -> np.ndarray: ...
+    def corner(self: Aabb2D, corner_type: int) -> npt.NDArray: ...
     def intersects(self: Aabb2D, aabb: Aabb2D) -> bool: ...
 
 class CityStreetMap:
@@ -162,7 +171,7 @@ class CityStreetMap:
     @property
     def kWater(self) -> str: ...
     @staticmethod
-    def load_map(filename: str) -> np.ndarray: ...
+    def load_map(filename: str) -> npt.NDArray: ...
 
     class Scene:
         bucket: int
@@ -247,7 +256,7 @@ class OccupancyQuadtree:
     def __init__(
         self,
         map_info: GridMapInfo2D,
-        image_map: np.ndarray,
+        image_map: npt.NDArray,
         occupied_threshold: float,
         padding: int = 0,
     ) -> None: ...
@@ -267,8 +276,8 @@ class OccupancyQuadtree:
     def is_node_collapsible(self) -> bool: ...
     def insert_point_cloud(
         self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
+        points: npt.NDArray[np.float64],
+        sensor_origin: npt.NDArray[np.float64],
         max_range: float,
         parallel: bool,
         lazy_eval: bool,
@@ -276,20 +285,20 @@ class OccupancyQuadtree:
     ) -> None: ...
     def insert_point_cloud_rays(
         self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
+        points: npt.NDArray[np.float64],
+        sensor_origin: npt.NDArray[np.float64],
         max_range: float,
         parallel: bool,
         lazy_eval: bool,
     ) -> None: ...
     def insert_ray(self, sx: float, sy: float, ex: float, ey: float, max_range: float, lazy_eval: bool) -> None: ...
-    def sample_positions(self, num_positions: int) -> list[np.ndarray]: ...
+    def sample_positions(self, num_positions: int) -> list[npt.NDArray]: ...
     @overload
     def cast_rays(
         self,
-        position: np.ndarray,
-        rotation: np.ndarray,
-        angles: np.ndarray,
+        position: npt.NDArray,
+        rotation: npt.NDArray,
+        angles: npt.NDArray,
         ignore_unknown: bool,
         max_range: float,
         prune_rays: bool,
@@ -297,8 +306,8 @@ class OccupancyQuadtree:
     ) -> TypedDict(
         "returns",
         {
-            "hit_ray_indices": np.ndarray,
-            "hit_positions": np.ndarray,
+            "hit_ray_indices": npt.NDArray,
+            "hit_positions": npt.NDArray,
             "hit_nodes": list[OccupancyQuadtreeNode],
             "node_depths": list[int],
         },
@@ -306,8 +315,8 @@ class OccupancyQuadtree:
     @overload
     def cast_rays(
         self,
-        positions: np.ndarray,
-        directions: np.ndarray,
+        positions: npt.NDArray,
+        directions: npt.NDArray,
         ignore_unknown: bool,
         max_range: float,
         prune_rays: bool,
@@ -315,8 +324,8 @@ class OccupancyQuadtree:
     ) -> TypedDict(
         "returns",
         {
-            "hit_ray_indices": np.ndarray,
-            "hit_positions": np.ndarray,
+            "hit_ray_indices": npt.NDArray,
+            "hit_positions": npt.NDArray,
             "hit_nodes": list[OccupancyQuadtreeNode],
             "node_depths": list[int],
         },
@@ -350,15 +359,15 @@ class OccupancyQuadtree:
     @property
     def tree_key_offset(self) -> int: ...
     @property
-    def metric_min(self) -> np.ndarray: ...
+    def metric_min(self) -> npt.NDArray: ...
     @property
-    def metric_max(self) -> np.ndarray: ...
+    def metric_max(self) -> npt.NDArray: ...
     @property
     def metric_aabb(self) -> Aabb2D: ...
     @property
-    def metric_min_max(self) -> Tuple[np.ndarray, np.ndarray]: ...
+    def metric_min_max(self) -> Tuple[npt.NDArray, npt.NDArray]: ...
     @property
-    def metric_size(self) -> np.ndarray: ...
+    def metric_size(self) -> npt.NDArray: ...
     def get_node_size(self, depth: int) -> float: ...
     @property
     def number_of_leaf_nodes(self) -> int: ...
@@ -426,17 +435,17 @@ class OccupancyQuadtree:
     def visualize(
         self,
         leaf_only: bool = False,
-        area_min: np.ndarray[np.float64] = None,
-        area_max: np.ndarray[np.float64] = None,
+        area_min: npt.NDArray[np.float64] = None,
+        area_max: npt.NDArray[np.float64] = None,
         resolution: float = 0.1,
         padding: int = 1,
-        bg_color: np.ndarray[np.float64] = np.array([128, 128, 128, 255]),
-        fg_color: np.ndarray[np.float64] = np.array([255, 255, 255, 255]),
-        occupied_color: np.ndarray[np.float64] = np.array([0, 0, 0, 255]),
-        free_color: np.ndarray[np.float64] = np.array([255, 255, 255, 255]),
-        border_color: np.ndarray[np.float64] = np.array([0, 0, 0, 255]),
+        bg_color: npt.NDArray[np.float64] = np.array([128, 128, 128, 255]),
+        fg_color: npt.NDArray[np.float64] = np.array([255, 255, 255, 255]),
+        occupied_color: npt.NDArray[np.float64] = np.array([0, 0, 0, 255]),
+        free_color: npt.NDArray[np.float64] = np.array([255, 255, 255, 255]),
+        border_color: npt.NDArray[np.float64] = np.array([0, 0, 0, 255]),
         border_thickness: int = 1,
-    ) -> np.ndarray[np.uint8]: ...
+    ) -> npt.NDArray[np.uint8]: ...
 
     class IteratorBase(collections.Iterable):
         def __iter__(self): ...
@@ -554,16 +563,16 @@ class OccupancyQuadtree:
 
     class Drawer:
         class Setting(YamlableBase):
-            area_min: np.ndarray[np.float64]
-            area_max: np.ndarray[np.float64]
+            area_min: npt.NDArray[np.float64]
+            area_max: npt.NDArray[np.float64]
             resolution: float
             padding: int
-            bg_color: np.ndarray[np.float64]
-            fg_color: np.ndarray[np.float64]
-            border_color: np.ndarray[np.float64]
+            bg_color: npt.NDArray[np.float64]
+            fg_color: npt.NDArray[np.float64]
+            border_color: npt.NDArray[np.float64]
             border_thickness: int
-            occupied_color: np.ndarray[np.float64]
-            free_color: np.ndarray[np.float64]
+            occupied_color: npt.NDArray[np.float64]
+            free_color: npt.NDArray[np.float64]
 
             def __init__(self: OccupancyQuadtree.Drawer.Setting) -> None: ...
 
@@ -574,8 +583,23 @@ class OccupancyQuadtree:
         def grid_map_info(self: OccupancyQuadtree.Drawer) -> GridMapInfo2D: ...
         def set_draw_tree_callback(self: OccupancyQuadtree.Drawer, callback: Callable) -> None: ...
         def set_draw_leaf_callback(self: OccupancyQuadtree.Drawer, callback: Callable) -> None: ...
-        def draw_tree(self: OccupancyQuadtree.Drawer) -> np.ndarray[np.uint8]: ...
-        def draw_leaves(self: OccupancyQuadtree.Drawer) -> np.ndarray[np.uint8]: ...
+        def draw_tree(self: OccupancyQuadtree.Drawer) -> npt.NDArray[np.uint8]: ...
+        def draw_leaves(self: OccupancyQuadtree.Drawer) -> npt.NDArray[np.uint8]: ...
+
+class SurfaceMappingQuadtreeNode(OccupancyQuadtreeNode):
+    class SurfaceData:
+        position: npt.NDArray[np.float64]
+        normal: npt.NDArray[np.float64]
+        var_position: float
+        var_normal: float
+
+        def __eq__(self, other) -> bool: ...
+        def __ne__(self, other) -> bool: ...
+
+    @property
+    def surface_data(self) -> SurfaceMappingQuadtreeNode.SurfaceData: ...
+
+class SurfaceMappingQuadtree(OccupancyQuadtree): ...
 
 class OccupancyOctreeBaseSetting(OccupancyNdTreeSetting):
     use_change_detection: bool
@@ -638,8 +662,8 @@ class OccupancyOctree:
     def is_node_collapsible(self) -> bool: ...
     def insert_point_cloud(
         self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
+        points: npt.NDArray[np.float64],
+        sensor_origin: npt.NDArray[np.float64],
         max_range: float,
         parallel: bool,
         lazy_eval: bool,
@@ -647,8 +671,8 @@ class OccupancyOctree:
     ) -> None: ...
     def insert_point_cloud_rays(
         self,
-        points: np.ndarray[np.float64],
-        sensor_origin: np.ndarray[np.float64],
+        points: npt.NDArray[np.float64],
+        sensor_origin: npt.NDArray[np.float64],
         max_range: float,
         parallel: bool,
         lazy_eval: bool,
@@ -664,14 +688,14 @@ class OccupancyOctree:
         max_range: float,
         lazy_eval: bool,
     ) -> None: ...
-    def sample_positions(self, num_positions: int) -> list[np.ndarray]: ...
+    def sample_positions(self, num_positions: int) -> list[npt.NDArray]: ...
     @overload
     def cast_rays(
         self,
-        position: np.ndarray,
-        rotation: np.ndarray,
-        azimuth_angles: np.ndarray,
-        elevation_angles: np.ndarray,
+        position: npt.NDArray,
+        rotation: npt.NDArray,
+        azimuth_angles: npt.NDArray,
+        elevation_angles: npt.NDArray,
         ignore_unknown: bool,
         max_range: float,
         prune_rays: bool,
@@ -680,7 +704,7 @@ class OccupancyOctree:
         "returns",
         {
             "hit_ray_indices": list[tuple[int, int]],
-            "hit_positions": list[np.ndarray],
+            "hit_positions": list[npt.NDArray],
             "hit_nodes": list[OccupancyOctreeNode],
             "node_depths": list[int],
         },
@@ -688,8 +712,8 @@ class OccupancyOctree:
     @overload
     def cast_rays(
         self,
-        positions: np.ndarray,
-        directions: np.ndarray,
+        positions: npt.NDArray,
+        directions: npt.NDArray,
         ignore_unknown: bool,
         max_range: float,
         prune_rays: bool,
@@ -698,7 +722,7 @@ class OccupancyOctree:
         "returns",
         {
             "hit_ray_indices": list[int],
-            "hit_positions": np.ndarray,
+            "hit_positions": npt.NDArray,
             "hit_nodes": list[OccupancyOctreeNode],
             "node_depths": list[int],
         },
@@ -741,15 +765,15 @@ class OccupancyOctree:
     @property
     def tree_key_offset(self) -> int: ...
     @property
-    def metric_min(self) -> np.ndarray: ...
+    def metric_min(self) -> npt.NDArray: ...
     @property
-    def metric_max(self) -> np.ndarray: ...
+    def metric_max(self) -> npt.NDArray: ...
     @property
     def metric_aabb(self) -> Aabb3D: ...
     @property
-    def metric_min_max(self) -> Tuple[np.ndarray, np.ndarray]: ...
+    def metric_min_max(self) -> Tuple[npt.NDArray, npt.NDArray]: ...
     @property
-    def metric_size(self) -> np.ndarray: ...
+    def metric_size(self) -> npt.NDArray: ...
     def get_node_size(self, depth: int) -> float: ...
     @property
     def number_of_leaf_nodes(self) -> int: ...
@@ -823,13 +847,13 @@ class OccupancyOctree:
     def visualize(
         self,
         leaf_only: bool = False,
-        occupied_color: np.ndarray[np.float64] = np.array([0.5, 0.5, 0.5]),
-        border_color: np.ndarray[np.float64] = np.array([0.0, 0.0, 0.0]),
+        occupied_color: npt.NDArray[np.float64] = np.array([0.5, 0.5, 0.5]),
+        border_color: npt.NDArray[np.float64] = np.array([0.0, 0.0, 0.0]),
         window_width: int = 1920,
         window_height: int = 1080,
         window_left: int = 50,
         window_top: int = 50,
-    ) -> np.ndarray[np.uint8]: ...
+    ) -> npt.NDArray[np.uint8]: ...
 
     class IteratorBase(collections.Iterable):
         def __iter__(self): ...
@@ -1025,10 +1049,10 @@ class OccupancyOctree:
 
     class Drawer:
         class Setting(YamlableBase):
-            area_min: np.ndarray[np.float64]
-            area_max: np.ndarray[np.float64]
+            area_min: npt.NDArray[np.float64]
+            area_max: npt.NDArray[np.float64]
             occupied_only: bool
-            occupied_color: np.ndarray[np.float64]
+            occupied_color: npt.NDArray[np.float64]
             draw_node_boxes: bool
             draw_node_borders: bool
 
@@ -1041,18 +1065,33 @@ class OccupancyOctree:
         def grid_map_info(self: OccupancyOctree.Drawer) -> GridMapInfo2D: ...
         def set_draw_tree_callback(self: OccupancyOctree.Drawer, callback: Callable) -> None: ...
         def set_draw_leaf_callback(self: OccupancyOctree.Drawer, callback: Callable) -> None: ...
-        def draw_tree(self: OccupancyOctree.Drawer) -> np.ndarray[np.uint8]: ...
-        def draw_leaves(self: OccupancyOctree.Drawer) -> np.ndarray[np.uint8]: ...
+        def draw_tree(self: OccupancyOctree.Drawer) -> npt.NDArray[np.uint8]: ...
+        def draw_leaves(self: OccupancyOctree.Drawer) -> npt.NDArray[np.uint8]: ...
+
+class SurfaceMappingOctreeNode(OccupancyOctreeNode):
+    class SurfaceData:
+        position: npt.NDArray[np.float64]
+        normal: npt.NDArray[np.float64]
+        var_position: float
+        var_normal: float
+
+        def __eq__(self, other) -> bool: ...
+        def __ne__(self, other) -> bool: ...
+
+    @property
+    def surface_data(self) -> SurfaceMappingOctreeNode.SurfaceData: ...
+
+class SurfaceMappingOctree(OccupancyOctree): ...
 
 class Surface2D:
     @overload
     def __init__(
         self: Surface2D,
-        vertices: np.ndarray[np.float64],
-        normals: np.ndarray[np.float64],
-        lines2vertices: np.ndarray[np.float64],
-        objects2lines: np.ndarray[np.float64],
-        outside_flags: np.ndarray[np.bool_],
+        vertices: npt.NDArray[np.float64],
+        normals: npt.NDArray[np.float64],
+        lines2vertices: npt.NDArray[np.float64],
+        objects2lines: npt.NDArray[np.float64],
+        outside_flags: npt.NDArray[np.bool_],
     ): ...
     @overload
     def __init__(self: Surface2D): ...
@@ -1063,24 +1102,24 @@ class Surface2D:
     @property
     def num_objects(self: Surface2D) -> int: ...
     @property
-    def vertices(self: Surface2D) -> np.ndarray[np.float64]: ...
+    def vertices(self: Surface2D) -> npt.NDArray[np.float64]: ...
     @property
-    def normals(self: Surface2D) -> np.ndarray[np.float64]: ...
+    def normals(self: Surface2D) -> npt.NDArray[np.float64]: ...
     @property
-    def lines_to_vertices(self: Surface2D) -> np.ndarray[np.float64]: ...
+    def lines_to_vertices(self: Surface2D) -> npt.NDArray[np.float64]: ...
     @property
-    def objects_to_lines(self: Surface2D) -> np.ndarray[np.float64]: ...
+    def objects_to_lines(self: Surface2D) -> npt.NDArray[np.float64]: ...
     @property
-    def vertices_to_objects(self: Surface2D) -> np.ndarray[np.float64]: ...
+    def vertices_to_objects(self: Surface2D) -> npt.NDArray[np.float64]: ...
     @property
-    def outside_flags(self: Surface2D) -> np.ndarray[np.bool_]: ...
+    def outside_flags(self: Surface2D) -> npt.NDArray[np.bool_]: ...
     @property
     def normals_available(self: Surface2D) -> bool: ...
     @property
     def outside_flags_available(self: Surface2D) -> bool: ...
-    def get_object_vertices(self: Surface2D, index_object: int) -> np.ndarray[np.float64]: ...
-    def get_object_normals(self: Surface2D, index_object: int) -> np.ndarray[np.float64]: ...
-    def get_vertex_neighbors(self: Surface2D, index_vertex: int) -> np.ndarray[np.float64]: ...
+    def get_object_vertices(self: Surface2D, index_object: int) -> npt.NDArray[np.float64]: ...
+    def get_object_normals(self: Surface2D, index_object: int) -> npt.NDArray[np.float64]: ...
+    def get_vertex_neighbors(self: Surface2D, index_vertex: int) -> npt.NDArray[np.float64]: ...
 
 class Space2D:
     class SignMethod(IntEnum):
@@ -1091,21 +1130,21 @@ class Space2D:
     @overload
     def __init__(
         self: Space2D,
-        ordered_object_vertices: list[np.ndarray[np.float64]],
-        ordered_object_normals: list[np.ndarray[np.float64]],
+        ordered_object_vertices: list[npt.NDArray[np.float64]],
+        ordered_object_normals: list[npt.NDArray[np.float64]],
     ): ...
     @overload
     def __init__(
         self: Space2D,
-        ordered_object_vertices: list[np.ndarray[np.float64]],
-        outside_flags: np.ndarray[np.bool_],
+        ordered_object_vertices: list[npt.NDArray[np.float64]],
+        outside_flags: npt.NDArray[np.bool_],
         delta: float = 0.01,
         parallel: bool = False,
     ): ...
     @overload
     def __init__(
         self: Space2D,
-        map_image: np.ndarray[np.float64],
+        map_image: npt.NDArray[np.float64],
         grid_map_info: GridMapInfo2D,
         free_threshold: float,
         delta: float = 0.01,
@@ -1117,7 +1156,7 @@ class Space2D:
     def surface(self: Space2D) -> Surface2D: ...
     def get_sign_method_name(self: Space2D, sign_method: SignMethod) -> str: ...
     def get_sign_method_from_name(self: Space2D, sign_method_name: str) -> SignMethod: ...
-    def generate_map_image(self: Space2D, map_image_info: GridMapInfo2D) -> np.ndarray[np.uint8]: ...
+    def generate_map_image(self: Space2D, map_image_info: GridMapInfo2D) -> npt.NDArray[np.uint8]: ...
     @overload
     def compute_sdf_image(
         self: Space2D,
@@ -1125,61 +1164,61 @@ class Space2D:
         sign_method: SignMethod = SignMethod.kLineNormal,
         use_kdtree: bool = False,
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
     @overload
     def compute_sdf(
         self: Space2D,
-        query_points: np.ndarray[np.float64],
+        query_points: npt.NDArray[np.float64],
         sign_method: SignMethod = SignMethod.kLineNormal,
         use_kdtree: bool = False,
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
-    def compute_sdf_with_kdtree(self: Space2D, q: np.ndarray[np.float64], sign_method: SignMethod) -> float: ...
-    def compute_sdf_greedily(self: Space2D, q: np.ndarray[np.float64], sign_method: SignMethod) -> float: ...
+    ) -> npt.NDArray[np.float64]: ...
+    def compute_sdf_with_kdtree(self: Space2D, q: npt.NDArray[np.float64], sign_method: SignMethod) -> float: ...
+    def compute_sdf_greedily(self: Space2D, q: npt.NDArray[np.float64], sign_method: SignMethod) -> float: ...
     @overload
     def compute_ddf(
         self: Space2D,
         grid_map_info: GridMapInfo2D,
-        query_directions: np.ndarray[np.float64],
+        query_directions: npt.NDArray[np.float64],
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
     @overload
     def compute_ddf(
         self: Space2D,
-        query_points: np.ndarray[np.float64],
-        query_directions: np.ndarray[np.float64],
+        query_points: npt.NDArray[np.float64],
+        query_directions: npt.NDArray[np.float64],
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
     @overload
     def compute_sddf_v1(
         self: Space2D,
         grid_map_info: GridMapInfo2D,
-        query_directions: np.ndarray[np.float64],
+        query_directions: npt.NDArray[np.float64],
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
     @overload
     def compute_sddf_v1(
         self: Space2D,
-        query_points: np.ndarray[np.float64],
-        query_directions: np.ndarray[np.float64],
+        query_points: npt.NDArray[np.float64],
+        query_directions: npt.NDArray[np.float64],
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
     @overload
     def compute_sddf_v2(
         self: Space2D,
         grid_map_info: GridMapInfo2D,
-        query_directions: np.ndarray[np.float64],
+        query_directions: npt.NDArray[np.float64],
         sign_method: SignMethod = SignMethod.kLineNormal,
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
     @overload
     def compute_sddf_v2(
         self: Space2D,
-        query_points: np.ndarray[np.float64],
-        query_directions: np.ndarray[np.float64],
+        query_points: npt.NDArray[np.float64],
+        query_directions: npt.NDArray[np.float64],
         sign_method: SignMethod = SignMethod.kLineNormal,
         parallel: bool = False,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
 
 class Lidar2D:
     class Mode(IntEnum):
@@ -1198,14 +1237,14 @@ class Lidar2D:
     @property
     def setting(self: Lidar2D) -> Lidar2D.Setting: ...
     @property
-    def angles(self: Lidar2D) -> np.ndarray: ...
+    def angles(self: Lidar2D) -> npt.NDArray: ...
     @property
-    def ray_directions_in_frame(self: Lidar2D) -> np.ndarray: ...
+    def ray_directions_in_frame(self: Lidar2D) -> npt.NDArray: ...
     @overload
-    def scan(self: Lidar2D, rotation_angle: float, translation: np.ndarray, parallel: bool = False) -> np.ndarray: ...
+    def scan(self: Lidar2D, rotation_angle: float, translation: npt.NDArray, parallel: bool = False) -> npt.NDArray: ...
     @overload
-    def scan(self: Lidar2D, rotation: np.ndarray, translation: np.ndarray, parallel: bool = False) -> np.ndarray: ...
-    def scan_multi_poses(self: Lidar2D, poses: list[np.ndarray], parallel: bool = False) -> np.ndarray: ...
+    def scan(self: Lidar2D, rotation: npt.NDArray, translation: npt.NDArray, parallel: bool = False) -> npt.NDArray: ...
+    def scan_multi_poses(self: Lidar2D, poses: list[npt.NDArray], parallel: bool = False) -> npt.NDArray: ...
 
 class LidarFramePartition2D:
     @property
@@ -1227,10 +1266,10 @@ class LidarFrame2D:
     def __init__(self: LidarFrame2D, setting: LidarFrame2D.Setting) -> None: ...
     def update(
         self,
-        rotation: np.ndarray[np.float64],
-        translation: np.ndarray[np.float64],
-        angles: np.ndarray[np.float64],
-        ranges: np.ndarray[np.float64],
+        rotation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+        angles: npt.NDArray[np.float64],
+        ranges: npt.NDArray[np.float64],
         partition_rays: bool = False,
     ): ...
     @property
@@ -1240,31 +1279,31 @@ class LidarFrame2D:
     @property
     def num_hit_rays(self) -> int: ...
     @property
-    def rotation_matrix(self) -> np.ndarray[np.float64]: ...
+    def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
     def rotation_angle(self) -> float: ...
     @property
-    def translation_vector(self) -> np.ndarray[np.float64]: ...
+    def translation_vector(self) -> npt.NDArray[np.float64]: ...
     @property
-    def pose_matrix(self) -> np.ndarray[np.float64]: ...
+    def pose_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
-    def angles_in_frame(self) -> np.ndarray[np.float64]: ...
+    def angles_in_frame(self) -> npt.NDArray[np.float64]: ...
     @property
-    def angles_in_world(self) -> np.ndarray[np.float64]: ...
+    def angles_in_world(self) -> npt.NDArray[np.float64]: ...
     @property
-    def ranges(self) -> np.ndarray[np.float64]: ...
+    def ranges(self) -> npt.NDArray[np.float64]: ...
     @property
-    def ray_directions_in_frame(self) -> np.ndarray[np.float64]: ...
+    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
     @property
-    def ray_directions_in_world(self) -> np.ndarray[np.float64]: ...
+    def ray_directions_in_world(self) -> npt.NDArray[np.float64]: ...
     @property
-    def end_points_in_frame(self) -> np.ndarray[np.float64]: ...
+    def end_points_in_frame(self) -> npt.NDArray[np.float64]: ...
     @property
-    def end_points_in_world(self) -> np.ndarray[np.float64]: ...
+    def end_points_in_world(self) -> npt.NDArray[np.float64]: ...
     @property
-    def hit_ray_indices(self) -> np.ndarray[np.int64]: ...
+    def hit_ray_indices(self) -> npt.NDArray[np.int64]: ...
     @property
-    def hit_points_world(self) -> np.ndarray[np.float64]: ...
+    def hit_points_world(self) -> npt.NDArray[np.float64]: ...
     @property
     def max_valid_range(self) -> float: ...
     @property
@@ -1272,7 +1311,7 @@ class LidarFrame2D:
     @property
     def is_valid(self) -> bool: ...
     def compute_closest_end_point(
-        self, position: np.ndarray[np.float64]
+        self, position: npt.NDArray[np.float64]
     ) -> TypedDict("returns", {"end_point_index": int, "distance": float}): ...
     @overload
     def sample_along_rays(
@@ -1283,9 +1322,9 @@ class LidarFrame2D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     @overload
@@ -1297,9 +1336,9 @@ class LidarFrame2D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     def sample_near_surface(
@@ -1310,9 +1349,9 @@ class LidarFrame2D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     def sample_in_region(
@@ -1324,18 +1363,18 @@ class LidarFrame2D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     def compute_rays_at(
-        self, position_world: np.ndarray[np.float64]
+        self, position_world: npt.NDArray[np.float64]
     ) -> TypedDict(
         "returns",
         {
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
             "visible_hit_point_indices": list[int],
         },
     ): ...
@@ -1365,37 +1404,37 @@ class LogOddMap2D:
         self: LogOddMap2D,
         setting: Setting,
         grid_map_info: GridMapInfo2D,
-        shape_metric_vertices: np.ndarray[np.float64],
+        shape_metric_vertices: npt.NDArray[np.float64],
     ) -> None: ...
     def update(
         self: LogOddMap2D,
-        position: np.ndarray[np.float64],
+        position: npt.NDArray[np.float64],
         theta: float,
-        angles_body: np.ndarray[np.float64],
-        ranges: np.ndarray[np.float64],
+        angles_body: npt.NDArray[np.float64],
+        ranges: npt.NDArray[np.float64],
     ) -> None: ...
     def compute_statistics_of_lidar_frame(
         self: LogOddMap2D,
-        position: np.ndarray[np.float64],
+        position: npt.NDArray[np.float64],
         theta: float,
-        angles_body: np.ndarray[np.float64],
-        ranges: np.ndarray[np.float64],
+        angles_body: npt.NDArray[np.float64],
+        ranges: npt.NDArray[np.float64],
         clip_ranges: bool,
     ) -> Tuple[int, int, int, int]: ...
     @property
     def setting(self: LogOddMap2D) -> Setting: ...
     @property
-    def log_map(self: LogOddMap2D) -> np.ndarray[np.float64]: ...
+    def log_map(self: LogOddMap2D) -> npt.NDArray[np.float64]: ...
     @property
-    def possibility_map(self: LogOddMap2D) -> np.ndarray[np.float64]: ...
+    def possibility_map(self: LogOddMap2D) -> npt.NDArray[np.float64]: ...
     @property
-    def occupancy_map(self: LogOddMap2D) -> np.ndarray[np.uint8]: ...
+    def occupancy_map(self: LogOddMap2D) -> npt.NDArray[np.uint8]: ...
     @property
-    def unexplored_mask(self: LogOddMap2D) -> np.ndarray[np.uint8]: ...
+    def unexplored_mask(self: LogOddMap2D) -> npt.NDArray[np.uint8]: ...
     @property
-    def occupied_mask(self: LogOddMap2D) -> np.ndarray[np.unit8]: ...
+    def occupied_mask(self: LogOddMap2D) -> npt.NDArray[np.unit8]: ...
     @property
-    def free_mask(self: LogOddMap2D) -> np.ndarray[np.uint8]: ...
+    def free_mask(self: LogOddMap2D) -> npt.NDArray[np.uint8]: ...
     @property
     def num_unexplored_cells(self: LogOddMap2D) -> int: ...
     @property
@@ -1404,7 +1443,7 @@ class LogOddMap2D:
     def num_free_cells(self: LogOddMap2D) -> int: ...
     def get_frontiers(
         self: LogOddMap2D, clean_at_first: bool = True, approx_iters: int = 4
-    ) -> list[np.ndarray[np.int32]]: ...
+    ) -> list[npt.NDArray[np.int32]]: ...
 
 class Lidar3D:
     class Setting(YamlableBase):
@@ -1416,24 +1455,24 @@ class Lidar3D:
         num_elevation_lines: int
 
     @overload
-    def __init__(self, setting: Setting, vertices: np.ndarray, triangles: np.ndarray) -> None: ...
+    def __init__(self, setting: Setting, vertices: npt.NDArray, triangles: npt.NDArray) -> None: ...
     @overload
-    def __init__(self, setting: Setting, vertices: list[np.ndarray], triangles: list[np.ndarray]) -> None: ...
+    def __init__(self, setting: Setting, vertices: list[npt.NDArray], triangles: list[npt.NDArray]) -> None: ...
     @property
     def setting(self) -> Setting: ...
     @property
-    def azimuth_angles(self) -> np.ndarray[np.float64]: ...
+    def azimuth_angles(self) -> npt.NDArray[np.float64]: ...
     @property
-    def elevation_angles(self) -> np.ndarray[np.float64]: ...
+    def elevation_angles(self) -> npt.NDArray[np.float64]: ...
     @property
-    def ray_directions_in_frame(self) -> np.ndarray[np.float64]: ...
+    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
     def scan(
         self,
-        orientation: np.ndarray[np.float64],
-        translation: np.ndarray[np.float64],
+        orientation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
         add_noise: bool = False,
         noise_stddev: float = 0.03,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
 
 class DepthCamera3D:
     class Setting(YamlableBase):
@@ -1445,96 +1484,86 @@ class DepthCamera3D:
         camera_cy: float
 
     @overload
-    def __init__(self, setting: Setting, vertices: np.ndarray, triangles: np.ndarray) -> None: ...
+    def __init__(self, setting: Setting, vertices: npt.NDArray, triangles: npt.NDArray) -> None: ...
     @overload
-    def __init__(self, setting: Setting, vertices: list[np.ndarray], triangles: list[np.ndarray]) -> None: ...
+    def __init__(self, setting: Setting, vertices: list[npt.NDArray], triangles: list[npt.NDArray]) -> None: ...
     @property
     def setting(self) -> Setting: ...
     @property
-    def ray_directions_in_frame(self) -> np.ndarray[np.float64]: ...
+    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
     def scan(
         self,
-        rotation: np.ndarray[np.float64],
-        translation: np.ndarray[np.float64],
+        rotation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
         add_noise: bool = False,
         noise_stddev: float = 0.03,
-    ) -> np.ndarray[np.float64]: ...
+    ) -> npt.NDArray[np.float64]: ...
 
 class LidarFramePartition3D: ...
 
-class LidarFrame3D:
+class RangeSensorFrame3D:
     class Setting(YamlableBase):
+        row_margin: int
+        col_margin: int
         valid_range_min: float
         valid_range_max: float
-        valid_azimuth_min: float
-        valid_azimuth_max: float
-        valid_elevation_min: float
-        valid_elevation_max: float
         discontinuity_factor: float
         rolling_diff_discount: float
         min_partition_size: int
 
-    def __init__(self: LidarFrame3D, setting: Setting) -> None: ...
-    def reset(self) -> None: ...
-    def update(
-        self,
-        rotation: np.ndarray[np.float64],
-        translation: np.ndarray[np.float64],
-        azimuths: np.ndarray[np.float64],
-        elevations: np.ndarray[np.float64],
-        ranges: np.ndarray[np.float64],
-        partition_rays: bool = False,
-    ) -> None: ...
-    @property
-    def setting(self) -> Setting: ...
     @property
     def num_rays(self) -> int: ...
     @property
     def num_hit_rays(self) -> int: ...
     @property
-    def rotation_matrix(self) -> np.ndarray[np.float64]: ...
+    def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
-    def translation_vector(self) -> np.ndarray[np.float64]: ...
+    def translation_vector(self) -> npt.NDArray[np.float64]: ...
     @property
-    def pose_matrix(self) -> np.ndarray[np.float64]: ...
+    def pose_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
-    def azimuth_angles_in_frame(self) -> np.ndarray[np.float64]: ...
+    def ranges(self) -> npt.NDArray[np.float64]: ...
     @property
-    def elevation_angles_in_frame(self) -> np.ndarray[np.float64]: ...
+    def frame_coords(self) -> npt.NDArray[np.float64]: ...
     @property
-    def ranges(self) -> np.ndarray[np.float64]: ...
+    def ranges(self) -> npt.NDArray[np.float64]: ...
     @property
-    def ray_directions_in_frame(self) -> np.ndarray[np.float64]: ...
+    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
     @property
-    def ray_directions_in_world(self) -> np.ndarray[np.float64]: ...
+    def ray_directions_in_world(self) -> npt.NDArray[np.float64]: ...
     @property
-    def end_points_in_frame(self) -> np.ndarray[np.float64]: ...
+    def end_points_in_frame(self) -> npt.NDArray[np.float64]: ...
     @property
-    def end_points_in_world(self) -> np.ndarray[np.float64]: ...
+    def end_points_in_world(self) -> npt.NDArray[np.float64]: ...
     @property
-    def hit_ray_indices(self) -> np.ndarray[np.int64]: ...
+    def hit_ray_indices(self) -> npt.NDArray[np.int64]: ...
     @property
-    def hit_points_world(self) -> np.ndarray[np.float64]: ...
+    def hit_points_world(self) -> npt.NDArray[np.float64]: ...
     @property
     def max_valid_range(self) -> float: ...
     @property
+    def hit_mask(self) -> npt.NDArray[np.bool_]: ...
+    @property
     def is_valid(self) -> bool: ...
-    @property
-    def is_partitioned(self) -> bool: ...
-    @property
-    def partitions(self) -> list[LidarFramePartition3D]: ...
+    def points_is_in_frame(self, xyz_frame: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]: ...
+    def coords_is_in_frame(self, coords_frame: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]: ...
+    def compute_frame_coords(self, xyz_frame: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]: ...
+    def world_to_frame_so3(self, dir_world: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]: ...
+    def frame_to_world_so3(self, dir_frame: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]: ...
+    def world_to_frame_se3(self, xyz_world: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]: ...
+    def frame_to_world_se3(self, xyz_frame: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]: ...
     def compute_closest_end_point(
-        self, position_world: np.ndarray[np.float64]
-    ) -> TypedDict("returns", {"azimuth_index": int, "elevation_index": int, "distance": float}): ...
+        self, position_world: npt.NDArray[np.float64], brute_force: bool
+    ) -> TypedDict("returns", {"row_index": int, "col_index": int, "distance": float,},): ...
     @overload
     def sample_along_rays(
         self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     @overload
@@ -1543,9 +1572,9 @@ class LidarFrame3D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     def sample_near_surface(
@@ -1553,9 +1582,9 @@ class LidarFrame3D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     def sample_in_region_hpr(
@@ -1568,9 +1597,9 @@ class LidarFrame3D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     def sample_in_region_vrs(
@@ -1582,165 +1611,131 @@ class LidarFrame3D:
     ) -> TypedDict(
         "returns",
         {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "positions_world": npt.NDArray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
         },
     ): ...
     def compute_rays_at(
-        self, position_world: np.ndarray[np.float64]
+        self, position_world: npt.NDArray[np.float64]
     ) -> TypedDict(
         "returns",
         {
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
+            "directions_world": npt.NDArray[np.float64],
+            "distances": npt.NDArray[np.float64],
             "visible_hit_point_indices": list[int],
         },
     ): ...
 
-class RgbdFrame3D:
-    class Setting(LidarFrame3D.Setting):
+class LidarFrame3D:
+    class Setting(RangeSensorFrame3D.Setting):
+        azimuth_min: float
+        azimuth_max: float
+        elevation_min: float
+        elevation_max: float
+        num_azimuth_lines: int
+        num_elevation_lines: int
+
+    def __init__(self: LidarFrame3D, setting: Setting) -> None: ...
+    def reset(self) -> None: ...
+    def update_ranges(
+        self,
+        rotation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+        ranges: npt.NDArray[np.float64],
+        partition_rays: bool = False,
+    ) -> None: ...
+    @property
+    def setting(self) -> Setting: ...
+    @property
+    def num_azimuth_lines(self) -> int: ...
+    @property
+    def num_elevation_lines(self) -> int: ...
+    @property
+    def is_partitioned(self) -> bool: ...
+    @property
+    def partitions(self) -> list[LidarFramePartition3D]: ...
+
+class DepthFrame3D:
+    class Setting(RangeSensorFrame3D.Setting):
+        camera_to_optical: npt.NDArray[np.float64]
         image_height: int
         image_width: int
         camera_fx: float
         camera_fy: float
         camera_cx: float
         camera_cy: float
-        depth_scale: float
 
-    def __init__(self: RgbdFrame3D, setting: Setting) -> None: ...
+        def resize(self, factor: float) -> Tuple[int, int]: ...
+
+    def __init__(self: DepthFrame3D.Setting, setting: Setting) -> None: ...
     def reset(self) -> None: ...
-    def resize(self, factor: float) -> Tuple[int, int]: ...
     @overload
-    def update(
+    def update_ranges(
         self,
-        orientation: np.ndarray[np.float64],
-        translation: np.ndarray[np.float64],
-        depth: np.ndarray[np.float64],
+        orientation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+        depth: npt.NDArray[np.float64],
         depth_scaled: bool = True,
         partition_rays: bool = False,
     ) -> None: ...
     @overload
-    def update(
+    def update_ranges(
         self,
-        orientation: np.ndarray[np.float64],
-        translation: np.ndarray[np.float64],
+        orientation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
         depth_file: str,
         partition_rays: bool = False,
     ) -> None: ...
     @property
     def setting(self) -> Setting: ...
     @property
-    def camera_extrinsic_matrix(self) -> np.ndarray[np.float64]: ...
+    def image_height(self) -> int: ...
     @property
-    def camera_intrinsic_matrix(self) -> np.ndarray[np.float64]: ...
+    def image_width(self) -> int: ...
     @property
-    def num_rays(self) -> int: ...
+    def camera_extrinsic_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
-    def num_hit_rays(self) -> int: ...
-    @property
-    def rotation_matrix(self) -> np.ndarray[np.float64]: ...
-    @property
-    def translation_vector(self) -> np.ndarray[np.float64]: ...
-    @property
-    def pose_matrix(self) -> np.ndarray[np.float64]: ...
-    @property
-    def azimuth_angles_in_frame(self) -> np.ndarray[np.float64]: ...
-    @property
-    def elevation_angles_in_frame(self) -> np.ndarray[np.float64]: ...
-    @property
-    def ranges(self) -> np.ndarray[np.float64]: ...
-    @property
-    def ray_directions_in_frame(self) -> np.ndarray[np.float64]: ...
-    @property
-    def ray_directions_in_world(self) -> np.ndarray[np.float64]: ...
-    @property
-    def end_points_in_frame(self) -> np.ndarray[np.float64]: ...
-    @property
-    def end_points_in_world(self) -> np.ndarray[np.float64]: ...
-    @property
-    def hit_ray_indices(self) -> np.ndarray[np.int64]: ...
-    @property
-    def hit_points_world(self) -> np.ndarray[np.float64]: ...
-    @property
-    def max_valid_range(self) -> float: ...
-    @property
-    def is_valid(self) -> bool: ...
+    def camera_intrinsic_matrix(self) -> npt.NDArray[np.float64]: ...
+    @staticmethod
+    def depth_image_to_depth(depth_image: npt.NDArray[np.float64], depth_scale: float) -> npt.NDArray[np.float64]: ...
+    @staticmethod
+    def depth_to_depth_image(depth: npt.NDArray[np.float64], depth_scale: float) -> npt.NDArray[np.float64]: ...
     @property
     def is_partitioned(self) -> bool: ...
     @property
     def partitions(self) -> list[LidarFramePartition3D]: ...
-    def compute_closest_end_point(
-        self, position_world: np.ndarray[np.float64]
-    ) -> TypedDict("returns", {"azimuth_index": int, "elevation_index": int, "distance": float}): ...
-    @overload
-    def sample_along_rays(
-        self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float
-    ) -> TypedDict(
-        "returns",
-        {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
-        },
-    ): ...
-    @overload
-    def sample_along_rays(
-        self, range_step: float, max_in_obstacle_dist: float, sampled_rays_ratio: float
-    ) -> TypedDict(
-        "returns",
-        {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
-        },
-    ): ...
-    def sample_near_surface(
-        self, num_samples_per_ray: int, max_offset: float, sampled_rays_ratio: float
-    ) -> TypedDict(
-        "returns",
-        {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
-        },
-    ): ...
-    def sample_in_region_hpr(
-        self,
-        num_positions: int,
-        num_near_surface_samples_per_ray: int,
-        num_along_ray_samples_per_ray: int,
-        max_in_obstacle_dist: float,
-        parallel: bool,
-    ) -> TypedDict(
-        "returns",
-        {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
-        },
-    ): ...
-    def sample_in_region_vrs(
-        self,
-        num_hit_points: int,
-        num_samples_per_azimuth_segment: int,
-        num_azimuth_segments: int,
-        parallel: bool,
-    ) -> TypedDict(
-        "returns",
-        {
-            "positions_world": np.ndarray[np.float64],
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
-        },
-    ): ...
-    def compute_rays_at(
-        self, position_world: np.ndarray[np.float64]
-    ) -> TypedDict(
-        "returns",
-        {
-            "directions_world": np.ndarray[np.float64],
-            "distances": np.ndarray[np.float64],
-            "visible_hit_point_indices": list[int],
-        },
-    ): ...
+
+class AbstractSurfaceMapping:
+    class Setting(YamlableBase):
+        @staticmethod
+        def create(mapping_type: str) -> AbstractSurfaceMapping.Setting: ...
+
+    @staticmethod
+    def create_surface_mapping(
+        mapping_type: str, setting: AbstractSurfaceMapping.Setting
+    ) -> AbstractSurfaceMapping: ...
+    def write(self, filename: str) -> bool: ...
+    def read(self, filename: str) -> bool: ...
+
+class AbstractSurfaceMapping2D(AbstractSurfaceMapping):
+    @property
+    def quadtree(self) -> SurfaceMappingQuadtree: ...
+    @property
+    def sensor_noise(self) -> float: ...
+    @property
+    def cluster_level(self) -> int: ...
+    def update(
+        self, rotation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64], ranges: npt.NDArray[np.float64]
+    ) -> None: ...
+
+class AbstractSurfaceMapping3D(AbstractSurfaceMapping):
+    @property
+    def octree(self) -> SurfaceMappingOctree: ...
+    @property
+    def sensor_noise(self) -> float: ...
+    @property
+    def cluster_level(self) -> int: ...
+    def update(
+        self, rotation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64], ranges: npt.NDArray[np.float64]
+    ) -> None: ...

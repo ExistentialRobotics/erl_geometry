@@ -12,7 +12,7 @@ BindHouseExpoMap(const py::module &m) {
         .def(py::init<const char *, double>(), py::arg("file"), py::arg("wall_thickness"))
         .def_property_readonly("file", &HouseExpoMap::GetFile)
         .def_property_readonly("room_id", &HouseExpoMap::GetRoomId)
-        .def_property_readonly("meter_space", &HouseExpoMap::GetMeterSpace)
+        .def_property_readonly("meter_space", py::overload_cast<>(&HouseExpoMap::GetMeterSpace, py::const_))
         .def(
             "to_json",
             [](const HouseExpoMap &map) {

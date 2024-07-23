@@ -48,13 +48,22 @@ namespace erl::geometry {
             : OccupancyOctreeNode(depth, child_index, log_odds) {}
 
         SurfaceMappingOctreeNode(const SurfaceMappingOctreeNode &other)
-            : OccupancyOctreeNode(other),
-              m_data_(std::make_shared<SurfaceData>(*other.m_data_)) {}
+            : OccupancyOctreeNode(other) {
+            if (other.m_data_ == nullptr) {
+                m_data_.reset();
+                return;
+            }
+            m_data_ = std::make_shared<SurfaceData>(*other.m_data_);
+        }
 
         SurfaceMappingOctreeNode &
         operator=(const SurfaceMappingOctreeNode &other) {
             if (this == &other) { return *this; }
             OccupancyOctreeNode::operator=(other);
+            if (other.m_data_ == nullptr) {
+                m_data_.reset();
+                return *this;
+            }
             m_data_ = std::make_shared<SurfaceData>(*other.m_data_);
             return *this;
         }

@@ -3,6 +3,8 @@
 #include "abstract_surface_mapping.hpp"
 #include "surface_mapping_quadtree.hpp"
 
+#include "erl_common/exception.hpp"
+
 namespace erl::geometry {
 
     class AbstractSurfaceMapping2D : public AbstractSurfaceMapping {

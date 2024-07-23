@@ -8,3 +8,4 @@
 - Add IO support to DepthFrame3D, LidarFrame2D and LidarFrame3D
 - Add SurfaceMapping interface
 - Add SurfaceMapping Quadtree & Octree
+- Update Python binding

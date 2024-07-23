@@ -23,7 +23,12 @@ namespace erl::geometry {
             ERL_ASSERTM(this->LoadData(filename), "Failed to read SurfaceMappingOctree from file: {}", filename);
         }
 
-        SurfaceMappingOctree(const SurfaceMappingOctree &) = delete;  // no copy constructor
+        SurfaceMappingOctree(const SurfaceMappingOctree &) = default;
+        SurfaceMappingOctree &
+        operator=(const SurfaceMappingOctree &) = default;
+        SurfaceMappingOctree(SurfaceMappingOctree &&) = default;
+        SurfaceMappingOctree &
+        operator=(SurfaceMappingOctree &&) = default;
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractOctree>

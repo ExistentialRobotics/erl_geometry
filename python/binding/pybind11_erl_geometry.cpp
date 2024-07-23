@@ -4,6 +4,9 @@ void
 BindAabb(const py::module &m);
 
 void
+BindAbstractSurfaceMapping(const py::module &m);
+
+void
 BindCityStreetMap(const py::module &m);
 
 void
@@ -52,6 +55,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     m.doc() = "Python 3 Interface of erl_geometry";
 
     BindAabb(m);
+    BindAbstractSurfaceMapping(m);
     BindCityStreetMap(m);
     BindNdTreeDeps(m);
     BindOccupancyTrees(m);

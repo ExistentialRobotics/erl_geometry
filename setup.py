@@ -27,6 +27,7 @@ cmake_use_lapack_strict = config["erl"].get("use_lapack_strict", "OFF")
 cmake_use_intel_mkl = config["erl"].get("use_intel_mkl", "ON")
 cmake_use_aocl = config["erl"].get("use_aocl", "OFF")
 cmake_use_single_threaded_blas = config["erl"].get("use_single_threaded_blas", "ON")
+cmake_use_tracy = config["erl"].get("use_tracy", "OFF")
 cmake_build_test = config["erl"].get("build_test", "OFF")
 
 erl_dependencies = config["erl"]["erl_dependencies"]
@@ -63,6 +64,7 @@ cmake_use_lapack_strict = os.environ.get("USE_LAPACK_STRICT", cmake_use_lapack_s
 cmake_use_intel_mkl = os.environ.get("USE_INTEL_MKL", cmake_use_intel_mkl)
 cmake_use_aocl = os.environ.get("USE_AOCL", cmake_use_aocl)
 cmake_use_single_threaded_blas = os.environ.get("USE_SINGLE_THREADED_BLAS", cmake_use_single_threaded_blas)
+cmake_use_tracy = os.environ.get("USE_TRACY", cmake_use_tracy)
 cmake_build_test = os.environ.get("BUILD_TEST", cmake_build_test)
 
 available_build_types = ["Release", "Debug", "RelWithDebInfo"]
@@ -96,6 +98,7 @@ print(f"ERL_USE_LAPACK_STRICT: {cmake_use_lapack_strict}")
 print(f"ERL_USE_INTEL_MKL: {cmake_use_intel_mkl}")
 print(f"ERL_USE_AOCL: {cmake_use_aocl}")
 print(f"ERL_USE_SINGLE_THREADED_BLAS: {cmake_use_single_threaded_blas}")
+print(f"ERL_USE_TRACY: {cmake_use_tracy}")
 print(f"ERL_BUILD_TEST: {cmake_build_test}")
 print("====================================================================================================")
 
@@ -157,6 +160,7 @@ class CMakeBuild(build_ext):
                 f"-DERL_USE_INTEL_MKL:BOOL={cmake_use_intel_mkl}",
                 f"-DERL_USE_AOCL:BOOL={cmake_use_aocl}",
                 f"-DERL_USE_SINGLE_THREADED_BLAS:BOOL={cmake_use_single_threaded_blas}",
+                f"-DERL_USE_TRACY:BOOL={cmake_use_tracy}",
                 f"-DERL_BUILD_TEST:BOOL={cmake_build_test}",
                 f"-DPIP_LIB_DIR:PATH={ext_dir}",
             ]
@@ -194,7 +198,6 @@ for i, require in enumerate(requires):
         left, pkg_name = require.split("=")
         pkg_name = pkg_name.strip()
         requires[i] = f"{pkg_name} @ {require.strip()}"
-
 
 setup(
     name=python_pkg_name,

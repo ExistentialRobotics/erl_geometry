@@ -1,4 +1,5 @@
 #pragma once
+
 #include "occupancy_quadtree_node.hpp"
 
 #include "erl_common/eigen.hpp"
@@ -48,13 +49,22 @@ namespace erl::geometry {
             : OccupancyQuadtreeNode(depth, child_index, log_odds) {}
 
         SurfaceMappingQuadtreeNode(const SurfaceMappingQuadtreeNode &other)
-            : OccupancyQuadtreeNode(other),
-              m_data_(std::make_shared<SurfaceData>(*other.m_data_)) {}
+            : OccupancyQuadtreeNode(other) {
+            if (other.m_data_ == nullptr) {
+                m_data_.reset();
+                return;
+            }
+            m_data_ = std::make_shared<SurfaceData>(*other.m_data_);
+        }
 
         SurfaceMappingQuadtreeNode &
         operator=(const SurfaceMappingQuadtreeNode &other) {
             if (this == &other) { return *this; }
             OccupancyQuadtreeNode::operator=(other);
+            if (other.m_data_ == nullptr) {
+                m_data_.reset();
+                return *this;
+            }
             m_data_ = std::make_shared<SurfaceData>(*other.m_data_);
             return *this;
         }
