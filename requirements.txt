@@ -7,4 +7,3 @@ screeninfo
 scipy
 numpy
 vedo
-open3d

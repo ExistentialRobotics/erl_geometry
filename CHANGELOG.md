@@ -1,4 +1,5 @@
 # 2024-07-22
+
 - Use Tracy to profile memory allocation and deallocation in Quadtree and Octree
 - Add dataset CowAndLady
 - Add dataset UcsdFah2D

@@ -50,18 +50,20 @@ namespace erl::geometry {
               m_setting_(std::static_pointer_cast<OccupancyQuadtreeBaseSetting>(setting)) {}
 
         OccupancyQuadtreeBase(
+            std::shared_ptr<Setting> setting,
             const std::shared_ptr<common::GridMapInfo2D>& map_info,
             const cv::Mat& image_map,
             const double occupied_threshold,
             const int padding = 0)
-            : QuadtreeImpl<Node, AbstractOccupancyQuadtree, Setting>([&map_info]() -> std::shared_ptr<Setting> {
-                  auto setting = std::make_shared<Setting>();
-                  setting->resolution = map_info->Resolution().minCoeff();
+            : QuadtreeImpl<Node, AbstractOccupancyQuadtree, Setting>([&map_info, &setting]() -> std::shared_ptr<Setting> {
+                  if (setting == nullptr) { setting = std::make_shared<Setting>(); }
+                  setting->resolution = map_info->Resolution().mean();
                   setting->log_odd_max = 10.0;
                   setting->SetProbabilityHit(0.95);   // log_odd_hit = 3
                   setting->SetProbabilityMiss(0.49);  // log_odd_miss = 0
                   return setting;
-              }()) {
+              }()),
+              m_setting_(std::static_pointer_cast<OccupancyQuadtreeBaseSetting>(std::move(setting))) {
             ERL_ASSERTM(image_map.channels() == 1, "Image map must be a single channel image.");
             cv::Mat obstacle_map;
             cv::threshold(image_map, obstacle_map, occupied_threshold, 255, cv::THRESH_BINARY);

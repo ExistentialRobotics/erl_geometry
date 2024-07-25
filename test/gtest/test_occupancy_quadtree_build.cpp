@@ -17,10 +17,10 @@ struct Options {
     std::string gazebo_test_file = (g_test_data_dir / "gazebo_test.dat").string();
     std::string house_expo_map_file = (g_test_data_dir / "house_expo_room_1451.json").string();
     std::string house_expo_traj_file = (g_test_data_dir / "house_expo_room_1451.csv").string();
-    std::string ros_bag_dat_file = (g_test_data_dir / "ucsd_fah_2d.dat").string();
-    bool use_gazebo_data = false;
-    bool use_house_expo_data = true;
-    bool use_ros_bag_data = false;
+    std::string ucsd_fah_2d_file = (g_test_data_dir / "ucsd_fah_2d.dat").string();
+    bool use_gazebo_room_2d = false;
+    bool use_house_expo_lidar_2d = true;
+    bool use_ucsd_fah_2d = false;
     bool hold = false;
     int stride = 1;
     double quadtree_resolution = 0.05;
@@ -65,7 +65,7 @@ TEST(OccupancyQuadtree, Build) {
     };
 
     std::string tree_name;
-    if (g_options.use_gazebo_data) {
+    if (g_options.use_gazebo_room_2d) {
         tree_name = "gazebo";
         // load raw data
         auto train_data_loader = erl::geometry::GazeboRoom2D::TrainDataLoader(g_options.gazebo_train_file);
@@ -86,7 +86,7 @@ TEST(OccupancyQuadtree, Build) {
         }
         bar->Close();
         trajectory.conservativeResize(2, j);
-    } else if (g_options.use_house_expo_data) {
+    } else if (g_options.use_house_expo_lidar_2d) {
         tree_name = std::filesystem::path(g_options.house_expo_map_file).stem().filename().string() + "_2d";
         // load raw data
         erl::geometry::HouseExpoMap house_expo_map(g_options.house_expo_map_file, 0.2);
@@ -118,7 +118,7 @@ TEST(OccupancyQuadtree, Build) {
         trajectory.conservativeResize(2, j);
     } else {
         tree_name = "ros_bag";
-        Eigen::MatrixXd ros_bag_data = erl::common::LoadEigenMatrixFromBinaryFile<double, Eigen::Dynamic, Eigen::Dynamic>(g_options.ros_bag_dat_file);
+        Eigen::MatrixXd ros_bag_data = erl::common::LoadEigenMatrixFromBinaryFile<double, Eigen::Dynamic, Eigen::Dynamic>(g_options.ucsd_fah_2d_file);
         // prepare buffer
         max_update_cnt = ros_bag_data.cols() / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
@@ -195,9 +195,9 @@ main(int argc, char *argv[]) {
         // clang-format off
         desc.add_options()
             ("help", "produce help message")
-            ("use-gazebo-data", po::bool_switch(&g_options.use_gazebo_data)->default_value(g_options.use_gazebo_data), "Use Gazebo data")
-            ("use-house-expo-data", po::bool_switch(&g_options.use_house_expo_data)->default_value(g_options.use_house_expo_data), "Use HouseExpo data")
-            ("use-ros-bag-data", po::bool_switch(&g_options.use_ros_bag_data)->default_value(g_options.use_ros_bag_data), "Use ROS bag data")
+            ("use-gazebo-data", po::bool_switch(&g_options.use_gazebo_room_2d)->default_value(g_options.use_gazebo_room_2d), "Use Gazebo data")
+            ("use-house-expo-data", po::bool_switch(&g_options.use_house_expo_lidar_2d)->default_value(g_options.use_house_expo_lidar_2d), "Use HouseExpo data")
+            ("use-ros-bag-data", po::bool_switch(&g_options.use_ucsd_fah_2d)->default_value(g_options.use_ucsd_fah_2d), "Use ROS bag data")
             ("stride", po::value<int>(&g_options.stride)->default_value(g_options.stride), "stride for running the sequence")
             ("quadtree-resolution", po::value<double>(&g_options.quadtree_resolution)->default_value(g_options.quadtree_resolution), "Quadtree resolution")
             ("quadtree-lazy-eval", po::bool_switch(&g_options.quadtree_lazy_eval)->default_value(g_options.quadtree_lazy_eval), "Quadtree lazy evaluation")
@@ -221,7 +221,7 @@ main(int argc, char *argv[]) {
                 "Gazebo test data file"
             )(
                 "ros-bag-csv-file",
-                po::value<std::string>(&g_options.ros_bag_dat_file)->default_value(g_options.ros_bag_dat_file)->value_name("file"),
+                po::value<std::string>(&g_options.ucsd_fah_2d_file)->default_value(g_options.ucsd_fah_2d_file)->value_name("file"),
                 "ROS bag csv file"
             );
         // clang-format on
@@ -233,7 +233,7 @@ main(int argc, char *argv[]) {
             return 0;
         }
         po::notify(vm);
-        if (g_options.use_gazebo_data + g_options.use_house_expo_data + g_options.use_ros_bag_data != 1) {
+        if (g_options.use_gazebo_room_2d + g_options.use_house_expo_lidar_2d + g_options.use_ucsd_fah_2d != 1) {
             std::cerr << "Please specify one of --use-gazebo-data, --use-house-expo-data, --use-ros-bag-data." << std::endl;
             return 1;
         }
