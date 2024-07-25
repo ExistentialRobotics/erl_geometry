@@ -34,7 +34,10 @@ namespace erl::geometry {
         [[nodiscard]] std::shared_ptr<AbstractOctree>
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
-            if (tree_setting == nullptr) { tree_setting = std::make_shared<Setting>(); }
+            if (tree_setting == nullptr) {
+                ERL_DEBUG_ASSERT(setting == nullptr, "setting is not the type for SurfaceMappingOctree.");
+                tree_setting = std::make_shared<Setting>();
+            }
             return std::make_shared<SurfaceMappingOctree>(tree_setting);
         }
     };

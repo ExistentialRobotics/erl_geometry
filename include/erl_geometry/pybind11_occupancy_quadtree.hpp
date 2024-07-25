@@ -7,11 +7,23 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_common/yaml.hpp"
 
-template<class Quadtree, class Node>
+template<class Node, class NodeParent = void>
+std::enable_if_t<std::is_same_v<NodeParent, void>, py::class_<Node, std::shared_ptr<Node>>>
+BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
+    return py::class_<Node, py::RawPtrWrapper<Node>>(m, node_name);
+}
+
+template<class Node, class NodeParent>
+std::enable_if_t<!std::is_same_v<NodeParent, void>, py::class_<Node, NodeParent>>
+BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
+    return py::class_<Node, NodeParent, py::RawPtrWrapper<Node>>(m, node_name);
+}
+
+template<class Quadtree, class Node, class NodeParent = void>
 auto
 BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* node_name) {
     py::class_<Quadtree, std::shared_ptr<Quadtree>> tree(m, tree_name);
-    py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
+    auto node = BindOccupancyQuadtreeNode<Node, NodeParent>(m, node_name);
 
     using namespace erl::common;
     using namespace erl::geometry;

@@ -49,7 +49,10 @@ BindOccupancyTrees(const py::module& m) {
     BindOccupancyOctree<OccupancyOctree, OccupancyOctreeNode>(m, "OccupancyOctree", "OccupancyOctreeNode");
 
     auto [surface_mapping_quadtree, surface_mapping_quadtree_node] =
-        BindOccupancyQuadtree<SurfaceMappingQuadtree, SurfaceMappingQuadtreeNode>(m, "SurfaceMappingQuadtree", "SurfaceMappingQuadtreeNode");
+        BindOccupancyQuadtree<SurfaceMappingQuadtree, SurfaceMappingQuadtreeNode, OccupancyQuadtreeNode>(
+            m,
+            "SurfaceMappingQuadtree",
+            "SurfaceMappingQuadtreeNode");
     py::class_<SurfaceMappingQuadtreeNode::SurfaceData, std::shared_ptr<SurfaceMappingQuadtreeNode::SurfaceData>>(surface_mapping_quadtree_node, "SurfaceData")
         .def_readwrite("position", &SurfaceMappingQuadtreeNode::SurfaceData::position)
         .def_readwrite("normal", &SurfaceMappingQuadtreeNode::SurfaceData::normal)
@@ -60,7 +63,7 @@ BindOccupancyTrees(const py::module& m) {
     surface_mapping_quadtree_node.def_property_readonly("surface_data", &SurfaceMappingQuadtreeNode::GetSurfaceData);
 
     auto [surface_mapping_octree, surface_mapping_octree_node] =
-        BindOccupancyOctree<SurfaceMappingOctree, SurfaceMappingOctreeNode>(m, "SurfaceMappingOctree", "SurfaceMappingOctreeNode");
+        BindOccupancyOctree<SurfaceMappingOctree, SurfaceMappingOctreeNode, OccupancyOctreeNode>(m, "SurfaceMappingOctree", "SurfaceMappingOctreeNode");
     py::class_<SurfaceMappingOctreeNode::SurfaceData, std::shared_ptr<SurfaceMappingOctreeNode::SurfaceData>>(surface_mapping_octree_node, "SurfaceData")
         .def_readwrite("position", &SurfaceMappingOctreeNode::SurfaceData::position)
         .def_readwrite("normal", &SurfaceMappingOctreeNode::SurfaceData::normal)
