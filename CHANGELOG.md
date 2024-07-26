@@ -1,3 +1,8 @@
+# 2024-07025
+
+- Update python binding: `SurfaceMapping[Quadtree|Octree]Node` should be inherited
+  from `Occupancy[Quadtree|Octree]Node`.
+
 # 2024-07-22
 
 - Use Tracy to profile memory allocation and deallocation in Quadtree and Octree
