@@ -10,17 +10,16 @@ BindUtils(py::module &m) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    m.def("manually_set_seed", &ManuallySetSeed, py::arg("seed"))
-        .def(
-            "bresenham_2d",
-            [](const Eigen::Ref<const Eigen::Vector2i> &start,
-               const Eigen::Ref<const Eigen::Vector2i> &end,
-               const std::optional<std::function<bool(long, long)>> &stop) {
-                return stop.has_value() ? Bresenham2D(start, end, stop.value()) : Bresenham2D(start, end);
-            },
-            py::arg("start"),
-            py::arg("end"),
-            py::arg("stop") = py::none())
+    m.def(
+         "bresenham_2d",
+         [](const Eigen::Ref<const Eigen::Vector2i> &start,
+            const Eigen::Ref<const Eigen::Vector2i> &end,
+            const std::optional<std::function<bool(long, long)>> &stop) {
+             return stop.has_value() ? Bresenham2D(start, end, stop.value()) : Bresenham2D(start, end);
+         },
+         py::arg("start"),
+         py::arg("end"),
+         py::arg("stop") = py::none())
         .def("compute_pixels_of_polygon_contour", &ComputePixelsOfPolygonContour, py::arg("polygon_vertices"))
         .def(
             "marching_square",

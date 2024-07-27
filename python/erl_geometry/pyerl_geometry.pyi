@@ -12,7 +12,6 @@ from erl_common.storage import GridMapInfo2D
 from erl_common.yaml import YamlableBase
 
 __all__ = [
-    "manually_set_seed",
     "marching_square",
     "bresenham_2d",
     "compute_pixel_of_polygon_contour",
@@ -58,7 +57,6 @@ __all__ = [
     "AbstractSurfaceMapping3D",
 ]
 
-def manually_set_seed(seed: int) -> None: ...
 def marching_square(
     img: npt.NDArray[np.float64], iso_value: float
 ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]: ...

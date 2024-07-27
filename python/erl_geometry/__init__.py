@@ -8,7 +8,6 @@ from . import gazebo
 
 __all__ = [
     "common",
-    "manually_set_seed",
     "marching_square",
     "bresenham_2d",
     "compute_pixel_of_polygon_contour",
