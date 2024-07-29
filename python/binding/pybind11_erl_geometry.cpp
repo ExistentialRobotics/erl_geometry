@@ -10,10 +10,64 @@ void
 BindCityStreetMap(const py::module &m);
 
 void
-BindNdTreeDeps(const py::module &m);
+BindNdTreeSetting(const py::module &m);
 
 void
-BindOccupancyTrees(const py::module &m);
+BindOccupancyNdTreeSetting(const py::module &m);
+
+void
+BindQuadtreeKey(const py::module &m);
+
+void
+BindAbstractQuadtreeNode(const py::module &m);
+
+void
+BindAbstractQuadtree(const py::module &m);
+
+void
+BindOccupancyQuadtreeNode(const py::module &m);
+
+void
+BindOccupancyQuadtreeBaseSetting(const py::module &m);
+
+void
+BindAbstractOccupancyQuadtree(const py::module &m);
+
+void
+BindOccupancyQuadtree(const py::module &m);
+
+void
+BindSurfaceMappingQuadtreeNode(const py::module &m);
+
+void
+BindSurfaceMappingQuadtree(const py::module &m);
+
+void
+BindOctreeKey(const py::module &m);
+
+void
+BindAbstractOctreeNode(const py::module &m);
+
+void
+BindAbstractOctree(const py::module &m);
+
+void
+BindOccupancyOctreeNode(const py::module &m);
+
+void
+BindOccupancyOctreeBaseSetting(const py::module &m);
+
+void
+BindAbstractOccupancyOctree(const py::module &m);
+
+void
+BindOccupancyOctree(const py::module &m);
+
+void
+BindSurfaceMappingOctreeNode(const py::module &m);
+
+void
+BindSurfaceMappingOctree(const py::module &m);
 
 void
 BindSurface2D(const py::module &m);
@@ -57,8 +111,26 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindAabb(m);
     BindAbstractSurfaceMapping(m);
     BindCityStreetMap(m);
-    BindNdTreeDeps(m);
-    BindOccupancyTrees(m);
+    BindNdTreeSetting(m);
+    BindOccupancyNdTreeSetting(m);
+    BindQuadtreeKey(m);
+    BindAbstractQuadtreeNode(m);
+    BindAbstractQuadtree(m);
+    BindOccupancyQuadtreeNode(m);
+    BindOccupancyQuadtreeBaseSetting(m);
+    BindAbstractOccupancyQuadtree(m);
+    BindOccupancyQuadtree(m);
+    BindSurfaceMappingQuadtreeNode(m);
+    BindSurfaceMappingQuadtree(m);
+    BindOctreeKey(m);
+    BindAbstractOctreeNode(m);
+    BindAbstractOctree(m);
+    BindOccupancyOctreeNode(m);
+    BindOccupancyOctreeBaseSetting(m);
+    BindAbstractOccupancyOctree(m);
+    BindOccupancyOctree(m);
+    BindSurfaceMappingOctreeNode(m);
+    BindSurfaceMappingOctree(m);
     BindSurface2D(m);
     BindSpace2D(m);
     BindLidar2D(m);

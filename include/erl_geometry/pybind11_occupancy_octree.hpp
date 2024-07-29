@@ -1,71 +1,36 @@
 #pragma once
 
 #include "occupancy_octree_base.hpp"
+#include "occupancy_octree_drawer.hpp"
 #include "open3d_visualizer_wrapper.hpp"
 #include "pybind11_occupancy_octree_drawer.hpp"
-
-#include "erl_common/pybind11.hpp"
 
 template<class Node, class NodeParent = void>
 std::enable_if_t<std::is_same_v<NodeParent, void>, py::class_<Node, std::shared_ptr<Node>>>
 BindOccupancyOctreeNode(const py::module &m, const char *node_name) {
-    return py::class_<Node, py::RawPtrWrapper<Node>>(m, node_name);
+    py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
+    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+    return node;
 }
 
 template<class Node, class NodeParent>
 std::enable_if_t<!std::is_same_v<NodeParent, void>, py::class_<Node, NodeParent, std::shared_ptr<Node>>>
 BindOccupancyOctreeNode(const py::module &m, const char *node_name) {
-    return py::class_<Node, NodeParent, py::RawPtrWrapper<Node>>(m, node_name);
+    py::class_<Node, NodeParent, py::RawPtrWrapper<Node>> node(m, node_name);
+    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+    return node;
 }
 
-template<class Octree, class Node, class NodeParent = void>
+template<class Octree, class Node>
 auto
-BindOccupancyOctree(const py::module &m, const char *tree_name, const char *node_name) {
-    py::class_<Octree, std::shared_ptr<Octree>> tree(m, tree_name);
-    auto node = BindOccupancyOctreeNode<Node, NodeParent>(m, node_name);
-
+BindOccupancyOctree(const py::module &m, const char *tree_name) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    // Node methods
-    /// AbstractOctreeNode methods
-    node.def_property_readonly("node_type", &Node::GetNodeType)
-        .def_property_readonly("depth", &Node::GetDepth)
-        .def_property_readonly("child_index", &Node::GetChildIndex)
-        .def_property_readonly("num_children", &Node::GetNumChildren)
-        .def_property_readonly("has_any_child", &Node::HasAnyChild)
-        .def("has_child", &Node::HasChild, py::arg("child_idx"))
-        .def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
-    /// OccupancyOctreeNode methods
-    node.def_property_readonly("occupancy", &Node::GetOccupancy)
-        .def_property_readonly("log_odds", &Node::GetLogOdds)
-        .def_property_readonly("mean_child_log_odds", &Node::GetMeanChildLogOdds)
-        .def_property_readonly("max_child_log_odds", &Node::GetMaxChildLogOdds)
-        .def("allow_update_log_odds", &Node::AllowUpdateLogOdds, py::arg("delta"))
-        .def("add_log_odds", &Node::AddLogOdds, py::arg("log_odds"));
+    py::class_<Octree, AbstractOccupancyOctree, std::shared_ptr<Octree>> tree(m, tree_name);
 
-    // AbstractOctree methods
-    tree.def("apply_setting", &Octree::ApplySetting, "apply the latest setting to the tree")
-        .def(
-            "write_raw",
-            [](Octree &self, const std::string &filename) -> bool { return self.Write(filename); },
-            py::arg("filename"))
-        .def("read_raw", [](Octree &self, const std::string &filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
-
-    // AbstractOccupancyOctree methods
-    tree.def(
-            "write_binary",
-            [](Octree &self, const std::string &filename, const bool prune_at_first) -> bool {
-                if (prune_at_first) { return self.WriteBinary(filename); }
-                return const_cast<const Octree &>(self).WriteBinary(filename);
-            },
-            py::arg("filename"),
-            py::arg("prune_at_first"))
-        .def(
-            "read_binary",
-            [](Octree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); },
-            py::arg("filename"))
-        .def("is_node_occupied", &Octree::IsNodeOccupied, py::arg("node"));
+    // AbstractOctree methods are defined in bind_abstract_octree.cpp
+    // AbstractOccupancyOctree methods are defined in bind_abstract_occupancy_octree.cpp
 
     // OccupancyOctreeBase methods, except iterators
     tree.def(py::init<>())
@@ -758,5 +723,5 @@ BindOccupancyOctree(const py::module &m, const char *tree_name, const char *node
     tree.def("Setting", []() { return std::make_shared<typename Octree::Setting>(); });
     BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<Octree>, Octree>(tree, "Drawer");
 
-    return std::make_pair(tree, node);
+    return tree;
 }

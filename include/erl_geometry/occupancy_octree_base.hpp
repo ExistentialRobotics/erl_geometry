@@ -528,6 +528,22 @@ namespace erl::geometry {
             std::swap(hit_nodes, filtered_hit_nodes);
         }
 
+        const OccupancyOctreeNode*
+        GetHitOccupiedNode(
+            const double px,
+            const double py,
+            const double pz,
+            const double vx,
+            const double vy,
+            const double vz,
+            const bool ignore_unknown,
+            const double max_range,
+            double& ex,
+            double& ey,
+            double& ez) const override {
+            return static_cast<const OccupancyOctreeNode*>(CastRay(px, py, pz, vx, vy, vz, ignore_unknown, max_range, ex, ey, ez));
+        }
+
         /**
          * Cast a ray starting from (px, py) along (vx, vy) and get the hit surface point (ex, ey) if the ray hits one.
          * @param px metric x coordinate of the start point

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aabb.hpp"
+#include "abstract_octree_node.hpp"
 #include "nd_tree_setting.hpp"
 
 #include "erl_common/string_utils.hpp"
@@ -334,6 +335,10 @@ namespace erl::geometry {
          */
         static std::shared_ptr<AbstractOctree>
         Read(std::istream& s);
+
+        // search node
+        [[nodiscard]] virtual const AbstractOctreeNode*
+        SearchNode(double x, double y, double z, uint32_t max_depth) const = 0;
 
     protected:
         /**

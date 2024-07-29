@@ -62,7 +62,6 @@ namespace erl::geometry {
 
         [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>
         Clone() const {
-            // TODO: post cloned setting to the new tree
             std::shared_ptr<AbstractQuadtree> tree = this->Create(nullptr);  // create a new tree
             std::shared_ptr<QuadtreeImpl> tree_impl = std::dynamic_pointer_cast<QuadtreeImpl>(tree);
             *tree_impl->m_setting_ = *m_setting_;  // copy the setting
@@ -2129,6 +2128,11 @@ namespace erl::geometry {
         }
 
         //-- Search functions
+        [[nodiscard]] const AbstractQuadtreeNode *
+        SearchNode(const double x, const double y, const uint32_t max_depth) const override {
+            return static_cast<const AbstractQuadtreeNode *>(Search(x, y, max_depth));
+        }
+
         /**
          * Search node given a point.
          * @param x

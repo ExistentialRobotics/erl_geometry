@@ -90,7 +90,7 @@ namespace erl::geometry {
         //-- occupancy queries
         [[nodiscard]] bool
         IsNodeOccupied(const OccupancyOctreeNode* node) const {
-            return node->GetLogOdds() > reinterpret_cast<OccupancyNdTreeSetting*>(m_setting_.get())->log_odd_occ_threshold;
+            return node->GetLogOdds() > m_setting_->log_odd_occ_threshold;
         }
 
         [[nodiscard]] bool
@@ -98,6 +98,21 @@ namespace erl::geometry {
             const float log_odds = node->GetLogOdds();
             return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
         }
+
+        //-- search
+        [[nodiscard]] virtual const OccupancyOctreeNode*
+        GetHitOccupiedNode(
+            double px,
+            double py,
+            double pz,
+            double vx,
+            double vy,
+            double vz,
+            bool ignore_unknown,
+            double max_range,
+            double& ex,
+            double& ey,
+            double& ez) const = 0;
 
         //-- update functions
         virtual void

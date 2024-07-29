@@ -4,69 +4,33 @@
 #include "occupancy_quadtree_drawer.hpp"
 #include "pybind11_occupancy_quadtree_drawer.hpp"
 
-#include "erl_common/pybind11.hpp"
-#include "erl_common/yaml.hpp"
-
 template<class Node, class NodeParent = void>
 std::enable_if_t<std::is_same_v<NodeParent, void>, py::class_<Node, std::shared_ptr<Node>>>
 BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
-    return py::class_<Node, py::RawPtrWrapper<Node>>(m, node_name);
+    py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
+    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+    return node;
 }
 
 template<class Node, class NodeParent>
-std::enable_if_t<!std::is_same_v<NodeParent, void>, py::class_<Node, NodeParent>>
+std::enable_if_t<!std::is_void_v<NodeParent>, py::class_<Node, NodeParent>>
 BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
-    return py::class_<Node, NodeParent, py::RawPtrWrapper<Node>>(m, node_name);
+    py::class_<Node, NodeParent, py::RawPtrWrapper<Node>> node(m, node_name);
+    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+    return node;
 }
 
-template<class Quadtree, class Node, class NodeParent = void>
+template<class Quadtree, class Node>
 auto
-BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* node_name) {
-    py::class_<Quadtree, std::shared_ptr<Quadtree>> tree(m, tree_name);
-    auto node = BindOccupancyQuadtreeNode<Node, NodeParent>(m, node_name);
+BindOccupancyQuadtree(const py::module& m, const char* tree_name) {
 
     using namespace erl::common;
     using namespace erl::geometry;
 
-    // Node methods
-    /// AbstractQuadtreeNode methods
-    node.def_property_readonly("node_type", &Node::GetNodeType)
-        .def_property_readonly("depth", &Node::GetDepth)
-        .def_property_readonly("child_index", &Node::GetChildIndex)
-        .def_property_readonly("num_children", &Node::GetNumChildren)
-        .def_property_readonly("has_any_child", &Node::HasAnyChild)
-        .def("has_child", &Node::HasChild, py::arg("child_idx"))
-        .def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
-    /// OccupancyQuadtreeNode methods
-    node.def_property_readonly("occupancy", &Node::GetOccupancy)
-        .def_property_readonly("log_odds", &Node::GetLogOdds)
-        .def_property_readonly("mean_child_log_odds", &Node::GetMeanChildLogOdds)
-        .def_property_readonly("max_child_log_odds", &Node::GetMaxChildLogOdds)
-        .def("allow_update_log_odds", &Node::AllowUpdateLogOdds, py::arg("delta"))
-        .def("add_log_odds", &Node::AddLogOdds, py::arg("log_odds"));
+    py::class_<Quadtree, AbstractOccupancyQuadtree, std::shared_ptr<Quadtree>> tree(m, tree_name);
 
-    // AbstractQuadtree methods
-    tree.def("apply_setting", &Quadtree::ApplySetting, "apply the latest setting to the tree")
-        .def(
-            "write_raw",
-            [](Quadtree& self, const std::string& filename) -> bool { return self.Write(filename); },
-            py::arg("filename"))
-        .def("read_raw", [](Quadtree& self, const std::string& filename) -> bool { return self.LoadData(filename); }, py::arg("filename"));
-
-    // AbstractOccupancyQuadtree methods
-    tree.def(
-            "write_binary",
-            [](Quadtree& self, const std::string& filename, const bool prune_at_first) -> bool {
-                if (prune_at_first) { return self.WriteBinary(filename); }
-                return const_cast<const Quadtree&>(self).WriteBinary(filename);
-            },
-            py::arg("filename"),
-            py::arg("prune_at_first"))
-        .def(
-            "read_binary",
-            [](Quadtree& self, const std::string& filename) -> bool { return self.ReadBinary(filename); },
-            py::arg("filename"))
-        .def("is_node_occupied", &Quadtree::IsNodeOccupied, py::arg("node"));
+    // AbstractQuadtree methods are defined in bind_abstract_quadtree.cpp
+    // AbstractOccupancyQuadtree methods are defined in bind_abstract_occupancy_quadtree.cpp
 
     // OccupancyQuadtreeBase methods, except iterators
     tree.def(py::init<>())
@@ -644,5 +608,5 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name, const char* no
     tree.def("Setting", []() { return std::make_shared<typename Quadtree::Setting>(); });
     BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<Quadtree>, Quadtree>(tree, "Drawer");
 
-    return std::pair(tree, node);
+    return tree;
 }

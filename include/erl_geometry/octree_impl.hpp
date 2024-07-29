@@ -2415,6 +2415,11 @@ namespace erl::geometry {
         }
 
         //-- Search functions
+        [[nodiscard]] const AbstractOctreeNode *
+        SearchNode(const double x, const double y, const double z, const uint32_t max_depth) const override {
+            return static_cast<const AbstractOctreeNode *>(Search(x, y, z, max_depth));
+        }
+
         /**
          * Search node given a point.
          * @param x

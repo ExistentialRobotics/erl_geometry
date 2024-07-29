@@ -99,6 +99,10 @@ namespace erl::geometry {
             return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
         }
 
+        //-- search
+        [[nodiscard]] virtual const OccupancyQuadtreeNode*
+        GetHitOccupiedNode(double px, double py, double vx, double vy, bool ignore_unknown, double max_range, double& ex, double& ey) const = 0;
+
         //-- update functions
         virtual void
         ToMaxLikelihood() = 0;

@@ -516,6 +516,19 @@ namespace erl::geometry {
             hit_nodes = std::move(filtered_hit_nodes);
         }
 
+        const OccupancyQuadtreeNode*
+        GetHitOccupiedNode(
+            const double px,
+            const double py,
+            const double vx,
+            const double vy,
+            const bool ignore_unknown,
+            const double max_range,
+            double& ex,
+            double& ey) const override {
+            return static_cast<const OccupancyQuadtreeNode*>(CastRay(px, py, vx, vy, ignore_unknown, max_range, ex, ey));
+        }
+
         /**
          * Cast a ray starting from (px, py) along (vx, vy) and get the hit surface point (ex, ey) if the ray hits one.
          * @param px metric x coordinate of the start point
@@ -530,7 +543,7 @@ namespace erl::geometry {
          * @return node pointer if the ray hits an occupied cell, nullptr otherwise.
          */
         const Node*
-        CastRay(double px, double py, double vx, double vy, const bool ignore_unknown, const double max_range, double& ex, double& ey) const {
+        CastRay(const double px, const double py, double vx, double vy, const bool ignore_unknown, const double max_range, double& ex, double& ey) const {
             // Similar to QuadtreeImpl::ComputeRayKeys, but with extra hitting checks
 
             QuadtreeKey current_key;
