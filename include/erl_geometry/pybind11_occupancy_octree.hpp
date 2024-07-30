@@ -441,14 +441,14 @@ BindOccupancyOctree(const py::module &m, const char *tree_name) {
             py::arg("window_top") = 50);
 
     // Iterators defined in OctreeImpl
-    py::class_<typename Octree::IteratorBase, AbstractOctree::OctreeNodeIterator>(tree, "IteratorBase")
+    py::class_<typename Octree::IteratorBase>(tree, "IteratorBase")
         .def("__eq__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self == other; })
         .def("__ne__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self != other; })
         .def("get", [](const typename Octree::IteratorBase &self) { return *self; })
-        // .def_property_readonly("x", &Octree::IteratorBase::GetX)  // defined in AbstractOctree::OctreeNodeIterator
-        // .def_property_readonly("y", &Octree::IteratorBase::GetY)
-        // .def_property_readonly("z", &Octree::IteratorBase::GetZ)
-        // .def_property_readonly("node_size", &Octree::IteratorBase::GetNodeSize)
+        .def_property_readonly("x", &Octree::IteratorBase::GetX)
+        .def_property_readonly("y", &Octree::IteratorBase::GetY)
+        .def_property_readonly("z", &Octree::IteratorBase::GetZ)
+        .def_property_readonly("node_size", &Octree::IteratorBase::GetNodeSize)
         .def_property_readonly("node_aabb", &Octree::IteratorBase::GetNodeAabb)
         .def_property_readonly("key", &Octree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Octree::IteratorBase::GetIndexKey);
