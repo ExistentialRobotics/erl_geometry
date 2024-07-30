@@ -336,9 +336,57 @@ namespace erl::geometry {
         static std::shared_ptr<AbstractOctree>
         Read(std::istream& s);
 
-        // search node
+        //-- search node
         [[nodiscard]] virtual const AbstractOctreeNode*
         SearchNode(double x, double y, double z, uint32_t max_depth) const = 0;
+
+        //-- iterators
+        struct OctreeNodeIterator {
+            virtual ~OctreeNodeIterator() = default;
+
+            [[nodiscard]] virtual double
+            GetX() const = 0;
+            [[nodiscard]] virtual double
+            GetY() const = 0;
+            [[nodiscard]] virtual double
+            GetZ() const = 0;
+            [[nodiscard]] virtual double
+            GetNodeSize() const = 0;
+            [[nodiscard]] virtual uint32_t
+            GetDepth() const = 0;
+            virtual void
+            Next() = 0;
+            [[nodiscard]] virtual bool
+            IsValid() const = 0;
+            [[nodiscard]] virtual const AbstractOctreeNode*
+            GetNode() = 0;
+        };
+
+        [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
+        GetLeafIterator(uint32_t max_depth) const = 0;
+
+        [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
+        GetLeafInAabbIterator(const Aabb3D& aabb, uint32_t max_depth) const = 0;
+
+        [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
+        GetTreeIterator(uint32_t max_depth) const = 0;
+
+        [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
+        GetTreeInAabbIterator(const Aabb3D& aabb, uint32_t max_depth) const = 0;
+
+        [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
+        GetNodeOnRayIterator(
+            double px,
+            double py,
+            double pz,
+            double vx,
+            double vy,
+            double vz,
+            double max_range,
+            bool bidirectional,
+            bool leaf_only,
+            uint32_t min_node_depth,
+            uint32_t max_node_depth) const = 0;
 
     protected:
         /**

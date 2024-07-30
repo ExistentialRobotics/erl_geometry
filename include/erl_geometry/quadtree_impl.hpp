@@ -102,7 +102,7 @@ namespace erl::geometry {
             return m_tree_size_;
         }
 
-        [[maybe_unused]] [[nodiscard]] Eigen::Vector3d
+        [[nodiscard]] Eigen::Vector3d
         GetTreeCenter() const {
             double x = this->KeyToCoord(m_tree_key_offset_);
             return {x, x, x};
@@ -114,7 +114,7 @@ namespace erl::geometry {
             return {key, key};
         }
 
-        [[maybe_unused]] [[nodiscard]] Eigen::Vector3d
+        [[nodiscard]] Eigen::Vector3d
         GetTreeMaxHalfSize() const {
             double size = -this->KeyToCoord(0);
             return {size, size, size};
@@ -173,7 +173,7 @@ namespace erl::geometry {
             }
 
             min_x = min_y = std::numeric_limits<double>::infinity();
-            for (auto it = this->begin(), end = this->end(); it != end; ++it) {
+            for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
                 const double half_size = it.GetNodeSize() / 2.;
                 const double node_min_x = it.GetX() - half_size;
                 const double node_min_y = it.GetY() - half_size;
@@ -205,7 +205,7 @@ namespace erl::geometry {
             }
 
             max_x = max_y = -std::numeric_limits<double>::infinity();
-            for (auto it = this->begin(), end = this->end(); it != end; ++it) {
+            for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
                 const double half_size = it.GetNodeSize() / 2.;
                 const double node_max_x = it.GetX() + half_size;
                 const double node_max_y = it.GetY() + half_size;
@@ -242,7 +242,7 @@ namespace erl::geometry {
 
             min_x = min_y = std::numeric_limits<double>::infinity();
             max_x = max_y = -std::numeric_limits<double>::infinity();
-            for (auto it = this->begin(), end = this->end(); it != end; ++it) {
+            for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
                 const double size = it.GetNodeSize();
                 const double half_size = size / 2.;
                 const double node_max_x = it.GetX() + half_size;
@@ -281,7 +281,7 @@ namespace erl::geometry {
 
             double min_x = std::numeric_limits<double>::infinity(), min_y = min_x;
             double max_x = -std::numeric_limits<double>::infinity(), max_y = max_x;
-            for (auto it = this->begin(), end = this->end(); it != end; ++it) {
+            for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
                 const double size = it.GetNodeSize();
                 const double half_size = size / 2.;
                 const double node_max_x = it.GetX() + half_size;
@@ -334,7 +334,7 @@ namespace erl::geometry {
             return num_leaf_nodes;
         }
 
-        [[maybe_unused]] [[nodiscard]] std::size_t
+        [[nodiscard]] std::size_t
         GetMemoryUsage() const override {
             const std::size_t number_of_leaf_nodes = this->ComputeNumberOfLeafNodes();
             const std::size_t number_of_inner_nodes = m_tree_size_ - number_of_leaf_nodes;
@@ -665,7 +665,7 @@ namespace erl::geometry {
         }
 
         //-- iterator implementation
-        class IteratorBase {
+        class IteratorBase : public AbstractQuadtree::QuadtreeNodeIterator {
         public:
             struct StackElement {
                 Node *node = nullptr;
@@ -751,20 +751,35 @@ namespace erl::geometry {
             }
 
             [[nodiscard]] double
-            GetX() const {
+            GetX() const override {
                 const StackElement &top = m_stack_.back();
                 return m_tree_->KeyToCoord(top.key[0], top.node->GetDepth());
             }
 
             [[nodiscard]] double
-            GetY() const {
+            GetY() const override {
                 const StackElement &top = m_stack_.back();
                 return m_tree_->KeyToCoord(top.key[1], top.node->GetDepth());
             }
 
             [[nodiscard]] double
-            GetNodeSize() const {
+            GetNodeSize() const override {
                 return m_tree_->GetNodeSize(m_stack_.back().node->GetDepth());
+            }
+
+            [[nodiscard]] uint32_t
+            GetDepth() const override {
+                return m_stack_.back().node->GetDepth();
+            }
+
+            [[nodiscard]] const AbstractQuadtreeNode *
+            GetNode() override {
+                return m_stack_.back().node;
+            }
+
+            [[nodiscard]] bool
+            IsValid() const override {
+                return !m_stack_.empty();
             }
 
             [[nodiscard]] Aabb2D
@@ -773,12 +788,12 @@ namespace erl::geometry {
                 return m_tree_->GetNodeAabb(top.key, top.node->GetDepth());
             }
 
-            [[maybe_unused]] [[nodiscard]] const QuadtreeKey &
+            [[nodiscard]] const QuadtreeKey &
             GetKey() const {
                 return m_stack_.back().key;
             }
 
-            [[maybe_unused]] [[nodiscard]] QuadtreeKey
+            [[nodiscard]] QuadtreeKey
             GetIndexKey() const {
                 const StackElement &top = m_stack_.back();
                 return m_tree_->AdjustKeyToDepth(top.key, top.node->GetDepth());
@@ -870,6 +885,11 @@ namespace erl::geometry {
                 if (!this->m_stack_.empty()) { this->SingleIncrement1(); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
+            }
+
+            void
+            Next() override {
+                ++(*this);
             }
         };
 
@@ -980,6 +1000,11 @@ namespace erl::geometry {
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
             }
+
+            void
+            Next() override {
+                ++(*this);
+            }
         };
 
         /**
@@ -1027,6 +1052,11 @@ namespace erl::geometry {
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
             }
+
+            void
+            Next() override {
+                ++(*this);
+            }
         };
 
         class LeafIterator : public IteratorBase {
@@ -1060,6 +1090,11 @@ namespace erl::geometry {
                 do { this->SingleIncrement1(); } while (!this->m_stack_.empty() && !this->IsLeaf());
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
+            }
+
+            void
+            Next() override {
+                ++(*this);
             }
         };
 
@@ -1108,6 +1143,11 @@ namespace erl::geometry {
                 do { this->SingleIncrement1(); } while (!this->m_stack_.empty() && !this->IsLeaf());
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
+            }
+
+            void
+            Next() override {
+                ++(*this);
             }
         };
 
@@ -1230,6 +1270,11 @@ namespace erl::geometry {
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
             }
+
+            void
+            Next() override {
+                ++(*this);
+            }
         };
 
         class EastLeafNeighborIterator : public LeafNeighborIteratorBase {
@@ -1276,6 +1321,11 @@ namespace erl::geometry {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
+            }
+
+            void
+            Next() override {
+                ++(*this);
             }
         };
 
@@ -1325,6 +1375,11 @@ namespace erl::geometry {
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
             }
+
+            void
+            Next() override {
+                ++(*this);
+            }
         };
 
         class SouthLeafNeighborIterator : public LeafNeighborIteratorBase {
@@ -1371,6 +1426,11 @@ namespace erl::geometry {
                 if (!this->m_stack_.empty()) { this->SingleIncrementOf(sk_ChangingDim_); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
+            }
+
+            void
+            Next() override {
+                ++(*this);
             }
         };
 
@@ -1424,7 +1484,7 @@ namespace erl::geometry {
                 if (this->m_stack_.empty()) { this->Terminate(); }
             }
 
-            [[maybe_unused]] [[nodiscard]] double
+            [[nodiscard]] double
             GetDistance() const {
                 if (this->m_stack_.empty()) { return 0.; }
                 return *reinterpret_cast<double *>(this->m_stack_.back().data.get());
@@ -1444,6 +1504,11 @@ namespace erl::geometry {
                 if (!this->m_stack_.empty()) { this->SingleIncrement2(); }
                 if (this->m_stack_.empty()) { this->Terminate(); }
                 return *this;
+            }
+
+            void
+            Next() override {
+                ++(*this);
             }
 
         protected:
@@ -1542,24 +1607,6 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] LeafIterator
-        begin(uint32_t max_depth = 0) const {
-            return LeafIterator(this, max_depth);
-        }
-
-        /**
-         * End iterator of LeafIterator.
-         */
-        [[nodiscard]] LeafIterator
-        end() const {
-            return LeafIterator();
-        }
-
-        /**
-         * Iterator that iterates over all leaf nodes.
-         * @param max_depth
-         * @return
-         */
-        [[nodiscard]] LeafIterator
         BeginLeaf(uint32_t max_depth = 0) const {
             return LeafIterator(this, max_depth);
         }
@@ -1570,6 +1617,11 @@ namespace erl::geometry {
         [[nodiscard]] LeafIterator
         EndLeaf() const {
             return LeafIterator();
+        }
+
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        GetLeafIterator(uint32_t max_depth) const override {
+            return std::make_shared<LeafIterator>(this, max_depth);
         }
 
         [[nodiscard]] LeafOfNodeIterator
@@ -1602,6 +1654,11 @@ namespace erl::geometry {
             return LeafInAabbIterator();
         }
 
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        GetLeafInAabbIterator(const Aabb2D &aabb, uint32_t max_depth) const {
+            return std::make_shared<LeafInAabbIterator>(aabb.min().x(), aabb.min().y(), aabb.max().x(), aabb.max().y(), this, max_depth);
+        }
+
         [[nodiscard]] TreeIterator
         BeginTree(uint32_t max_depth = 0) const {
             return TreeIterator(this, max_depth);
@@ -1610,6 +1667,11 @@ namespace erl::geometry {
         [[nodiscard]] TreeIterator
         EndTree() const {
             return TreeIterator();
+        }
+
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        GetTreeIterator(const uint32_t max_depth) const override {
+            return std::make_shared<TreeIterator>(this, max_depth);
         }
 
         [[nodiscard]] TreeInAabbIterator
@@ -1630,6 +1692,11 @@ namespace erl::geometry {
         [[nodiscard]] TreeInAabbIterator
         EndTreeInAabb() const {
             return TreeInAabbIterator();
+        }
+
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        GetTreeInAabbIterator(const Aabb2D &aabb, uint32_t max_depth) const override {
+            return std::make_shared<TreeInAabbIterator>(aabb.min().x(), aabb.min().y(), aabb.max().x(), aabb.max().y(), this, max_depth);
         }
 
         [[nodiscard]] WestLeafNeighborIterator
@@ -1682,7 +1749,7 @@ namespace erl::geometry {
             return SouthLeafNeighborIterator(x, y, this, max_leaf_depth);
         }
 
-        [[maybe_unused]] [[nodiscard]] SouthLeafNeighborIterator
+        [[nodiscard]] SouthLeafNeighborIterator
         BeginSouthLeafNeighbor(const QuadtreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const {
             return {key, key_depth, this, max_leaf_depth};
         }
@@ -1692,7 +1759,7 @@ namespace erl::geometry {
             return {};
         }
 
-        [[maybe_unused]] [[nodiscard]] NodeOnRayIterator
+        [[nodiscard]] NodeOnRayIterator
         BeginNodeOnRay(
             double px,
             double py,
@@ -1706,9 +1773,23 @@ namespace erl::geometry {
             return {px, py, vx, vy, max_range, bidirectional, /*tree*/ this, leaf_only, min_node_depth, max_node_depth};
         }
 
-        [[maybe_unused]] [[nodiscard]] NodeOnRayIterator
+        [[nodiscard]] NodeOnRayIterator
         EndNodeOnRay() const {
             return {};
+        }
+
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        GetNodeOnRayIterator(
+            double px,
+            double py,
+            double vx,
+            double vy,
+            double max_range,
+            bool bidirectional,
+            bool leaf_only,
+            uint32_t min_node_depth,
+            uint32_t max_node_depth) const override {
+            return std::make_shared<NodeOnRayIterator>(px, py, vx, vy, max_range, bidirectional, this, leaf_only, min_node_depth, max_node_depth);
         }
 
         //-- ray tracing
@@ -1999,7 +2080,11 @@ namespace erl::geometry {
          * @param key key of the child node
          */
         virtual void
-        OnDeleteNodeChild([[maybe_unused]] Node *node, [[maybe_unused]] Node *child, [[maybe_unused]] const QuadtreeKey &key) {}
+        OnDeleteNodeChild(Node *node, Node *child, const QuadtreeKey &key) {
+            (void) node;
+            (void) child;
+            (void) key;
+        }
 
         /**
          * Delete child nodes down to max_depth matching the given key of the given node that is at the given depth.
@@ -2187,7 +2272,7 @@ namespace erl::geometry {
             return node;
         }
 
-        [[maybe_unused]] Node *
+        Node *
         InsertNode(double x, double y, const uint32_t depth = 0) {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
@@ -2313,7 +2398,7 @@ namespace erl::geometry {
             m_metric_min_[0] = m_metric_min_[1] = std::numeric_limits<double>::infinity();
             m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<double>::infinity();
 
-            for (auto it = this->begin(), end = this->end(); it != end; ++it) {
+            for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
                 const double size = it.GetNodeSize();
                 const double half_size = size / 2.0;
                 double x = it.GetX() - half_size;

@@ -403,13 +403,13 @@ BindOccupancyQuadtree(const py::module& m, const char* tree_name) {
             py::arg("border_thickness") = 1);
 
     // Iterators defined in QuadtreeImpl
-    py::class_<typename Quadtree::IteratorBase>(tree, "IteratorBase")
+    py::class_<typename Quadtree::IteratorBase, AbstractQuadtree::QuadtreeNodeIterator>(tree, "IteratorBase")
         .def("__eq__", [](const typename Quadtree::IteratorBase& self, const typename Quadtree::IteratorBase& other) { return self == other; })
         .def("__ne__", [](const typename Quadtree::IteratorBase& self, const typename Quadtree::IteratorBase& other) { return self != other; })
         .def("get", [](const typename Quadtree::IteratorBase& self) { return *self; })
-        .def_property_readonly("x", &Quadtree::IteratorBase::GetX)
-        .def_property_readonly("y", &Quadtree::IteratorBase::GetY)
-        .def_property_readonly("node_size", &Quadtree::IteratorBase::GetNodeSize)
+        // .def_property_readonly("x", &Quadtree::IteratorBase::GetX)  // defined in AbstractQuadtree::QuadtreeNodeIterator
+        // .def_property_readonly("y", &Quadtree::IteratorBase::GetY)
+        // .def_property_readonly("node_size", &Quadtree::IteratorBase::GetNodeSize)
         .def_property_readonly("node_aabb", &Quadtree::IteratorBase::GetNodeAabb)
         .def_property_readonly("key", &Quadtree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Quadtree::IteratorBase::GetIndexKey);

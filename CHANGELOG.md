@@ -1,4 +1,9 @@
-# 2024-07025
+# 2024-07-29
+
+- Add `SearchNode`, `GetLeafIterator`, `GetLeafInAabbIterator`, `GetTreeIterator`, `GetTreeInAabbIterator`
+  and `GetNodeOnRayIterator` to `AbstractQuadtree` and `AbstractOctree`.
+
+# 2024-07-25
 
 - Update python binding: `SurfaceMapping[Quadtree|Octree]Node` should be inherited
   from `Occupancy[Quadtree|Octree]Node`.
