@@ -24,8 +24,8 @@ namespace erl::geometry {
     public:
         static constexpr double kSensorOffsetX = 0.08;  // sensor x-offset in the robot frame (IMU frame).
         static constexpr double kSensorOffsetY = 0.;    // sensor y-offset in the robot frame (IMU frame).
-        inline static const Eigen::Vector2d kMapMin = {-0.70, -11.30};
-        inline static const Eigen::Vector2d kMapMax = {16.50, 0.20};
+        inline static const Eigen::Vector2d kMapMin = {-4.0, -15.0};
+        inline static const Eigen::Vector2d kMapMax = {19.0, 4.0};
 
         struct TrainDataFrame {
             Eigen::Matrix2d rotation;     // 2D rotation
