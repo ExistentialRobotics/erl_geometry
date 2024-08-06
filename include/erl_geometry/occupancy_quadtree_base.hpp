@@ -13,7 +13,7 @@
 
 namespace erl::geometry {
 
-    struct OccupancyQuadtreeBaseSetting : public common::OverrideYamlable<OccupancyNdTreeSetting, OccupancyQuadtreeBaseSetting> {
+    struct OccupancyQuadtreeBaseSetting : public common::Yamlable<OccupancyQuadtreeBaseSetting, OccupancyNdTreeSetting> {
         bool use_change_detection = false;
         bool use_aabb_limit = false;
         Aabb2D aabb = {};

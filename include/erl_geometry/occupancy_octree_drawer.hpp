@@ -13,7 +13,7 @@ namespace erl::geometry {
     template<typename OccupancyOctreeType>
     class OccupancyOctreeDrawer : public AbstractOctreeDrawer {
     public:
-        struct Setting : public common::OverrideYamlable<AbstractOctreeDrawer::Setting, Setting> {
+        struct Setting : public common::Yamlable<Setting, AbstractOctreeDrawer::Setting> {
             bool occupied_only = false;
             Eigen::Vector3d occupied_color = {0.67, 0.33, 0.0};  // brown
             bool draw_node_boxes = true;

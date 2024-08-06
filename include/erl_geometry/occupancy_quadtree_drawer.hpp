@@ -11,7 +11,7 @@ namespace erl::geometry {
     template<typename OccupancyQuadtreeType>
     class OccupancyQuadtreeDrawer : public AbstractQuadtreeDrawer {
     public:
-        struct Setting : public common::OverrideYamlable<AbstractQuadtreeDrawer::Setting, Setting> {
+        struct Setting : public common::Yamlable<Setting, AbstractQuadtreeDrawer::Setting> {
             cv::Scalar occupied_color = {0, 0, 0, 255};    // black
             cv::Scalar free_color = {255, 255, 255, 255};  // white
         };

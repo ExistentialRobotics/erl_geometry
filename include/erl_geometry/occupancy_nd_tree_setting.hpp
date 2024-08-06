@@ -7,7 +7,7 @@ namespace erl::geometry {
     /**
      * OccupancyNdTreeSetting is a base class for all occupancy n-d tree settings.
      */
-    struct OccupancyNdTreeSetting : public common::OverrideYamlable<NdTreeSetting, OccupancyNdTreeSetting> {
+    struct OccupancyNdTreeSetting : public common::Yamlable<OccupancyNdTreeSetting, NdTreeSetting> {
         float log_odd_min = -2;           // minimum log-odd value, default: -2 in log odd = 0.12 in probability
         float log_odd_max = 3.5;          // maximum log-odd value, default: 3.5 in log odd = 0.97 in probability
         float log_odd_hit = 0.85;         // log-odd value to add when a cell is hit by a ray, default: 0.85 in log odd = 0.7 in probability

@@ -14,7 +14,7 @@ namespace erl::geometry {
         friend class LidarFramePartition3D;
 
     public:
-        struct Setting : public common::OverrideYamlable<RangeSensorFrame3D::Setting, Setting> {
+        struct Setting : public common::Yamlable<Setting, RangeSensorFrame3D::Setting> {
             double azimuth_min = -M_PI;
             double azimuth_max = M_PI;
             double elevation_min = -M_PI / 2;

@@ -10,7 +10,7 @@ namespace erl::geometry {
 
     class DepthFrame3D : public RangeSensorFrame3D {
     public:
-        struct Setting : public common::OverrideYamlable<RangeSensorFrame3D::Setting, Setting> {
+        struct Setting : public common::Yamlable<Setting, RangeSensorFrame3D::Setting> {
             Eigen::Matrix4d camera_to_optical = Eigen::Matrix4d::Identity();  // used when camera frame is not aligned with optical frame
             // defaults are from https://github.com/cvg/nice-slam/blob/master/configs/Replica/replica.yaml
             long image_height = 680;
