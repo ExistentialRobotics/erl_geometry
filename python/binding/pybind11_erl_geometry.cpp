@@ -105,6 +105,9 @@ BindDepthFrame3D(const py::module &m);
 void
 BindUtils(py::module &m);
 
+void
+BindIntersection(py::module &m);
+
 PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     m.doc() = "Python 3 Interface of erl_geometry";
 
@@ -143,4 +146,5 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindLidarFrame3D(m);
     BindDepthFrame3D(m);
     BindUtils(m);
+    BindIntersection(m);
 }

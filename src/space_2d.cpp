@@ -1,7 +1,7 @@
 #include "erl_geometry/space_2d.hpp"
 
+#include "erl_geometry/intersection.hpp"
 #include "erl_geometry/surface_2d.hpp"
-#include "erl_geometry/utils.hpp"
 
 #include <opencv2/core.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -304,16 +304,18 @@ namespace erl::geometry {
             d.normalize();
             const long n_lines = m_surface_->GetNumLines();
             double lam, t;
+            bool intersected;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
-                ComputeIntersectionBetweenRayAndSegment2D(
+                ComputeIntersectionBetweenRayAndLine2D(
                     query_points.col(i),
                     d,
                     m_surface_->vertices.col(m_surface_->lines_to_vertices(0, j)),
                     m_surface_->vertices.col(m_surface_->lines_to_vertices(1, j)),
                     lam,
-                    t);
-                if (lam <= 1. && lam >= 0. && t >= 0. && t < ddf[i]) { ddf[i] = t; }  // positive ddf only
+                    t,
+                    intersected);
+                if (intersected && lam <= 1. && lam >= 0. && t >= 0. && t < ddf[i]) { ddf[i] = t; }  // positive ddf only
             }
         }
 
@@ -357,12 +359,19 @@ namespace erl::geometry {
             d.normalize();
             const long n_lines = m_surface_->GetNumLines();
             double lam, t;
+            bool intersected;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 auto l = m_surface_->lines_to_vertices.col(j);
-                ComputeIntersectionBetweenRayAndSegment2D(query_points.col(i), d, m_surface_->vertices.col(l.x()), m_surface_->vertices.col(l.y()), lam, t);
-
-                if (lam <= 1. && lam >= 0. && t < ddf[i]) { ddf[i] = t; }  // min_t(p + t * v == surface_point)
+                ComputeIntersectionBetweenRayAndLine2D(
+                    query_points.col(i),
+                    d,
+                    m_surface_->vertices.col(l.x()),
+                    m_surface_->vertices.col(l.y()),
+                    lam,
+                    t,
+                    intersected);
+                if (intersected && lam <= 1. && lam >= 0. && t < ddf[i]) { ddf[i] = t; }  // min_t(p + t * v == surface_point)
             }
         }
 
@@ -422,7 +431,8 @@ namespace erl::geometry {
                 Eigen::Vector2i l = m_surface_->lines_to_vertices.col(j);
                 const auto &v_1 = m_surface_->vertices.col(l.x());
                 const auto &v_2 = m_surface_->vertices.col(l.y());
-                ComputeIntersectionBetweenRayAndSegment2D(q, d, v_1, v_2, lams[j], ts[j]);
+                bool intersected;
+                ComputeIntersectionBetweenRayAndLine2D(q, d, v_1, v_2, lams[j], ts[j], intersected);
 
                 Eigen::Vector2d qv_1 = q - v_1;
                 auto dist_1 = qv_1.norm();

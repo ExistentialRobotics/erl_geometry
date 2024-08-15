@@ -1,7 +1,7 @@
 #include "erl_geometry/lidar_frame_2d.hpp"
 
 #include "erl_common/logging.hpp"
-#include "erl_geometry/utils.hpp"
+#include "erl_geometry/intersection.hpp"
 #include "erl_geometry/winding_number.hpp"
 
 namespace erl::geometry {
@@ -310,17 +310,18 @@ namespace erl::geometry {
             double min_dist = vec.norm();
             vec /= min_dist;
             double lam, dist;
-            ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_translation_, m_end_pts_world_[0], lam, dist);
-            if (lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
-            ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_end_pts_world_[max_num_rays - 1], m_translation_, lam, dist);
-            if (lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
+            bool intersected;
+            ComputeIntersectionBetweenRayAndLine2D(position_world, vec, m_translation_, m_end_pts_world_[0], lam, dist, intersected);
+            if (intersected && lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
+            ComputeIntersectionBetweenRayAndLine2D(position_world, vec, m_end_pts_world_[max_num_rays - 1], m_translation_, lam, dist, intersected);
+            if (intersected && lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
 
             long arg_min = ray_idx;
             for (long ray_idx2 = 1; ray_idx2 < max_num_rays; ++ray_idx2) {
                 if (ray_idx2 == ray_idx || ray_idx2 == ray_idx + 1) { continue; }        // skip neighboring edges
                 if (!m_mask_hit_[ray_idx2 - 1] || !m_mask_hit_[ray_idx2]) { continue; }  // the vertex is not a hit
-                ComputeIntersectionBetweenRayAndSegment2D(position_world, vec, m_end_pts_world_[ray_idx2 - 1], m_end_pts_world_[ray_idx2], lam, dist);
-                if (lam < 0 || lam > 1) { continue; }  // the intersection is not on the segment
+                ComputeIntersectionBetweenRayAndLine2D(position_world, vec, m_end_pts_world_[ray_idx2 - 1], m_end_pts_world_[ray_idx2], lam, dist, intersected);
+                if (!intersected || lam < 0 || lam > 1) { continue; }  // the intersection is not on the segment
                 if (dist > 0 && dist < min_dist) {
                     min_dist = dist;
                     arg_min = ray_idx2;

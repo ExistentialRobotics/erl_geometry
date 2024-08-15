@@ -72,7 +72,8 @@ namespace erl::geometry {
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractQuadtree, Derived>, bool>
-        RegisterTreeType(const std::string& tree_type) {
+        RegisterTreeType() {
+            const std::string tree_type = demangle(typeid(Derived).name());
             if (s_class_id_mapping_.find(tree_type) != s_class_id_mapping_.end()) {
                 ERL_WARN("{} is already registered.", tree_type);
                 return false;
@@ -413,5 +414,5 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
     };
 
-#define ERL_REGISTER_QUADTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtree::RegisterTreeType<Derived>(#Derived)
+#define ERL_REGISTER_QUADTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtree::RegisterTreeType<Derived>()
 }  // namespace erl::geometry

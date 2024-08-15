@@ -3,8 +3,8 @@
 #include "aabb.hpp"
 #include "abstract_quadtree.hpp"
 #include "abstract_quadtree_node.hpp"
+#include "intersection.hpp"
 #include "quadtree_key.hpp"
-#include "utils.hpp"
 
 #include <omp.h>
 

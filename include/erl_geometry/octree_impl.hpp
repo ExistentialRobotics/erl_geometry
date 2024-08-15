@@ -2,8 +2,8 @@
 
 #include "aabb.hpp"
 #include "abstract_octree.hpp"
+#include "intersection.hpp"
 #include "octree_key.hpp"
-#include "utils.hpp"
 
 #include <omp.h>
 

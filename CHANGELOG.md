@@ -1,3 +1,10 @@
+# 2024-08-15
+
+- Fix: a bug in factory pattern of Quadtree and Octree that causes loading tree from file failed.
+- Implement: intersection computation between various geometric primitives.
+- Implement: helper function to create an ellipsoid with Open3D.
+- Update: Python binding.
+
 # 2024-07-29
 
 - Add `SearchNode`, `GetLeafIterator`, `GetLeafInAabbIterator`, `GetTreeIterator`, `GetTreeInAabbIterator`

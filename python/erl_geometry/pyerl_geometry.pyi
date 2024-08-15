@@ -17,7 +17,7 @@ __all__ = [
     "compute_pixel_of_polygon_contour",
     "winding_number",
     "compute_nearest_distance_from_point_to_line_segment_2d",
-    "compute_intersection_between_ray_and_segment_2d",
+    "compute_intersection_between_ray_and_line_2d",
     "compute_intersection_between_ray_and_aabb_2d",
     "compute_intersection_between_ray_and_aabb_3d",
     "convert_path_2d_to_3d",
@@ -73,15 +73,16 @@ def compute_nearest_distance_from_point_to_line_segment_2d(
     line_segment_x2: float,
     line_segment_y2: float,
 ) -> float: ...
-def compute_intersection_between_ray_and_segment_2d(
+def compute_intersection_between_ray_and_line_2d(
     ray_start_point: npt.NDArray[np.float64],
     ray_direction: npt.NDArray[np.float64],
     segment_point1: npt.NDArray[np.float64],
     segment_point2: npt.NDArray[np.float64],
-) -> Tuple[float, float]:
+) -> Tuple[float, float, bool]:
     """
     Returns:
-        Tuple[float, float]: (t, distance) where intersection = t * segment_point1 + (1 - t) * segment_point2
+        Tuple[float, float, bool]: (t, distance, intersected) where
+        intersection = t * segment_point1 + (1 - t) * segment_point2 when intersected is True.
     """
     ...
 
