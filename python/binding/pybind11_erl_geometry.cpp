@@ -108,6 +108,9 @@ BindUtils(py::module &m);
 void
 BindIntersection(py::module &m);
 
+void
+BindPrimitives2D(const py::module &m);
+
 PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     m.doc() = "Python 3 Interface of erl_geometry";
 
@@ -147,4 +150,5 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindDepthFrame3D(m);
     BindUtils(m);
     BindIntersection(m);
+    BindPrimitives2D(m);
 }

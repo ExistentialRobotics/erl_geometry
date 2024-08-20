@@ -15,13 +15,12 @@ namespace erl::geometry {
     struct Primitive2D {
 
         enum class Type {
-            kPoint,
-            kLine,
-            kSegment,
-            kRay,
-            kAxisAlignedRectangle,
-            kRectangle,
-            kEllipse,
+            kLine = 0,
+            kSegment = 1,
+            kRay = 2,
+            kAxisAlignedRectangle = 3,
+            kRectangle = 4,
+            kEllipse = 5,
         };
 
         int id = -1;
@@ -263,6 +262,11 @@ namespace erl::geometry {
             UpdateMatrices();
         }
 
+        [[nodiscard]] Type
+        GetType() const override {
+            return Type::kRectangle;
+        }
+
         [[nodiscard]] double
         GetOrientationAngle() const override {
             return m_angle_;
@@ -274,6 +278,9 @@ namespace erl::geometry {
             return std::abs(p.x()) <= m_half_sizes_.x() && std::abs(p.y()) <= m_half_sizes_.y();
         }
 
+        [[nodiscard]] bool
+        IsOnBoundary(const Eigen::Vector2d &point) const override;
+
         [[nodiscard]] std::vector<Eigen::Vector2d>
         ComputeIntersections(const Line2D &line) const override;
 
@@ -283,6 +290,37 @@ namespace erl::geometry {
         [[nodiscard]] std::vector<Eigen::Vector2d>
         ComputeIntersections(const Ray2D &ray) const override {
             return ComputeIntersections(Line2D{-1, ray.origin, ray.origin + ray.direction});
+        }
+
+        /**
+         *
+         * @return Vertices of the rectangle in clockwise order starting from the bottom-left corner.
+         */
+        [[nodiscard]] std::tuple<Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d>
+        GetVertices() const {
+            Eigen::Vector2d min = m_rotation_matrix_ * -m_half_sizes_ + m_center_;
+            Eigen::Vector2d max = m_rotation_matrix_ * m_half_sizes_ + m_center_;
+            return {
+                Eigen::Vector2d(min.x(), min.y()),
+                Eigen::Vector2d(min.x(), max.y()),
+                Eigen::Vector2d(max.x(), max.y()),
+                Eigen::Vector2d(max.x(), min.y()),
+            };
+        }
+
+        /**
+         *
+         * @return Edges of the rectangle in clockwise order starting from the left vertical edge.
+         */
+        [[nodiscard]] std::tuple<Segment2D, Segment2D, Segment2D, Segment2D>
+        GetEdges() const {
+            const auto [bl, tl, tr, br] = GetVertices();
+            return {
+                Segment2D{-1, {bl.x(), bl.y()}, {tl.x(), tl.y()}},
+                Segment2D{-1, {tl.x(), tl.y()}, {tr.x(), tr.y()}},
+                Segment2D{-1, {tr.x(), tr.y()}, {br.x(), br.y()}},
+                Segment2D{-1, {br.x(), br.y()}, {bl.x(), bl.y()}},
+            };
         }
 
     private:
@@ -316,6 +354,11 @@ namespace erl::geometry {
         [[nodiscard]] const Eigen::Vector2d &
         GetCenter() const {
             return m_center_;
+        }
+
+        [[nodiscard]] const Eigen::Vector2d &
+        GetRadius() const {
+            return m_radius_;
         }
 
         [[nodiscard]] double

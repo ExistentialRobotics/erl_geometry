@@ -134,6 +134,16 @@ namespace erl::geometry {
         return intersections;
     }
 
+    bool
+    Rectangle2D::IsOnBoundary(const Eigen::Vector2d &point) const {
+        const auto [bl, tl, tr, br] = GetVertices();
+        if (Segment2D(-1, Eigen::Vector2d(bl.x(), bl.y()), Eigen::Vector2d(tl.x(), tl.y())).IsOnBoundary(point)) { return true; }
+        if (Segment2D(-1, Eigen::Vector2d(tl.x(), tl.y()), Eigen::Vector2d(tr.x(), tr.y())).IsOnBoundary(point)) { return true; }
+        if (Segment2D(-1, Eigen::Vector2d(tr.x(), tr.y()), Eigen::Vector2d(br.x(), br.y())).IsOnBoundary(point)) { return true; }
+        if (Segment2D(-1, Eigen::Vector2d(br.x(), br.y()), Eigen::Vector2d(bl.x(), bl.y())).IsOnBoundary(point)) { return true; }
+        return false;
+    }
+
     std::vector<Eigen::Vector2d>
     Rectangle2D::ComputeIntersections(const Line2D &line) const {
         const Eigen::Vector2d p0 = m_rotation_matrix_.transpose() * (line.p0 - m_center_);

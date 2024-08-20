@@ -55,6 +55,13 @@ __all__ = [
     "AbstractSurfaceMapping",
     "AbstractSurfaceMapping2D",
     "AbstractSurfaceMapping3D",
+    "Primitive2D",
+    "Line2D",
+    "Segment2D",
+    "Ray2D",
+    "AxisAlignedRectangle2D",
+    "Rectangle2D",
+    "Ellipse2D",
 ]
 
 def marching_square(
@@ -97,6 +104,12 @@ def compute_intersection_between_ray_and_aabb_3d(
     ray_direction: npt.NDArray[np.float64],
     aabb_min: npt.NDArray[np.float64],
     aabb_max: npt.NDArray[np.float64],
+) -> Tuple[float, float, bool]: ...
+def compute_intersection_between_line_and_ellipse_2d(
+    x0: float, y0: float, x1: float, y1: float, a: float, b: float
+) -> Tuple[float, float, bool]: ...
+def compute_intersection_between_ray_and_ellipsoid_3d(
+    x0: float, y0: float, z0: float, x1: float, y1: float, z1: float, a: float, b: float, c: float
 ) -> Tuple[float, float, bool]: ...
 def convert_path_2d_to_3d(path_2d: npt.NDArray, z: float) -> list[npt.NDArray]: ...
 
@@ -1738,3 +1751,62 @@ class AbstractSurfaceMapping3D(AbstractSurfaceMapping):
     def update(
         self, rotation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64], ranges: npt.NDArray[np.float64]
     ) -> None: ...
+
+class Primitive2D:
+    class Type(IntEnum):
+        kLine = 0
+        kSegment = 1
+        kRay = 2
+        kAxisAlignedRectangle = 3
+        kRectangle = 4
+        kEllipse = 5
+
+    id: int
+    type: Type
+    def is_inside(self, point: npt.NDArray[np.float64]) -> bool: ...
+    def is_on_boundary(self, point: npt.NDArray[np.float64]) -> bool: ...
+    @overload
+    def compute_intersections(self, line) -> list[npt.NDArray[np.float64]]: ...
+    @overload
+    def compute_intersections(self, segment) -> list[npt.NDArray[np.float64]]: ...
+    @overload
+    def compute_intersections(self, ray) -> list[npt.NDArray[np.float64]]: ...
+    @property
+    def orientation_angle(self) -> float: ...
+
+class Line2D(Primitive2D):
+    p0: npt.NDArray[np.float64]
+    p1: npt.NDArray[np.float64]
+    def __init__(self, id: int, p0: npt.NDArray[np.float64], p1: npt.NDArray[np.float64]) -> None: ...
+
+class Segment2D(Line2D):
+    def __init__(self, id: int, p0: npt.NDArray[np.float64], p1: npt.NDArray[np.float64]) -> None: ...
+
+class Ray2D(Primitive2D):
+    origin: npt.NDArray[np.float64]
+    direction: npt.NDArray[np.float64]
+    def __init__(self, id: int, origin: npt.NDArray[np.float64], direction: npt.NDArray[np.float64]) -> None: ...
+
+class AxisAlignedRectangle2D(Primitive2D, Aabb2D):
+    def __init__(self, id: int, center: npt.NDArray[np.float64], half_sizes: npt.NDArray[np.float64]) -> None: ...
+
+class Rectangle2D(Primitive2D):
+    def __init__(
+        self, id: int, center: npt.NDArray[np.float64], half_sizes: npt.NDArray[np.float64], angle: float
+    ) -> None: ...
+
+class Ellipse2D(Primitive2D):
+    def __init__(self, id: int, center: npt.NDArray[np.float64], a: float, b: float, angle: float) -> None: ...
+    center: npt.NDArray[np.float64]
+    @property
+    def radius(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def translate(self, translation: npt.NDArray[np.float64]) -> None: ...
+    @property
+    def rotate(self, angle: float) -> None: ...
+    orientation_angle: float
+    def compute_points_on_boundary(
+        self, num_points: int, start_angle: float, end_angle: float
+    ) -> npt.NDArray[np.float64]: ...

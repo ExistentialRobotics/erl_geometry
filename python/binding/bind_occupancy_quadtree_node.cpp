@@ -1,10 +1,11 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_geometry/occupancy_quadtree_node.hpp"
+#include "erl_geometry/pybind11_occupancy_quadtree.hpp"
 
 void
 BindOccupancyQuadtreeNode(const py::module &m) {
     using namespace erl::geometry;
-    py::class_<OccupancyQuadtreeNode, AbstractQuadtreeNode, py::RawPtrWrapper<OccupancyQuadtreeNode>>(m, "OccupancyQuadtreeNode")
+    BindOccupancyQuadtreeNode<OccupancyQuadtreeNode, AbstractQuadtreeNode>(m, "OccupancyQuadtreeNode")
         .def_property_readonly("occupancy", &OccupancyQuadtreeNode::GetOccupancy)
         .def_property_readonly("log_odds", &OccupancyQuadtreeNode::GetLogOdds)
         .def_property_readonly("mean_child_log_odds", &OccupancyQuadtreeNode::GetMeanChildLogOdds)
