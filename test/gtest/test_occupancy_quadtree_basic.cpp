@@ -123,7 +123,7 @@ TEST(OccupancyQuadtree, InsertRay) {
 TEST(OccupancyQuadtree, CoordsAndKey) {
     const auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.05;
-    const OccupancyQuadtree tree(tree_setting);
+    OccupancyQuadtree tree(tree_setting);
     constexpr double x = 0;
     constexpr double y = 0;
     QuadtreeKey key;
@@ -132,6 +132,20 @@ TEST(OccupancyQuadtree, CoordsAndKey) {
     tree.KeyToCoord(key, x_inv, y_inv);
     EXPECT_FLOAT_EQ(0.025, x_inv);
     EXPECT_FLOAT_EQ(0.025, y_inv);
+
+    tree_setting->resolution = 0.1;
+    tree.ApplySetting();
+    key[0] = 32888;
+    key[1] = 32760;
+    tree.KeyToCoord(key, 14, x_inv, y_inv);
+    EXPECT_FLOAT_EQ(12.2, x_inv);
+    EXPECT_FLOAT_EQ(-0.6, y_inv);
+    tree.KeyToCoord(key, 14, x_inv, y_inv);
+    EXPECT_FLOAT_EQ(12.0, x_inv);
+    EXPECT_FLOAT_EQ(-0.8, y_inv);
+    key = tree.CoordToKey(12.0, -0.8);
+    EXPECT_EQ(key[0], 32888);
+    EXPECT_EQ(key[1], 32760);
 }
 
 TEST(OccupancyQuadtree, Prune) {
