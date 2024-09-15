@@ -16,12 +16,41 @@ def intersection_line_line_2d():
         ]
     )
     intersection = [sp.simplify(x) for x in intersection]
-    sp.pretty_print(intersection, num_columns=1000)
+    sp.init_printing(wrap_line=False)
+    sp.pretty_print(intersection)
 
     sp.pretty_print(
         [
             sp.simplify(x00 + intersection[0][lam1] * (x01 - x00) - x10 - intersection[0][lam2] * (x11 - x10)),
             sp.simplify(y00 + intersection[0][lam1] * (y01 - y00) - y10 - intersection[0][lam2] * (y11 - y10)),
+        ]
+    )
+
+
+def intersection_line_line_3d():
+    print("Intersection of two lines.")
+    x00, y00, z00, x01, y01, z01 = sp.symbols("x00 y00 z00 x01 y01 z01")  # line 1
+    x10, y10, z10, x11, y11, z11 = sp.symbols("x10 y10 z10 x11 y11 z11")  # line 2
+
+    lam1 = sp.symbols("lam1")
+    lam2 = sp.symbols("lam2")
+
+    intersection = sp.solve(
+        [
+            x00 + lam1 * (x01 - x00) - x10 - lam2 * (x11 - x10),
+            y00 + lam1 * (y01 - y00) - y10 - lam2 * (y11 - y10),
+            z00 + lam1 * (z01 - z00) - z10 - lam2 * (z11 - z10),
+        ]
+    )
+    intersection = [sp.simplify(x) for x in intersection]
+    sp.init_printing(wrap_line=False)
+    sp.pretty_print(intersection)
+
+    sp.pretty_print(
+        [
+            sp.simplify(x00 + intersection[0][lam1] * (x01 - x00) - x10 - intersection[0][lam2] * (x11 - x10)),
+            sp.simplify(y00 + intersection[0][lam1] * (y01 - y00) - y10 - intersection[0][lam2] * (y11 - y10)),
+            sp.simplify(z00 + intersection[0][lam1] * (z01 - z00) - z10 - intersection[0][lam2] * (z11 - z10)),
         ]
     )
 
@@ -110,11 +139,12 @@ def convert_line():
 
 def main():
     # intersection_line_line_2d()
+    intersection_line_line_3d()
     # intersection_ray_line_2d()
     # intersection_line_ellipse()
     # intersection_line_ellipsoid()
     # intersection_line_ray_2d()
-    convert_line()
+    # convert_line()
 
 
 if __name__ == "__main__":

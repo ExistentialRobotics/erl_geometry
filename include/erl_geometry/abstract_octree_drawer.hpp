@@ -20,6 +20,8 @@ namespace erl::geometry {
             Eigen::Vector3d border_color = {0.0, 0.0, 0.0};  // black
         };
 
+        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+
     private:
         std::shared_ptr<Setting> m_setting_ = {};
 

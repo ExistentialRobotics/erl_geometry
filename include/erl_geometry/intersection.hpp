@@ -32,6 +32,16 @@ namespace erl::geometry {
         double &lam2,
         bool &intersected);
 
+    void
+    ComputeIntersectionBetweenTwoLines3D(
+        const Eigen::Vector3d &p00,
+        const Eigen::Vector3d &p01,
+        const Eigen::Vector3d &p10,
+        const Eigen::Vector3d &p11,
+        double &lam1,
+        double &lam2,
+        bool &intersected);
+
     /**
      * find the intersection between ray [p_0, d] and segment [p_1, p_2]
      * @param p0: ray start point
@@ -78,7 +88,8 @@ namespace erl::geometry {
         const Eigen::Vector2d &box_max,
         double &d1,
         double &d2,
-        bool &intersected);
+        bool &intersected,
+        bool &is_inside);
 
     /**
      * find the intersection between ray [p, r] and axis-aligned bounding box [box_min, box_max]
@@ -98,7 +109,8 @@ namespace erl::geometry {
         const Eigen::Vector3d &box_max,
         double &d1,
         double &d2,
-        bool &intersected);
+        bool &intersected,
+        bool &is_inside);
 
     /**
      * Compute the intersection between a line and an ellipse assumed to be centered at the origin and axis-aligned.

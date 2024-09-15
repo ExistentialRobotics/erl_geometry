@@ -30,6 +30,8 @@ namespace erl::geometry {
         }
     };
 
+    ERL_REGISTER_YAMLABLE(OccupancyOctreeBaseSetting);
+
     template<class Node, class Setting>
     class OccupancyOctreeBase : public OctreeImpl<Node, AbstractOccupancyOctree, Setting> {
         static_assert(std::is_base_of_v<OccupancyOctreeNode, Node>);

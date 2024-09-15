@@ -11,7 +11,8 @@ namespace erl::geometry {
     AbstractQuadtree::CreateTree(const std::string &tree_id, const std::shared_ptr<NdTreeSetting> &setting) {
         const auto it = s_class_id_mapping_.find(tree_id);
         if (it == s_class_id_mapping_.end()) {
-            ERL_WARN("Unknown Quadtree type: {}", tree_id);
+            ERL_WARN("Unknown Quadtree type: {}. Here are the registered Quadtree types:", tree_id);
+            for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
             return nullptr;
         }
 

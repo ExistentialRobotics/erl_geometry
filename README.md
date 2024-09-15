@@ -73,8 +73,6 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
       UCSD.
     - [CowAndLady](include/erl_geometry/cow_and_lady.hpp): a real 3D RGBD sequence provided
       by [ETH Zurich ASL](https://projects.asl.ethz.ch/datasets/doku.php?id=iros2017).
-    - [MeshLidar3D](include/erl_geometry/mesh_lidar_3d.hpp): generate 3D LiDAR scan sequence with a 3D mesh and a SE3
-      trajectory.
 - Others
     - [Compute Intersections](include/erl_geometry/utils.hpp)
     - [Euler Angle](include/erl_geometry/euler_angle.hpp)

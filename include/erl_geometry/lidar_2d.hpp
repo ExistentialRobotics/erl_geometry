@@ -20,6 +20,8 @@ namespace erl::geometry {
             Space2D::SignMethod sign_method = Space2D::SignMethod::kLineNormal;
         };
 
+        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
         std::shared_ptr<Space2D> m_space_ = nullptr;

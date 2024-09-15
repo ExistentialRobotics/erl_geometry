@@ -12,7 +12,8 @@ namespace erl::geometry {
     RangeSensorFrame3D::Create(const std::string &type, const std::shared_ptr<Setting> &setting) {
         const auto it = s_class_id_mapping_.find(type);
         if (it == s_class_id_mapping_.end()) {
-            ERL_WARN("Unknown RangeSensorFrame3D type: {}", type);
+            ERL_WARN("Unknown RangeSensorFrame3D type: {}. Here are the registered RangeSensorFrame3D types:", type);
+            for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
             return nullptr;
         }
         return it->second(setting);

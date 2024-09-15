@@ -6,31 +6,7 @@ namespace erl::geometry {
 
     class AbstractSurfaceMapping {
     public:
-        struct Setting : public common::YamlableBase {  // inherit from YamlableBase instead of Yamlable<> to leave AsYamlNode() pure virtual
-            inline static std::map<std::string, std::function<std::shared_ptr<Setting>()>> s_class_id_mapping_ = {};
-
-            static std::shared_ptr<Setting>
-            Create(const std::string &mapping_type) {
-                const auto it = s_class_id_mapping_.find(mapping_type);
-                if (it == s_class_id_mapping_.end()) {
-                    ERL_WARN("Unknown Setting type: {}", mapping_type);
-                    return nullptr;
-                }
-                return it->second();
-            }
-
-            template<typename Derived>
-            static std::enable_if_t<std::is_base_of_v<AbstractSurfaceMapping, Derived>, bool>
-            RegisterSettingType(const std::string &mapping_type) {
-                if (s_class_id_mapping_.find(mapping_type) != s_class_id_mapping_.end()) {
-                    ERL_WARN("Setting type of {} already registered", mapping_type);
-                    return false;
-                }
-                s_class_id_mapping_[mapping_type] = []() -> std::shared_ptr<Setting> { return std::make_shared<typename Derived::Setting>(); };
-                ERL_DEBUG("Setting type of {} is registered.", mapping_type);
-                return true;
-            }
-        };
+        struct Setting : public common::YamlableBase {};
 
     protected:
         inline static std::map<std::string, std::function<std::shared_ptr<AbstractSurfaceMapping>(const std::shared_ptr<Setting> &)>> s_class_id_mapping_ = {};
@@ -58,7 +34,8 @@ namespace erl::geometry {
         CreateSurfaceMapping(const std::string &mapping_type, const std::shared_ptr<Setting> &setting) {
             const auto it = s_class_id_mapping_.find(mapping_type);
             if (it == s_class_id_mapping_.end()) {
-                ERL_WARN("Unknown SurfaceMapping type: {}", mapping_type);
+                ERL_WARN("Unknown SurfaceMapping type: {}. Here are the registered SurfaceMapping types:", mapping_type);
+                for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
                 return nullptr;
             }
             auto mapping = std::dynamic_pointer_cast<Derived>(it->second(setting));
@@ -68,7 +45,8 @@ namespace erl::geometry {
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractSurfaceMapping, Derived>, bool>
-        RegisterSurfaceMappingType(const std::string &mapping_type) {
+        Register(std::string mapping_type = "") {
+            if (mapping_type.empty()) { mapping_type = demangle(typeid(Derived).name()); }
             if (s_class_id_mapping_.find(mapping_type) != s_class_id_mapping_.end()) {
                 ERL_WARN("SurfaceMapping type {} already registered", mapping_type);
                 return false;
@@ -79,11 +57,9 @@ namespace erl::geometry {
                 return std::make_shared<Derived>(mapping_setting);
             };
             ERL_DEBUG("{} is registered.", mapping_type);
-            return Setting::RegisterSettingType<Derived>(mapping_type);
+            return true;
         }
     };
 
-#define ERL_REGISTER_SURFACE_MAPPING(Derived) \
-    inline const volatile bool kRegistered##Derived = erl::geometry::AbstractSurfaceMapping::RegisterSurfaceMappingType<Derived>(#Derived);
+#define ERL_REGISTER_SURFACE_MAPPING(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractSurfaceMapping::Register<Derived>()
 }  // namespace erl::geometry
-

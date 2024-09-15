@@ -23,6 +23,8 @@ namespace erl::geometry {
             long num_elevation_lines = 180;
         };
 
+        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+
     protected:
         std::shared_ptr<Setting> m_setting_ = nullptr;
         std::vector<LidarFramePartition3D> m_partitions_ = {};
@@ -30,12 +32,6 @@ namespace erl::geometry {
 
     public:
         explicit LidarFrame3D(std::shared_ptr<Setting> setting);
-
-        static const std::string &
-        GetFrameType() {
-            static const std::string kFrameType = "lidar";
-            return kFrameType;
-        }
 
         void
         Reset() {

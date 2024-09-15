@@ -29,6 +29,8 @@ namespace erl::geometry {
             Resize(double factor);
         };
 
+        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+
     protected:
         std::shared_ptr<Setting> m_setting_ = nullptr;
         Eigen::Matrix4d m_camera_extrinsic_ = Eigen::Matrix4d::Identity();
@@ -37,12 +39,6 @@ namespace erl::geometry {
 
     public:
         explicit DepthFrame3D(std::shared_ptr<Setting> setting);
-
-        static const std::string &
-        GetFrameType() {
-            static const std::string kFrameType = "depth";
-            return kFrameType;
-        }
 
         [[nodiscard]] std::shared_ptr<const Setting>
         GetSetting() const {

@@ -57,6 +57,8 @@ namespace erl::geometry {
             return false;
         }
     };
+
+    ERL_REGISTER_YAMLABLE(NdTreeSetting);
 }  // namespace erl::geometry
 
 template<>

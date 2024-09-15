@@ -1572,8 +1572,8 @@ namespace erl::geometry {
                             Eigen::Vector2d box_min(center_x - half_size, center_y - half_size);
                             Eigen::Vector2d box_max(center_x + half_size, center_y + half_size);
                             double dist1 = 0.0, dist2 = 0.0;
-                            bool intersected = false;
-                            ComputeIntersectionBetweenRayAndAabb2D(m_origin_, m_dir_inv_, box_min, box_max, dist1, dist2, intersected);
+                            bool intersected = false, is_inside = false;
+                            ComputeIntersectionBetweenRayAndAabb2D(m_origin_, m_dir_inv_, box_min, box_max, dist1, dist2, intersected, is_inside);
                             if (!intersected) { continue; }
                             if (!child->HasAnyChild()) {  // leaf node
                                 if (!m_bidirectional_ && dist1 < 0.) { continue; }

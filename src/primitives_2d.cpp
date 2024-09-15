@@ -94,11 +94,11 @@ namespace erl::geometry {
     std::vector<Eigen::Vector2d>
     AxisAlignedRectangle2D::ComputeIntersections(const Line2D &line) const {
         double d1, d2;
-        bool intersected;
+        bool intersected, is_inside;
         Eigen::Vector2d v = line.p1 - line.p0;
         v.normalize();
         const Eigen::Vector2d v_inv = v.cwiseInverse();
-        ComputeIntersectionBetweenRayAndAabb2D(line.p0, v_inv, m_min, m_max, d1, d2, intersected);
+        ComputeIntersectionBetweenRayAndAabb2D(line.p0, v_inv, m_min, m_max, d1, d2, intersected, is_inside);
         if (!intersected) { return {}; }
         if (std::abs(d1 - d2) < std::numeric_limits<double>::min()) { return {line.p0 + d1 * v}; }
         return {line.p0 + d1 * v, line.p0 + d2 * v};
@@ -107,11 +107,11 @@ namespace erl::geometry {
     std::vector<Eigen::Vector2d>
     AxisAlignedRectangle2D::ComputeIntersections(const Segment2D &segment) const {
         double d1, d2;
-        bool intersected;
+        bool intersected, is_inside;
         Eigen::Vector2d v = segment.p1 - segment.p0;
         v.normalize();
         const Eigen::Vector2d v_inv = v.cwiseInverse();
-        ComputeIntersectionBetweenRayAndAabb2D(segment.p0, v_inv, m_min, m_max, d1, d2, intersected);
+        ComputeIntersectionBetweenRayAndAabb2D(segment.p0, v_inv, m_min, m_max, d1, d2, intersected, is_inside);
         if (!intersected) { return {}; }
         std::vector<Eigen::Vector2d> intersections;
         if (d1 >= 0 && d1 <= 1) { intersections.emplace_back(segment.p0 + d1 * v); }
@@ -123,9 +123,9 @@ namespace erl::geometry {
     std::vector<Eigen::Vector2d>
     AxisAlignedRectangle2D::ComputeIntersections(const Ray2D &ray) const {
         double d1, d2;
-        bool intersected;
+        bool intersected, is_inside;
         const Eigen::Vector2d v_inv = ray.direction.cwiseInverse();
-        ComputeIntersectionBetweenRayAndAabb2D(ray.origin, v_inv, m_min, m_max, d1, d2, intersected);
+        ComputeIntersectionBetweenRayAndAabb2D(ray.origin, v_inv, m_min, m_max, d1, d2, intersected, is_inside);
         if (!intersected) { return {}; }
         std::vector<Eigen::Vector2d> intersections;
         if (d1 >= 0) { intersections.emplace_back(ray.origin + d1 * ray.direction); }
@@ -151,8 +151,8 @@ namespace erl::geometry {
         v.normalize();
 
         double d1, d2;
-        bool intersected;
-        ComputeIntersectionBetweenRayAndAabb2D(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected);
+        bool intersected, is_inside;
+        ComputeIntersectionBetweenRayAndAabb2D(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected, is_inside);
         if (!intersected) { return {}; }
         if (std::abs(d1 - d2) < std::numeric_limits<double>::min()) { return {line.p0 + d1 * v}; }
         return {line.p0 + d1 * v, line.p0 + d2 * v};
@@ -165,8 +165,8 @@ namespace erl::geometry {
         v.normalize();
 
         double d1, d2;
-        bool intersected;
-        ComputeIntersectionBetweenRayAndAabb2D(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected);
+        bool intersected, is_inside;
+        ComputeIntersectionBetweenRayAndAabb2D(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected, is_inside);
         if (!intersected) { return {}; }
         std::vector<Eigen::Vector2d> intersections;
         if (d1 >= 0 && d1 <= 1) { intersections.emplace_back(segment.p0 + d1 * v); }

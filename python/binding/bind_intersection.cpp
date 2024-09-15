@@ -38,8 +38,14 @@ BindIntersection(py::module &m) {
                const Eigen::Ref<const Eigen::Vector2d> &box_max) {
                 double d1 = 0.0, d2 = 0.0;
                 bool intersected = false;
-                ComputeIntersectionBetweenRayAndAabb2D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected);
-                return py::make_tuple(d1, d2, intersected);
+                bool is_inside = false;
+                ComputeIntersectionBetweenRayAndAabb2D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected, is_inside);
+                py::dict results;
+                results["d1"] = d1;
+                results["d2"] = d2;
+                results["intersected"] = intersected;
+                results["is_inside"] = is_inside;
+                return results;
             },
             py::arg("ray_start_point"),
             py::arg("ray_direction"),
@@ -53,8 +59,14 @@ BindIntersection(py::module &m) {
                const Eigen::Ref<const Eigen::Vector3d> &box_max) {
                 double d1 = 0.0, d2 = 0.0;
                 bool intersected = false;
-                ComputeIntersectionBetweenRayAndAabb3D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected);
-                return py::make_tuple(d1, d2, intersected);
+                bool is_inside = false;
+                ComputeIntersectionBetweenRayAndAabb3D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected, is_inside);
+                py::dict results;
+                results["d1"] = d1;
+                results["d2"] = d2;
+                results["intersected"] = intersected;
+                results["is_inside"] = is_inside;
+                return results;
             },
             py::arg("ray_start_point"),
             py::arg("ray_direction"),

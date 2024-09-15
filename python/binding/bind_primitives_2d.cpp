@@ -7,9 +7,9 @@ void
 BindPrimitives2D(const py::module &m) {
     auto primitive = py::class_<Primitive2D>(m, "Primitive2D");
     py::enum_<Primitive2D::Type>(primitive, "Type")
-        .value("kLine", Primitive2D::Type::kLine)
-        .value("kSegment", Primitive2D::Type::kSegment)
-        .value("kRay", Primitive2D::Type::kRay)
+        .value("kLine2D", Primitive2D::Type::kLine2D)
+        .value("kSegment2D", Primitive2D::Type::kSegment2D)
+        .value("kRay2D", Primitive2D::Type::kRay2D)
         .value("kAxisAlignedRectangle", Primitive2D::Type::kAxisAlignedRectangle)
         .value("kRectangle", Primitive2D::Type::kRectangle)
         .value("kEllipse", Primitive2D::Type::kEllipse)

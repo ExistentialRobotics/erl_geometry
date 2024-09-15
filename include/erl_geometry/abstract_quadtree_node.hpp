@@ -97,7 +97,8 @@ namespace erl::geometry {
         CreateNode(const std::string &node_type, const uint32_t depth, const int child_index) {
             const auto it = s_class_id_mapping_.find(node_type);
             if (it == s_class_id_mapping_.end()) {
-                ERL_WARN("Unknown Octree node type: {}", node_type);
+                ERL_WARN("Unknown Quadtree node type: {}. Here are the registered node types:", node_type);
+                for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
                 return nullptr;
             }
             return it->second(depth, child_index);
@@ -105,8 +106,8 @@ namespace erl::geometry {
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractQuadtreeNode, Derived>, bool>
-        RegisterNodeType() {
-            const std::string node_type = demangle(typeid(Derived).name());
+        Register(std::string node_type = "") {
+            if (node_type.empty()) { node_type = demangle(typeid(Derived).name()); }
             if (s_class_id_mapping_.find(node_type) != s_class_id_mapping_.end()) {
                 ERL_WARN("{} is already registered.", node_type);
                 return false;
@@ -244,5 +245,5 @@ namespace erl::geometry {
         }
     };
 
-#define ERL_REGISTER_QUADTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtreeNode::RegisterNodeType<Derived>()
+#define ERL_REGISTER_QUADTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtreeNode::Register<Derived>()
 }  // namespace erl::geometry

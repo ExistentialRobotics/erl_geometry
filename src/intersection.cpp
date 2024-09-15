@@ -1,7 +1,5 @@
 #include "erl_geometry/intersection.hpp"
 
-#include <erl_common/block_timer.hpp>
-
 #include <cmath>
 
 namespace erl::geometry {
@@ -86,7 +84,8 @@ namespace erl::geometry {
         const Eigen::Vector2d &box_max,
         double &d1,
         double &d2,
-        bool &intersected) {
+        bool &intersected,
+        bool &is_inside) {
 
         double tx_1, tx_2, ty_1, ty_2;
         if (p[0] == box_min[0]) {
@@ -118,18 +117,20 @@ namespace erl::geometry {
         intersected = t_max >= t_min;
         d1 = std::numeric_limits<double>::infinity();
         d2 = std::numeric_limits<double>::infinity();
+        is_inside = p[0] >= box_min[0] && p[0] <= box_max[0] &&  // check x
+                    p[1] >= box_min[1] && p[1] <= box_max[1];    // check y
         if (intersected) {
-            if (p[0] < box_min[0] || p[0] > box_max[0] || p[1] < box_min[1] || p[1] > box_max[1]) {  // ray start point is outside the box
-                if (t_min >= 0) {                                                                    // forward intersection
-                    d1 = t_min;                                                                      // first intersection point
-                    d2 = t_max;                                                                      // second intersection point
-                } else {                                                                             // backward intersection
-                    d1 = t_max;                                                                      // first intersection point
-                    d2 = t_min;                                                                      // second intersection point
+            if (is_inside) {       // ray start point is inside the box
+                d1 = t_max;        // forward intersection
+                d2 = t_min;        // backward intersection
+            } else {               // ray start point is outside the box
+                if (t_min >= 0) {  // forward intersection
+                    d1 = t_min;    // first intersection point
+                    d2 = t_max;    // second intersection point
+                } else {           // backward intersection
+                    d1 = t_max;    // first intersection point
+                    d2 = t_min;    // second intersection point
                 }
-            } else {         // ray start point is inside the box
-                d1 = t_max;  // forward intersection
-                d2 = t_min;  // backward intersection
             }
         }
     }
@@ -142,7 +143,8 @@ namespace erl::geometry {
         const Eigen::Vector3d &box_max,
         double &d1,
         double &d2,
-        bool &intersected) {
+        bool &intersected,
+        bool &is_inside) {
 
         double tx_1, tx_2, ty_1, ty_2, tz_1, tz_2;
         if (p[0] == box_min[0]) {
@@ -187,20 +189,21 @@ namespace erl::geometry {
         intersected = t_max >= t_min;
         d1 = std::numeric_limits<double>::infinity();
         d2 = std::numeric_limits<double>::infinity();
+        is_inside = p[0] >= box_min[0] && p[0] <= box_max[0] &&  // check x
+                    p[1] >= box_min[1] && p[1] <= box_max[1] &&  // check y
+                    p[2] >= box_min[2] && p[2] <= box_max[2];
         if (intersected) {
-            if (p[0] < box_min[0] || p[0] > box_max[0] ||  // check x
-                p[1] < box_min[1] || p[1] > box_max[1] ||  // check y
-                p[2] < box_min[2] || p[2] > box_max[2]) {  // ray start point is outside the box
-                if (t_min >= 0) {                          // forward intersection
-                    d1 = t_min;                            // first intersection point
-                    d2 = t_max;                            // second intersection point
-                } else {                                   // backward intersection
-                    d1 = t_max;                            // first intersection point
-                    d2 = t_min;                            // second intersection point
+            if (is_inside) {       // ray start point is inside the box
+                d1 = t_max;        // forward intersection
+                d2 = t_min;        // backward intersection
+            } else {               // ray start point is outside the box
+                if (t_min >= 0) {  // forward intersection
+                    d1 = t_min;    // first intersection point
+                    d2 = t_max;    // second intersection point
+                } else {           // backward intersection
+                    d1 = t_max;    // first intersection point
+                    d2 = t_min;    // second intersection point
                 }
-            } else {         // ray start point is inside the box
-                d1 = t_max;  // forward intersection
-                d2 = t_min;  // backward intersection
             }
         }
     }

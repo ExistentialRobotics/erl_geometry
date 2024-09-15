@@ -15,9 +15,9 @@ namespace erl::geometry {
     struct Primitive2D {
 
         enum class Type {
-            kLine = 0,
-            kSegment = 1,
-            kRay = 2,
+            kLine2D = 0,
+            kSegment2D = 1,
+            kRay2D = 2,
             kAxisAlignedRectangle = 3,
             kRectangle = 4,
             kEllipse = 5,
@@ -61,7 +61,7 @@ namespace erl::geometry {
 
         [[nodiscard]] Type
         GetType() const override {
-            return Type::kLine;
+            return Type::kLine2D;
         }
 
         [[nodiscard]] bool
@@ -99,7 +99,7 @@ namespace erl::geometry {
 
         [[nodiscard]] Type
         GetType() const override {
-            return Type::kSegment;
+            return Type::kSegment2D;
         }
 
         [[nodiscard]] bool
@@ -138,7 +138,7 @@ namespace erl::geometry {
 
         [[nodiscard]] Type
         GetType() const override {
-            return Type::kRay;
+            return Type::kRay2D;
         }
 
         [[nodiscard]] bool
@@ -267,9 +267,24 @@ namespace erl::geometry {
             return Type::kRectangle;
         }
 
+        [[nodiscard]] const Eigen::Vector2d &
+        GetCenter() const {
+            return m_center_;
+        }
+
+        [[nodiscard]] const Eigen::Vector2d &
+        GetHalfSize() const {
+            return m_half_sizes_;
+        }
+
         [[nodiscard]] double
         GetOrientationAngle() const override {
             return m_angle_;
+        }
+
+        [[nodiscard]] const Eigen::Matrix2d &
+        GetRotationMatrix() const {
+            return m_rotation_matrix_;
         }
 
         [[nodiscard]] bool
@@ -321,6 +336,32 @@ namespace erl::geometry {
                 Segment2D{-1, {tr.x(), tr.y()}, {br.x(), br.y()}},
                 Segment2D{-1, {br.x(), br.y()}, {bl.x(), bl.y()}},
             };
+        }
+
+        Rectangle2D &
+        Translate(const Eigen::Vector2d &translation) {
+            m_center_ += translation;
+            return *this;
+        }
+
+        Rectangle2D &
+        Rotate(const double angle) {
+            m_angle_ += angle;
+            UpdateMatrices();
+            return *this;
+        }
+
+        Rectangle2D &
+        SetCenter(const Eigen::Vector2d &center) {
+            m_center_ = center;
+            return *this;
+        }
+
+        Rectangle2D &
+        SetOrientationAngle(const double angle) {
+            m_angle_ = angle;
+            UpdateMatrices();
+            return *this;
         }
 
     private:

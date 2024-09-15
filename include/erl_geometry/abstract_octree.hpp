@@ -72,8 +72,8 @@ namespace erl::geometry {
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractOctree, Derived>, bool>
-        RegisterTreeType() {
-            const std::string tree_type = demangle(typeid(Derived).name());
+        Register(std::string tree_type = "") {
+            if (tree_type.empty()) { tree_type = demangle(typeid(Derived).name()); }
             if (s_class_id_mapping_.find(tree_type) != s_class_id_mapping_.end()) {
                 ERL_WARN("{} is already registered.", tree_type);
                 return false;
@@ -81,7 +81,8 @@ namespace erl::geometry {
 
             s_class_id_mapping_[tree_type] = [](const std::shared_ptr<NdTreeSetting>& setting) {
                 auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
-                if (tree_setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }
+                if (setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }
+                ERL_ASSERTM(tree_setting != nullptr, "setting is nullptr.");
                 return std::make_shared<Derived>(tree_setting);
             };
             ERL_DEBUG("{} is registered.", tree_type);
@@ -418,5 +419,5 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
     };
 
-#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctree::RegisterTreeType<Derived>()
+#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctree::Register<Derived>()
 }  // namespace erl::geometry

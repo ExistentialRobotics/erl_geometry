@@ -17,6 +17,8 @@ namespace erl::geometry {
             int min_partition_size = 5;
         };
 
+        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+
     protected:
         inline static std::map<std::string, std::function<std::shared_ptr<RangeSensorFrame3D>(const std::shared_ptr<Setting> &)>> s_class_id_mapping_ = {};
 
@@ -58,24 +60,26 @@ namespace erl::geometry {
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<RangeSensorFrame3D, Derived>, bool>
-        RegisterFrameType() {
-            if (const std::string &frame_type = Derived::GetFrameType(); s_class_id_mapping_.find(frame_type) != s_class_id_mapping_.end()) {
+        Register(std::string frame_type = "") {
+            if (frame_type.empty()) { frame_type = demangle(typeid(Derived).name()); }
+            if (s_class_id_mapping_.find(frame_type) != s_class_id_mapping_.end()) {
                 ERL_WARN("Derived RangeSensorFrame3D of type {} is already registered.", frame_type);
                 return false;
             }
-            s_class_id_mapping_[Derived::GetFrameType()] = [](const std::shared_ptr<Setting> &setting) -> std::shared_ptr<RangeSensorFrame3D> {
+            s_class_id_mapping_[frame_type] = [](const std::shared_ptr<Setting> &setting) -> std::shared_ptr<RangeSensorFrame3D> {
+                const std::string frame_type = demangle(typeid(Derived).name());
                 if (setting == nullptr) {
-                    ERL_WARN("setting is nullptr before creating a derived RangeSensorFrame3D of type {}.", Derived::GetFrameType());
+                    ERL_WARN("setting is nullptr before creating a derived RangeSensorFrame3D of type {}.", frame_type);
                     return nullptr;
                 }
                 auto frame_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
                 if (frame_setting == nullptr) {
-                    ERL_WARN("Failed to cast setting for derived RangeSensorFrame3D of type {}.", Derived::GetFrameType());
+                    ERL_WARN("Failed to cast setting for derived RangeSensorFrame3D of type {}.", frame_type);
                     return nullptr;
                 }
                 return std::make_shared<Derived>(frame_setting);
             };
-            ERL_DEBUG("Registered RangeSensorFrame3D of type {}.", Derived::GetFrameType());
+            ERL_DEBUG("{} is registered.", frame_type);
             return true;
         }
 
@@ -304,7 +308,7 @@ namespace erl::geometry {
             Eigen::VectorXd *distances_ptr) const;
     };
 
-#define ERL_REGISTER_RANGE_SENSOR_FRAME_3D(Derived) inline const volatile bool kRegistered##Derived = RangeSensorFrame3D::RegisterFrameType<Derived>()
+#define ERL_REGISTER_RANGE_SENSOR_FRAME_3D(Derived) inline const volatile bool kRegistered##Derived = RangeSensorFrame3D::Register<Derived>()
 }  // namespace erl::geometry
 
 // ReSharper disable CppInconsistentNaming
