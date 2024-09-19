@@ -364,6 +364,9 @@ namespace erl::geometry {
             return *this;
         }
 
+        [[nodiscard]] std::vector<Eigen::Vector2d>
+        ComputePointsOnBoundary(std::size_t num_points) const;
+
     private:
         void
         UpdateMatrices() {

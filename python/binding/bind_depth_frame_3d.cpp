@@ -19,7 +19,6 @@ BindDepthFrame3D(const py::module &m) {
         .def_readwrite("camera_cy", &T::Setting::camera_cy)
         .def("resize", &T::Setting::Resize, py::arg("factor"));
     depth_frame.def(py::init<std::shared_ptr<T::Setting>>(), py::arg("setting").none(false))
-        .def_property_readonly_static("frame_type", &T::GetFrameType)
         .def("reset", [](T &self) { self.Reset(); })
         .def(
             "update_ranges",

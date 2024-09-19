@@ -176,6 +176,41 @@ namespace erl::geometry {
     }
 
     std::vector<Eigen::Vector2d>
+    Rectangle2D::ComputePointsOnBoundary(std::size_t num_points) const {
+        std::vector<Eigen::Vector2d> points;
+        points.reserve(num_points);
+        const std::size_t num_points_x = std::lround(static_cast<double>(num_points) * m_half_sizes_.x() / (2.0 * m_half_sizes_.x() + m_half_sizes_.y()));
+        const std::size_t num_points_y = num_points / 2 - num_points_x;
+        const double step_x = 2.0 * m_half_sizes_.x() / static_cast<double>(num_points_x - 1);
+        const double step_y = 2.0 * m_half_sizes_.y() / static_cast<double>(num_points_y - 1);
+        double shift = 0;
+        for (std::size_t i = 0; i < num_points_y; ++i) {
+            const Eigen::Vector2d p(-m_half_sizes_.x(), -m_half_sizes_.y() + shift);
+            points.emplace_back(m_rotation_matrix_ * p + m_center_);
+            shift += step_y;
+        }
+        shift = 0;
+        for (std::size_t i = 0; i < num_points_x; ++i) {
+            const Eigen::Vector2d p(-m_half_sizes_.x() + shift, m_half_sizes_.y());
+            points.emplace_back(m_rotation_matrix_ * p + m_center_);
+            shift += step_x;
+        }
+        shift = 0;
+        for (std::size_t i = 0; i < num_points_y; ++i) {
+            const Eigen::Vector2d p(m_half_sizes_.x(), m_half_sizes_.y() - shift);
+            points.emplace_back(m_rotation_matrix_ * p + m_center_);
+            shift += step_y;
+        }
+        shift = 0;
+        for (std::size_t i = 0; i < num_points_x; ++i) {
+            const Eigen::Vector2d p(m_half_sizes_.x() - shift, -m_half_sizes_.y());
+            points.emplace_back(m_rotation_matrix_ * p + m_center_);
+            shift += step_x;
+        }
+        return points;
+    }
+
+    std::vector<Eigen::Vector2d>
     Ellipse2D::ComputeIntersections(const Line2D &line) const {
         Eigen::Vector2d p0 = m_rotation_matrix_.transpose() * (line.p0 - m_center_);
         Eigen::Vector2d p1 = m_rotation_matrix_.transpose() * (line.p1 - m_center_);

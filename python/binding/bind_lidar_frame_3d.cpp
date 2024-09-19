@@ -17,7 +17,6 @@ BindLidarFrame3D(const py::module &m) {
         .def_readwrite("num_azimuth_lines", &T::Setting::num_azimuth_lines)
         .def_readwrite("num_elevation_lines", &T::Setting::num_elevation_lines);
     lidar_frame.def(py::init<std::shared_ptr<T::Setting>>(), py::arg("setting").none(false))
-        .def_property_readonly_static("frame_type", &T::GetFrameType)
         .def("reset", &T::Reset)
         .def("update_ranges", &T::UpdateRanges, py::arg("rotation"), py::arg("translation"), py::arg("ranges"), py::arg("partition_rays"))
         .def_property_readonly("setting", &T::GetSetting)

@@ -9,7 +9,7 @@ BindAbstractSurfaceMapping(const py::module &m) {
 
     py::class_<AbstractSurfaceMapping, std::shared_ptr<AbstractSurfaceMapping>> abstract_surface_mapping(m, "AbstractSurfaceMapping");
     py::class_<AbstractSurfaceMapping::Setting, YamlableBase, std::shared_ptr<AbstractSurfaceMapping::Setting>>(abstract_surface_mapping, "Setting")
-        .def_static("create", &AbstractSurfaceMapping::Setting::Create, py::arg("mapping_type"));
+        .def(py::init<>(&AbstractSurfaceMapping::Setting::Create<AbstractSurfaceMapping::Setting>), py::arg("mapping_type"));
     abstract_surface_mapping.def_static("create_surface_mapping", &AbstractSurfaceMapping::CreateSurfaceMapping<>, py::arg("mapping_type"), py::arg("setting"))
         .def("write", py::overload_cast<const std::string &>(&AbstractSurfaceMapping::Write, py::const_), py::arg("filename"))
         .def("read", py::overload_cast<const std::string &>(&AbstractSurfaceMapping::Read), py::arg("filename"));

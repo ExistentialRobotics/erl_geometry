@@ -71,6 +71,7 @@ namespace erl::geometry {
      * @param d1           output distance from p to the first intersection point (closest one if p is outside the box, forward one if p is inside the box)
      * @param d2           output distance from p to the second intersection point (farthest one if p is outside the box, backward one if p is inside the box)
      * @param intersected  output whether the ray intersects the box
+     * @param is_inside    output whether the ray starts inside the box
      *
      * @refitem https://tavianator.com/fast-branchless-raybounding-box-intersections/
      * @refitem https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
