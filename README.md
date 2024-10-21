@@ -7,6 +7,8 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
 - [KdTree](include/erl_geometry/kdtree_eigen_adaptor.hpp): create kd-tree from Eigen matrix.
 - Occupancy Quadtree: developed based on [Octomap](https://octomap.github.io/)
     - [Occupancy Quadtree](include/erl_geometry/occupancy_quadtree.hpp): implementation of occupancy quadtree.
+    - [PyObject Occupancy Quadtree](python/binding/pyobject_occupancy_quadtree.hpp): occupancy quadtree that supports
+      tagging Python object to quadtree nodes.
     - [Abstract Quadtree](include/erl_geometry/abstract_quadtree.hpp): abstract class for quadtree.
     - [Quadtree Implementation](include/erl_geometry/quadtree_impl.hpp): implementation of quadtree, unlike incremental
       quadtree, this one always inserts nodes to the deepest level.
@@ -24,6 +26,8 @@ This CMake project provides `erl_geometry` which is a C++ library for geometry p
       quadtree.
 - Occupancy Octree: developed based on [Octomap](https://octomap.github.io/)
     - [Occupancy Octree](include/erl_geometry/occupancy_octree.hpp): implementation of occupancy octree.
+    - [PyObject Occupancy Octree](python/binding/pyobject_occupancy_octree.hpp): occupancy octree that supports
+      tagging Python object to octree nodes.
     - [Abstract Octree](include/erl_geometry/abstract_octree.hpp): abstract class for octree.
     - [Octree Implementation](include/erl_geometry/octree_impl.hpp): implementation of octree, unlike incremental
       quadtree, this one always inserts nodes to the deepest level.
