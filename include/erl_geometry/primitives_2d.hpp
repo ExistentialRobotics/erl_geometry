@@ -273,7 +273,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] const Eigen::Vector2d &
-        GetHalfSize() const {
+        GetHalfSizes() const {
             return m_half_sizes_;
         }
 
@@ -376,7 +376,7 @@ namespace erl::geometry {
 
     class Ellipse2D : public Primitive2D {
         Eigen::Vector2d m_center_;
-        Eigen::Vector2d m_radius_;
+        Eigen::Vector2d m_radii_;
         double m_angle_;
         Eigen::Matrix2d m_rotation_matrix_;
         Eigen::Matrix2d m_scaled_rotation_matrix_;  // sigma
@@ -384,7 +384,7 @@ namespace erl::geometry {
     public:
         Ellipse2D(const int id, Eigen::Vector2d center, const double a, const double b, const double angle)
             : m_center_(std::move(center)),
-              m_radius_(a, b),
+              m_radii_(a, b),
               m_angle_(angle) {
             this->id = id;
             UpdateMatrices();
@@ -401,18 +401,18 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] const Eigen::Vector2d &
-        GetRadius() const {
-            return m_radius_;
+        GetRadii() const {
+            return m_radii_;
         }
 
         [[nodiscard]] double
         GetRadiusX() const {
-            return m_radius_.x();
+            return m_radii_.x();
         }
 
         [[nodiscard]] double
         GetRadiusY() const {
-            return m_radius_.y();
+            return m_radii_.y();
         }
 
         [[nodiscard]] double
@@ -427,13 +427,13 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsInside(const Eigen::Vector2d &point) const override {
-            Eigen::Vector2d p = (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radius_.array();
+            Eigen::Vector2d p = (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radii_.array();
             return p.squaredNorm() <= 1.0;
         }
 
         [[nodiscard]] bool
         IsOnBoundary(const Eigen::Vector2d &point) const override {
-            Eigen::Vector2d p = (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radius_.array();
+            Eigen::Vector2d p = (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radii_.array();
             return p.squaredNorm() == 1.0;
         }
 
@@ -479,8 +479,8 @@ namespace erl::geometry {
         void
         UpdateMatrices() {
             m_rotation_matrix_ << std::cos(m_angle_), -std::sin(m_angle_), std::sin(m_angle_), std::cos(m_angle_);
-            const double a = 1.0 / m_radius_.x();
-            const double b = 1.0 / m_radius_.y();
+            const double a = 1.0 / m_radii_.x();
+            const double b = 1.0 / m_radii_.y();
             m_scaled_rotation_matrix_ << a * a, 0, 0, b * b;
             m_scaled_rotation_matrix_ = m_rotation_matrix_ * m_scaled_rotation_matrix_ * m_rotation_matrix_.transpose();
         }

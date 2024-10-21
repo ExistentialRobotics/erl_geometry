@@ -1,3 +1,9 @@
+# 2024-10-21
+
+- Add: create ellipsoid mesh with Open3D.
+- Add: occupancy Quadtree & Octree that support storing Python objects.
+- Update: Python binding for new features.
+
 # 2024-08-15
 
 - Fix: a bug in factory pattern of Quadtree and Octree that causes loading tree from file failed.

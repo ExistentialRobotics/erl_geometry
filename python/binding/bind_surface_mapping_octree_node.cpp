@@ -1,4 +1,3 @@
-
 #include "erl_common/pybind11.hpp"
 #include "erl_geometry/pybind11_occupancy_octree.hpp"
 #include "erl_geometry/surface_mapping_octree_node.hpp"

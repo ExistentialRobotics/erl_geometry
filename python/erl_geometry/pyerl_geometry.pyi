@@ -31,6 +31,8 @@ __all__ = [
     "QuadtreeKeyRay",
     "OccupancyQuadtreeNode",
     "OccupancyQuadtree",
+    "PyObjectOccupancyQuadtreeNode",
+    "PyObjectOccupancyQuadtree",
     "SurfaceMappingQuadtreeNode",
     "SurfaceMappingQuadtree",
     "OccupancyOctreeBaseSetting",
@@ -38,6 +40,8 @@ __all__ = [
     "OctreeKeyRay",
     "OccupancyOctreeNode",
     "OccupancyOctree",
+    "PyObjectOccupancyOctreeNode",
+    "PyObjectOccupancyOctree",
     "SurfaceMappingOctreeNode",
     "SurfaceMappingOctree",
     "Surface2D",
@@ -62,6 +66,8 @@ __all__ = [
     "AxisAlignedRectangle2D",
     "Rectangle2D",
     "Ellipse2D",
+    "Primitive3D",
+    "Ellipsoid",
 ]
 
 def marching_square(
@@ -599,6 +605,11 @@ class OccupancyQuadtree:
         def draw_tree(self: OccupancyQuadtree.Drawer) -> npt.NDArray[np.uint8]: ...
         def draw_leaves(self: OccupancyQuadtree.Drawer) -> npt.NDArray[np.uint8]: ...
 
+class PyObjectOccupancyQuadtreeNode(OccupancyQuadtreeNode):
+    py_object: object
+
+class PyObjectOccupancyQuadtree(OccupancyQuadtree): ...
+
 class SurfaceMappingQuadtreeNode(OccupancyQuadtreeNode):
     class SurfaceData:
         position: npt.NDArray[np.float64]
@@ -1081,6 +1092,11 @@ class OccupancyOctree:
         def set_draw_leaf_callback(self: OccupancyOctree.Drawer, callback: Callable) -> None: ...
         def draw_tree(self: OccupancyOctree.Drawer) -> npt.NDArray[np.uint8]: ...
         def draw_leaves(self: OccupancyOctree.Drawer) -> npt.NDArray[np.uint8]: ...
+
+class PyObjectOccupancyOctreeNode(OccupancyOctreeNode):
+    py_object: object
+
+class PyObjectOccupancyOctree(OccupancyOctree): ...
 
 class SurfaceMappingOctreeNode(OccupancyOctreeNode):
     class SurfaceData:
@@ -1756,15 +1772,16 @@ class AbstractSurfaceMapping3D(AbstractSurfaceMapping):
 
 class Primitive2D:
     class Type(IntEnum):
-        kLine = 0
-        kSegment = 1
-        kRay = 2
+        kLine2D = 0
+        kSegment2D = 1
+        kRay2D = 2
         kAxisAlignedRectangle = 3
         kRectangle = 4
         kEllipse = 5
 
     id: int
-    type: Type
+    @property
+    def type(self) -> Type: ...
     def is_inside(self, point: npt.NDArray[np.float64]) -> bool: ...
     def is_on_boundary(self, point: npt.NDArray[np.float64]) -> bool: ...
     @overload
@@ -1796,12 +1813,21 @@ class Rectangle2D(Primitive2D):
     def __init__(
         self, id: int, center: npt.NDArray[np.float64], half_sizes: npt.NDArray[np.float64], angle: float
     ) -> None: ...
+    center: npt.NDArray[np.float64]
+    @property
+    def half_sizes(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
+    @property
+    def translate(self, translation: npt.NDArray[np.float64]) -> None: ...
+    orientation_angle: float
+    def compute_points_on_boundary(self, num_points: int) -> npt.NDArray[np.float64]: ...
 
 class Ellipse2D(Primitive2D):
     def __init__(self, id: int, center: npt.NDArray[np.float64], a: float, b: float, angle: float) -> None: ...
     center: npt.NDArray[np.float64]
     @property
-    def radius(self) -> npt.NDArray[np.float64]: ...
+    def radii(self) -> npt.NDArray[np.float64]: ...
     @property
     def rotation_matrix(self) -> npt.NDArray[np.float64]: ...
     @property
@@ -1812,3 +1838,53 @@ class Ellipse2D(Primitive2D):
     def compute_points_on_boundary(
         self, num_points: int, start_angle: float, end_angle: float
     ) -> npt.NDArray[np.float64]: ...
+
+class Primitive3D:
+    class Type(IntEnum):
+        kLine3D = 0
+        kSegment3D = 1
+        kRay3D = 2
+        kPlane = 3
+        kTriangle = 4
+        kAxisAlignedBox = 5
+        kBox = 6
+        kEllipsoid = 7
+
+    id: int
+    @property
+    def type(self) -> Type: ...
+    def is_inside(self, point: npt.NDArray[np.float64]) -> bool: ...
+
+class Box(Primitive3D):
+    def __init__(
+        self,
+        id: int,
+        center: npt.NDArray[np.float64],
+        half_sizes: npt.NDArray[np.float64],
+        rotation: npt.NDArray[np.float64],
+    ) -> None: ...
+    center: npt.NDArray[np.float64]
+    @property
+    def half_sizes(self) -> npt.NDArray[np.float64]: ...
+    rotation_matrix: npt.NDArray[np.float64]
+    def translate(self, translation: npt.NDArray[np.float64]) -> None: ...
+    def rotate(self, rotation: npt.NDArray[np.float64]) -> None: ...
+
+class Ellipsoid(Primitive3D):
+    def __init__(
+        self,
+        id: int,
+        center: npt.NDArray[np.float64],
+        radius: npt.NDArray[np.float64],
+        rotation: npt.NDArray[np.float64],
+    ) -> None: ...
+    center: npt.NDArray[np.float64]
+    @property
+    def radii(self) -> npt.NDArray[np.float64]: ...
+    rotation_matrix: npt.NDArray[np.float64]
+    def translate(self, translation: npt.NDArray[np.float64]) -> None: ...
+    def rotate(self, rotation: npt.NDArray[np.float64]) -> None: ...
+
+def create_ellipsoid_mesh(
+    a: float, b: float, c: float, num_azimuths: int = 360, num_elevations: int = 180
+) -> tuple[list[npt.NDArray], list[npt.NDArray]]: ...

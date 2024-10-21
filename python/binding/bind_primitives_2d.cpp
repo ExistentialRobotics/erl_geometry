@@ -35,11 +35,17 @@ BindPrimitives2D(const py::module &m) {
     py::class_<AxisAlignedRectangle2D, Primitive2D, Aabb2D>(m, "AxisAlignedRectangle2D")
         .def(py::init<int, const Eigen::Vector2d &, const Eigen::Vector2d &>(), py::arg("id"), py::arg("center"), py::arg("half_sizes"));
     py::class_<Rectangle2D, Primitive2D>(m, "Rectangle2D")
-        .def(py::init<int, Eigen::Vector2d, Eigen::Vector2d, double>(), py::arg("id"), py::arg("center"), py::arg("half_sizes"), py::arg("angle"));
+        .def(py::init<int, Eigen::Vector2d, Eigen::Vector2d, double>(), py::arg("id"), py::arg("center"), py::arg("half_sizes"), py::arg("angle"))
+        .def_property("center", &Rectangle2D::GetCenter, &Rectangle2D::SetCenter)
+        .def_property_readonly("half_sizes", &Rectangle2D::GetHalfSizes)
+        .def_property_readonly("rotation_matrix", &Rectangle2D::GetRotationMatrix)
+        .def("translate", &Rectangle2D::Translate, py::arg("translation"))
+        .def_property("orientation_angle", &Rectangle2D::GetOrientationAngle, &Rectangle2D::SetOrientationAngle)
+        .def("compute_points_on_boundary", &Rectangle2D::ComputePointsOnBoundary, py::arg("num_points"));
     py::class_<Ellipse2D, Primitive2D>(m, "Ellipse2D")
         .def(py::init<int, Eigen::Vector2d, double, double, double>(), py::arg("id"), py::arg("center"), py::arg("a"), py::arg("b"), py::arg("angle"))
         .def_property("center", &Ellipse2D::GetCenter, &Ellipse2D::SetCenter)
-        .def_property_readonly("radius", &Ellipse2D::GetRadius)
+        .def_property_readonly("radii", &Ellipse2D::GetRadii)
         .def_property_readonly("rotation_matrix", &Ellipse2D::GetRotationMatrix)
         .def("translate", &Ellipse2D::Translate, py::arg("translation"))
         .def("rotate", &Ellipse2D::Rotate, py::arg("angle"))

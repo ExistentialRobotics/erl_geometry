@@ -17,7 +17,13 @@ template<class Node, class NodeParent>
 std::enable_if_t<!std::is_same_v<NodeParent, void>, py::class_<Node, NodeParent, py::RawPtrWrapper<Node>>>
 BindOccupancyOctreeNode(const py::module &m, const char *node_name) {
     py::class_<Node, NodeParent, py::RawPtrWrapper<Node>> node(m, node_name);
-    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"))
+        .def_property_readonly("occupancy", &Node::GetOccupancy)
+        .def_property_readonly("log_odds", &Node::GetLogOdds)
+        .def_property_readonly("mean_child_log_odds", &Node::GetMeanChildLogOdds)
+        .def_property_readonly("max_child_log_odds", &Node::GetMaxChildLogOdds)
+        .def("allow_update_log_odds", &Node::AllowUpdateLogOdds, py::arg("delta"))
+        .def("add_log_odds", &Node::AddLogOdds, py::arg("log_odds"));
     return node;
 }
 

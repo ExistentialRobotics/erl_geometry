@@ -28,6 +28,9 @@ void
 BindOccupancyQuadtreeNode(const py::module &m);
 
 void
+BindPyObjectOccupancyQuadtreeNode(const py::module &m);
+
+void
 BindOccupancyQuadtreeBaseSetting(const py::module &m);
 
 void
@@ -35,6 +38,9 @@ BindAbstractOccupancyQuadtree(const py::module &m);
 
 void
 BindOccupancyQuadtree(const py::module &m);
+
+void
+BindPyObjectOccupancyQuadtree(const py::module &m);
 
 void
 BindSurfaceMappingQuadtreeNode(const py::module &m);
@@ -55,6 +61,9 @@ void
 BindOccupancyOctreeNode(const py::module &m);
 
 void
+BindPyObjectOccupancyOctreeNode(const py::module &m);
+
+void
 BindOccupancyOctreeBaseSetting(const py::module &m);
 
 void
@@ -62,6 +71,9 @@ BindAbstractOccupancyOctree(const py::module &m);
 
 void
 BindOccupancyOctree(const py::module &m);
+
+void
+BindPyObjectOccupancyOctree(const py::module &m);
 
 void
 BindSurfaceMappingOctreeNode(const py::module &m);
@@ -111,6 +123,12 @@ BindIntersection(py::module &m);
 void
 BindPrimitives2D(const py::module &m);
 
+void
+BindPrimitives3D(const py::module &m);
+
+void
+BindOpen3dHelper(py::module &m);
+
 PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     m.doc() = "Python 3 Interface of erl_geometry";
 
@@ -123,18 +141,22 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindAbstractQuadtreeNode(m);
     BindAbstractQuadtree(m);
     BindOccupancyQuadtreeNode(m);
+    BindPyObjectOccupancyQuadtreeNode(m);
     BindOccupancyQuadtreeBaseSetting(m);
     BindAbstractOccupancyQuadtree(m);
     BindOccupancyQuadtree(m);
+    BindPyObjectOccupancyQuadtree(m);
     BindSurfaceMappingQuadtreeNode(m);
     BindSurfaceMappingQuadtree(m);
     BindOctreeKey(m);
     BindAbstractOctreeNode(m);
     BindAbstractOctree(m);
     BindOccupancyOctreeNode(m);
+    BindPyObjectOccupancyOctreeNode(m);
     BindOccupancyOctreeBaseSetting(m);
     BindAbstractOccupancyOctree(m);
     BindOccupancyOctree(m);
+    BindPyObjectOccupancyOctree(m);
     BindSurfaceMappingOctreeNode(m);
     BindSurfaceMappingOctree(m);
     BindSurface2D(m);
@@ -151,4 +173,6 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindUtils(m);
     BindIntersection(m);
     BindPrimitives2D(m);
+    BindPrimitives3D(m);
+    BindOpen3dHelper(m);
 }

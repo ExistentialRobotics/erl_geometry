@@ -1,0 +1,151 @@
+⎡cos(φ)⋅cos(θ)  -sin(θ)  -sin(φ)⋅cos(θ)⎤
+⎢                                      ⎥
+⎢sin(θ)⋅cos(φ)  cos(θ)   -sin(φ)⋅sin(θ)⎥
+⎢                                      ⎥
+⎣   sin(φ)         0         cos(φ)    ⎦
+Intersected soft:
+ 2  2                        2    2  2                                                  2    2                                                                                                                                                                                                2    2  2                                                  2    2                                                                                                                                                                                                 2    2                                                                                                                                                                                                                                                            2
+a ⋅b ⋅(vx⋅sin(φ) + vz⋅cos(φ))  + a ⋅c ⋅(vx⋅sin(θ)⋅cos(φ) + vy⋅cos(θ) - vz⋅sin(φ)⋅sin(θ))  - a ⋅((vx⋅sin(φ) + vz⋅cos(φ))⋅((-cx + px)⋅sin(θ)⋅cos(φ) + (-cy + py)⋅cos(θ) - (-cz + pz)⋅sin(φ)⋅sin(θ)) - ((-cx + px)⋅sin(φ) + (-cz + pz)⋅cos(φ))⋅(vx⋅sin(θ)⋅cos(φ) + vy⋅cos(θ) - vz⋅sin(φ)⋅sin(θ)))  + b ⋅c ⋅(vx⋅cos(φ)⋅cos(θ) - vy⋅sin(θ) - vz⋅sin(φ)⋅cos(θ))  - b ⋅(-(vx⋅sin(φ) + vz⋅cos(φ))⋅((-cx + px)⋅cos(φ)⋅cos(θ) - (-cy + py)⋅sin(θ) - (-cz + pz)⋅sin(φ)⋅cos(θ)) + ((-cx + px)⋅sin(φ) + (-cz + pz)⋅cos(φ))⋅(vx⋅cos(φ)⋅cos(θ) - vy⋅sin(θ) - vz⋅sin(φ)⋅cos(θ)))  - c ⋅((vx⋅sin(θ)⋅cos(φ) + vy⋅cos(θ) - vz⋅sin(φ)⋅sin(θ))⋅((-cx + px)⋅cos(φ)⋅cos(θ) - (-cy + py)⋅sin(θ) - (-cz + pz)⋅sin(φ)⋅cos(θ)) - (vx⋅cos(φ)⋅cos(θ) - vy⋅sin(θ) - vz⋅sin(φ)⋅cos(θ))⋅((-cx + px)⋅sin(θ)⋅cos(φ) + (-cy + py)⋅cos(θ) - (-cz + pz)⋅sin(φ)⋅sin(θ)))
+Matrix:
+px**2*vx**2: 0
+px**2*vx*vy: 0
+px**2*vx*vz: 0
+px**2*vy**2: a**2*sin(phi)**2*sin(theta)**2 - a**2*sin(phi)**2 - b**2*sin(phi)**2*sin(theta)**2 + c**2*sin(phi)**2 - c**2
+
+px**2*vy*vz: (a**2 - b**2)*(cos(phi - 2*theta) - cos(phi + 2*theta))/2
+
+px**2*vz**2: -a**2*sin(theta)**2 + b**2*sin(theta)**2 - b**2
+
+px*py*vx**2: 0
+px*py*vx*vy: -2*a**2*sin(phi)**2*sin(theta)**2 + 2*a**2*sin(phi)**2 + 2*b**2*sin(phi)**2*sin(theta)**2 - 2*c**2*sin(phi)**2 + 2*c**2
+
+px*py*vx*vz: (-a**2 + b**2)*(cos(phi - 2*theta) - cos(phi + 2*theta))/2
+
+px*py*vy**2: 0
+px*py*vy*vz: 2*(-a**2*sin(theta)**2 + a**2 + b**2*sin(theta)**2 - c**2)*sin(phi)*cos(phi)
+
+px*py*vz**2: (-a**2 + b**2)*(-sin(phi - 2*theta) + sin(phi + 2*theta))/2
+
+px*pz*vx**2: 0
+px*pz*vx*vy: (-a**2 + b**2)*(cos(phi - 2*theta) - cos(phi + 2*theta))/2
+
+px*pz*vx*vz: 2*a**2*sin(theta)**2 - 2*b**2*sin(theta)**2 + 2*b**2
+
+px*pz*vy**2: 2*(a**2*sin(theta)**2 - a**2 - b**2*sin(theta)**2 + c**2)*sin(phi)*cos(phi)
+
+px*pz*vy*vz: (a**2 - b**2)*(-sin(phi - 2*theta) + sin(phi + 2*theta))/2
+
+px*pz*vz**2: 0
+py**2*vx**2: a**2*sin(phi)**2*sin(theta)**2 - a**2*sin(phi)**2 - b**2*sin(phi)**2*sin(theta)**2 + c**2*sin(phi)**2 - c**2
+
+py**2*vx*vy: 0
+py**2*vx*vz: 2*(a**2*sin(theta)**2 - a**2 - b**2*sin(theta)**2 + c**2)*sin(phi)*cos(phi)
+
+py**2*vy**2: 0
+py**2*vy*vz: 0
+py**2*vz**2: -a**2*cos(phi)**2*cos(theta)**2 + b**2*cos(phi)**2*cos(theta)**2 - b**2*cos(phi)**2 + c**2*cos(phi)**2 - c**2
+
+py*pz*vx**2: (a**2 - b**2)*(cos(phi - 2*theta) - cos(phi + 2*theta))/2
+
+py*pz*vx*vy: 2*(-a**2*sin(theta)**2 + a**2 + b**2*sin(theta)**2 - c**2)*sin(phi)*cos(phi)
+
+py*pz*vx*vz: (a**2 - b**2)*(-sin(phi - 2*theta) + sin(phi + 2*theta))/2
+
+py*pz*vy**2: 0
+py*pz*vy*vz: 2*a**2*cos(phi)**2*cos(theta)**2 - 2*b**2*cos(phi)**2*cos(theta)**2 + 2*b**2*cos(phi)**2 - 2*c**2*cos(phi)**2 + 2*c**2
+
+py*pz*vz**2: 0
+pz**2*vx**2: -a**2*sin(theta)**2 + b**2*sin(theta)**2 - b**2
+
+pz**2*vx*vy: (-a**2 + b**2)*(-sin(phi - 2*theta) + sin(phi + 2*theta))/2
+
+pz**2*vx*vz: 0
+pz**2*vy**2: -a**2*cos(phi)**2*cos(theta)**2 + b**2*cos(phi)**2*cos(theta)**2 - b**2*cos(phi)**2 + c**2*cos(phi)**2 - c**2
+
+pz**2*vy*vz: 0
+pz**2*vz**2: 0
+px**2*vx: 0
+px**2*vy: 0
+px**2*vz: 0
+px*py*vx: 0
+px*py*vy: 0
+px*py*vz: 0
+px*pz*vx: 0
+px*pz*vy: 0
+px*pz*vz: 0
+py**2*vx: 0
+py**2*vy: 0
+py**2*vz: 0
+py*pz*vx: 0
+py*pz*vy: 0
+py*pz*vz: 0
+pz**2*vx: 0
+pz**2*vy: 0
+pz**2*vz: 0
+px*vx**2: 0
+px*vx*vy: 2*a**2*cy*sin(phi)**2*sin(theta)**2 - 2*a**2*cy*sin(phi)**2 + 2*a**2*cz*sin(phi)*sin(theta)*cos(theta) - 2*b**2*cy*sin(phi)**2*sin(theta)**2 - 2*b**2*cz*sin(phi)*sin(theta)*cos(theta) + 2*c**2*cy*sin(phi)**2 - 2*c**2*cy
+
+px*vx*vz: a**2*cy*cos(phi - 2*theta)/2 - a**2*cy*cos(phi + 2*theta)/2 + a**2*cz*cos(2*theta) - a**2*cz - b**2*cy*cos(phi - 2*theta)/2 + b**2*cy*cos(phi + 2*theta)/2 - b**2*cz*cos(2*theta) - b**2*cz
+
+px*vy**2: -2*a**2*cx*sin(phi)**2*sin(theta)**2 + 2*a**2*cx*sin(phi)**2 - 2*a**2*cz*sin(phi)*sin(theta)**2*cos(phi) + 2*a**2*cz*sin(phi)*cos(phi) + 2*b**2*cx*sin(phi)**2*sin(theta)**2 + 2*b**2*cz*sin(phi)*sin(theta)**2*cos(phi) - 2*c**2*cx*sin(phi)**2 + 2*c**2*cx - 2*c**2*cz*sin(phi)*cos(phi)
+
+px*vy*vz: -a**2*cx*cos(phi - 2*theta) + a**2*cx*cos(phi + 2*theta) - a**2*cy*sin(2*phi)/2 - a**2*cy*sin(2*phi - 2*theta)/4 - a**2*cy*sin(2*phi + 2*theta)/4 + a**2*cz*sin(phi - 2*theta)/2 - a**2*cz*sin(phi + 2*theta)/2 + b**2*cx*cos(phi - 2*theta) - b**2*cx*cos(phi + 2*theta) - b**2*cy*sin(2*phi)/2 + b**2*cy*sin(2*phi - 2*theta)/4 + b**2*cy*sin(2*phi + 2*theta)/4 - b**2*cz*sin(phi - 2*theta)/2 + b**2*cz*sin(phi + 2*theta)/2 + c**2*cy*sin(2*phi)
+
+px*vz**2: -a**2*cx*cos(2*theta) + a**2*cx - a**2*cy*sin(phi - 2*theta)/2 + a**2*cy*sin(phi + 2*theta)/2 + b**2*cx*cos(2*theta) + b**2*cx + b**2*cy*sin(phi - 2*theta)/2 - b**2*cy*sin(phi + 2*theta)/2
+
+py*vx**2: -2*a**2*cy*sin(phi)**2*sin(theta)**2 + 2*a**2*cy*sin(phi)**2 - 2*a**2*cz*sin(phi)*sin(theta)*cos(theta) + 2*b**2*cy*sin(phi)**2*sin(theta)**2 + 2*b**2*cz*sin(phi)*sin(theta)*cos(theta) - 2*c**2*cy*sin(phi)**2 + 2*c**2*cy
+
+py*vx*vy: 2*a**2*cx*sin(phi)**2*sin(theta)**2 - 2*a**2*cx*sin(phi)**2 + 2*a**2*cz*sin(phi)*sin(theta)**2*cos(phi) - 2*a**2*cz*sin(phi)*cos(phi) - 2*b**2*cx*sin(phi)**2*sin(theta)**2 - 2*b**2*cz*sin(phi)*sin(theta)**2*cos(phi) + 2*c**2*cx*sin(phi)**2 - 2*c**2*cx + 2*c**2*cz*sin(phi)*cos(phi)
+
+py*vx*vz: a**2*cx*cos(phi - 2*theta)/2 - a**2*cx*cos(phi + 2*theta)/2 + a**2*cy*sin(2*phi) + a**2*cy*sin(2*phi - 2*theta)/2 + a**2*cy*sin(2*phi + 2*theta)/2 + a**2*cz*sin(phi - 2*theta)/2 - a**2*cz*sin(phi + 2*theta)/2 - b**2*cx*cos(phi - 2*theta)/2 + b**2*cx*cos(phi + 2*theta)/2 + b**2*cy*sin(2*phi) - b**2*cy*sin(2*phi - 2*theta)/2 - b**2*cy*sin(2*phi + 2*theta)/2 - b**2*cz*sin(phi - 2*theta)/2 + b**2*cz*sin(phi + 2*theta)/2 - 2*c**2*cy*sin(2*phi)
+
+py*vy**2: 0
+py*vy*vz: -2*a**2*cx*sin(phi)*cos(phi)*cos(theta)**2 - 2*a**2*cz*cos(phi)**2*cos(theta)**2 + 2*b**2*cx*sin(phi)*cos(phi)*cos(theta)**2 - 2*b**2*cx*sin(phi)*cos(phi) + 2*b**2*cz*cos(phi)**2*cos(theta)**2 - 2*b**2*cz*cos(phi)**2 + 2*c**2*cx*sin(phi)*cos(phi) + 2*c**2*cz*cos(phi)**2 - 2*c**2*cz
+
+py*vz**2: 2*a**2*cx*sin(theta)*cos(phi)*cos(theta) + 2*a**2*cy*cos(phi)**2*cos(theta)**2 - 2*b**2*cx*sin(theta)*cos(phi)*cos(theta) - 2*b**2*cy*cos(phi)**2*cos(theta)**2 + 2*b**2*cy*cos(phi)**2 - 2*c**2*cy*cos(phi)**2 + 2*c**2*cy
+
+pz*vx**2: -a**2*cy*cos(phi - 2*theta)/2 + a**2*cy*cos(phi + 2*theta)/2 - a**2*cz*cos(2*theta) + a**2*cz + b**2*cy*cos(phi - 2*theta)/2 - b**2*cy*cos(phi + 2*theta)/2 + b**2*cz*cos(2*theta) + b**2*cz
+
+pz*vx*vy: a**2*cx*cos(phi - 2*theta)/2 - a**2*cx*cos(phi + 2*theta)/2 - a**2*cy*sin(2*phi)/2 - a**2*cy*sin(2*phi - 2*theta)/4 - a**2*cy*sin(2*phi + 2*theta)/4 - a**2*cz*sin(phi - 2*theta) + a**2*cz*sin(phi + 2*theta) - b**2*cx*cos(phi - 2*theta)/2 + b**2*cx*cos(phi + 2*theta)/2 - b**2*cy*sin(2*phi)/2 + b**2*cy*sin(2*phi - 2*theta)/4 + b**2*cy*sin(2*phi + 2*theta)/4 + b**2*cz*sin(phi - 2*theta) - b**2*cz*sin(phi + 2*theta) + c**2*cy*sin(2*phi)
+
+pz*vx*vz: a**2*cx*cos(2*theta) - a**2*cx + a**2*cy*sin(phi - 2*theta)/2 - a**2*cy*sin(phi + 2*theta)/2 - b**2*cx*cos(2*theta) - b**2*cx - b**2*cy*sin(phi - 2*theta)/2 + b**2*cy*sin(phi + 2*theta)/2
+
+pz*vy**2: 2*a**2*cx*sin(phi)*cos(phi)*cos(theta)**2 + 2*a**2*cz*cos(phi)**2*cos(theta)**2 - 2*b**2*cx*sin(phi)*cos(phi)*cos(theta)**2 + 2*b**2*cx*sin(phi)*cos(phi) - 2*b**2*cz*cos(phi)**2*cos(theta)**2 + 2*b**2*cz*cos(phi)**2 - 2*c**2*cx*sin(phi)*cos(phi) - 2*c**2*cz*cos(phi)**2 + 2*c**2*cz
+
+pz*vy*vz: a**2*cx*(sin(phi - 2*theta) - sin(phi + 2*theta))/2 - 2*a**2*cy*cos(phi)**2*cos(theta)**2 - b**2*cx*(sin(phi - 2*theta) - sin(phi + 2*theta))/2 + 2*b**2*cy*cos(phi)**2*cos(theta)**2 - 2*b**2*cy*cos(phi)**2 + 2*c**2*cy*cos(phi)**2 - 2*c**2*cy
+
+pz*vz**2: 0
+px**2: 0
+px*py: 0
+px*pz: 0
+py**2: 0
+py*pz: 0
+pz**2: 0
+px*vx: 0
+px*vy: 0
+px*vz: 0
+py*vx: 0
+py*vy: 0
+py*vz: 0
+pz*vx: 0
+pz*vy: 0
+pz*vz: 0
+vx**2: -a**2*b**2*cos(phi)**2 + a**2*b**2 - a**2*c**2*cos(phi)**2*cos(theta)**2 + a**2*c**2*cos(phi)**2 + a**2*cy**2*cos(phi)**2*cos(theta)**2 - a**2*cy**2*cos(theta)**2 + a**2*cy*cz*cos(phi - 2*theta)/2 - a**2*cy*cz*cos(phi + 2*theta)/2 + a**2*cz**2*cos(theta)**2 - a**2*cz**2 + b**2*c**2*cos(phi)**2*cos(theta)**2 - b**2*cy**2*cos(phi)**2*cos(theta)**2 + b**2*cy**2*cos(phi)**2 + b**2*cy**2*cos(theta)**2 - b**2*cy**2 - b**2*cy*cz*cos(phi - 2*theta)/2 + b**2*cy*cz*cos(phi + 2*theta)/2 - b**2*cz**2*cos(theta)**2 - c**2*cy**2*cos(phi)**2
+
+vx*vy: -a**2*c**2*sin(phi - 2*theta)/2 + a**2*c**2*sin(phi + 2*theta)/2 - 2*a**2*cx*cy*cos(phi)**2*cos(theta)**2 + 2*a**2*cx*cy*cos(theta)**2 - a**2*cx*cz*cos(phi - 2*theta)/2 + a**2*cx*cz*cos(phi + 2*theta)/2 + 2*a**2*cy*cz*sin(phi)*cos(phi)*cos(theta)**2 + a**2*cz**2*sin(phi - 2*theta)/2 - a**2*cz**2*sin(phi + 2*theta)/2 + b**2*c**2*sin(phi - 2*theta)/2 - b**2*c**2*sin(phi + 2*theta)/2 + 2*b**2*cx*cy*cos(phi)**2*cos(theta)**2 - 2*b**2*cx*cy*cos(phi)**2 - 2*b**2*cx*cy*cos(theta)**2 + 2*b**2*cx*cy + b**2*cx*cz*cos(phi - 2*theta)/2 - b**2*cx*cz*cos(phi + 2*theta)/2 - 2*b**2*cy*cz*sin(phi)*cos(phi)*cos(theta)**2 + b**2*cy*cz*sin(2*phi) - b**2*cz**2*sin(phi - 2*theta)/2 + b**2*cz**2*sin(phi + 2*theta)/2 + 2*c**2*cx*cy*cos(phi)**2 - c**2*cy*cz*sin(2*phi)
+
+vx*vz: a**2*b**2*sin(2*phi) - a**2*c**2*sin(2*phi)/2 + a**2*c**2*sin(2*phi - 2*theta)/4 + a**2*c**2*sin(2*phi + 2*theta)/4 - a**2*cx*cy*cos(phi - 2*theta)/2 + a**2*cx*cy*cos(phi + 2*theta)/2 - a**2*cx*cz*cos(2*theta) + a**2*cx*cz - a**2*cy**2*sin(2*phi)/2 - a**2*cy**2*sin(2*phi - 2*theta)/4 - a**2*cy**2*sin(2*phi + 2*theta)/4 - a**2*cy*cz*sin(phi - 2*theta)/2 + a**2*cy*cz*sin(phi + 2*theta)/2 - b**2*c**2*sin(2*phi)/2 - b**2*c**2*sin(2*phi - 2*theta)/4 - b**2*c**2*sin(2*phi + 2*theta)/4 + b**2*cx*cy*cos(phi - 2*theta)/2 - b**2*cx*cy*cos(phi + 2*theta)/2 + b**2*cx*cz*cos(2*theta) + b**2*cx*cz - b**2*cy**2*sin(2*phi)/2 + b**2*cy**2*sin(2*phi - 2*theta)/4 + b**2*cy**2*sin(2*phi + 2*theta)/4 + b**2*cy*cz*sin(phi - 2*theta)/2 - b**2*cy*cz*sin(phi + 2*theta)/2 + c**2*cy**2*sin(2*phi)
+
+vy**2: a**2*c**2*cos(theta)**2 + a**2*cx**2*cos(phi)**2*cos(theta)**2 - a**2*cx**2*cos(theta)**2 - 2*a**2*cx*cz*sin(phi)*cos(phi)*cos(theta)**2 - a**2*cz**2*cos(phi)**2*cos(theta)**2 - b**2*c**2*cos(theta)**2 + b**2*c**2 - b**2*cx**2*cos(phi)**2*cos(theta)**2 + b**2*cx**2*cos(phi)**2 + b**2*cx**2*cos(theta)**2 - b**2*cx**2 + 2*b**2*cx*cz*sin(phi)*cos(phi)*cos(theta)**2 - b**2*cx*cz*sin(2*phi) + b**2*cz**2*cos(phi)**2*cos(theta)**2 - b**2*cz**2*cos(phi)**2 - c**2*cx**2*cos(phi)**2 + c**2*cx*cz*sin(2*phi) + c**2*cz**2*cos(phi)**2 - c**2*cz**2
+
+vy*vz: -a**2*c**2*cos(phi - 2*theta)/2 + a**2*c**2*cos(phi + 2*theta)/2 + a**2*cx**2*cos(phi - 2*theta)/2 - a**2*cx**2*cos(phi + 2*theta)/2 + 2*a**2*cx*cy*sin(phi)*cos(phi)*cos(theta)**2 - a**2*cx*cz*sin(phi - 2*theta)/2 + a**2*cx*cz*sin(phi + 2*theta)/2 + 2*a**2*cy*cz*cos(phi)**2*cos(theta)**2 + b**2*c**2*cos(phi - 2*theta)/2 - b**2*c**2*cos(phi + 2*theta)/2 - b**2*cx**2*cos(phi - 2*theta)/2 + b**2*cx**2*cos(phi + 2*theta)/2 - 2*b**2*cx*cy*sin(phi)*cos(phi)*cos(theta)**2 + b**2*cx*cy*sin(2*phi) + b**2*cx*cz*sin(phi - 2*theta)/2 - b**2*cx*cz*sin(phi + 2*theta)/2 - 2*b**2*cy*cz*cos(phi)**2*cos(theta)**2 + 2*b**2*cy*cz*cos(phi)**2 - c**2*cx*cy*sin(2*phi) - 2*c**2*cy*cz*cos(phi)**2 + 2*c**2*cy*cz
+
+vz**2: a**2*b**2*cos(phi)**2 + a**2*c**2*cos(phi)**2*cos(theta)**2 - a**2*c**2*cos(phi)**2 - a**2*c**2*cos(theta)**2 + a**2*c**2 + a**2*cx**2*cos(theta)**2 - a**2*cx**2 + a**2*cx*cy*sin(phi - 2*theta)/2 - a**2*cx*cy*sin(phi + 2*theta)/2 - a**2*cy**2*cos(phi)**2*cos(theta)**2 - b**2*c**2*cos(phi)**2*cos(theta)**2 + b**2*c**2*cos(theta)**2 - b**2*cx**2*cos(theta)**2 - b**2*cx*cy*sin(phi - 2*theta)/2 + b**2*cx*cy*sin(phi + 2*theta)/2 + b**2*cy**2*cos(phi)**2*cos(theta)**2 - b**2*cy**2*cos(phi)**2 + c**2*cy**2*cos(phi)**2 - c**2*cy**2
+
+px: 0
+py: 0
+pz: 0
+vx: 0
+vy: 0
+vz: 0
+Remaining: 0

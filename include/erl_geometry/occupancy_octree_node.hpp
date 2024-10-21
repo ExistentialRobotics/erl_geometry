@@ -34,14 +34,14 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractOctreeNode *
         Create(const uint32_t depth, const int child_index) const override {
-            auto node = new OccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
+            const auto node = new OccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
             ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyOctreeNode));
             return node;
         }
 
         [[nodiscard]] AbstractOctreeNode *
         Clone() const override {
-            auto node = new OccupancyOctreeNode(*this);
+            const auto node = new OccupancyOctreeNode(*this);
             ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyOctreeNode));
             return node;
         }

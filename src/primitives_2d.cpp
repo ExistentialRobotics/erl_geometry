@@ -217,7 +217,7 @@ namespace erl::geometry {
 
         double lam1, lam2;
         bool intersected;
-        ComputeIntersectionBetweenLineAndEllipse2D(p0.x(), p0.y(), p1.x(), p1.y(), m_radius_.x(), m_radius_.y(), lam1, lam2, intersected);
+        ComputeIntersectionBetweenLineAndEllipse2D(p0.x(), p0.y(), p1.x(), p1.y(), m_radii_.x(), m_radii_.y(), lam1, lam2, intersected);
         if (!intersected) { return {}; }
         const Eigen::Vector2d p10 = line.p1 - line.p0;
         if (std::abs(lam1 - lam2) < std::numeric_limits<double>::min()) { return {line.p0 + lam1 * p10}; }
@@ -231,7 +231,7 @@ namespace erl::geometry {
 
         double lam1, lam2;
         bool intersected;
-        ComputeIntersectionBetweenLineAndEllipse2D(p0.x(), p0.y(), p1.x(), p1.y(), m_radius_.x(), m_radius_.y(), lam1, lam2, intersected);
+        ComputeIntersectionBetweenLineAndEllipse2D(p0.x(), p0.y(), p1.x(), p1.y(), m_radii_.x(), m_radii_.y(), lam1, lam2, intersected);
         if (!intersected) { return {}; }
         std::vector<Eigen::Vector2d> intersections;
         if (lam1 >= 0 && lam1 <= 1) { intersections.emplace_back(segment.p0 + lam1 * (segment.p1 - segment.p0)); }
@@ -247,7 +247,7 @@ namespace erl::geometry {
 
         double lam1, lam2;
         bool intersected;
-        ComputeIntersectionBetweenLineAndEllipse2D(p0.x(), p0.y(), p0.x() + v.x(), p0.y() + v.y(), m_radius_.x(), m_radius_.y(), lam1, lam2, intersected);
+        ComputeIntersectionBetweenLineAndEllipse2D(p0.x(), p0.y(), p0.x() + v.x(), p0.y() + v.y(), m_radii_.x(), m_radii_.y(), lam1, lam2, intersected);
         if (!intersected) { return {}; }
         std::vector<Eigen::Vector2d> intersections;
         if (lam1 >= 0) { intersections.emplace_back(ray.origin + lam1 * ray.direction); }
@@ -263,7 +263,7 @@ namespace erl::geometry {
         const double step = (end_angle - start_angle) / static_cast<double>(num_points - 1);
         double theta = start_angle;
         for (std::size_t i = 0; i < num_points; ++i) {
-            Eigen::Vector2d point(m_radius_.x() * std::cos(theta), m_radius_.y() * std::sin(theta));
+            Eigen::Vector2d point(m_radii_.x() * std::cos(theta), m_radii_.y() * std::sin(theta));
             points.emplace_back(m_rotation_matrix_ * point + m_center_);
             theta += step;
         }
