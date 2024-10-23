@@ -422,6 +422,7 @@ BindOccupancyQuadtree(
         .def("__eq__", [](const typename Quadtree::IteratorBase& self, const typename Quadtree::IteratorBase& other) { return self == other; })
         .def("__ne__", [](const typename Quadtree::IteratorBase& self, const typename Quadtree::IteratorBase& other) { return self != other; })
         .def_property_readonly("node_aabb", &Quadtree::IteratorBase::GetNodeAabb)
+        .def_property_readonly("node", &Quadtree::IteratorBase::GetNode)
         .def_property_readonly("key", &Quadtree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Quadtree::IteratorBase::GetIndexKey);
 

@@ -56,18 +56,26 @@ namespace erl::geometry {
         std::istream &
         ReadData(std::istream &s) override {
             s.read(reinterpret_cast<char *>(&m_log_odds_), sizeof(float));
-            ERL_WARN_ONCE(
-                "PyObjectOccupancyOctreeNode does not support reading Python objects from file. "
-                "Please load the Python object separately.");
+            try {
+                long length;
+                s.read(reinterpret_cast<char *>(&length), sizeof(long));  // Read the length of the data
+                std::vector<char> buffer(length);
+                s.read(buffer.data(), length);                                                                // Read the data into the buffer
+                m_py_object_ = py::module::import("pickle").attr("loads")(py::bytes(buffer.data(), length));  // Load the Python object
+            } catch (const std::exception &e) { ERL_WARN_ONCE("Failed to read Python object: {}", e.what()); }
             return s;
         }
 
         std::ostream &
         WriteData(std::ostream &s) const override {
             s.write(reinterpret_cast<const char *>(&m_log_odds_), sizeof(float));
-            ERL_WARN_ONCE(
-                "PyObjectOccupancyOctreeNode does not support writing Python objects to file. "
-                "Please save the Python object separately.");
+            try {
+                const py::bytes data = py::module::import("pickle").attr("dumps")(m_py_object_);
+                const py::buffer_info info(py::buffer(data).request());          // Get buffer info
+                const long length = info.size;                                   // Get the length of the data
+                s.write(reinterpret_cast<const char *>(&length), sizeof(long));  // Write the length of the data
+                s.write(static_cast<const char *>(info.ptr), length);            // Write the data to the stream
+            } catch (const std::exception &e) { ERL_WARN_ONCE("Failed to write Python object: {}", e.what()); }
             return s;
         }
     };

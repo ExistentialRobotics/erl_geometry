@@ -357,34 +357,7 @@ namespace erl::geometry {
             Next() = 0;
             [[nodiscard]] virtual bool
             IsValid() const = 0;
-            [[nodiscard]] virtual const AbstractQuadtreeNode*
-            GetNode() = 0;
         };
-
-        [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>
-        GetLeafIterator(uint32_t max_depth) const = 0;
-
-        [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>
-        GetLeafInAabbIterator(const Aabb2D& aabb, uint32_t max_depth) const = 0;
-
-        [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>
-        GetTreeIterator(uint32_t max_depth) const = 0;
-
-        [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>
-        GetTreeInAabbIterator(const Aabb2D& aabb, uint32_t max_depth) const = 0;
-
-        [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>
-        GetNodeOnRayIterator(
-            double px,
-            double py,
-            double vx,
-            double vy,
-            double max_range,
-            double node_padding,
-            bool bidirectional,
-            bool leaf_only,
-            uint32_t min_node_depth,
-            uint32_t max_node_depth) const = 0;
 
     protected:
         /**

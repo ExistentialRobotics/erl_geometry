@@ -48,6 +48,8 @@ BindAabbTemplate(const py::module &m, const char *py_class_name) {
             "__contains__",
             [](const Cls &aabb_1, const Cls &aabb_2) { return aabb_1.contains(aabb_2); },
             py::arg("another_aabb"))
+        .def("padding", py::overload_cast<const typename Cls::Point &>(&Cls::Padding, py::const_), py::arg("padding"))
+        .def("padding", py::overload_cast<typename Cls::Scalar>(&Cls::Padding, py::const_), py::arg("padding"))
         .def("corner", &Cls::corner, py::arg("corner_type"))
         .def("intersects", &Cls::intersects, py::arg("another_aabb"));
 }

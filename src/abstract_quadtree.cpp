@@ -21,7 +21,9 @@ namespace erl::geometry {
 
     bool
     AbstractQuadtree::Write(const std::string &filename) const {
-        ERL_INFO("Writing quadtree to file: {}", std::filesystem::absolute(filename));
+        const auto path = std::filesystem::absolute(filename);
+        ERL_INFO("Writing quadtree to file: {}", path);
+        std::filesystem::create_directories(path.parent_path());
         std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: {}", filename);

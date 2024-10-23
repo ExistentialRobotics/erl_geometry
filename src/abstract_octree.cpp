@@ -20,8 +20,9 @@ namespace erl::geometry {
 
     bool
     AbstractOctree::Write(const std::string &filename) const {
-        ERL_INFO("Writing octree to file: {}", std::filesystem::absolute(filename));
-        std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
+        const auto path = std::filesystem::absolute(filename);
+        ERL_INFO("Writing octree to file: {}", path);
+        std::filesystem::create_directories(path.parent_path());
         std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
         if (!file.is_open()) {
             ERL_WARN("Failed to open file: {}", filename);
