@@ -799,7 +799,7 @@ namespace erl::geometry {
                 return returned_node;
             }
             // last level
-            if (this->m_setting_.get()->use_change_detection) {
+            if (this->m_setting_->use_change_detection) {
                 bool occ_before = this->IsNodeOccupied(node);
                 this->UpdateNodeLogOdds(node, log_odds_delta);
                 if (node_just_created) {

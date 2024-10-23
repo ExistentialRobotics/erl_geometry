@@ -35,6 +35,7 @@ BindAbstractQuadtree(const py::module& m) {
             py::arg("vx"),
             py::arg("vy"),
             py::arg("max_range"),
+            py::arg("node_padding"),
             py::arg("bidirectional"),
             py::arg("leaf_only"),
             py::arg("min_node_depth"),

@@ -380,6 +380,7 @@ namespace erl::geometry {
             double vx,
             double vy,
             double max_range,
+            double node_padding,
             bool bidirectional,
             bool leaf_only,
             uint32_t min_node_depth,

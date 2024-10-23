@@ -668,13 +668,13 @@ namespace erl::geometry {
         class IteratorBase : public AbstractQuadtree::QuadtreeNodeIterator {
         public:
             struct StackElement {
-                Node *node = nullptr;
+                const Node *node = nullptr;
                 QuadtreeKey key = {};
                 std::shared_ptr<void> data = nullptr;  // data pointer for derived classes
 
                 StackElement() = default;
 
-                StackElement(Node *node, QuadtreeKey key)
+                StackElement(const Node *node, QuadtreeKey key)
                     : node(node),
                       key(std::move(key)) {}
 
@@ -732,7 +732,7 @@ namespace erl::geometry {
 
             Node *
             operator->() {
-                return m_stack_.back().node;
+                return const_cast<Node *>(m_stack_.back().node);
             }
 
             [[nodiscard]] const Node *
@@ -742,7 +742,7 @@ namespace erl::geometry {
 
             Node *
             operator*() {
-                return m_stack_.back().node;
+                return const_cast<Node *>(m_stack_.back().node);
             }
 
             [[nodiscard]] const Node *
@@ -818,7 +818,7 @@ namespace erl::geometry {
                 for (int i = 3; i >= 0; --i) {
                     if (top.node->HasChild(i)) {
                         QuadtreeKey::ComputeChildKey(i, center_offset_key, top.key, next_key);
-                        m_stack_.emplace_back(const_cast<Node *>(m_tree_->GetNodeChild(top.node, i)), next_key);
+                        m_stack_.emplace_back(m_tree_->GetNodeChild(top.node, i), next_key);
                     }
                 }
             }
@@ -963,7 +963,7 @@ namespace erl::geometry {
                     QuadtreeKey::ComputeChildKey(i, center_offset_key, top.key, next_key);
                     // check if the child node overlaps with the AABB
                     if (QuadtreeKey::KeyInAabb(next_key, center_offset_key, m_aabb_min_key_, m_aabb_max_key_)) {
-                        this->m_stack_.emplace_back(const_cast<Node *>(this->m_tree_->GetNodeChild(top.node, i)), next_key);
+                        this->m_stack_.emplace_back(this->m_tree_->GetNodeChild(top.node, i), next_key);
                     }
                 }
             }
@@ -1112,7 +1112,7 @@ namespace erl::geometry {
 
                 // modify stack top
                 auto &s = this->m_stack_.back();
-                s.node = const_cast<Node *>(this->m_tree_->Search(key, cluster_depth));
+                s.node = this->m_tree_->Search(key, cluster_depth);
                 if (s.node == nullptr) {
                     this->Terminate();
                     return;
@@ -1206,7 +1206,7 @@ namespace erl::geometry {
                 QuadtreeKey::KeyType &key_changing_dim = this->m_neighbor_key_[changing_dim];
                 s.node = nullptr;
                 while (s.node == nullptr && key_changing_dim < m_max_key_changing_dim_) {
-                    s.node = const_cast<Node *>(this->m_tree_->Search(m_neighbor_key_));
+                    s.node = this->m_tree_->Search(m_neighbor_key_);
                     const uint32_t node_depth = s.node->GetDepth();
                     if (s.node == nullptr || node_depth > this->m_max_node_depth_) {
                         s.node = nullptr;
@@ -1439,6 +1439,7 @@ namespace erl::geometry {
             Eigen::Vector2d m_dir_ = {};
             Eigen::Vector2d m_dir_inv_ = {};
             double m_max_range_ = 0.;
+            double m_node_padding_ = 0.;
             bool m_bidirectional_ = false;
             bool m_leaf_only_ = false;
             uint32_t m_min_node_depth_ = 0;
@@ -1453,6 +1454,7 @@ namespace erl::geometry {
              * @param vx
              * @param vy
              * @param max_range
+             * @param node_padding
              * @param bidirectional
              * @param tree
              * @param leaf_only
@@ -1465,6 +1467,7 @@ namespace erl::geometry {
                 const double vx,
                 const double vy,
                 const double max_range,
+                const double node_padding,
                 const bool bidirectional,
                 const QuadtreeImpl *tree,
                 const bool leaf_only = false,
@@ -1474,6 +1477,7 @@ namespace erl::geometry {
                   m_origin_(px, py),
                   m_dir_(vx, vy),
                   m_max_range_(max_range),
+                  m_node_padding_(node_padding),
                   m_bidirectional_(bidirectional),
                   m_leaf_only_(leaf_only),
                   m_min_node_depth_(min_node_depth) {
@@ -1568,7 +1572,7 @@ namespace erl::geometry {
 
                             const double center_x = this->m_tree_->KeyToCoord(s_child.key[0], child_depth);
                             const double center_y = this->m_tree_->KeyToCoord(s_child.key[1], child_depth);
-                            const double half_size = this->m_tree_->GetNodeSize(child_depth) / 2.0;
+                            const double half_size = this->m_tree_->GetNodeSize(child_depth) / 2.0 + m_node_padding_;
                             Eigen::Vector2d box_min(center_x - half_size, center_y - half_size);
                             Eigen::Vector2d box_max(center_x + half_size, center_y + half_size);
                             double dist1 = 0.0, dist2 = 0.0;
@@ -1579,7 +1583,7 @@ namespace erl::geometry {
                                 if (!m_bidirectional_ && dist1 < 0.) { continue; }
                                 if (m_max_range_ > 0. && std::abs(dist1) > m_max_range_) { continue; }
                             }
-                            s_child.node = const_cast<Node *>(child);
+                            s_child.node = child;
                             s_child.data = std::make_shared<double>(dist1);
                             this->m_stack_.push_back(s_child);
                             std::push_heap(this->m_stack_.begin(), this->m_stack_.end(), cmp);
@@ -1766,11 +1770,12 @@ namespace erl::geometry {
             double vx,
             double vy,
             double max_range = -1,
+            double node_padding = 0.0,
             bool bidirectional = false,
             bool leaf_only = false,
             uint32_t min_node_depth = 0,
             uint32_t max_node_depth = 0) const {
-            return {px, py, vx, vy, max_range, bidirectional, /*tree*/ this, leaf_only, min_node_depth, max_node_depth};
+            return {px, py, vx, vy, max_range, node_padding, bidirectional, this, leaf_only, min_node_depth, max_node_depth};
         }
 
         [[nodiscard]] NodeOnRayIterator
@@ -1785,11 +1790,12 @@ namespace erl::geometry {
             double vx,
             double vy,
             double max_range,
+            double node_padding,
             bool bidirectional,
             bool leaf_only,
             uint32_t min_node_depth,
             uint32_t max_node_depth) const override {
-            return std::make_shared<NodeOnRayIterator>(px, py, vx, vy, max_range, bidirectional, this, leaf_only, min_node_depth, max_node_depth);
+            return std::make_shared<NodeOnRayIterator>(px, py, vx, vy, max_range, node_padding, bidirectional, this, leaf_only, min_node_depth, max_node_depth);
         }
 
         //-- ray tracing

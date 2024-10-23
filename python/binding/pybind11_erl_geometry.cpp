@@ -115,6 +115,9 @@ void
 BindDepthFrame3D(const py::module &m);
 
 void
+BindTrajectory(const py::module &m);
+
+void
 BindUtils(py::module &m);
 
 void
@@ -135,30 +138,38 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindAabb(m);
     BindAbstractSurfaceMapping(m);
     BindCityStreetMap(m);
+
     BindNdTreeSetting(m);
     BindOccupancyNdTreeSetting(m);
+    BindOccupancyQuadtreeBaseSetting(m);
+    BindOccupancyOctreeBaseSetting(m);
+
     BindQuadtreeKey(m);
+
     BindAbstractQuadtreeNode(m);
-    BindAbstractQuadtree(m);
     BindOccupancyQuadtreeNode(m);
     BindPyObjectOccupancyQuadtreeNode(m);
-    BindOccupancyQuadtreeBaseSetting(m);
+    BindSurfaceMappingQuadtreeNode(m);
+
+    BindAbstractQuadtree(m);
     BindAbstractOccupancyQuadtree(m);
     BindOccupancyQuadtree(m);
     BindPyObjectOccupancyQuadtree(m);
-    BindSurfaceMappingQuadtreeNode(m);
     BindSurfaceMappingQuadtree(m);
+
     BindOctreeKey(m);
+
     BindAbstractOctreeNode(m);
-    BindAbstractOctree(m);
     BindOccupancyOctreeNode(m);
     BindPyObjectOccupancyOctreeNode(m);
-    BindOccupancyOctreeBaseSetting(m);
+    BindSurfaceMappingOctreeNode(m);
+
+    BindAbstractOctree(m);
     BindAbstractOccupancyOctree(m);
     BindOccupancyOctree(m);
     BindPyObjectOccupancyOctree(m);
-    BindSurfaceMappingOctreeNode(m);
     BindSurfaceMappingOctree(m);
+
     BindSurface2D(m);
     BindSpace2D(m);
     BindLidar2D(m);
@@ -170,6 +181,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindRangeSensorFrame3D(m);
     BindLidarFrame3D(m);
     BindDepthFrame3D(m);
+    BindTrajectory(m);
     BindUtils(m);
     BindIntersection(m);
     BindPrimitives2D(m);

@@ -29,6 +29,16 @@ namespace erl::geometry {
               center((min + max) / 2),
               half_sizes((max - min) / 2) {}
 
+        Aabb
+        Padding(const Point &padding) {
+            return {this->m_min - padding, this->m_max + padding};
+        }
+
+        Aabb
+        Padding(Scalar padding) {
+            return {this->m_min.array() - padding, this->m_max.array() + padding};
+        }
+
         bool
         operator==(const Aabb &rhs) const {
             return center == rhs.center && half_sizes == rhs.half_sizes;

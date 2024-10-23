@@ -51,13 +51,13 @@ BindOccupancyQuadtree(
     tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Quadtree::Setting>& setting) { return std::make_shared<Quadtree>(setting); }), py::arg("setting"))
         .def(
-            py::init<>([](const std::string& filename, const bool is_binary) {
-                if (is_binary) { return std::make_shared<Quadtree>(filename); }
+            py::init<>([](const std::string& filename, const bool use_derived_constructor) {
+                if (use_derived_constructor) { return std::make_shared<Quadtree>(filename); }
                 if (std::shared_ptr<Quadtree> quadtree = Quadtree::template ReadAs<Quadtree>(filename)) { return quadtree; }
                 throw std::runtime_error("Failed to read Quadtree from " + filename);
             }),
             py::arg("filename"),
-            py::arg("is_binary"))
+            py::arg("use_derived_constructor"))
         .def_property_readonly("tree_type", &Quadtree::GetTreeType)
         .def_property_readonly("setting", &Quadtree::template GetSetting<typename Quadtree::Setting>)
         .def(
@@ -418,65 +418,24 @@ BindOccupancyQuadtree(
             py::arg("border_thickness") = 1);
 
     // Iterators defined in QuadtreeImpl
-    py::class_<typename Quadtree::IteratorBase>(tree, "IteratorBase")
+    py::class_<typename Quadtree::IteratorBase, AbstractQuadtree::QuadtreeNodeIterator>(tree, "IteratorBase")
         .def("__eq__", [](const typename Quadtree::IteratorBase& self, const typename Quadtree::IteratorBase& other) { return self == other; })
         .def("__ne__", [](const typename Quadtree::IteratorBase& self, const typename Quadtree::IteratorBase& other) { return self != other; })
-        .def("get", [](const typename Quadtree::IteratorBase& self) { return *self; })
-        .def_property_readonly("x", &Quadtree::IteratorBase::GetX)
-        .def_property_readonly("y", &Quadtree::IteratorBase::GetY)
-        .def_property_readonly("node_size", &Quadtree::IteratorBase::GetNodeSize)
         .def_property_readonly("node_aabb", &Quadtree::IteratorBase::GetNodeAabb)
         .def_property_readonly("key", &Quadtree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Quadtree::IteratorBase::GetIndexKey);
 
-    py::class_<typename Quadtree::TreeIterator, typename Quadtree::IteratorBase>(tree, "TreeIterator")
-        .def("next", [](typename Quadtree::TreeIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::TreeIterator& self) { return self == typename Quadtree::TreeIterator(); });
-
-    py::class_<typename Quadtree::TreeInAabbIterator, typename Quadtree::IteratorBase>(tree, "TreeInAabbIterator")
-        .def("next", [](typename Quadtree::TreeInAabbIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::TreeInAabbIterator& self) { return self == typename Quadtree::TreeInAabbIterator(); });
-
-    py::class_<typename Quadtree::LeafIterator, typename Quadtree::IteratorBase>(tree, "LeafIterator")
-        .def("next", [](typename Quadtree::LeafIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::LeafIterator& self) { return self == typename Quadtree::LeafIterator(); });
-
-    py::class_<typename Quadtree::LeafOfNodeIterator, typename Quadtree::IteratorBase>(tree, "LeafOfNodeIterator")
-        .def("next", [](typename Quadtree::LeafOfNodeIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::LeafOfNodeIterator& self) { return self == typename Quadtree::LeafOfNodeIterator(); });
-
-    py::class_<typename Quadtree::LeafInAabbIterator, typename Quadtree::IteratorBase>(tree, "LeafInAabbIterator")
-        .def("next", [](typename Quadtree::LeafInAabbIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::LeafInAabbIterator& self) { return self == typename Quadtree::LeafInAabbIterator(); });
-
-    py::class_<typename Quadtree::WestLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "WestLeafNeighborIterator")
-        .def("next", [](typename Quadtree::WestLeafNeighborIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::WestLeafNeighborIterator& self) {
-            return self == typename Quadtree::WestLeafNeighborIterator();
-        });
-
-    py::class_<typename Quadtree::EastLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "EastLeafNeighborIterator")
-        .def("next", [](typename Quadtree::EastLeafNeighborIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::EastLeafNeighborIterator& self) {
-            return self == typename Quadtree::EastLeafNeighborIterator();
-        });
-
-    py::class_<typename Quadtree::NorthLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "NorthLeafNeighborIterator")
-        .def("next", [](typename Quadtree::NorthLeafNeighborIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::NorthLeafNeighborIterator& self) {
-            return self == typename Quadtree::NorthLeafNeighborIterator();
-        });
-
-    py::class_<typename Quadtree::SouthLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "SouthLeafNeighborIterator")
-        .def("next", [](typename Quadtree::SouthLeafNeighborIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::SouthLeafNeighborIterator& self) {
-            return self == typename Quadtree::SouthLeafNeighborIterator();
-        });
-
+    (void) py::class_<typename Quadtree::TreeIterator, typename Quadtree::IteratorBase>(tree, "TreeIterator");
+    (void) py::class_<typename Quadtree::TreeInAabbIterator, typename Quadtree::IteratorBase>(tree, "TreeInAabbIterator");
+    (void) py::class_<typename Quadtree::LeafIterator, typename Quadtree::IteratorBase>(tree, "LeafIterator");
+    (void) py::class_<typename Quadtree::LeafOfNodeIterator, typename Quadtree::IteratorBase>(tree, "LeafOfNodeIterator");
+    (void) py::class_<typename Quadtree::LeafInAabbIterator, typename Quadtree::IteratorBase>(tree, "LeafInAabbIterator");
+    (void) py::class_<typename Quadtree::WestLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "WestLeafNeighborIterator");
+    (void) py::class_<typename Quadtree::EastLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "EastLeafNeighborIterator");
+    (void) py::class_<typename Quadtree::NorthLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "NorthLeafNeighborIterator");
+    (void) py::class_<typename Quadtree::SouthLeafNeighborIterator, typename Quadtree::IteratorBase>(tree, "SouthLeafNeighborIterator");
     py::class_<typename Quadtree::NodeOnRayIterator, typename Quadtree::IteratorBase>(tree, "NodeOnRayIterator")
-        .def_property_readonly("distance", &Quadtree::NodeOnRayIterator::GetDistance)
-        .def("next", [](typename Quadtree::NodeOnRayIterator& self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Quadtree::NodeOnRayIterator& self) { return self == typename Quadtree::NodeOnRayIterator(); });
+        .def_property_readonly("distance", &Quadtree::NodeOnRayIterator::GetDistance);
 
     tree.def(
             "iter_leaf",
@@ -602,12 +561,13 @@ BindOccupancyQuadtree(
                const double vx,
                const double vy,
                const double max_range,
+               const double node_padding,
                const bool bidirectional,
                const bool leaf_only,
                const uint32_t min_node_depth,
                const uint32_t max_node_depth) {
                 return py::wrap_iterator(
-                    self.BeginNodeOnRay(px, py, vx, vy, max_range, bidirectional, leaf_only, min_node_depth, max_node_depth),
+                    self.BeginNodeOnRay(px, py, vx, vy, max_range, node_padding, bidirectional, leaf_only, min_node_depth, max_node_depth),
                     self.EndNodeOnRay());
             },
             py::arg("px"),
@@ -615,6 +575,7 @@ BindOccupancyQuadtree(
             py::arg("vx"),
             py::arg("vy"),
             py::arg("max_range") = -1,
+            py::arg("node_padding") = 0,
             py::arg("bidirectional") = false,
             py::arg("leaf_only") = false,
             py::arg("min_node_depth") = 0,

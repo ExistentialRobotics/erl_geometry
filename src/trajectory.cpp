@@ -5,9 +5,9 @@
 namespace erl::geometry {
 
     std::vector<Eigen::Vector2d>
-    Trajectory::Load2D(const std::string &filename, const bool bindary) {
+    Trajectory::Load2D(const std::string &filename, const bool binary) {
         Eigen::Matrix2Xd data;
-        if (bindary) {
+        if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<double, 2, Eigen::Dynamic>(filename);
         } else {
             data = common::LoadEigenMatrixFromTextFile<double, Eigen::Dynamic, 2>(filename, common::EigenTextFormat::kCsvFmt, true);
@@ -19,9 +19,9 @@ namespace erl::geometry {
     }
 
     std::vector<Eigen::Vector3d>
-    Trajectory::Load3D(const std::string &filename, const bool bindary) {
+    Trajectory::Load3D(const std::string &filename, const bool binary) {
         Eigen::Matrix3Xd data;
-        if (bindary) {
+        if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<double, 3, Eigen::Dynamic>(filename);
         } else {
             data = common::LoadEigenMatrixFromTextFile<double, Eigen::Dynamic, 3>(filename, common::EigenTextFormat::kCsvFmt, true);
@@ -33,9 +33,9 @@ namespace erl::geometry {
     }
 
     std::vector<std::pair<Eigen::Matrix2d, Eigen::Vector2d>>
-    Trajectory::LoadSe2(const std::string &filename, const bool bindary) {
+    Trajectory::LoadSe2(const std::string &filename, const bool binary) {
         Eigen::Matrix3Xd data;
-        if (bindary) {
+        if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<double, 3, Eigen::Dynamic>(filename);
         } else {
             data = common::LoadEigenMatrixFromTextFile<double, Eigen::Dynamic, 3>(filename, common::EigenTextFormat::kCsvFmt, true);
@@ -51,9 +51,9 @@ namespace erl::geometry {
     }
 
     std::vector<std::pair<Eigen::Matrix3d, Eigen::Vector3d>>
-    Trajectory::LoadSe3(const std::string &filename, const bool bindary) {
+    Trajectory::LoadSe3(const std::string &filename, const bool binary) {
         Eigen::Matrix<double, 7, Eigen::Dynamic> data;
-        if (bindary) {
+        if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<double, 7, Eigen::Dynamic>(filename);
         } else {
             data = common::LoadEigenMatrixFromTextFile<double>(filename, common::EigenTextFormat::kCsvFmt, true);

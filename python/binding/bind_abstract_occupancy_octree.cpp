@@ -4,7 +4,7 @@
 void
 BindAbstractOccupancyOctree(const py::module &m) {
     using namespace erl::geometry;
-    py::class_<AbstractOccupancyOctree, std::shared_ptr<AbstractOccupancyOctree>>(m, "AbstractOccupancyOctree")
+    py::class_<AbstractOccupancyOctree, AbstractOctree, std::shared_ptr<AbstractOccupancyOctree>>(m, "AbstractOccupancyOctree")
         .def(
             "write_binary",
             [](AbstractOccupancyOctree &self, const std::string &filename, const bool prune_at_first) -> bool {
@@ -18,6 +18,7 @@ BindAbstractOccupancyOctree(const py::module &m) {
             [](AbstractOccupancyOctree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); },
             py::arg("filename"))
         .def("is_node_occupied", &AbstractOccupancyOctree::IsNodeOccupied, py::arg("node"))
+        .def("is_node_at_threshold", &AbstractOccupancyOctree::IsNodeAtThreshold, py::arg("node"))
         .def(
             "get_hit_occupied_node",
             [](const AbstractOccupancyOctree &self,

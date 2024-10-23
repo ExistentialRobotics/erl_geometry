@@ -52,13 +52,13 @@ BindOccupancyOctree(
     tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Octree::Setting> &setting) { return std::make_shared<Octree>(setting); }), py::arg("setting"))
         .def(
-            py::init<>([](const std::string &filename, const bool is_binary) {
-                if (is_binary) { return std::make_shared<Octree>(filename); }  // .bt file
+            py::init<>([](const std::string &filename, const bool use_derived_constructor) {
+                if (use_derived_constructor) { return std::make_shared<Octree>(filename); }
                 if (std::shared_ptr<Octree> octree = Octree::template ReadAs<Octree>(filename)) { return octree; }
                 throw std::runtime_error("Failed to read octree from " + filename);
             }),
             py::arg("filename"),
-            py::arg("is_binary"))
+            py::arg("use_derived_constructor"))
         .def_property_readonly("tree_type", &Octree::GetTreeType)
         .def_property_readonly("setting", &Octree::template GetSetting<typename Octree::Setting>)
         .def(
@@ -457,78 +457,26 @@ BindOccupancyOctree(
             py::arg("window_top") = 50);
 
     // Iterators defined in OctreeImpl
-    py::class_<typename Octree::IteratorBase>(tree, "IteratorBase")
+    py::class_<typename Octree::IteratorBase, AbstractOctree::OctreeNodeIterator>(tree, "IteratorBase")
         .def("__eq__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self == other; })
         .def("__ne__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self != other; })
-        .def("get", [](const typename Octree::IteratorBase &self) { return *self; })
-        .def_property_readonly("x", &Octree::IteratorBase::GetX)
-        .def_property_readonly("y", &Octree::IteratorBase::GetY)
-        .def_property_readonly("z", &Octree::IteratorBase::GetZ)
-        .def_property_readonly("node_size", &Octree::IteratorBase::GetNodeSize)
         .def_property_readonly("node_aabb", &Octree::IteratorBase::GetNodeAabb)
         .def_property_readonly("key", &Octree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Octree::IteratorBase::GetIndexKey);
 
-    py::class_<typename Octree::TreeIterator, typename Octree::IteratorBase>(tree, "TreeIterator")
-        .def("next", [](typename Octree::TreeIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::TreeIterator &self) { return self == typename Octree::TreeIterator(); });
-
-    py::class_<typename Octree::TreeInAabbIterator, typename Octree::IteratorBase>(tree, "TreeInAabbIterator")
-        .def("next", [](typename Octree::TreeInAabbIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::TreeInAabbIterator &self) { return self == typename Octree::TreeInAabbIterator(); });
-
-    py::class_<typename Octree::LeafIterator, typename Octree::IteratorBase>(tree, "LeafIterator")
-        .def("next", [](typename Octree::LeafIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::LeafIterator &self) { return self == typename Octree::LeafIterator(); });
-
-    py::class_<typename Octree::LeafOfNodeIterator, typename Octree::IteratorBase>(tree, "LeafOfNodeIterator")
-        .def("next", [](typename Octree::LeafOfNodeIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::LeafOfNodeIterator &self) { return self == typename Octree::LeafOfNodeIterator(); });
-
-    py::class_<typename Octree::LeafInAabbIterator, typename Octree::IteratorBase>(tree, "LeafInAabbIterator")
-        .def("next", [](typename Octree::LeafInAabbIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::LeafInAabbIterator &self) { return self == typename Octree::LeafInAabbIterator(); });
-
-    py::class_<typename Octree::WestLeafNeighborIterator, typename Octree::IteratorBase>(tree, "WestLeafNeighborIterator")
-        .def("next", [](typename Octree::WestLeafNeighborIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::WestLeafNeighborIterator &self) {
-            return self == typename Octree::WestLeafNeighborIterator();
-        });
-
-    py::class_<typename Octree::EastLeafNeighborIterator, typename Octree::IteratorBase>(tree, "EastLeafNeighborIterator")
-        .def("next", [](typename Octree::EastLeafNeighborIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::EastLeafNeighborIterator &self) {
-            return self == typename Octree::EastLeafNeighborIterator();
-        });
-
-    py::class_<typename Octree::NorthLeafNeighborIterator, typename Octree::IteratorBase>(tree, "NorthLeafNeighborIterator")
-        .def("next", [](typename Octree::NorthLeafNeighborIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::NorthLeafNeighborIterator &self) {
-            return self == typename Octree::NorthLeafNeighborIterator();
-        });
-
-    py::class_<typename Octree::SouthLeafNeighborIterator, typename Octree::IteratorBase>(tree, "SouthLeafNeighborIterator")
-        .def("next", [](typename Octree::SouthLeafNeighborIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::SouthLeafNeighborIterator &self) {
-            return self == typename Octree::SouthLeafNeighborIterator();
-        });
-
-    py::class_<typename Octree::TopLeafNeighborIterator, typename Octree::IteratorBase>(tree, "TopLeafNeighborIterator")
-        .def("next", [](typename Octree::TopLeafNeighborIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::TopLeafNeighborIterator &self) {
-            return self == typename Octree::TopLeafNeighborIterator();
-        });
-
-    py::class_<typename Octree::BottomLeafNeighborIterator, typename Octree::IteratorBase>(tree, "BottomLeafNeighborIterator")
-        .def("next", [](typename Octree::BottomLeafNeighborIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::BottomLeafNeighborIterator &self) {
-            return self == typename Octree::BottomLeafNeighborIterator();
-        });
-
+    (void) py::class_<typename Octree::TreeIterator, typename Octree::IteratorBase>(tree, "TreeIterator");
+    (void) py::class_<typename Octree::TreeInAabbIterator, typename Octree::IteratorBase>(tree, "TreeInAabbIterator");
+    (void) py::class_<typename Octree::LeafIterator, typename Octree::IteratorBase>(tree, "LeafIterator");
+    (void) py::class_<typename Octree::LeafOfNodeIterator, typename Octree::IteratorBase>(tree, "LeafOfNodeIterator");
+    (void) py::class_<typename Octree::LeafInAabbIterator, typename Octree::IteratorBase>(tree, "LeafInAabbIterator");
+    (void) py::class_<typename Octree::WestLeafNeighborIterator, typename Octree::IteratorBase>(tree, "WestLeafNeighborIterator");
+    (void) py::class_<typename Octree::EastLeafNeighborIterator, typename Octree::IteratorBase>(tree, "EastLeafNeighborIterator");
+    (void) py::class_<typename Octree::NorthLeafNeighborIterator, typename Octree::IteratorBase>(tree, "NorthLeafNeighborIterator");
+    (void) py::class_<typename Octree::SouthLeafNeighborIterator, typename Octree::IteratorBase>(tree, "SouthLeafNeighborIterator");
+    (void) py::class_<typename Octree::TopLeafNeighborIterator, typename Octree::IteratorBase>(tree, "TopLeafNeighborIterator");
+    (void) py::class_<typename Octree::BottomLeafNeighborIterator, typename Octree::IteratorBase>(tree, "BottomLeafNeighborIterator");
     py::class_<typename Octree::NodeOnRayIterator, typename Octree::IteratorBase>(tree, "NodeOnRayIterator")
-        .def_property_readonly("distance", &Octree::NodeOnRayIterator::GetDistance)
-        .def("next", [](typename Octree::NodeOnRayIterator &self) { return ++self; })
-        .def_property_readonly("is_end", [](const typename Octree::NodeOnRayIterator &self) { return self == typename Octree::NodeOnRayIterator(); });
+        .def_property_readonly("distance", &Octree::NodeOnRayIterator::GetDistance);
 
     tree.def(
             "iter_leaf",
@@ -716,12 +664,13 @@ BindOccupancyOctree(
                const double vy,
                const double vz,
                const double max_range,
+               const double node_padding,
                const bool bidirectional,
                const bool leaf_only,
                const uint32_t min_node_depth,
                const uint32_t max_node_depth) {
                 return py::wrap_iterator(
-                    self.BeginNodeOnRay(px, py, pz, vx, vy, vz, max_range, bidirectional, leaf_only, min_node_depth, max_node_depth),
+                    self.BeginNodeOnRay(px, py, pz, vx, vy, vz, max_range, node_padding, bidirectional, leaf_only, min_node_depth, max_node_depth),
                     self.EndNodeOnRay());
             },
             py::arg("px"),
@@ -731,6 +680,7 @@ BindOccupancyOctree(
             py::arg("vy"),
             py::arg("vz"),
             py::arg("max_range") = -1,
+            py::arg("node_padding") = 0,
             py::arg("bidirectional") = false,
             py::arg("leaf_only") = true,
             py::arg("min_node_depth") = 0,
