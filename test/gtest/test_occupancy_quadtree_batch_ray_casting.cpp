@@ -36,45 +36,53 @@ MouseCallback(const int event, const int mouse_x, const int mouse_y, const int f
         constexpr long n = 721;
         Eigen::VectorXd angles = Eigen::VectorXd::LinSpaced(n, 0, 2 * M_PI);
         const auto t0 = std::chrono::high_resolution_clock::now();
-        Eigen::Matrix2Xd end_points(2, n);
-#pragma omp parallel for default(none) shared(n, data, angles, img, x, y, grid_map_info, mouse_x, mouse_y, end_points)
+        Eigen::Matrix2Xd ray_origins(2, n);
+        Eigen::Matrix2Xd ray_directions(2, n);
         for (long i = 0; i < n; ++i) {
-            double &ex = end_points(0, i);
-            double &ey = end_points(1, i);
+            ray_origins.col(i) << x, y;
+            ray_directions.col(i) << std::cos(angles[i]), std::sin(angles[i]);
+        }
+        Eigen::VectorXd default_max_ranges, default_node_paddings;
+        Eigen::VectorXb default_bidirectional_flags;
+        Eigen::VectorXb leaf_only_flags = Eigen::VectorXb::Constant(n, true);
+        Eigen::VectorXi default_min_node_depths, default_max_node_depths;
+        auto batch_ray_caster = data->tree->GetBatchRayCaster(
+            ray_origins,
+            ray_directions,
+            default_max_ranges,
+            default_node_paddings,
+            default_bidirectional_flags,
+            leaf_only_flags,
+            default_min_node_depths,
+            default_max_node_depths);
+        Eigen::VectorXd hit_distances = Eigen::VectorXd::Zero(n);
+        Eigen::VectorXi thicknesses = Eigen::VectorXi::Ones(n);
+        while (!batch_ray_caster.GetFrontierKeys().empty()) {
+            Eigen::Matrix2Xd start_pts(2, n);
+            Eigen::Matrix2Xd end_pts(2, n);
+            Eigen::VectorXd new_hit_distances = batch_ray_caster.GetHitDistances();
 
-            ex = x;
-            ey = y;
+            std::uniform_int_distribution color_gen(0, 255);
+            const double color_r = color_gen(erl::common::g_random_engine);
+            const double color_g = color_gen(erl::common::g_random_engine);
+            const double color_b = color_gen(erl::common::g_random_engine);
 
-            // // (ex, ey) is node center position
-            // if (const double vx = std::cos(angles[i]), vy = std::sin(angles[i]);
-            //     !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ false, /*max_range*/ -1, ex, ey) ||
-            //     !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ true, /*max_range*/ -1, ex, ey)) {
-            //     ERL_DEBUG("Fail to cast ray for angle {}.", erl::common::RadianToDegree(angles[i]));
-            // }
+            for (long i = 0; i < n; ++i) {
+                const Eigen::Vector2d start_pt = ray_origins.col(i) + ray_directions.col(i) * hit_distances[i];
+                const Eigen::Vector2d end_pt = ray_origins.col(i) + ray_directions.col(i) * new_hit_distances[i];
+                const int start_px = grid_map_info->MeterToGridForValue(start_pt[0], 0);
+                const int start_py = grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(start_pt[1], 1);
+                const int end_px = grid_map_info->MeterToGridForValue(end_pt[0], 0);
+                const int end_py = grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(end_pt[1], 1);
 
-            // similar to CastRay, but using BeginNodeOnRay, (ex, ey) is the hit point on the node boundary
-            const double vx = std::cos(angles[i]), vy = std::sin(angles[i]);
-            auto itr = data->tree->BeginNodeOnRay(x, y, vx, vy, -1, 0, false, true);
-            auto end = data->tree->EndNodeOnRay();
-            while (itr != end) {
-                if (data->tree->IsNodeOccupied(*itr)) {
-                    ex = x + vx * itr.GetDistance();  // point on the node boundary
-                    ey = y + vy * itr.GetDistance();
-                    break;
-                }
-                ++itr;
+                cv::line(img, {start_px, start_py}, {end_px, end_py}, {color_b, color_g, color_r, 255}, thicknesses[i]);
             }
+            hit_distances = new_hit_distances;
+            thicknesses += batch_ray_caster.GetHitFlags().cast<int>();
+            ++batch_ray_caster;
+            // batch_ray_caster.Step(Eigen::VectorXb::Random(n));
         }
-        for (long i = 0; i < n; ++i) {
-            const double &ex = end_points(0, i);
-            const double &ey = end_points(1, i);
-            cv::line(
-                img,
-                cv::Point(mouse_x, mouse_y),
-                cv::Point(grid_map_info->MeterToGridForValue(ex, 0), grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(ey, 1)),
-                cv::Scalar(0, 0, 255, 255),
-                1);
-        }
+
         const auto t1 = std::chrono::high_resolution_clock::now();
         std::cout << "Time: " << std::chrono::duration<double, std::milli>(t1 - t0).count() << " ms." << std::endl;
         cv::addWeighted(data->img, 0.5, img, 0.5, 0, img);
@@ -84,7 +92,7 @@ MouseCallback(const int event, const int mouse_x, const int mouse_y, const int f
 
 const std::filesystem::path kProjectRootDir = ERL_GEOMETRY_ROOT_DIR;
 
-TEST(OccupancyQuadtree, RayCasting) {
+TEST(OccupancyQuadtree, BatchRayCasting) {
     UserData data;
     data.tree_setting->resolution = 0.1;
     data.tree = std::make_shared<erl::geometry::OccupancyQuadtree>(data.tree_setting);
@@ -94,7 +102,6 @@ TEST(OccupancyQuadtree, RayCasting) {
     // setting->resolution = 0.0025;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    setting->padding = 10;
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
     data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
     data.drawer = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer>(setting, data.tree);

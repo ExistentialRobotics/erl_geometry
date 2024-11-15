@@ -1,5 +1,6 @@
 #pragma once
 
+#include "camera_intrinsic.hpp"
 #include "range_sensor_frame_3d.hpp"
 
 #include "erl_common/yaml.hpp"
@@ -11,29 +12,13 @@ namespace erl::geometry {
     class DepthFrame3D : public RangeSensorFrame3D {
     public:
         struct Setting : public common::Yamlable<Setting, RangeSensorFrame3D::Setting> {
-            Eigen::Matrix4d camera_to_optical = Eigen::Matrix4d::Identity();  // used when camera frame is not aligned with optical frame
-            // defaults are from https://github.com/cvg/nice-slam/blob/master/configs/Replica/replica.yaml
-            long image_height = 680;
-            long image_width = 1200;
-            double camera_fx = 600.0;
-            double camera_fy = 600.0;
-            double camera_cx = 599.5;
-            double camera_cy = 339.5;
-
-            /**
-             * @brief Resize the frame by a factor. Need to call Update() after this.
-             * @param factor the factor to resize the frame. (0, 1) to shrink, (1, +inf) to enlarge.
-             * @return the new image size (height, width).
-             */
-            std::pair<long, long>
-            Resize(double factor);
+            std::shared_ptr<CameraIntrinsic> camera_intrinsic = std::make_shared<CameraIntrinsic>();
         };
 
         inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
 
     protected:
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        Eigen::Matrix4d m_camera_extrinsic_ = Eigen::Matrix4d::Identity();
         std::vector<DepthFramePartition3D> m_partitions_ = {};
         bool m_partitioned_ = false;
 
@@ -77,26 +62,6 @@ namespace erl::geometry {
             return {dir_frame[1] / dir_frame[2], dir_frame[0] / dir_frame[2]};
         }
 
-        [[nodiscard]] Eigen::Vector3d
-        WorldToFrameSo3(const Eigen::Vector3d &dir_world) const override {
-            return m_camera_extrinsic_.topLeftCorner<3, 3>().transpose() * dir_world;
-        }
-
-        [[nodiscard]] Eigen::Vector3d
-        FrameToWorldSo3(const Eigen::Vector3d &dir_frame) const override {
-            return m_camera_extrinsic_.topLeftCorner<3, 3>() * dir_frame;
-        }
-
-        [[nodiscard]] Eigen::Vector3d
-        WorldToFrameSe3(const Eigen::Vector3d &xyz_world) const override {
-            return m_camera_extrinsic_.topLeftCorner<3, 3>().transpose() * (xyz_world - m_camera_extrinsic_.topRightCorner<3, 1>());
-        }
-
-        [[nodiscard]] Eigen::Vector3d
-        FrameToWorldSe3(const Eigen::Vector3d &xyz_frame) const override {
-            return m_camera_extrinsic_.topLeftCorner<3, 3>() * xyz_frame + m_camera_extrinsic_.topRightCorner<3, 1>();
-        }
-
         [[nodiscard]] static Eigen::MatrixXd
         DepthImageToDepth(const Eigen::MatrixXd &depth_img, const double depth_scale) {
             return depth_img / depth_scale;
@@ -109,8 +74,8 @@ namespace erl::geometry {
 
         /**
          * @brief Update the frame with new depth measurements.
-         * @param rotation orientation of the camera frame in the world frame.
-         * @param translation translation of the camera frame in the world frame.
+         * @param rotation orientation of the optical frame in the world frame.
+         * @param translation translation of the optical frame in the world frame.
          * @param depth depth measurements (not depth image) in the camera frame.
          * @param partition_rays whether to partition the rays.
          */
@@ -133,22 +98,6 @@ namespace erl::geometry {
             Eigen::MatrixXd depth;
             cv::cv2eigen(depth_img, depth);
             UpdateRanges(rotation, translation, DepthImageToDepth(depth, depth_scale), partition_rays);
-        }
-
-        [[nodiscard]] const Eigen::Matrix4d &
-        GetCameraExtrinsicMatrix() const {
-            return m_camera_extrinsic_;
-        }
-
-        [[nodiscard]] Eigen::Matrix3d
-        GetCameraIntrinsicMatrix() const {
-            Eigen::Matrix3d intrinsic;
-            // clang-format off
-            intrinsic << m_setting_->camera_fx, 0, m_setting_->camera_cx,
-                         0, m_setting_->camera_fy, m_setting_->camera_cy,
-                         0, 0, 1;
-            // clang-format on
-            return intrinsic;
         }
 
         [[nodiscard]] const std::vector<DepthFramePartition3D> &
@@ -177,7 +126,9 @@ namespace erl::geometry {
         PartitionRays();
 
         void
-        UpdateFrameCoords();
+        UpdateFrameCoords() {
+            m_setting_->camera_intrinsic->ComputeFrameDirections(m_frame_coords_, m_dirs_frame_);
+        }
     };
 
     class DepthFramePartition3D {};
@@ -191,26 +142,14 @@ struct YAML::convert<erl::geometry::DepthFrame3D::Setting> {
     static Node
     encode(const erl::geometry::DepthFrame3D::Setting &rhs) {
         Node node = convert<erl::geometry::RangeSensorFrame3D::Setting>::encode(rhs);
-        node["camera_to_optical"] = rhs.camera_to_optical;
-        node["image_height"] = rhs.image_height;
-        node["image_width"] = rhs.image_width;
-        node["camera_fx"] = rhs.camera_fx;
-        node["camera_fy"] = rhs.camera_fy;
-        node["camera_cx"] = rhs.camera_cx;
-        node["camera_cy"] = rhs.camera_cy;
+        node["camera_intrinsic"] = rhs.camera_intrinsic;
         return node;
     }
 
     static bool
     decode(const Node &node, erl::geometry::DepthFrame3D::Setting &rhs) {
         if (!convert<erl::geometry::RangeSensorFrame3D::Setting>::decode(node, rhs)) { return false; }
-        rhs.camera_to_optical = node["camera_to_optical"].as<Eigen::Matrix4d>();
-        rhs.image_height = node["image_height"].as<int>();
-        rhs.image_width = node["image_width"].as<int>();
-        rhs.camera_fx = node["camera_fx"].as<double>();
-        rhs.camera_fy = node["camera_fy"].as<double>();
-        rhs.camera_cx = node["camera_cx"].as<double>();
-        rhs.camera_cy = node["camera_cy"].as<double>();
+        rhs.camera_intrinsic = node["camera_intrinsic"].as<std::shared_ptr<erl::geometry::CameraIntrinsic>>();
         return true;
     }
 };  // namespace YAML

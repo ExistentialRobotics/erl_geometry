@@ -133,16 +133,24 @@ namespace erl::geometry {
         ComputeFrameCoords(const Eigen::Vector3d &xyz_frame) const = 0;
 
         [[nodiscard]] virtual Eigen::Vector3d
-        WorldToFrameSo3(const Eigen::Vector3d &dir_world) const = 0;
+        WorldToFrameSo3(const Eigen::Vector3d &dir_world) const {
+            return m_rotation_.transpose() * dir_world;
+        }
 
         [[nodiscard]] virtual Eigen::Vector3d
-        FrameToWorldSo3(const Eigen::Vector3d &dir_frame) const = 0;
+        FrameToWorldSo3(const Eigen::Vector3d &dir_frame) const {
+            return m_rotation_ * dir_frame;
+        }
 
         [[nodiscard]] virtual Eigen::Vector3d
-        WorldToFrameSe3(const Eigen::Vector3d &xyz_world) const = 0;
+        WorldToFrameSe3(const Eigen::Vector3d &xyz_world) const {
+            return m_rotation_.transpose() * (xyz_world - m_translation_);
+        }
 
         [[nodiscard]] virtual Eigen::Vector3d
-        FrameToWorldSe3(const Eigen::Vector3d &xyz_frame) const = 0;
+        FrameToWorldSe3(const Eigen::Vector3d &xyz_frame) const {
+            return m_rotation_ * xyz_frame + m_translation_;
+        }
 
         virtual void
         UpdateRanges(

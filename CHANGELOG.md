@@ -1,3 +1,9 @@
+# 2024-11-14
+
+- Add: implement `RgbdCamera3D` and `RgbdFrame3D`.
+- Add: implement `OccupancyNdTreeBatchRayCaster`.
+- Update: Python binding for new features.
+
 # 2024-10-21
 
 - Add: create ellipsoid mesh with Open3D.

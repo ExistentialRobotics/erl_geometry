@@ -9,15 +9,15 @@
 
 #include <boost/program_options.hpp>
 
-static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
+const std::filesystem::path kProjectRootDir = ERL_GEOMETRY_ROOT_DIR;
 static std::string g_window_name = "OccupancyQuadtree_Build";
 
 struct Options {
-    std::string gazebo_train_file = (g_test_data_dir / "gazebo_train.dat").string();
-    std::string gazebo_test_file = (g_test_data_dir / "gazebo_test.dat").string();
-    std::string house_expo_map_file = (g_test_data_dir / "house_expo_room_1451.json").string();
-    std::string house_expo_traj_file = (g_test_data_dir / "house_expo_room_1451.csv").string();
-    std::string ucsd_fah_2d_file = (g_test_data_dir / "ucsd_fah_2d.dat").string();
+    std::string gazebo_train_file = (kProjectRootDir / "data" / "gazebo_train.dat").string();
+    std::string gazebo_test_file = (kProjectRootDir / "data" / "gazebo_test.dat").string();
+    std::string house_expo_map_file = (kProjectRootDir / "data" / "house_expo_room_1451.json").string();
+    std::string house_expo_traj_file = (kProjectRootDir / "data" / "house_expo_room_1451.csv").string();
+    std::string ucsd_fah_2d_file = (kProjectRootDir / "data" / "ucsd_fah_2d.dat").string();
     bool use_gazebo_room_2d = false;
     bool use_house_expo_lidar_2d = true;
     bool use_ucsd_fah_2d = false;
@@ -180,8 +180,8 @@ TEST(OccupancyQuadtree, Build) {
         cv::imshow(g_window_name, img);
         cv::waitKey(10);
     }
-    EXPECT_TRUE(tree->Write(g_test_data_dir / (tree_name + ".ot")));
-    EXPECT_TRUE(tree->WriteBinary(g_test_data_dir / (tree_name + ".bt")));
+    EXPECT_TRUE(tree->Write(kProjectRootDir / "data" / (tree_name + ".ot")));
+    EXPECT_TRUE(tree->WriteBinary(kProjectRootDir / "data" / (tree_name + ".bt")));
     std::cout << "Press any key to exit immediately. Test will exist in 10 seconds." << std::endl;
     cv::waitKey(10000);  // 10 seconds
 }

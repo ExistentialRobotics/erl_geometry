@@ -48,6 +48,21 @@ BindOccupancyOctree(
     // AbstractOctree methods are defined in bind_abstract_octree.cpp
     // AbstractOccupancyOctree methods are defined in bind_abstract_occupancy_octree.cpp
 
+    using BatchRayCaster = OccupancyNdTreeBatchRayCaster<Octree, 3>;
+    py::class_<BatchRayCaster>(tree, "BatchRayCaster")
+        .def_property_readonly("num_rays", &BatchRayCaster::GetNumRays)
+        .def_property_readonly("ray_origins", &BatchRayCaster::GetRayOrigins)
+        .def_property_readonly("ray_directions", &BatchRayCaster::GetRayDirections)
+        .def_property_readonly("hit_flags", &BatchRayCaster::GetHitFlags)
+        .def_property_readonly("ever_hit_flags", &BatchRayCaster::GetEverHitFlags)
+        .def_property_readonly("hit_distances", &BatchRayCaster::GetHitDistances)
+        .def_property_readonly("hit_nodes", &BatchRayCaster::GetHitNodes)
+        .def_property_readonly("hit_positions", &BatchRayCaster::GetHitPositions)
+        .def_property_readonly("frontier_nodes", &BatchRayCaster::GetFrontierNodes)
+        .def_property_readonly("frontier_keys", &BatchRayCaster::GetFrontierKeys)
+        .def_property_readonly("frontier_ray_indices", &BatchRayCaster::GetFrontierRayIndices)
+        .def("step", &BatchRayCaster::Step, py::arg("max_depth") = 0);
+
     // OccupancyOctreeBase methods, except iterators
     tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Octree::Setting> &setting) { return std::make_shared<Octree>(setting); }), py::arg("setting"))
@@ -163,6 +178,17 @@ BindOccupancyOctree(
             py::arg("max_range"),
             py::arg("prune_rays"),
             py::arg("parallel"))
+        .def(
+            "get_batch_ray_caster",
+            &Octree::GetBatchRayCaster,
+            py::arg("origins"),
+            py::arg("directions"),
+            py::arg("max_ranges") = py::array_t<double>(),
+            py::arg("node_paddings") = py::array_t<double>(),
+            py::arg("bidirectional_flags") = py::array_t<bool>(),
+            py::arg("leaf_only_flags") = py::array_t<bool>(),
+            py::arg("min_node_depths") = py::array_t<int>(),
+            py::arg("max_node_depths") = py::array_t<int>())
         .def(
             "cast_ray",
             [](const Octree &self, double px, double py, double pz, double vx, double vy, double vz, bool ignore_unknown, double max_range) {

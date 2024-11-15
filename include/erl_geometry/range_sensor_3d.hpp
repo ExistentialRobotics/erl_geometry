@@ -67,7 +67,7 @@ namespace erl::geometry {
         GetRayDirectionsInFrame() const = 0;
 
         [[nodiscard]] virtual std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
-        GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const = 0;
+        GetOpticalPose(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const = 0;
 
         [[nodiscard]] Eigen::MatrixXd
         Scan(

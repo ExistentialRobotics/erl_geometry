@@ -1,5 +1,7 @@
 #pragma once
 
+#include "open3d_helper.hpp"
+
 #include "erl_common/yaml.hpp"
 
 #include <open3d/geometry/Geometry.h>
@@ -43,7 +45,7 @@ namespace erl::geometry {
         explicit Open3dVisualizerWrapper(std::shared_ptr<Setting> setting = nullptr)
             : m_setting_(std::move(setting)) {
             if (!m_setting_) { m_setting_ = std::make_shared<Setting>(); }
-            m_axis_mesh_ = CreateAxisMesh(Eigen::Matrix4d::Identity());
+            m_axis_mesh_ = CreateAxisMesh(Eigen::Matrix4d::Identity(), 0.1);
             Init();
         }
 
@@ -116,9 +118,6 @@ namespace erl::geometry {
             }
             m_visualizer_->DestroyVisualizerWindow();
         }
-
-        static std::shared_ptr<open3d::geometry::TriangleMesh>
-        CreateAxisMesh(const Eigen::Matrix4d &pose, double axis_length = 0.1);
 
     private:
         void

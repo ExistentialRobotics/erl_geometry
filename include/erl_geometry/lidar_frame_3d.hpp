@@ -52,26 +52,6 @@ namespace erl::geometry {
             return frame_coords;
         }
 
-        [[nodiscard]] Eigen::Vector3d
-        WorldToFrameSo3(const Eigen::Vector3d &dir_world) const override {
-            return m_rotation_.transpose() * dir_world;
-        }
-
-        [[nodiscard]] Eigen::Vector3d
-        FrameToWorldSo3(const Eigen::Vector3d &dir_frame) const override {
-            return m_rotation_ * dir_frame;
-        }
-
-        [[nodiscard]] Eigen::Vector3d
-        WorldToFrameSe3(const Eigen::Vector3d &xyz_world) const override {
-            return m_rotation_.transpose() * (xyz_world - m_translation_);
-        }
-
-        [[nodiscard]] Eigen::Vector3d
-        FrameToWorldSe3(const Eigen::Vector3d &xyz_frame) const override {
-            return m_rotation_ * xyz_frame + m_translation_;
-        }
-
         void
         UpdateRanges(
             const Eigen::Ref<const Eigen::Matrix3d> &rotation,

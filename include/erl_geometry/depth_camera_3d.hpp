@@ -1,5 +1,7 @@
 #pragma once
 
+#include "camera_base_3d.hpp"
+#include "camera_intrinsic.hpp"
 #include "range_sensor_3d.hpp"
 
 #include "erl_common/yaml.hpp"
@@ -8,33 +10,14 @@
 
 namespace erl::geometry {
 
-    class DepthCamera3D : public RangeSensor3D {
-
+    class DepthCamera3D : public RangeSensor3D, public CameraBase3D {
     public:
-        struct Setting : common::Yamlable<Setting> {
-            long image_height = 680;
-            long image_width = 1200;
-            double camera_fx = 600.0;
-            double camera_fy = 600.0;
-            double camera_cx = 599.5;
-            double camera_cy = 339.5;
-        };
+        using Setting = CameraIntrinsic;
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
     public:
-        inline static const Eigen::Matrix4d kCameraToOptical = []() -> Eigen::Matrix4d {
-            Eigen::Matrix4d camera_to_optical;
-            // clang-format off
-            camera_to_optical << 0,  0, 1, 0,
-                                -1,  0, 0, 0,
-                                 0, -1, 0, 0,
-                                 0,  0, 0, 1;
-            // clang-format on
-            return camera_to_optical;
-        }();
-
         DepthCamera3D() = delete;
 
         DepthCamera3D(std::shared_ptr<Setting> setting, const Eigen::Ref<const Eigen::Matrix3Xd> &vertices, const Eigen::Ref<const Eigen::Matrix3Xi> &triangles)
@@ -61,40 +44,20 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
-        GetRayDirectionsInFrame() const override;
+        GetRayDirectionsInFrame() const override {
+            return ComputeRayDirectionsInFrame(
+                m_setting_->image_height,
+                m_setting_->image_width,
+                m_setting_->camera_fx,
+                m_setting_->camera_fy,
+                m_setting_->camera_cx,
+                m_setting_->camera_cy);
+        }
 
         [[nodiscard]] std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
-        GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const override;
+        GetOpticalPose(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const override {
+            return ComputeCameraPose(orientation, translation);
+        }
     };
 
 }  // namespace erl::geometry
-
-// ReSharper disable CppInconsistentNaming
-template<>
-struct YAML::convert<erl::geometry::DepthCamera3D::Setting> {
-    static Node
-    encode(const erl::geometry::DepthCamera3D::Setting &rhs) {
-        Node node;
-        node["image_height"] = rhs.image_height;
-        node["image_width"] = rhs.image_width;
-        node["camera_fx"] = rhs.camera_fx;
-        node["camera_fy"] = rhs.camera_fy;
-        node["camera_cx"] = rhs.camera_cx;
-        node["camera_cy"] = rhs.camera_cy;
-        return node;
-    }
-
-    static bool
-    decode(const Node &node, erl::geometry::DepthCamera3D::Setting &rhs) {
-        if (!node.IsMap()) { return false; }
-        rhs.image_height = node["image_height"].as<long>();
-        rhs.image_width = node["image_width"].as<long>();
-        rhs.camera_fx = node["camera_fx"].as<double>();
-        rhs.camera_fy = node["camera_fy"].as<double>();
-        rhs.camera_cx = node["camera_cx"].as<double>();
-        rhs.camera_cy = node["camera_cy"].as<double>();
-        return true;
-    }
-};  // namespace YAML
-
-// ReSharper disable CppInconsistentNaming

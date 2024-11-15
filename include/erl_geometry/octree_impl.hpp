@@ -43,6 +43,9 @@ namespace erl::geometry {
         std::vector<OctreeKeyRay> m_key_rays_;     // data structure for parallel ray casting
 
     public:
+        using NodeType = Node;
+        using KeyType = OctreeKey;
+
         OctreeImpl() = delete;  // no default constructor
 
         explicit OctreeImpl(std::shared_ptr<InterfaceSetting> setting)
@@ -2026,6 +2029,32 @@ namespace erl::geometry {
             uint32_t min_node_depth = 0,
             uint32_t max_node_depth = 0) const {
             return NodeOnRayIterator(px, py, pz, vx, vy, vz, max_range, node_padding, bidirectional, this, leaf_only, min_node_depth, max_node_depth);
+        }
+
+        [[nodiscard]] NodeOnRayIterator
+        BeginNodeOnRay(
+            const Eigen::Ref<const Eigen::Vector3d> &origin,
+            const Eigen::Ref<const Eigen::Vector3d> &direction,
+            double max_range = -1,
+            double node_padding = 0.0,  // padding for the node size
+            bool bidirectional = false,
+            bool leaf_only = false,
+            uint32_t min_node_depth = 0,
+            uint32_t max_node_depth = 0) const {
+            return NodeOnRayIterator(
+                origin.x(),
+                origin.y(),
+                origin.z(),
+                direction.x(),
+                direction.y(),
+                direction.z(),
+                max_range,
+                node_padding,
+                bidirectional,
+                this,
+                leaf_only,
+                min_node_depth,
+                max_node_depth);
         }
 
         [[nodiscard]] NodeOnRayIterator

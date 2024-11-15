@@ -103,7 +103,16 @@ void
 BindLidar3D(const py::module &m);
 
 void
+BindCameraIntrinsic(const py::module &m);
+
+void
+BindCameraBase3D(const py::module &m);
+
+void
 BindDepthCamera3D(const py::module &m);
+
+void
+BindRgbdCamera3D(const py::module &m);
 
 void
 BindRangeSensorFrame3D(const py::module &m);
@@ -113,6 +122,9 @@ BindLidarFrame3D(const py::module &m);
 
 void
 BindDepthFrame3D(const py::module &m);
+
+void
+BindRgbdFrame3D(const py::module &m);
 
 void
 BindTrajectory(const py::module &m);
@@ -177,10 +189,14 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindLogOddMap2D(m);
     BindHouseExpoMap(m);
     BindLidar3D(m);
+    BindCameraIntrinsic(m);
+    BindCameraBase3D(m);
     BindDepthCamera3D(m);
+    BindRgbdCamera3D(m);
     BindRangeSensorFrame3D(m);
     BindLidarFrame3D(m);
     BindDepthFrame3D(m);
+    BindRgbdFrame3D(m);
     BindTrajectory(m);
     BindUtils(m);
     BindIntersection(m);

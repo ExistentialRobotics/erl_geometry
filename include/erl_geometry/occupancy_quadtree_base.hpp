@@ -2,6 +2,7 @@
 
 #include "aabb.hpp"
 #include "abstract_occupancy_quadtree.hpp"
+#include "occupancy_nd_tree_batch_ray_caster.hpp"
 #include "occupancy_nd_tree_setting.hpp"
 #include "quadtree_impl.hpp"
 
@@ -370,6 +371,28 @@ namespace erl::geometry {
         }
 
         //-- cast ray
+        OccupancyNdTreeBatchRayCaster<OccupancyQuadtreeBase, 2>
+        GetBatchRayCaster(
+            Eigen::Matrix2Xd origins,
+            Eigen::Matrix2Xd directions,
+            const Eigen::VectorXd& max_ranges,
+            const Eigen::VectorXd& node_paddings,
+            const Eigen::VectorXb& bidirectional_flags,
+            const Eigen::VectorXb& leaf_only_flags,
+            const Eigen::VectorXi& min_node_depths,
+            const Eigen::VectorXi& max_node_depths) const {
+            return OccupancyNdTreeBatchRayCaster<OccupancyQuadtreeBase, 2>(
+                this,
+                origins,
+                directions,
+                max_ranges,
+                node_paddings,
+                bidirectional_flags,
+                leaf_only_flags,
+                min_node_depths,
+                max_node_depths);
+        }
+
         void
         CastRays(
             const Eigen::Ref<const Eigen::Vector2d>& position,

@@ -39,61 +39,25 @@ BindRangeSensorFrame3D(const py::module &m) {
             "ray_directions_in_frame",
             [](const RangeSensorFrame3D &self) -> py::array_t<double> {
                 const Eigen::MatrixX<Eigen::Vector3d> &ray_directions_in_frame = self.GetRayDirectionsInFrame();
-                py::array_t<double> out({ray_directions_in_frame.rows(), ray_directions_in_frame.cols(), 3l});
-                for (long i = 0; i < ray_directions_in_frame.rows(); ++i) {
-                    for (long j = 0; j < ray_directions_in_frame.cols(); ++j) {
-                        const Eigen::Vector3d &dir = ray_directions_in_frame(i, j);
-                        out.mutable_at(i, j, 0) = dir[0];
-                        out.mutable_at(i, j, 1) = dir[1];
-                        out.mutable_at(i, j, 2) = dir[2];
-                    }
-                }
-                return out;
+                return py::cast_to_array(ray_directions_in_frame);
             })
         .def_property_readonly(
             "ray_directions_in_world",
             [](const RangeSensorFrame3D &self) -> py::array_t<double> {
                 const Eigen::MatrixX<Eigen::Vector3d> &ray_directions_in_world = self.GetRayDirectionsInWorld();
-                py::array_t<double> out({ray_directions_in_world.rows(), ray_directions_in_world.cols(), 3l});
-                for (long i = 0; i < ray_directions_in_world.rows(); ++i) {
-                    for (long j = 0; j < ray_directions_in_world.cols(); ++j) {
-                        const Eigen::Vector3d &dir = ray_directions_in_world(i, j);
-                        out.mutable_at(i, j, 0) = dir[0];
-                        out.mutable_at(i, j, 1) = dir[1];
-                        out.mutable_at(i, j, 2) = dir[2];
-                    }
-                }
-                return out;
+                return py::cast_to_array(ray_directions_in_world);
             })
         .def_property_readonly(
             "end_points_in_frame",
             [](const RangeSensorFrame3D &self) -> py::array_t<double> {
                 const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_frame = self.GetEndPointsInFrame();
-                py::array_t<double> out({end_points_in_frame.rows(), end_points_in_frame.cols(), 3l});
-                for (long i = 0; i < end_points_in_frame.rows(); ++i) {
-                    for (long j = 0; j < end_points_in_frame.cols(); ++j) {
-                        const Eigen::Vector3d &point = end_points_in_frame(i, j);
-                        out.mutable_at(i, j, 0) = point[0];
-                        out.mutable_at(i, j, 1) = point[1];
-                        out.mutable_at(i, j, 2) = point[2];
-                    }
-                }
-                return out;
+                return py::cast_to_array(end_points_in_frame);
             })
         .def_property_readonly(
             "end_points_in_world",
             [](const RangeSensorFrame3D &self) -> py::array_t<double> {
                 const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_world = self.GetEndPointsInWorld();
-                py::array_t<double> out({end_points_in_world.rows(), end_points_in_world.cols(), 3l});
-                for (long i = 0; i < end_points_in_world.rows(); ++i) {
-                    for (long j = 0; j < end_points_in_world.cols(); ++j) {
-                        const Eigen::Vector3d &point = end_points_in_world(i, j);
-                        out.mutable_at(i, j, 0) = point[0];
-                        out.mutable_at(i, j, 1) = point[1];
-                        out.mutable_at(i, j, 2) = point[2];
-                    }
-                }
-                return out;
+                return py::cast_to_array(end_points_in_world);
             })
         .def_property_readonly("hit_ray_indices", &RangeSensorFrame3D::GetHitRayIndices)
         .def_property_readonly("hit_points_world", &RangeSensorFrame3D::GetHitPointsWorld)

@@ -57,11 +57,15 @@ __all__ = [
     "LidarFrame2D",
     "LogOddMap2D",
     "Lidar3D",
+    "CameraIntrinsic",
+    "CameraBase3D",
     "DepthCamera3D",
+    "RgbdCamera3D",
     "LidarFramePartition3D",
     "RangeSensorFrame3D",
     "LidarFrame3D",
     "DepthFrame3D",
+    "RgbdFrame3D",
     "AbstractSurfaceMapping",
     "AbstractSurfaceMapping2D",
     "AbstractSurfaceMapping3D",
@@ -332,10 +336,15 @@ class OccupancyQuadtreeBaseSetting(OccupancyNdTreeSetting):
     def __init__(self: OccupancyQuadtreeBaseSetting) -> None: ...
 
 class QuadtreeKey:
+    @overload
+    def __init__(self) -> None: ...
+    @overload
+    def __init__(self, a: int, b: int) -> None: ...
     def __eq__(self, other) -> bool: ...
     def __ne__(self, other) -> bool: ...
     def __getitem__(self, item) -> int: ...
     def __hash__(self) -> int: ...
+    def to_list(self) -> list[int]: ...
 
 class QuadtreeKeyRay:
     def __len__(self) -> int: ...
@@ -457,6 +466,33 @@ class OccupancyQuadtree(AbstractOccupancyQuadtree):
         ignore_unknown: bool,
         max_range: float,
     ) -> TypedDict("returns", {"hit_node": OccupancyQuadtreeNode, "ex": float, "ey": float}): ...
+
+    class BatchRayCaster:
+        num_rays: int
+        ray_origins: npt.NDArray
+        ray_directions: npt.NDArray
+        hit_flags: npt.NDArray
+        ever_hit_flags: npt.NDArray
+        hit_distances: npt.NDArray
+        hit_nodes: list[OccupancyQuadtreeNode]
+        hit_positions: npt.NDArray
+        frontier_nodes: list[OccupancyQuadtreeNode]
+        frontier_keys: list[QuadtreeKey]
+        frontier_ray_indices: list[list[int]]
+
+        def step(self, mask: npt.NDArray) -> None: ...
+
+    def get_batch_ray_caster(
+        self,
+        origins: npt.NDArray,
+        directions: npt.NDArray,
+        max_ranges: npt.NDArray = -1,
+        node_paddings: npt.NDArray = 0,
+        bidirectional_flags: npt.NDArray = False,
+        leaf_only_flags: npt.NDArray = False,
+        min_node_depths: npt.NDArray = 0,
+        max_node_depths: npt.NDArray = 0,
+    ) -> BatchRayCaster: ...
     @overload
     def update_node(self, x: float, y: float, occupied: bool, lazy_eval: bool) -> OccupancyQuadtreeNode: ...
     @overload
@@ -715,10 +751,15 @@ class OccupancyOctreeBaseSetting(OccupancyNdTreeSetting):
     def __init__(self: OccupancyOctreeBaseSetting) -> None: ...
 
 class OctreeKey:
+    @overload
+    def __init__(self) -> None: ...
+    @overload
+    def __init__(self, a: int, b: int, c: int) -> None: ...
     def __eq__(self, other) -> bool: ...
     def __ne__(self, other) -> bool: ...
     def __getitem__(self, item) -> int: ...
     def __hash__(self) -> int: ...
+    def to_list(self) -> list[int]: ...
 
 class OctreeKeyRay:
     def __len__(self) -> int: ...
@@ -858,6 +899,33 @@ class OccupancyOctree(AbstractOccupancyOctree):
         ignore_unknown: bool,
         max_range: float,
     ) -> TypedDict("returns", {"hit_node": OccupancyQuadtreeNode, "ex": float, "ey": float}): ...
+
+    class BatchRayCaster:
+        num_rays: int
+        ray_origins: npt.NDArray
+        ray_directions: npt.NDArray
+        hit_flags: npt.NDArray
+        ever_hit_flags: npt.NDArray
+        hit_distances: npt.NDArray
+        hit_nodes: list[OccupancyQuadtreeNode]
+        hit_positions: npt.NDArray
+        frontier_nodes: list[OccupancyQuadtreeNode]
+        frontier_keys: list[QuadtreeKey]
+        frontier_ray_indices: list[list[int]]
+
+        def step(self, mask: npt.NDArray) -> None: ...
+
+    def get_batch_ray_caster(
+        self,
+        origins: npt.NDArray,
+        directions: npt.NDArray,
+        max_ranges: npt.NDArray = -1,
+        node_paddings: npt.NDArray = 0,
+        bidirectional_flags: npt.NDArray = False,
+        leaf_only_flags: npt.NDArray = False,
+        min_node_depths: npt.NDArray = 0,
+        max_node_depths: npt.NDArray = 0,
+    ) -> BatchRayCaster: ...
     @overload
     def update_node(self, x: float, y: float, z: float, occupied: bool, lazy_eval: bool) -> OccupancyOctreeNode: ...
     @overload
@@ -1578,15 +1646,43 @@ class Lidar3D:
         noise_stddev: float = 0.03,
     ) -> npt.NDArray[np.float64]: ...
 
-class DepthCamera3D:
-    class Setting(YamlableBase):
-        image_height: int
-        image_width: int
-        camera_fx: float
-        camera_fy: float
-        camera_cx: float
-        camera_cy: float
+class CameraIntrinsic(YamlableBase):
+    image_height: int
+    image_width: int
+    camera_fx: float
+    camera_fy: float
+    camera_cx: float
+    camera_cy: float
+    @property
+    def matrix(self) -> npt.NDArray[np.float64]: ...
+    def resize(self, factor: float) -> None: ...
+    def compute_frame_direction(self, u: int, v: int) -> list[float]: ...
+    def compute_frame_directions(self) -> npt.NDArray[np.float64]: ...
+    def convert_depth_to_distance(
+        self,
+        depth: npt.NDArray[np.float64],
+        rgb: npt.NDArray[np.uint8],
+        optical_pose: Optional[npt.NDArray[np.float64]] = None,
+    ) -> TypedDict("returns", {"points": npt.NDArray[np.float64], "colors": npt.NDArray[np.float64]}): ...
 
+class CameraBase3D:
+    cTo: npt.NDArray[np.float64]
+    oTc: npt.NDArray[np.float64]
+    @staticmethod
+    def compute_optical_pose(
+        orientation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64]
+    ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]: ...
+    @staticmethod
+    def compute_camera_pose(
+        orientation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64]
+    ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]: ...
+    @staticmethod
+    def compute_extrinsic(
+        camera_orientation: npt.NDArray[np.float64], camera_translation: npt.NDArray[np.float64]
+    ) -> npt.NDArray[np.float64]: ...
+
+class DepthCamera3D(CameraBase3D):
+    Setting = CameraIntrinsic
     @overload
     def __init__(self, setting: Setting, vertices: npt.NDArray, triangles: npt.NDArray) -> None: ...
     @overload
@@ -1603,7 +1699,17 @@ class DepthCamera3D:
         noise_stddev: float = 0.03,
     ) -> npt.NDArray[np.float64]: ...
 
-class LidarFramePartition3D: ...
+class RgbdCamera3D(CameraBase3D):
+    Setting = CameraIntrinsic
+    def __init__(self, setting: Setting): ...
+    @property
+    def setting(self) -> Setting: ...
+    def add_mesh(self, mesh_path: str) -> None: ...
+    def scan(
+        self, orientation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64]
+    ) -> TypedDict("returns", {"rgb": npt.NDArray[np.uint8], "depth": npt.NDArray[np.float64]}): ...
+    @property
+    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
 
 class RangeSensorFrame3D:
     class Setting(YamlableBase):
@@ -1629,8 +1735,6 @@ class RangeSensorFrame3D:
     def ranges(self) -> npt.NDArray[np.float64]: ...
     @property
     def frame_coords(self) -> npt.NDArray[np.float64]: ...
-    @property
-    def ranges(self) -> npt.NDArray[np.float64]: ...
     @property
     def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
     @property
@@ -1731,6 +1835,8 @@ class RangeSensorFrame3D:
         },
     ): ...
 
+class LidarFramePartition3D: ...
+
 class LidarFrame3D:
     class Setting(RangeSensorFrame3D.Setting):
         azimuth_min: float
@@ -1809,6 +1915,20 @@ class DepthFrame3D:
     def is_partitioned(self) -> bool: ...
     @property
     def partitions(self) -> list[LidarFramePartition3D]: ...
+
+class RgbdFrame3D(DepthFrame3D):
+    def __init__(self, setting: DepthFrame3D.Setting) -> None: ...
+    def update_rgbd(
+        self,
+        rotation: npt.NDArray[np.float64],
+        translation: npt.NDArray[np.float64],
+        depth: npt.NDArray[np.float64],
+        rgb: npt.NDArray[np.uint8],
+        partition_rays: bool = False,
+    ) -> None: ...
+    def convert_to_point_cloud(
+        self, in_world_frame: bool
+    ) -> TypedDict("returns", {"points": npt.NDArray[np.float64], "colors": npt.NDArray[np.uint8]}): ...
 
 class AbstractSurfaceMapping:
     class Setting(YamlableBase):

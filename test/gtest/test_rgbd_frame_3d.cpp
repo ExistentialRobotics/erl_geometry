@@ -1,5 +1,5 @@
 #include "erl_common/test_helper.hpp"
-#include "erl_geometry/rgbd_frame_3d.hpp"
+#include "erl_geometry/depth_frame_3d.hpp"
 
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
@@ -10,14 +10,15 @@
 #include <open3d/visualization/utility/DrawGeometry.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 
+const std::filesystem::path kProjectRootDir = ERL_GEOMETRY_ROOT_DIR;
+
 TEST(ERL_GEOMETRY, RgbdFrame3D) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    std::filesystem::path gtest_dir = __FILE__;
-    gtest_dir = gtest_dir.parent_path();
-    std::filesystem::path ply_path = gtest_dir / "replica-office-0.ply";
-    std::filesystem::path depth_dir = gtest_dir / "replica_office_0_depth";
+    std::filesystem::path data_dir = kProjectRootDir / "data";
+    std::filesystem::path ply_path = data_dir / "replica-office-0.ply";
+    std::filesystem::path depth_dir = data_dir / "replica_office_0_depth";
     int num_depth_files = 10;
     std::vector<std::string> depth_files;
     depth_files.reserve(10);
@@ -39,8 +40,8 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
             open3d::io::ReadTriangleMesh(ply_path.string(), *room_mesh, options);
             room_mesh->ComputeTriangleNormals();
         }
-        auto rgbd_rays_line_set = std::make_shared<open3d::geometry::LineSet>();
-        auto rgbd_point_cloud = std::make_shared<open3d::geometry::PointCloud>();
+        auto depth_rays_line_set = std::make_shared<open3d::geometry::LineSet>();
+        auto depth_point_cloud = std::make_shared<open3d::geometry::PointCloud>();
         auto surface_samples_line_set = std::make_shared<open3d::geometry::LineSet>();
         auto surface_samples_point_cloud = std::make_shared<open3d::geometry::PointCloud>();
         auto region_samples_line_set = std::make_shared<open3d::geometry::LineSet>();
@@ -56,8 +57,8 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
         auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
         o3d_scene->AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*room_mesh));
 
-        bool show_rgbd_rays = true;
-        bool show_rgbd_points = true;
+        bool show_depth_rays = true;
+        bool show_depth_points = true;
         bool show_surface_samples = false;
         bool show_region_samples = false;
         bool show_along_ray_samples = false;
@@ -65,61 +66,62 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
         double down_sample_factor = 4.0;
         auto update_render = [&](open3d::visualization::Visualizer *vis) {
             auto render_tic = std::chrono::high_resolution_clock::now();
-            if (show_rgbd_rays || show_rgbd_points || show_surface_samples || show_region_samples || show_along_ray_samples) {
+            if (show_depth_rays || show_depth_points || show_surface_samples || show_region_samples || show_along_ray_samples) {
                 // r-zyx order
                 Eigen::Matrix4d pose = traj_data.row(cur_depth_file).reshaped(4, 4).transpose();
                 Eigen::Matrix3d rotation = pose.block<3, 3>(0, 0);
                 Eigen::Vector3d camera_position = pose.block<3, 1>(0, 3);
-                auto rgbd_frame_3d_setting = std::make_shared<RgbdFrame3D::Setting>();
-                auto rgbd_frame_3d = std::make_shared<RgbdFrame3D>(rgbd_frame_3d_setting);
-                if (show_rgbd_rays || show_rgbd_points || !surface_samples_ready || !region_samples_ready || !along_ray_samples_ready) {
+                auto depth_frame_3d_setting = std::make_shared<DepthFrame3D::Setting>();
+                int new_height = 0, new_width = 0;
+                if (down_sample) {
+                    double factor = 1 / down_sample_factor;
+                    std::tie(new_height, new_width) = depth_frame_3d_setting->Resize(factor);
+                }
+                auto depth_frame_3d = std::make_shared<DepthFrame3D>(depth_frame_3d_setting);
+                if (show_depth_rays || show_depth_points || !surface_samples_ready || !region_samples_ready || !along_ray_samples_ready) {
                     cv::Mat depth_img = cv::imread((depth_dir / depth_files[cur_depth_file]).string(), cv::IMREAD_UNCHANGED);
-                    if (down_sample) {
-                        double factor = 1 / down_sample_factor;
-                        auto [new_height, new_width] = rgbd_frame_3d->Resize(factor);
-                        cv::resize(depth_img, depth_img, cv::Size(new_width, new_height), 0, 0, cv::INTER_NEAREST);
-                    }
+                    if (down_sample) { cv::resize(depth_img, depth_img, cv::Size(new_width, new_height), 0, 0, cv::INTER_NEAREST); }
                     depth_img.convertTo(depth_img, CV_64FC1);  // convert to double
                     Eigen::MatrixXd depth;
                     cv::cv2eigen(depth_img, depth);
-                    std::cout << "rgbd image size: " << depth.rows() << " x " << depth.cols() << std::endl;
+                    std::cout << "depth image size: " << depth.rows() << " x " << depth.cols() << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->UpdateRanges(rotation, camera_position, depth, false, false);  // depth not scaled yet, do not partition rays
+                    depth_frame_3d->UpdateRanges(rotation, camera_position, depth, false);  // depth not scaled yet, do not partition rays
                     auto toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "rgbd_frame_3d->Update takes " << std::chrono::duration<double, std::milli>(toc - tic).count() << " ms" << std::endl;
+                    std::cout << "depth_frame_3d->Update takes " << std::chrono::duration<double, std::milli>(toc - tic).count() << " ms" << std::endl;
                 }
-                long num_azimuths = rgbd_frame_3d->GetNumAzimuthLines();
-                long num_elevations = rgbd_frame_3d->GetNumElevationLines();
+                long num_azimuths = depth_frame_3d->GetImageWidth();
+                long num_elevations = depth_frame_3d->GetImageHeight();
                 long max_num_valid_rays = num_azimuths * num_elevations;
 
-                if (show_rgbd_rays) {
-                    rgbd_rays_line_set->Clear();
-                    rgbd_rays_line_set->points_.reserve(max_num_valid_rays + 1);
-                    rgbd_rays_line_set->lines_.reserve(max_num_valid_rays);
-                    rgbd_rays_line_set->colors_.reserve(max_num_valid_rays);
-                    rgbd_rays_line_set->points_.push_back(camera_position);
+                if (show_depth_rays) {
+                    depth_rays_line_set->Clear();
+                    depth_rays_line_set->points_.reserve(max_num_valid_rays + 1);
+                    depth_rays_line_set->lines_.reserve(max_num_valid_rays);
+                    depth_rays_line_set->colors_.reserve(max_num_valid_rays);
+                    depth_rays_line_set->points_.push_back(camera_position);
                 }
-                if (show_rgbd_points) {
-                    rgbd_point_cloud->Clear();
-                    rgbd_point_cloud->points_.reserve(max_num_valid_rays);
-                    rgbd_point_cloud->colors_.reserve(max_num_valid_rays);
+                if (show_depth_points) {
+                    depth_point_cloud->Clear();
+                    depth_point_cloud->points_.reserve(max_num_valid_rays);
+                    depth_point_cloud->colors_.reserve(max_num_valid_rays);
                 }
-                const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_world = rgbd_frame_3d->GetEndPointsInWorld();
-                const Eigen::MatrixXb &hit_mask = rgbd_frame_3d->GetHitMask();
+                const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_world = depth_frame_3d->GetEndPointsInWorld();
+                const Eigen::MatrixXb &hit_mask = depth_frame_3d->GetHitMask();
                 for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
                     long ray_idx_base = azimuth_idx * num_elevations;
                     for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
                         long ray_idx = ray_idx_base + elevation_idx;
                         if (!hit_mask(azimuth_idx, elevation_idx)) { continue; }
                         const Eigen::Vector3d &end_pt = end_points_in_world(azimuth_idx, elevation_idx);
-                        if (show_rgbd_rays) {
-                            rgbd_rays_line_set->points_.push_back(end_pt);
-                            rgbd_rays_line_set->lines_.emplace_back(0, ray_idx + 1);
-                            rgbd_rays_line_set->colors_.emplace_back(0.0, 1.0, 0.0);
+                        if (show_depth_rays) {
+                            depth_rays_line_set->points_.push_back(end_pt);
+                            depth_rays_line_set->lines_.emplace_back(0, ray_idx + 1);
+                            depth_rays_line_set->colors_.emplace_back(0.0, 1.0, 0.0);
                         }
-                        if (show_rgbd_points) {
-                            rgbd_point_cloud->points_.push_back(end_pt);
-                            rgbd_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
+                        if (show_depth_points) {
+                            depth_point_cloud->points_.push_back(end_pt);
+                            depth_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
                         }
                     }
                 }
@@ -128,7 +130,7 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     Eigen::Matrix3Xd sampled_positions, sampled_directions;
                     Eigen::VectorXd sampled_distances;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleNearSurface(10, 0.05, 1.0, sampled_positions, sampled_directions, sampled_distances);
+                    depth_frame_3d->SampleNearSurface(10, 0.05, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     auto toc = std::chrono::high_resolution_clock::now();
                     long num_samples = sampled_positions.cols();
                     std::cout << "============================" << std::endl
@@ -168,7 +170,7 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                               << "num_along_ray_samples_per_ray: " << num_along_ray_samples_per_ray << std::endl
                               << "max_in_obstacle_dist: " << max_in_obstacle_dist << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleInRegionHpr(
+                    depth_frame_3d->SampleInRegionHpr(
                         num_positions,
                         num_near_surface_samples_per_ray,
                         num_along_ray_samples_per_ray,
@@ -207,14 +209,14 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     double range_step = 0.2;
                     double max_in_obstacle_dist = 0.05;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
+                    depth_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     auto toc = std::chrono::high_resolution_clock::now();
                     long num_samples = sampled_positions.cols();
                     std::cout << "============================" << std::endl
                               << "SampleAlongRays (fixed range step): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms"
                               << std::endl
                               << num_samples << " samples" << std::endl;
-                    long num_hit_rays = rgbd_frame_3d->GetNumHitRays();
+                    long num_hit_rays = depth_frame_3d->GetNumHitRays();
                     long num_samples_per_ray = 5l;
                     num_samples += num_hit_rays * num_samples_per_ray;
                     along_ray_samples_line_set->Clear();
@@ -239,7 +241,7 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                     }
 
                     tic = std::chrono::high_resolution_clock::now();
-                    rgbd_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
+                    depth_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
                     toc = std::chrono::high_resolution_clock::now();
                     long collected_num_samples = num_samples;
                     num_samples = sampled_positions.cols();
@@ -263,8 +265,8 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
             }
 
             if (vis == nullptr) { return; }
-            if (show_rgbd_rays) { vis->UpdateGeometry(rgbd_rays_line_set); }
-            if (show_rgbd_points) { vis->UpdateGeometry(rgbd_point_cloud); }
+            if (show_depth_rays) { vis->UpdateGeometry(depth_rays_line_set); }
+            if (show_depth_points) { vis->UpdateGeometry(depth_point_cloud); }
             if (show_surface_samples) {
                 if (show_sample_rays) { vis->UpdateGeometry(surface_samples_line_set); }
                 if (show_sample_points) { vis->UpdateGeometry(surface_samples_point_cloud); }
@@ -284,26 +286,26 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
 
         std::map<int, std::function<bool(open3d::visualization::Visualizer *)>> key_to_callback;
         key_to_callback[GLFW_KEY_F1] = [&](open3d::visualization::Visualizer *vis) -> bool {
-            if (show_rgbd_rays) {
-                vis->RemoveGeometry(rgbd_rays_line_set);
-                std::cout << "rgbd rays removed." << std::endl;
+            if (show_depth_rays) {
+                vis->RemoveGeometry(depth_rays_line_set);
+                std::cout << "depth rays removed." << std::endl;
             } else {
-                vis->AddGeometry(rgbd_rays_line_set, false);
-                std::cout << "rgbd rays added." << std::endl;
+                vis->AddGeometry(depth_rays_line_set, false);
+                std::cout << "depth rays added." << std::endl;
             }
-            show_rgbd_rays = !show_rgbd_rays;
+            show_depth_rays = !show_depth_rays;
             update_render(vis);  // notify vis to update
             return true;
         };
         key_to_callback[GLFW_KEY_F2] = [&](open3d::visualization::Visualizer *vis) -> bool {
-            if (show_rgbd_points) {
-                vis->RemoveGeometry(rgbd_point_cloud);
-                std::cout << "rgbd points removed." << std::endl;
+            if (show_depth_points) {
+                vis->RemoveGeometry(depth_point_cloud);
+                std::cout << "depth points removed." << std::endl;
             } else {
-                vis->AddGeometry(rgbd_point_cloud, false);
-                std::cout << "rgbd points added." << std::endl;
+                vis->AddGeometry(depth_point_cloud, false);
+                std::cout << "depth points added." << std::endl;
             }
-            show_rgbd_points = !show_rgbd_points;
+            show_depth_points = !show_depth_points;
             update_render(vis);  // notify vis to update
             return true;
         };
@@ -411,10 +413,10 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
         key_to_callback[GLFW_KEY_H] = [&](open3d::visualization::Visualizer *vis) -> bool {
             vis->PrintVisualizerHelp();
             std::cout << "[H]: print help." << std::endl
-                      << "[Right arrow]: previous rgbd frame." << std::endl
-                      << "[Left arrow]: next rgbd frame." << std::endl
-                      << "[F1]: toggle rgbd rays." << std::endl
-                      << "[F2]: toggle rgbd points." << std::endl
+                      << "[Right arrow]: previous depth frame." << std::endl
+                      << "[Left arrow]: next depth frame." << std::endl
+                      << "[F1]: toggle depth rays." << std::endl
+                      << "[F2]: toggle depth points." << std::endl
                       << "[F3]: toggle surface samples." << std::endl
                       << "[F4]: toggle region samples." << std::endl
                       << "[F5]: toggle along ray samples." << std::endl
@@ -425,8 +427,8 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
         };
 
         std::vector<std::shared_ptr<const open3d::geometry::Geometry>> geometries = {room_mesh};
-        if (show_rgbd_rays) { geometries.emplace_back(rgbd_rays_line_set); }
-        if (show_rgbd_points) { geometries.emplace_back(rgbd_point_cloud); }
+        if (show_depth_rays) { geometries.emplace_back(depth_rays_line_set); }
+        if (show_depth_points) { geometries.emplace_back(depth_point_cloud); }
         if (show_surface_samples) {
             if (show_sample_rays) { geometries.emplace_back(surface_samples_line_set); }
             if (show_sample_points) { geometries.emplace_back(surface_samples_point_cloud); }

@@ -47,6 +47,21 @@ BindOccupancyQuadtree(
     // AbstractQuadtree methods are defined in bind_abstract_quadtree.cpp
     // AbstractOccupancyQuadtree methods are defined in bind_abstract_occupancy_quadtree.cpp
 
+    using BatchRayCaster = OccupancyNdTreeBatchRayCaster<Quadtree, 2>;
+    py::class_<BatchRayCaster>(tree, "BatchRayCaster")
+        .def_property_readonly("num_rays", &BatchRayCaster::GetNumRays)
+        .def_property_readonly("ray_origins", &BatchRayCaster::GetRayOrigins)
+        .def_property_readonly("ray_directions", &BatchRayCaster::GetRayDirections)
+        .def_property_readonly("hit_flags", &BatchRayCaster::GetHitFlags)
+        .def_property_readonly("ever_hit_flags", &BatchRayCaster::GetEverHitFlags)
+        .def_property_readonly("hit_distances", &BatchRayCaster::GetHitDistances)
+        .def_property_readonly("hit_nodes", &BatchRayCaster::GetHitNodes)
+        .def_property_readonly("hit_positions", &BatchRayCaster::GetHitPositions)
+        .def_property_readonly("frontier_nodes", &BatchRayCaster::GetFrontierNodes)
+        .def_property_readonly("frontier_keys", &BatchRayCaster::GetFrontierKeys)
+        .def_property_readonly("frontier_ray_indices", &BatchRayCaster::GetFrontierRayIndices)
+        .def("step", &BatchRayCaster::Step, py::arg("mask") = py::array_t<bool>());
+
     // OccupancyQuadtreeBase methods, except iterators
     tree.def(py::init<>())
         .def(py::init<>([](const std::shared_ptr<typename Quadtree::Setting>& setting) { return std::make_shared<Quadtree>(setting); }), py::arg("setting"))
@@ -139,6 +154,17 @@ BindOccupancyQuadtree(
             py::arg("max_range"),
             py::arg("prune_rays"),
             py::arg("parallel"))
+        .def(
+            "get_batch_ray_caster",
+            &Quadtree::GetBatchRayCaster,
+            py::arg("origins"),
+            py::arg("directions"),
+            py::arg("max_ranges") = py::array_t<double>(),
+            py::arg("node_paddings") = py::array_t<double>(),
+            py::arg("bidirectional_flags") = py::array_t<bool>(),
+            py::arg("leaf_only_flags") = py::array_t<bool>(),
+            py::arg("min_node_depths") = py::array_t<int>(),
+            py::arg("max_node_depths") = py::array_t<int>())
         .def(
             "cast_ray",
             [](const Quadtree& self, double px, double py, double vx, double vy, bool ignore_unknown, double max_range) {

@@ -70,7 +70,7 @@ namespace erl::geometry {
         GetRayDirectionsInFrame() const override;
 
         [[nodiscard]] std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
-        GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const override;
+        GetOpticalPose(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const override;
     };
 }  // namespace erl::geometry
 

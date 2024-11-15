@@ -10,27 +10,7 @@ namespace erl::geometry {
         : RangeSensorFrame3D(setting),
           m_setting_(std::move(setting)) {
         ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
-        ERL_ASSERTM(
-            std::abs(m_setting_->camera_to_optical.topLeftCorner<3, 3>().determinant() - 1.0) < 1e-6,
-            "camera_to_optical does not have a valid rotation matrix.");
-        ERL_ASSERTM((m_setting_->camera_to_optical.bottomLeftCorner<1, 3>().isZero(1e-6)), "camera_to_optical bottom row should be [0, 0, 0, 1].");
-        ERL_ASSERTM(m_setting_->camera_to_optical(3, 3) == 1.0, "camera_to_optical(3, 3) should be 1.0.");
         UpdateFrameCoords();
-    }
-
-    std::pair<long, long>
-    DepthFrame3D::Setting::Resize(double factor) {
-        const long old_image_height = image_height;
-        const long old_image_width = image_width;
-        image_height = static_cast<int>(static_cast<double>(image_height) * factor);
-        image_width = static_cast<int>(static_cast<double>(image_width) * factor);
-        factor = (static_cast<double>(image_height) / static_cast<double>(old_image_height) +
-                  static_cast<double>(image_width) / static_cast<double>(old_image_width)) /
-                 2.0;
-        camera_fx *= factor;
-        camera_cx *= factor;
-        camera_cy *= factor;
-        return {image_height, image_width};
     }
 
     void
@@ -40,14 +20,13 @@ namespace erl::geometry {
         Eigen::MatrixXd depth,
         const bool partition_rays) {
 
-        const long image_height = m_setting_->image_height;
-        const long image_width = m_setting_->image_width;
+        const long image_height = m_setting_->camera_intrinsic->image_height;
+        const long image_width = m_setting_->camera_intrinsic->image_width;
         ERL_ASSERTM(depth.rows() == image_height, "depth image height ({}) does not match setting ({}).", depth.rows(), image_height);
         ERL_ASSERTM(depth.cols() == image_width, "depth image width ({}) does not match setting ({}).", depth.cols(), image_width);
 
         m_rotation_ << rotation;
         m_translation_ << translation;
-        m_camera_extrinsic_ = GetPoseMatrix() * m_setting_->camera_to_optical;
         m_ranges_ = std::move(depth);
 
         m_partitions_.clear();
@@ -83,10 +62,8 @@ namespace erl::geometry {
                 range = end_pt_frame.norm();                         // range is now the actual range
 
                 // transform directions and end_points to world
-                auto rotation_ref = m_camera_extrinsic_.topLeftCorner<3, 3>();
-                auto translation_ref = m_camera_extrinsic_.topRightCorner<3, 1>();
-                m_dirs_world_(v, u) << rotation_ref * dir_frame;
-                m_end_pts_world_(v, u) << rotation_ref * end_pt_frame + translation_ref;
+                m_dirs_world_(v, u) << m_rotation_ * dir_frame;
+                m_end_pts_world_(v, u) << m_rotation_ * end_pt_frame + m_translation_;
 
                 // max valid range
                 if (range < valid_range_min || range > valid_range_max) { continue; }
@@ -118,7 +95,6 @@ namespace erl::geometry {
         if (other_ptr == nullptr) { return false; }
         if (m_setting_ == nullptr && other_ptr->m_setting_ != nullptr) { return false; }
         if (m_setting_ != nullptr && (other_ptr->m_setting_ == nullptr || *m_setting_ != *other_ptr->m_setting_)) { return false; }
-        if (m_camera_extrinsic_ != other_ptr->m_camera_extrinsic_) { return false; }
         if (m_partitions_.size() != other_ptr->m_partitions_.size()) { return false; }
         // TODO: compare partitions
         if (m_partitioned_ != other_ptr->m_partitioned_) { return false; }
@@ -157,11 +133,6 @@ namespace erl::geometry {
             return false;
         }
         // write data
-        s << "camera_extrinsic" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_camera_extrinsic_)) {
-            ERL_WARN("Failed to write camera_extrinsic.");
-            return false;
-        }
         s << "partitions " << m_partitions_.size() << std::endl;
         // TODO: write partitions
         s << "partitioned " << m_partitioned_ << std::endl;
@@ -210,7 +181,6 @@ namespace erl::geometry {
 
         static const char *tokens[] = {
             "setting",
-            "camera_extrinsic",
             "partitions",
             "partitioned",
             "end_of_DepthFrame3D",
@@ -240,15 +210,7 @@ namespace erl::geometry {
                     }
                     break;
                 }
-                case 1: {  // camera_extrinsic
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_camera_extrinsic_)) {
-                        ERL_WARN("Failed to read camera_extrinsic.");
-                        return false;
-                    }
-                    break;
-                }
-                case 2: {  // partitions
+                case 1: {  // partitions
                     long num_partitions;
                     s >> num_partitions;
                     m_partitions_.resize(num_partitions);
@@ -256,11 +218,11 @@ namespace erl::geometry {
                     // TODO: read partitions
                     break;
                 }
-                case 3: {  // partitioned
+                case 2: {  // partitioned
                     s >> m_partitioned_;
                     break;
                 }
-                case 4: {  // end_of_DepthFrame3D
+                case 3: {  // end_of_DepthFrame3D
                     skip_line();
                     return true;
                 }
@@ -278,29 +240,6 @@ namespace erl::geometry {
     // ReSharper disable once CppMemberFunctionMayBeStatic
     DepthFrame3D::PartitionRays() {  // NOLINT(*-convert-member-functions-to-static)
         throw NotImplemented(__PRETTY_FUNCTION__);
-    }
-
-    void
-    DepthFrame3D::UpdateFrameCoords() {
-        const long image_height = m_setting_->image_height;
-        const long image_width = m_setting_->image_width;
-        m_frame_coords_.resize(image_height, image_width);
-        m_dirs_frame_.resize(image_height, image_width);
-
-#pragma omp parallel for default(none) shared(image_height, image_width, Eigen::Dynamic)
-        for (long u = 0; u < image_width; ++u) {
-            const double xu = (static_cast<double>(u) - m_setting_->camera_cx) / m_setting_->camera_fx;
-            for (long v = 0; v < image_height; ++v) {
-                const double yv = (static_cast<double>(v) - m_setting_->camera_cy) / m_setting_->camera_fy;
-                Eigen::Vector2d &frame_coord = m_frame_coords_(v, u);
-                // normalized image coordinates
-                // v <--> image coordinate y, u <--> image coordinate x
-                frame_coord << yv, xu;
-                Eigen::Vector3d &dir_frame = m_dirs_frame_(v, u);
-                dir_frame << xu, yv, 1.0;
-                dir_frame.normalize();
-            }
-        }
     }
 
 }  // namespace erl::geometry

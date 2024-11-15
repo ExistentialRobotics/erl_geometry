@@ -34,4 +34,25 @@ namespace erl::geometry {
         auto mesh = std::get<0>(open3d::geometry::TriangleMesh::CreateFromPointCloudPoisson(point_cloud, 8));
         return mesh;
     }
+
+    std::shared_ptr<open3d::geometry::TriangleMesh>
+    CreateAxisMesh(const Eigen::Matrix4d &pose, const double axis_length) {
+        auto axis_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
+        constexpr double cylinder_radius = 0.0025;
+        constexpr double cone_radius = 0.0075;
+        constexpr double cone_height = 0.04;
+        const auto axis_x = open3d::geometry::TriangleMesh::CreateArrow(cylinder_radius, cone_radius, axis_length, cone_height);
+        axis_x->PaintUniformColor(Eigen::Vector3d(1.0, 0.0, 0.0));  // red
+        axis_x->Rotate(open3d::geometry::TriangleMesh::GetRotationMatrixFromXYZ(Eigen::Vector3d(0, M_PI_2, 0)), Eigen::Vector3d(0, 0, 0));
+        const auto axis_y = open3d::geometry::TriangleMesh::CreateArrow(cylinder_radius, cone_radius, axis_length, cone_height);
+        axis_y->PaintUniformColor(Eigen::Vector3d(0.0, 1.0, 0.0));  // green
+        axis_y->Rotate(open3d::geometry::TriangleMesh::GetRotationMatrixFromXYZ(Eigen::Vector3d(-M_PI_2, 0, 0)), Eigen::Vector3d(0, 0, 0));
+        const auto axis_z = open3d::geometry::TriangleMesh::CreateArrow(cylinder_radius, cone_radius, axis_length, cone_height);
+        axis_z->PaintUniformColor(Eigen::Vector3d(0.0, 0.0, 1.0));  // blue
+        *axis_mesh += *axis_x;
+        *axis_mesh += *axis_y;
+        *axis_mesh += *axis_z;
+        axis_mesh->Transform(pose);
+        return axis_mesh;
+    }
 }  // namespace erl::geometry

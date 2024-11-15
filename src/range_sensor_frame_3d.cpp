@@ -435,7 +435,7 @@ namespace erl::geometry {
         s << "hit_ray_indices " << m_hit_ray_indices_.size() << std::endl;
         for (const auto &[row, col]: m_hit_ray_indices_) { s << row << " " << col << std::endl; }
         s << "hit_points_world" << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_hit_points_world_)) {
+        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_hit_points_world_)) {
             ERL_WARN("Failed to write hit_points_world.");
             return false;
         }

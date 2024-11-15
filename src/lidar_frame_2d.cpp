@@ -422,22 +422,22 @@ namespace erl::geometry {
             return false;
         }
         s << "dirs_frame " << m_dirs_frame_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_dirs_frame_)) {
+        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_dirs_frame_)) {
             ERL_WARN("Failed to write dirs_frame.");
             return false;
         }
         s << "dirs_world " << m_dirs_world_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_dirs_world_)) {
+        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_dirs_world_)) {
             ERL_WARN("Failed to write dirs_world.");
             return false;
         }
         s << "end_pts_frame " << m_end_pts_frame_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_end_pts_frame_)) {
+        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_end_pts_frame_)) {
             ERL_WARN("Failed to write end_pts_frame.");
             return false;
         }
         s << "end_pts_world " << m_end_pts_world_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_end_pts_world_)) {
+        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_end_pts_world_)) {
             ERL_WARN("Failed to write end_pts_world.");
             return false;
         }
@@ -454,7 +454,7 @@ namespace erl::geometry {
         s << "hit_ray_indices " << m_hit_ray_indices_.size() << std::endl;
         s.write(reinterpret_cast<const char *>(m_hit_ray_indices_.data()), static_cast<std::streamsize>(m_hit_ray_indices_.size() * sizeof(long)));
         s << "hit_points_world " << m_hit_points_world_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBindaryStream(s, m_hit_points_world_)) {
+        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_hit_points_world_)) {
             ERL_WARN("Failed to write hit_points_world.");
             return false;
         }

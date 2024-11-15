@@ -42,7 +42,7 @@ namespace erl::geometry {
         }
 
         const std::unordered_map<std::string, open3d::core::Tensor> cast_results = m_scene_->CastRays(rays);
-        std::vector<float> ranges = cast_results.at("t_hit").ToFlatVector<float>();
+        const std::vector<float> ranges = cast_results.at("t_hit").ToFlatVector<float>();
         const std::vector<uint32_t> geometry_ids = cast_results.at("geometry_ids").ToFlatVector<uint32_t>();
         const uint32_t invalid_id = open3d::t::geometry::RaycastingScene::INVALID_ID();
         Eigen::MatrixXd ranges_mat_d(n_rows, n_cols);

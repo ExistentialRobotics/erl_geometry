@@ -42,6 +42,9 @@ namespace erl::geometry {
         std::vector<QuadtreeKeyRay> m_key_rays_;   // data structure for parallel ray casting
 
     public:
+        using NodeType = Node;
+        using KeyType = QuadtreeKey;
+
         QuadtreeImpl() = delete;  // no default constructor
 
         explicit QuadtreeImpl(std::shared_ptr<InterfaceSetting> setting)
@@ -1761,6 +1764,30 @@ namespace erl::geometry {
             uint32_t min_node_depth = 0,
             uint32_t max_node_depth = 0) const {
             return {px, py, vx, vy, max_range, node_padding, bidirectional, this, leaf_only, min_node_depth, max_node_depth};
+        }
+
+        [[nodiscard]] NodeOnRayIterator
+        BeginNodeOnRay(
+            const Eigen::Ref<const Eigen::Vector2d> &origin,
+            const Eigen::Ref<const Eigen::Vector2d> &direction,
+            double max_range = -1,
+            double node_padding = 0.0,
+            bool bidirectional = false,
+            bool leaf_only = false,
+            uint32_t min_node_depth = 0,
+            uint32_t max_node_depth = 0) const {
+            return {
+                origin.x(),
+                origin.y(),
+                direction.x(),
+                direction.y(),
+                max_range,
+                node_padding,
+                bidirectional,
+                this,
+                leaf_only,
+                min_node_depth,
+                max_node_depth};
         }
 
         [[nodiscard]] NodeOnRayIterator

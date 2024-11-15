@@ -22,7 +22,7 @@ namespace erl::geometry {
     }
 
     std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
-    Lidar3D::GetExtrinsicMatrix(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const {
+    Lidar3D::GetOpticalPose(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const {
         return {orientation, translation};
     }
 
