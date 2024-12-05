@@ -144,7 +144,7 @@ class CMakeBuild(build_ext):
         if os.path.exists(old_ext_path):
             os.remove(old_ext_path)
         build_temp = os.path.join(build_dir, ext.name)
-        if os.path.exists(build_temp):
+        if os.path.exists(build_temp) and clean_before_build:
             shutil.rmtree(build_temp)
         os.makedirs(build_temp, exist_ok=True)
         os.makedirs(ext_dir, exist_ok=True)
