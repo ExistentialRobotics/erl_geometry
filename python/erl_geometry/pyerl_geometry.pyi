@@ -21,6 +21,8 @@ __all__ = [
     "compute_intersection_between_ray_and_aabb_2d",
     "compute_intersection_between_ray_and_aabb_3d",
     "convert_path_2d_to_3d",
+    "hidden_point_removal",
+    "parallel_hidden_point_removal",
     "Aabb2D",
     "Aabb3D",
     "CityStreetMap",
@@ -129,6 +131,27 @@ def compute_intersection_between_ray_and_ellipsoid_3d(
     x0: float, y0: float, z0: float, x1: float, y1: float, z1: float, a: float, b: float, c: float
 ) -> Tuple[float, float, bool]: ...
 def convert_path_2d_to_3d(path_2d: npt.NDArray, z: float) -> list[npt.NDArray]: ...
+def hidden_point_removal(
+    points: npt.NDArray,
+    view_position: npt.NDArray,
+    radius: float,
+    fast: bool = False,
+    joggle_inputs: bool = False,
+    return_meshes: bool = False,
+) -> TypedDict(
+    "returns", {"triangles": npt.NDArray, "vertices": npt.NDArray, "visible_point_indices": npt.NDArray}
+): ...
+def parallel_hidden_point_removal(
+    points: npt.NDArray,
+    view_positions: npt.NDArray,
+    radius: float,
+    fast: bool = False,
+    joggle_inputs: bool = False,
+    return_meshes: bool = False,
+) -> TypedDict(
+    "returns",
+    {"triangles": list[npt.NDArray], "vertices": list[npt.NDArray], "visible_point_indices": list[npt.NDArray]},
+): ...
 
 class Aabb2D:
     class CornerType(IntEnum):

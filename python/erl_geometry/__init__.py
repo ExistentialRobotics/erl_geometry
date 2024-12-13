@@ -17,6 +17,8 @@ __all__ = [
     "compute_intersection_between_ray_and_aabb_2d",
     "compute_intersection_between_ray_and_aabb_3d",
     "convert_path_2d_to_3d",
+    "hidden_point_removal",
+    "parallel_hidden_point_removal",
     "Aabb2D",
     "Aabb3D",
     "CityStreetMap",

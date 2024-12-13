@@ -7,7 +7,7 @@ BindRgbdCamera3D(const py::module &m) {
     using namespace erl::geometry;
 
     py::class_<RgbdCamera3D, CameraBase3D, std::shared_ptr<RgbdCamera3D>>(m, "RgbdCamera3D")
-        .def("Setting", []() { return std::make_shared<RgbdCamera3D::Setting>(); })
+        .def_static("Setting", []() { return std::make_shared<RgbdCamera3D::Setting>(); })
         .def(py::init<std::shared_ptr<RgbdCamera3D::Setting>>(), py::arg("setting"))
         .def_property_readonly("setting", &RgbdCamera3D::GetSetting)
         .def("add_mesh", &RgbdCamera3D::AddMesh, py::arg("mesh_path"))

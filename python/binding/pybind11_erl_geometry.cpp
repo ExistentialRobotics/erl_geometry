@@ -144,6 +144,9 @@ BindPrimitives3D(const py::module &m);
 void
 BindOpen3dHelper(py::module &m);
 
+void
+BindHiddenPointRemoval(py::module &m);
+
 PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     m.doc() = "Python 3 Interface of erl_geometry";
 
@@ -203,4 +206,5 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindPrimitives2D(m);
     BindPrimitives3D(m);
     BindOpen3dHelper(m);
+    BindHiddenPointRemoval(m);
 }
