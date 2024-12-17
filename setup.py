@@ -70,7 +70,7 @@ cmake_build_test = os.environ.get("BUILD_TEST", cmake_build_test)
 available_build_types = ["Release", "Debug", "RelWithDebInfo"]
 assert cmake_build_type in available_build_types, f"build type {cmake_build_type} is not in {available_build_types}"
 clean_before_build = os.environ.get("CLEAN_BEFORE_BUILD", "0") == "1"
-n_proc = os.cpu_count()
+n_proc = os.environ.get("N_JOBS", os.cpu_count())
 
 # compute paths
 project_dir = os.path.dirname(os.path.realpath(__file__))  # the directory of setup.py, should be the project root

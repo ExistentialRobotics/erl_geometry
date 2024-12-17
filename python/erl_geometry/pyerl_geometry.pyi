@@ -144,7 +144,7 @@ def hidden_point_removal(
 def parallel_hidden_point_removal(
     points: npt.NDArray,
     view_positions: npt.NDArray,
-    radius: float,
+    radii: npt.NDArray,
     fast: bool = False,
     joggle_inputs: bool = False,
     return_meshes: bool = False,

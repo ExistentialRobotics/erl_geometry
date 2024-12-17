@@ -47,7 +47,7 @@ BindHiddenPointRemoval(py::module &m) {
             "parallel_hidden_point_removal",
             [](const Eigen::Ref<const Eigen::Matrix3Xd> &points,
                const Eigen::Ref<const Eigen::Matrix3Xd> &view_positions,
-               const double radius,
+               const Eigen::Ref<const Eigen::VectorXd> &radii,
                const bool fast,
                const bool joggle_inputs,
                const bool return_meshes) {
@@ -56,18 +56,18 @@ BindHiddenPointRemoval(py::module &m) {
                 if (return_meshes) {
                     std::vector<Eigen::Matrix3Xl> mesh_triangles;
                     std::vector<Eigen::Matrix3Xd> mesh_vertices;
-                    ParallelHiddenPointRemoval(points, view_positions, radius, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs);
+                    ParallelHiddenPointRemoval(points, view_positions, radii, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs);
                     result["triangles"] = mesh_triangles;
                     result["vertices"] = mesh_vertices;
                 } else {
-                    ParallelHiddenPointRemoval(points, view_positions, radius, visible_point_indices, fast, joggle_inputs);
+                    ParallelHiddenPointRemoval(points, view_positions, radii, visible_point_indices, fast, joggle_inputs);
                 }
                 result["visible_point_indices"] = visible_point_indices;
                 return result;
             },
             py::arg("points"),
             py::arg("view_positions"),
-            py::arg("radius"),
+            py::arg("radii"),
             py::arg("fast") = false,
             py::arg("joggle_inputs") = false,
             py::arg("return_meshes") = false,
@@ -75,7 +75,7 @@ BindHiddenPointRemoval(py::module &m) {
             "Args:\n"
             "    points: A 3xN matrix of points.\n"
             "    view_positions: A 3xM matrix of camera positions.\n"
-            "    radius: The radius of the sphere.\n"
+            "    radii: The radius of the spherical projection.\n"
             "    fast: If true, will run QHull with `Q3 Q5 Q8`.\n"
             "    joggle_inputs: If true, will run QHull with `QJ`.\n"
             "Returns:\n"

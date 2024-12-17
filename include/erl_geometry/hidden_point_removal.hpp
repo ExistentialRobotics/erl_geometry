@@ -62,16 +62,16 @@ namespace erl::geometry {
     ParallelHiddenPointRemoval(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
         const Eigen::Ref<const Eigen::Matrix3Xd> &view_positions,
-        const double radius,
+        const Eigen::Ref<const Eigen::VectorXd> &radii,
         std::vector<std::vector<long>> &visible_point_indices,
         const bool fast = false,
         const bool joggle_inputs = false) {
 
         const long num_view_positions = view_positions.cols();
         visible_point_indices.resize(num_view_positions);
-#pragma omp parallel for default(none) shared(num_view_positions, points, view_positions, radius, visible_point_indices, fast, joggle_inputs)
+#pragma omp parallel for default(none) shared(num_view_positions, points, view_positions, radii, visible_point_indices, fast, joggle_inputs)
         for (long i = 0; i < num_view_positions; ++i) {
-            HiddenPointRemoval(points, view_positions.col(i), radius, visible_point_indices[i], fast, joggle_inputs);
+            HiddenPointRemoval(points, view_positions.col(i), radii[i], visible_point_indices[i], fast, joggle_inputs);
         }
     }
 
@@ -79,7 +79,7 @@ namespace erl::geometry {
     ParallelHiddenPointRemoval(
         const Eigen::Ref<const Eigen::Matrix3Xd> &points,
         const Eigen::Ref<const Eigen::Matrix3Xd> &view_positions,
-        const double radius,
+        const Eigen::Ref<const Eigen::VectorXd> &radii,
         std::vector<Eigen::Matrix3Xl> &mesh_triangles,
         std::vector<Eigen::Matrix3Xd> &mesh_vertices,
         std::vector<std::vector<long>> &visible_point_indices,
@@ -91,9 +91,9 @@ namespace erl::geometry {
         mesh_vertices.resize(num_view_positions);
         visible_point_indices.resize(num_view_positions);
 #pragma omp parallel for default(none) \
-    shared(num_view_positions, points, view_positions, radius, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs)
+    shared(num_view_positions, points, view_positions, radii, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs)
         for (long i = 0; i < num_view_positions; ++i) {
-            HiddenPointRemoval(points, view_positions.col(i), radius, mesh_triangles[i], mesh_vertices[i], visible_point_indices[i], fast, joggle_inputs);
+            HiddenPointRemoval(points, view_positions.col(i), radii[i], mesh_triangles[i], mesh_vertices[i], visible_point_indices[i], fast, joggle_inputs);
         }
     }
 }  // namespace erl::geometry
