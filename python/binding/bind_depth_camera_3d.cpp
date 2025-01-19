@@ -21,9 +21,14 @@ BindDepthCamera3D(const py::module &m) {
         .def_property_readonly("setting", &DepthCamera3D::GetSetting)
         .def_property_readonly(
             "ray_directions_in_frame",
-            [](const DepthCamera3D &self) -> py::array_t<double> {
-                const Eigen::MatrixX<Eigen::Vector3d> dirs = self.GetRayDirectionsInFrame();
-                return py::cast_to_array(dirs);
-            })
-        .def("scan", &DepthCamera3D::Scan, py::arg("orientation"), py::arg("translation"), py::arg("add_noise") = false, py::arg("noise_stddev") = 0.03);
+            [](const DepthCamera3D &self) -> py::array_t<double> { return py::cast_to_array(self.GetRayDirectionsInFrame()); })
+        .def(
+            "scan",
+            &DepthCamera3D::Scan,
+            py::arg("orientation"),
+            py::arg("translation"),
+            py::arg("add_noise") = false,
+            py::arg("noise_stddev") = 0.03,
+            py::arg("cache_normals") = false)
+        .def_property_readonly("cached_normals", [](const DepthCamera3D &self) -> py::array_t<double> { return py::cast_to_array(self.GetCachedNormals()); });
 }

@@ -9,6 +9,7 @@ namespace erl::geometry {
     class RangeSensor3D {
     protected:
         std::shared_ptr<open3d::t::geometry::RaycastingScene> m_scene_ = nullptr;
+        Eigen::MatrixX<Eigen::Vector3d> m_normals_{};  // cache normals of the last scan
 
     public:
         RangeSensor3D() = delete;
@@ -74,7 +75,13 @@ namespace erl::geometry {
             const Eigen::Ref<const Eigen::Matrix3d> &orientation,
             const Eigen::Ref<const Eigen::Vector3d> &translation,
             bool add_noise = false,
-            double noise_stddev = 0.03) const;
+            double noise_stddev = 0.03,
+            bool cache_normals = false);
+
+        [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
+        GetCachedNormals() const {
+            return m_normals_;
+        }
     };
 
 }  // namespace erl::geometry

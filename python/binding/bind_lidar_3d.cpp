@@ -31,20 +31,14 @@ BindLidar3D(const py::module &m) {
         .def_property_readonly("elevation_angles", &Lidar3D::GetElevationAngles)
         .def_property_readonly(
             "ray_directions_in_frame",
-            [](const Lidar3D &self) -> py::array_t<double> {
-                Eigen::MatrixX<Eigen::Vector3d> rays = self.GetRayDirectionsInFrame();
-                const long n_azimuths = rays.rows();
-                const long n_elevations = rays.cols();
-                py::array_t<double> out({n_azimuths, n_elevations, 3l});
-                for (long i = 0; i < n_azimuths; ++i) {
-                    for (long j = 0; j < n_elevations; ++j) {
-                        const auto &dir = rays(i, j);
-                        out.mutable_at(i, j, 0) = dir[0];
-                        out.mutable_at(i, j, 1) = dir[1];
-                        out.mutable_at(i, j, 2) = dir[2];
-                    }
-                }
-                return out;
-            })
-        .def("scan", &Lidar3D::Scan, py::arg("orientation"), py::arg("translation"), py::arg("add_noise") = false, py::arg("noise_stddev") = 0.03);
+            [](const Lidar3D &self) -> py::array_t<double> { return py::cast_to_array(self.GetRayDirectionsInFrame()); })
+        .def(
+            "scan",
+            &Lidar3D::Scan,
+            py::arg("orientation"),
+            py::arg("translation"),
+            py::arg("add_noise") = false,
+            py::arg("noise_stddev") = 0.03,
+            py::arg("cache_normals") = false)
+        .def_property_readonly("cached_normals", [](const Lidar3D &self) -> py::array_t<double> { return py::cast_to_array(self.GetCachedNormals()); });
 }

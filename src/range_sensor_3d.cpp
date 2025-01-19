@@ -8,7 +8,8 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Matrix3d> &orientation,
         const Eigen::Ref<const Eigen::Vector3d> &translation,
         const bool add_noise,
-        const double noise_stddev) const {
+        const double noise_stddev,
+        bool cache_normals) {
         Eigen::MatrixX<Eigen::Vector3d> directions = GetRayDirectionsInFrame();
         const long n_rows = directions.rows();
         const long n_cols = directions.cols();
@@ -41,14 +42,20 @@ namespace erl::geometry {
             }
         }
 
+        // cast rays
         const std::unordered_map<std::string, open3d::core::Tensor> cast_results = m_scene_->CastRays(rays);
         const std::vector<float> ranges = cast_results.at("t_hit").ToFlatVector<float>();
         const std::vector<uint32_t> geometry_ids = cast_results.at("geometry_ids").ToFlatVector<uint32_t>();
+        const std::vector<float> normals = cache_normals ? cast_results.at("primitive_normals").ToFlatVector<float>() : std::vector<float>{};
         const uint32_t invalid_id = open3d::t::geometry::RaycastingScene::INVALID_ID();
+
+        // copy results to Eigen matrix
+        if (cache_normals && (m_normals_.rows() != n_rows || m_normals_.cols() != n_cols)) { m_normals_ = Eigen::MatrixX<Eigen::Vector3d>(n_rows, n_cols); }
         Eigen::MatrixXd ranges_mat_d(n_rows, n_cols);
         std::vector<uint64_t> random_seeds(n_cols);
         for (long i = 0; i < n_cols; ++i) { random_seeds[i] = common::g_random_engine(); }
-#pragma omp parallel for default(none) shared(n_rows, n_cols, ranges, ranges_mat_d, geometry_ids, scales, invalid_id, random_seeds, add_noise, noise_stddev)
+#pragma omp parallel for default(none) \
+    shared(n_rows, n_cols, ranges, ranges_mat_d, geometry_ids, normals, scales, invalid_id, random_seeds, add_noise, noise_stddev, cache_normals)
         for (long v = 0; v < n_cols; ++v) {
             const long base0 = v * n_rows;
             std::mt19937_64 generator(random_seeds[v]);
@@ -56,10 +63,19 @@ namespace erl::geometry {
             for (long u = 0; u < n_rows; ++u) {
                 if (const long i = base0 + u; geometry_ids[i] == invalid_id) {
                     ranges_mat_d(u, v) = std::numeric_limits<double>::infinity();
+                    if (cache_normals) { m_normals_(u, v).setZero(); }
                 } else {
                     double &range = ranges_mat_d(u, v);
                     range = static_cast<double>(ranges[i]) / scales.data()[i];
                     if (add_noise) { range += distribution(generator); }
+                    if (cache_normals) {
+                        Eigen::Vector3d &normal = m_normals_(u, v);
+                        const long ii = i * 3;
+                        normal[0] = normals[ii + 0];
+                        normal[1] = normals[ii + 1];
+                        normal[2] = normals[ii + 2];
+                        normal.normalize();
+                    }
                 }
             }
         }

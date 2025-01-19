@@ -1667,7 +1667,10 @@ class Lidar3D:
         translation: npt.NDArray[np.float64],
         add_noise: bool = False,
         noise_stddev: float = 0.03,
+        cache_normals: bool = False,
     ) -> npt.NDArray[np.float64]: ...
+    @property
+    def cached_normals(self) -> npt.NDArray[np.float64]: ...
 
 class CameraIntrinsic(YamlableBase):
     image_height: int
@@ -1720,7 +1723,10 @@ class DepthCamera3D(CameraBase3D):
         translation: npt.NDArray[np.float64],
         add_noise: bool = False,
         noise_stddev: float = 0.03,
+        cache_normals: bool = False,
     ) -> npt.NDArray[np.float64]: ...
+    @property
+    def cached_normals(self) -> npt.NDArray[np.float64]: ...
 
 class RgbdCamera3D(CameraBase3D):
     Setting = CameraIntrinsic
