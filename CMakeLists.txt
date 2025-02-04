@@ -24,6 +24,16 @@ get_target_property(qhullcpp_location Qhull::qhullcpp LOCATION)
 list(APPEND Qhull_LIBRARIES ${qhull_r_location} ${qhullcpp_location})
 
 erl_find_package(
+        PACKAGE absl
+        REQUIRED GLOBAL
+        COMMANDS APPLE "try `brew install abseil`"
+        COMMANDS UBUNTU_LINUX "try `sudo apt install libabseil-dev`"
+        COMMANDS ARCH_LINUX "try `sudo pacman -S abseil-cpp`")
+get_target_property(absl::flat_hash_map_location absl::flat_hash_map LOCATION)
+get_target_property(absl::flat_hash_set_location absl::flat_hash_set LOCATION)
+list(APPEND absl_LIBRARIES ${absl_flat_hash_map_location} ${absl_flat_hash_set_location})
+
+erl_find_package(
         PACKAGE Open3D
         REQUIRED
         COMMANDS GENERAL "visit http://www.open3d.org/"
@@ -85,7 +95,11 @@ if (catkin_LIBRARIES)
 else ()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif ()
-target_link_libraries(${PROJECT_NAME} PUBLIC nanoflann::nanoflann Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D)
+target_link_libraries(${PROJECT_NAME}
+        PUBLIC nanoflann::nanoflann
+        PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
+        PUBLIC absl::flat_hash_map absl::flat_hash_set
+)
 
 ###################
 # Python bindings #

@@ -20,7 +20,14 @@ namespace erl::geometry {
         camera_parameters.intrinsic_.intrinsic_matrix_ = m_setting_->GetIntrinsicMatrix();
         camera_parameters.intrinsic_.height_ = image_height;
         camera_parameters.intrinsic_.width_ = image_width;
-        m_visualizer_->GetViewControl().ConvertFromPinholeCameraParameters(camera_parameters);
+        if (!m_visualizer_->GetViewControl().ConvertFromPinholeCameraParameters(camera_parameters)) {
+            ERL_WARN(
+                "Open3D failed to set camera parameters:\n{}\nwindow size: {}(width) x {}(height)",
+                m_setting_->AsYamlString(),
+                m_visualizer_->GetViewControl().GetWindowWidth(),
+                m_visualizer_->GetViewControl().GetWindowHeight());
+        }
+
         const auto rgb_image = m_visualizer_->CaptureScreenFloatBuffer(true);
         const auto depth_image = m_visualizer_->CaptureDepthFloatBuffer(true);              // depth in view space
         cv::Mat rgb_mat(image_height, image_width, CV_32FC3, rgb_image->data_.data());      // reference only

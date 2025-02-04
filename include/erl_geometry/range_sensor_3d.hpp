@@ -2,6 +2,7 @@
 
 #include "erl_common/logging.hpp"
 
+#include <open3d/io/TriangleMeshIO.h>
 #include <open3d/t/geometry/RaycastingScene.h>
 
 namespace erl::geometry {
@@ -12,10 +13,25 @@ namespace erl::geometry {
         Eigen::MatrixX<Eigen::Vector3d> m_normals_{};  // cache normals of the last scan
 
     public:
-        RangeSensor3D() = delete;
+        RangeSensor3D()
+            : m_scene_(std::make_shared<open3d::t::geometry::RaycastingScene>()) {}
 
-        RangeSensor3D(const Eigen::Ref<const Eigen::Matrix3Xd> &vertices, const Eigen::Ref<const Eigen::Matrix3Xi> &triangles)
-            : m_scene_(std::make_shared<open3d::t::geometry::RaycastingScene>()) {
+        explicit RangeSensor3D(const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
+            : m_scene_(o3d_scene) {
+            ERL_ASSERTM(m_scene_ != nullptr, "scene is nullptr.");
+        }
+
+        virtual ~RangeSensor3D() = default;
+
+        void
+        AddMesh(const std::string &mesh_path) const {
+            const auto mesh = open3d::io::CreateMeshFromFile(mesh_path);
+            ERL_ASSERTM(mesh != nullptr, "Failed to load mesh from file: {}", mesh_path);
+            m_scene_->AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*mesh));
+        }
+
+        void
+        AddMesh(const Eigen::Ref<const Eigen::Matrix3Xd> &vertices, const Eigen::Ref<const Eigen::Matrix3Xi> &triangles) const {
             long num_vertices = vertices.cols();
             const open3d::core::Tensor vertices_tensor({num_vertices, 3}, open3d::core::Dtype::Float32);
             for (long i = 0; i < num_vertices; ++i) {
@@ -33,8 +49,8 @@ namespace erl::geometry {
             m_scene_->AddTriangles(vertices_tensor, triangles_tensor);
         }
 
-        RangeSensor3D(const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles)
-            : m_scene_(std::make_shared<open3d::t::geometry::RaycastingScene>()) {
+        void
+        AddMesh(const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles) const {
             auto num_vertices = static_cast<long>(vertices.size());
             const open3d::core::Tensor vertices_tensor({num_vertices, 3}, open3d::core::Dtype::Float32);
             for (long i = 0; i < num_vertices; ++i) {
@@ -51,13 +67,6 @@ namespace erl::geometry {
             }
             m_scene_->AddTriangles(vertices_tensor, triangles_tensor);
         }
-
-        explicit RangeSensor3D(const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
-            : m_scene_(o3d_scene) {
-            ERL_ASSERTM(m_scene_ != nullptr, "scene is nullptr.");
-        }
-
-        virtual ~RangeSensor3D() = default;
 
         [[nodiscard]] std::shared_ptr<open3d::t::geometry::RaycastingScene>
         GetScene() const {

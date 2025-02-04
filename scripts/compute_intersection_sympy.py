@@ -139,10 +139,10 @@ def convert_line():
 
 def main():
     # intersection_line_line_2d()
-    intersection_line_line_3d()
+    # intersection_line_line_3d()
     # intersection_ray_line_2d()
     # intersection_line_ellipse()
-    # intersection_line_ellipsoid()
+    intersection_line_ellipsoid()
     # intersection_line_ray_2d()
     # convert_line()
 

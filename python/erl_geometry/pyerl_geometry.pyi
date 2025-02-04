@@ -1640,7 +1640,27 @@ class LogOddMap2D:
         self: LogOddMap2D, clean_at_first: bool = True, approx_iters: int = 4
     ) -> list[npt.NDArray[np.int32]]: ...
 
-class Lidar3D:
+class RangeSensor3D:
+    @overload
+    def add_mesh(self, mesh_path: str) -> None: ...
+    @overload
+    def add_mesh(self, vertices: npt.NDArray, triangles: npt.NDArray) -> None: ...
+    @overload
+    def add_mesh(self, vertices: list[npt.NDArray], triangles: list[npt.NDArray]) -> None: ...
+    @property
+    def ray_directions_in_frame(self) -> npt.NDArray: ...
+    def scan(
+        self,
+        orientation: npt.NDArray,
+        translation: npt.NDArray,
+        add_noise: bool = False,
+        noise_stddev: float = 0.03,
+        cache_normals: bool = False,
+    ) -> npt.NDArray: ...
+    @property
+    def cached_normals(self) -> npt.NDArray: ...
+
+class Lidar3D(RangeSensor3D):
     class Setting(YamlableBase):
         azimuth_min: float
         azimuth_max: float
@@ -1649,28 +1669,13 @@ class Lidar3D:
         num_azimuth_lines: int
         num_elevation_lines: int
 
-    @overload
-    def __init__(self, setting: Setting, vertices: npt.NDArray, triangles: npt.NDArray) -> None: ...
-    @overload
-    def __init__(self, setting: Setting, vertices: list[npt.NDArray], triangles: list[npt.NDArray]) -> None: ...
+    def __init__(self, setting: Setting) -> None: ...
     @property
     def setting(self) -> Setting: ...
     @property
     def azimuth_angles(self) -> npt.NDArray[np.float64]: ...
     @property
     def elevation_angles(self) -> npt.NDArray[np.float64]: ...
-    @property
-    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
-    def scan(
-        self,
-        orientation: npt.NDArray[np.float64],
-        translation: npt.NDArray[np.float64],
-        add_noise: bool = False,
-        noise_stddev: float = 0.03,
-        cache_normals: bool = False,
-    ) -> npt.NDArray[np.float64]: ...
-    @property
-    def cached_normals(self) -> npt.NDArray[np.float64]: ...
 
 class CameraIntrinsic(YamlableBase):
     image_height: int
@@ -1707,26 +1712,12 @@ class CameraBase3D:
         camera_orientation: npt.NDArray[np.float64], camera_translation: npt.NDArray[np.float64]
     ) -> npt.NDArray[np.float64]: ...
 
-class DepthCamera3D(CameraBase3D):
+class DepthCamera3D(CameraBase3D, RangeSensor3D):
     Setting = CameraIntrinsic
     @overload
-    def __init__(self, setting: Setting, vertices: npt.NDArray, triangles: npt.NDArray) -> None: ...
-    @overload
-    def __init__(self, setting: Setting, vertices: list[npt.NDArray], triangles: list[npt.NDArray]) -> None: ...
+    def __init__(self, setting: Setting) -> None: ...
     @property
     def setting(self) -> Setting: ...
-    @property
-    def ray_directions_in_frame(self) -> npt.NDArray[np.float64]: ...
-    def scan(
-        self,
-        rotation: npt.NDArray[np.float64],
-        translation: npt.NDArray[np.float64],
-        add_noise: bool = False,
-        noise_stddev: float = 0.03,
-        cache_normals: bool = False,
-    ) -> npt.NDArray[np.float64]: ...
-    @property
-    def cached_normals(self) -> npt.NDArray[np.float64]: ...
 
 class RgbdCamera3D(CameraBase3D):
     Setting = CameraIntrinsic

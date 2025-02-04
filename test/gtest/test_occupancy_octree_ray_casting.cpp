@@ -121,7 +121,7 @@ TEST(OccupancyOctree, RayCasting) {
     GTEST_PREPARE_OUTPUT_DIR();
 
     g_user_data.visualizer_setting->window_name = "OccupancyOctree_RayCasting";
-    g_user_data.octree = AbstractOctree::ReadAs<OccupancyOctree>((gtest_src_dir / "house_expo_room_1451_3d.ot").string());
+    g_user_data.octree = AbstractOctree::ReadAs<OccupancyOctree>((gtest_src_dir / "../../data/house_expo_room_1451_3d.ot").string());
     g_user_data.ApplySettings();
 
     g_user_data.drawer->DrawLeaves(g_user_data.geometries);

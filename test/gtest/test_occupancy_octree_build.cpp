@@ -10,7 +10,7 @@
 
 // parameters
 #define WINDOW_NAME          "OccupancyOctree_Build"
-#define OCTREE_RESOLUTION    0.05
+#define OCTREE_RESOLUTION    0.15
 #define AZIMUTH_MIN          (-M_PI)
 #define AZIMUTH_MAX          M_PI
 #define ELEVATION_MIN        (-M_PI / 2)
@@ -26,8 +26,8 @@ TEST(OccupancyOctree, Build) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    std::string mesh_file = (gtest_src_dir / "house_expo_room_1451.ply").string();
-    std::string traj_file = (gtest_src_dir / "house_expo_room_1451.csv").string();
+    std::string mesh_file = (gtest_src_dir / "../../data/house_expo_room_1451.ply").string();
+    std::string traj_file = (gtest_src_dir / "../../data/house_expo_room_1451.csv").string();
 
     auto mesh_legacy = open3d::io::CreateMeshFromFile(mesh_file);
     auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
@@ -176,8 +176,8 @@ TEST(OccupancyOctree, BuildProfiling) {
     using namespace erl::common;
     using namespace erl::geometry;
 
-    std::string mesh_file = (gtest_src_dir / "house_expo_room_1451.ply").string();
-    std::string traj_file = (gtest_src_dir / "house_expo_room_1451.csv").string();
+    std::string mesh_file = (gtest_src_dir / "../../data/house_expo_room_1451.ply").string();
+    std::string traj_file = (gtest_src_dir / "../../data/house_expo_room_1451.csv").string();
 
     auto mesh_legacy = open3d::io::CreateMeshFromFile(mesh_file);
     auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);

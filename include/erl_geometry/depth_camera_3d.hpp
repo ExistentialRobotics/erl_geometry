@@ -6,8 +6,6 @@
 
 #include "erl_common/yaml.hpp"
 
-#include <open3d/t/geometry/RaycastingScene.h>
-
 namespace erl::geometry {
 
     class DepthCamera3D : public RangeSensor3D, public CameraBase3D {
@@ -18,17 +16,8 @@ namespace erl::geometry {
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
     public:
-        DepthCamera3D() = delete;
-
-        DepthCamera3D(std::shared_ptr<Setting> setting, const Eigen::Ref<const Eigen::Matrix3Xd> &vertices, const Eigen::Ref<const Eigen::Matrix3Xi> &triangles)
-            : RangeSensor3D(vertices, triangles),
-              m_setting_(std::move(setting)) {
-            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
-        }
-
-        DepthCamera3D(std::shared_ptr<Setting> setting, const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles)
-            : RangeSensor3D(vertices, triangles),
-              m_setting_(std::move(setting)) {
+        explicit DepthCamera3D(std::shared_ptr<Setting> setting)
+            : m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 

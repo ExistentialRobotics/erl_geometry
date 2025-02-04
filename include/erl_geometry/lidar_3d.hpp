@@ -4,8 +4,6 @@
 
 #include "erl_common/yaml.hpp"
 
-#include <open3d/t/geometry/RaycastingScene.h>
-
 namespace erl::geometry {
 
     class Lidar3D : public RangeSensor3D {
@@ -27,17 +25,8 @@ namespace erl::geometry {
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
     public:
-        Lidar3D() = delete;
-
-        Lidar3D(std::shared_ptr<Setting> setting, const Eigen::Ref<const Eigen::Matrix3Xd> &vertices, const Eigen::Ref<const Eigen::Matrix3Xi> &triangles)
-            : RangeSensor3D(vertices, triangles),
-              m_setting_(std::move(setting)) {
-            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
-        }
-
-        Lidar3D(std::shared_ptr<Setting> setting, const std::vector<Eigen::Vector3d> &vertices, const std::vector<Eigen::Vector3i> &triangles)
-            : RangeSensor3D(vertices, triangles),
-              m_setting_(std::move(setting)) {
+        explicit Lidar3D(std::shared_ptr<Setting> setting)
+            : m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 

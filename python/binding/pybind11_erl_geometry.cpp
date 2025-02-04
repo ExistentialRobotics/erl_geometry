@@ -100,6 +100,9 @@ void
 BindHouseExpoMap(const py::module &m);
 
 void
+BindRangeSensor3D(const py::module &m);
+
+void
 BindLidar3D(const py::module &m);
 
 void
@@ -191,6 +194,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindLidarFrame2D(m);
     BindLogOddMap2D(m);
     BindHouseExpoMap(m);
+    BindRangeSensor3D(m);
     BindLidar3D(m);
     BindCameraIntrinsic(m);
     BindCameraBase3D(m);
