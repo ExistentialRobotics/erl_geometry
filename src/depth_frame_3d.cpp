@@ -20,8 +20,8 @@ namespace erl::geometry {
         Eigen::MatrixXd depth,
         const bool partition_rays) {
 
-        const long image_height = m_setting_->camera_intrinsic->image_height;
-        const long image_width = m_setting_->camera_intrinsic->image_width;
+        const long image_height = m_setting_->camera_intrinsic.image_height;
+        const long image_width = m_setting_->camera_intrinsic.image_width;
         ERL_ASSERTM(depth.rows() == image_height, "depth image height ({}) does not match setting ({}).", depth.rows(), image_height);
         ERL_ASSERTM(depth.cols() == image_width, "depth image width ({}) does not match setting ({}).", depth.cols(), image_width);
 

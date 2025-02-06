@@ -50,8 +50,8 @@ namespace erl::geometry {
     };
 
     struct Line2D : Primitive2D {
-        Eigen::Vector2d p0;
-        Eigen::Vector2d p1;
+        Eigen::Vector2d p0 = {0.0, 0.0};
+        Eigen::Vector2d p1 = {0.0, 0.0};
 
         Line2D(const int id, Eigen::Vector2d p0, Eigen::Vector2d p1)
             : p0(std::move(p0)),
@@ -91,8 +91,6 @@ namespace erl::geometry {
     };
 
     struct Segment2D : Line2D {
-        Eigen::Vector2d p0;
-        Eigen::Vector2d p1;
 
         Segment2D(const int id, Eigen::Vector2d p0, Eigen::Vector2d p1)
             : Line2D(id, std::move(p0), std::move(p1)) {}

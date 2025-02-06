@@ -35,23 +35,19 @@ __all__ = [
     "AbstractQuadtreeNode",
     "OccupancyQuadtreeNode",
     "PyObjectOccupancyQuadtreeNode",
-    "SurfaceMappingQuadtreeNode",
     "AbstractQuadtree",
     "AbstractOccupancyQuadtree",
     "OccupancyQuadtree",
     "PyObjectOccupancyQuadtree",
-    "SurfaceMappingQuadtree",
     "OctreeKey",
     "OctreeKeyRay",
     "AbstractOctreeNode",
     "OccupancyOctreeNode",
     "PyObjectOccupancyOctreeNode",
-    "SurfaceMappingOctreeNode",
     "AbstractOctree",
     "AbstractOccupancyOctree",
     "OccupancyOctree",
     "PyObjectOccupancyOctree",
-    "SurfaceMappingOctree",
     "Surface2D",
     "Space2D",
     "Lidar2D",
@@ -68,9 +64,6 @@ __all__ = [
     "LidarFrame3D",
     "DepthFrame3D",
     "RgbdFrame3D",
-    "AbstractSurfaceMapping",
-    "AbstractSurfaceMapping2D",
-    "AbstractSurfaceMapping3D",
     "Primitive2D",
     "Line2D",
     "Segment2D",
@@ -751,21 +744,6 @@ class PyObjectOccupancyQuadtreeNode(OccupancyQuadtreeNode):
 
 class PyObjectOccupancyQuadtree(OccupancyQuadtree): ...
 
-class SurfaceMappingQuadtreeNode(OccupancyQuadtreeNode):
-    class SurfaceData:
-        position: npt.NDArray[np.float64]
-        normal: npt.NDArray[np.float64]
-        var_position: float
-        var_normal: float
-
-        def __eq__(self, other) -> bool: ...
-        def __ne__(self, other) -> bool: ...
-
-    @property
-    def surface_data(self) -> SurfaceMappingQuadtreeNode.SurfaceData: ...
-
-class SurfaceMappingQuadtree(OccupancyQuadtree): ...
-
 class OccupancyOctreeBaseSetting(OccupancyNdTreeSetting):
     use_change_detection: bool
     use_aabb_limit: bool
@@ -1262,21 +1240,6 @@ class PyObjectOccupancyOctreeNode(OccupancyOctreeNode):
     py_object: object
 
 class PyObjectOccupancyOctree(OccupancyOctree): ...
-
-class SurfaceMappingOctreeNode(OccupancyOctreeNode):
-    class SurfaceData:
-        position: npt.NDArray[np.float64]
-        normal: npt.NDArray[np.float64]
-        var_position: float
-        var_normal: float
-
-        def __eq__(self, other) -> bool: ...
-        def __ne__(self, other) -> bool: ...
-
-    @property
-    def surface_data(self) -> SurfaceMappingOctreeNode.SurfaceData: ...
-
-class SurfaceMappingOctree(OccupancyOctree): ...
 
 class Surface2D:
     @overload
@@ -1949,40 +1912,6 @@ class RgbdFrame3D(DepthFrame3D):
     def convert_to_point_cloud(
         self, in_world_frame: bool
     ) -> TypedDict("returns", {"points": npt.NDArray[np.float64], "colors": npt.NDArray[np.uint8]}): ...
-
-class AbstractSurfaceMapping:
-    class Setting(YamlableBase):
-        @staticmethod
-        def create(mapping_type: str) -> AbstractSurfaceMapping.Setting: ...
-
-    @staticmethod
-    def create_surface_mapping(
-        mapping_type: str, setting: AbstractSurfaceMapping.Setting
-    ) -> AbstractSurfaceMapping: ...
-    def write(self, filename: str) -> bool: ...
-    def read(self, filename: str) -> bool: ...
-
-class AbstractSurfaceMapping2D(AbstractSurfaceMapping):
-    @property
-    def quadtree(self) -> SurfaceMappingQuadtree: ...
-    @property
-    def sensor_noise(self) -> float: ...
-    @property
-    def cluster_level(self) -> int: ...
-    def update(
-        self, rotation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64], ranges: npt.NDArray[np.float64]
-    ) -> None: ...
-
-class AbstractSurfaceMapping3D(AbstractSurfaceMapping):
-    @property
-    def octree(self) -> SurfaceMappingOctree: ...
-    @property
-    def sensor_noise(self) -> float: ...
-    @property
-    def cluster_level(self) -> int: ...
-    def update(
-        self, rotation: npt.NDArray[np.float64], translation: npt.NDArray[np.float64], ranges: npt.NDArray[np.float64]
-    ) -> None: ...
 
 class Primitive2D:
     class Type(IntEnum):

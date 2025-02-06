@@ -15,24 +15,29 @@
 struct OctreeNode : public erl::geometry::OccupancyOctreeNode {
     std::size_t geometry_id = -1;
     std::size_t vertex_id = -1;
+
+    explicit OctreeNode(const uint32_t depth = 0, const int child_index = -1, const float log_odds = 0)
+        : OccupancyOctreeNode(depth, child_index, log_odds) {}
 };
 
 class Octree : public erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting> {
 
 public:
-    using Super = OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>;
+    using Super = OccupancyOctreeBase;
     using Setting = erl::geometry::OccupancyOctreeBaseSetting;
 
     Octree()
         : Octree(std::make_shared<Setting>()) {}
 
     explicit Octree(const std::shared_ptr<Setting> &setting)
-        : OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting>(setting) {}
+        : OccupancyOctreeBase(setting) {}
 
 protected:
     [[nodiscard]] std::shared_ptr<AbstractOctree>
-    Create() const override {
-        return std::make_shared<Octree>();
+    Create(const std::shared_ptr<erl::geometry::NdTreeSetting> &setting) const override {
+        auto casted_setting = std::dynamic_pointer_cast<Setting>(setting);
+        ERL_ASSERTM(casted_setting != nullptr, "Failed to cast setting to Octree::Setting.");
+        return std::make_shared<Octree>(casted_setting);
     }
 };
 

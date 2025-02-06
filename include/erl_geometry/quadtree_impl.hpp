@@ -781,6 +781,11 @@ namespace erl::geometry {
             }
 
             [[nodiscard]] const Node *
+            GetNode() const override {
+                return m_stack_.back().node;
+            }
+
+            [[nodiscard]] const Node *
             GetNode() {
                 return m_stack_.back().node;
             }
@@ -1657,7 +1662,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
-        GetLeafInAabbIterator(const Aabb2D &aabb, uint32_t max_depth) const {
+        GetLeafInAabbIterator(const Aabb2D &aabb, uint32_t max_depth) const override {
             return std::make_shared<LeafInAabbIterator>(aabb.min().x(), aabb.min().y(), aabb.max().x(), aabb.max().y(), this, max_depth);
         }
 
@@ -1669,6 +1674,11 @@ namespace erl::geometry {
         [[nodiscard]] TreeIterator
         EndTree() const {
             return TreeIterator();
+        }
+
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        GetTreeIterator(uint32_t max_depth) const override {
+            return std::make_shared<TreeIterator>(this, max_depth);
         }
 
         [[nodiscard]] TreeInAabbIterator

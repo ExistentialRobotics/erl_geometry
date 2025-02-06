@@ -6,7 +6,6 @@
 #include <boost/program_options.hpp>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
-#include <open3d/geometry/TriangleMesh.h>
 #include <open3d/io/TriangleMeshIO.h>
 #include <open3d/pipelines/registration/Registration.h>
 #include <open3d/visualization/utility/DrawGeometry.h>
@@ -23,12 +22,12 @@ TEST(CowAndLady, Load) {
     GTEST_PREPARE_OUTPUT_DIR();
 
     const auto depth_frame_setting = std::make_shared<erl::geometry::DepthFrame3D::Setting>();
-    depth_frame_setting->image_height = erl::geometry::CowAndLady::kImageHeight;
-    depth_frame_setting->image_width = erl::geometry::CowAndLady::kImageWidth;
-    depth_frame_setting->camera_fx = erl::geometry::CowAndLady::kCameraFx;
-    depth_frame_setting->camera_fy = erl::geometry::CowAndLady::kCameraFy;
-    depth_frame_setting->camera_cx = erl::geometry::CowAndLady::kCameraCx;
-    depth_frame_setting->camera_cy = erl::geometry::CowAndLady::kCameraCy;
+    depth_frame_setting->camera_intrinsic.image_height = erl::geometry::CowAndLady::kImageHeight;
+    depth_frame_setting->camera_intrinsic.image_width = erl::geometry::CowAndLady::kImageWidth;
+    depth_frame_setting->camera_intrinsic.camera_fx = erl::geometry::CowAndLady::kCameraFx;
+    depth_frame_setting->camera_intrinsic.camera_fy = erl::geometry::CowAndLady::kCameraFy;
+    depth_frame_setting->camera_intrinsic.camera_cx = erl::geometry::CowAndLady::kCameraCx;
+    depth_frame_setting->camera_intrinsic.camera_cy = erl::geometry::CowAndLady::kCameraCy;
     erl::geometry::DepthFrame3D depth_frame(depth_frame_setting);
 
     erl::geometry::CowAndLady cow_and_lady(g_options.directory, g_options.use_icp);

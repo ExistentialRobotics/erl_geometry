@@ -486,7 +486,7 @@ BindOccupancyOctree(
     py::class_<typename Octree::IteratorBase, AbstractOctree::OctreeNodeIterator>(tree, "IteratorBase")
         .def("__eq__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self == other; })
         .def("__ne__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self != other; })
-        .def_property_readonly("node", &Octree::IteratorBase::GetNode)
+        .def_property_readonly("node", py::overload_cast<>(&Octree::IteratorBase::GetNode))
         .def_property_readonly("node_aabb", &Octree::IteratorBase::GetNodeAabb)
         .def_property_readonly("key", &Octree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Octree::IteratorBase::GetIndexKey);

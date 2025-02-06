@@ -29,12 +29,12 @@ namespace erl::geometry {
               center((min + max) / 2),
               half_sizes((max - min) / 2) {}
 
-        Aabb
+        [[nodiscard]] Aabb
         Padding(const Point &padding) const {
             return {this->m_min - padding, this->m_max + padding};
         }
 
-        Aabb
+        [[nodiscard]] Aabb
         Padding(Scalar padding) const {
             return {this->m_min.array() - padding, this->m_max.array() + padding};
         }

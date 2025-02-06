@@ -85,7 +85,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         lidar_3d_setting->elevation_min = DegreeToRadian(g_user_data.lidar_elevation_min);
         lidar_3d_setting->elevation_max = DegreeToRadian(g_user_data.lidar_elevation_max);
         lidar_3d_setting->num_elevation_lines = g_user_data.lidar_num_elevation_lines;
-        auto lidar_3d = std::make_shared<Lidar3D>(lidar_3d_setting, room_mesh->vertices_, room_mesh->triangles_);
+        auto lidar_3d = std::make_shared<Lidar3D>(lidar_3d_setting);
+        lidar_3d->AddMesh(room_mesh->vertices_, room_mesh->triangles_);
 
         double lidar_roll = 0.0;
         double lidar_pitch = 0.0;

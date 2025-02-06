@@ -59,7 +59,7 @@ namespace erl::geometry {
             Init();
         }
 
-        [[nodiscard]] std::shared_ptr<const Setting>
+        [[nodiscard]] std::shared_ptr<Setting>
         GetSetting() const {
             return m_setting_;
         }

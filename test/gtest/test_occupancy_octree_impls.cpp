@@ -29,7 +29,7 @@ TEST(OccupancyOctree, ErlImpl) {
     o3d_scene->AddTriangles(mesh);
 
     const auto lidar_setting = std::make_shared<Lidar3D::Setting>();
-    const auto lidar = Lidar3D(lidar_setting, o3d_scene);
+    Lidar3D lidar(lidar_setting, o3d_scene);
     Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
 
     const Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
@@ -85,7 +85,7 @@ TEST(OccupancyOctree, Erl_ComputeUpdate) {
     o3d_scene->AddTriangles(mesh);
 
     const auto lidar_setting = std::make_shared<Lidar3D::Setting>();
-    const auto lidar = Lidar3D(lidar_setting, o3d_scene);
+    Lidar3D lidar(lidar_setting, o3d_scene);
     Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
 
     const Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();
@@ -142,7 +142,7 @@ TEST(OccupancyOctree, OctomapImpl) {
     o3d_scene->AddTriangles(mesh);
 
     const auto lidar_setting = std::make_shared<Lidar3D::Setting>();
-    const auto lidar = Lidar3D(lidar_setting, o3d_scene);
+    Lidar3D lidar(lidar_setting, o3d_scene);
     Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
 
     const Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt).transpose();

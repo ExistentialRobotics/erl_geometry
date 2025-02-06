@@ -45,7 +45,7 @@ namespace erl::geometry {
 
         [[nodiscard]] std::tuple<Eigen::Matrix3d, Eigen::Vector3d>
         GetOpticalPose(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const override {
-            return ComputeCameraPose(orientation, translation);
+            return ComputeOpticalPose(orientation, translation);
         }
     };
 

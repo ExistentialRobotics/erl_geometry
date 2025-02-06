@@ -11,8 +11,8 @@ namespace erl::geometry {
 
     class DepthFrame3D : public RangeSensorFrame3D {
     public:
-        struct Setting : public common::Yamlable<Setting, RangeSensorFrame3D::Setting> {
-            std::shared_ptr<CameraIntrinsic> camera_intrinsic = std::make_shared<CameraIntrinsic>();
+        struct Setting : common::Yamlable<Setting, RangeSensorFrame3D::Setting> {
+            CameraIntrinsic camera_intrinsic = {};
         };
 
         inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
@@ -127,7 +127,7 @@ namespace erl::geometry {
 
         void
         UpdateFrameCoords() {
-            m_setting_->camera_intrinsic->ComputeFrameDirections(m_frame_coords_, m_dirs_frame_);
+            m_setting_->camera_intrinsic.ComputeFrameDirections(m_frame_coords_, m_dirs_frame_);
         }
     };
 
@@ -149,7 +149,7 @@ struct YAML::convert<erl::geometry::DepthFrame3D::Setting> {
     static bool
     decode(const Node &node, erl::geometry::DepthFrame3D::Setting &rhs) {
         if (!convert<erl::geometry::RangeSensorFrame3D::Setting>::decode(node, rhs)) { return false; }
-        rhs.camera_intrinsic = node["camera_intrinsic"].as<std::shared_ptr<erl::geometry::CameraIntrinsic>>();
+        rhs.camera_intrinsic = node["camera_intrinsic"].as<erl::geometry::CameraIntrinsic>();
         return true;
     }
 };  // namespace YAML

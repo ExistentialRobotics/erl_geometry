@@ -75,7 +75,7 @@ TEST(ERL_GEOMETRY, RgbdFrame3D) {
                 int new_height = 0, new_width = 0;
                 if (down_sample) {
                     double factor = 1 / down_sample_factor;
-                    std::tie(new_height, new_width) = depth_frame_3d_setting->Resize(factor);
+                    std::tie(new_height, new_width) = depth_frame_3d_setting->camera_intrinsic.Resize(factor);
                 }
                 auto depth_frame_3d = std::make_shared<DepthFrame3D>(depth_frame_3d_setting);
                 if (show_depth_rays || show_depth_points || !surface_samples_ready || !region_samples_ready || !along_ray_samples_ready) {

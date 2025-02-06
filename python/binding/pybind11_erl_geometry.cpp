@@ -4,9 +4,6 @@ void
 BindAabb(const py::module &m);
 
 void
-BindAbstractSurfaceMapping(const py::module &m);
-
-void
 BindCityStreetMap(const py::module &m);
 
 void
@@ -43,12 +40,6 @@ void
 BindPyObjectOccupancyQuadtree(const py::module &m);
 
 void
-BindSurfaceMappingQuadtreeNode(const py::module &m);
-
-void
-BindSurfaceMappingQuadtree(const py::module &m);
-
-void
 BindOctreeKey(const py::module &m);
 
 void
@@ -74,12 +65,6 @@ BindOccupancyOctree(const py::module &m);
 
 void
 BindPyObjectOccupancyOctree(const py::module &m);
-
-void
-BindSurfaceMappingOctreeNode(const py::module &m);
-
-void
-BindSurfaceMappingOctree(const py::module &m);
 
 void
 BindSurface2D(const py::module &m);
@@ -154,7 +139,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     m.doc() = "Python 3 Interface of erl_geometry";
 
     BindAabb(m);
-    BindAbstractSurfaceMapping(m);
+
     BindCityStreetMap(m);
 
     BindNdTreeSetting(m);
@@ -167,26 +152,22 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindAbstractQuadtreeNode(m);
     BindOccupancyQuadtreeNode(m);
     BindPyObjectOccupancyQuadtreeNode(m);
-    BindSurfaceMappingQuadtreeNode(m);
 
     BindAbstractQuadtree(m);
     BindAbstractOccupancyQuadtree(m);
     BindOccupancyQuadtree(m);
     BindPyObjectOccupancyQuadtree(m);
-    BindSurfaceMappingQuadtree(m);
 
     BindOctreeKey(m);
 
     BindAbstractOctreeNode(m);
     BindOccupancyOctreeNode(m);
     BindPyObjectOccupancyOctreeNode(m);
-    BindSurfaceMappingOctreeNode(m);
 
     BindAbstractOctree(m);
     BindAbstractOccupancyOctree(m);
     BindOccupancyOctree(m);
     BindPyObjectOccupancyOctree(m);
-    BindSurfaceMappingOctree(m);
 
     BindSurface2D(m);
     BindSpace2D(m);

@@ -360,7 +360,15 @@ namespace erl::geometry {
             Next() = 0;
             [[nodiscard]] virtual bool
             IsValid() const = 0;
+            [[nodiscard]] virtual const AbstractOctreeNode*
+            GetNode() const = 0;
         };
+
+        [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
+        GetTreeIterator(uint32_t max_depth) const = 0;
+
+        [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
+        GetLeafInAabbIterator(const Aabb3D& aabb, uint32_t max_depth) const = 0;
 
     protected:
         /**
