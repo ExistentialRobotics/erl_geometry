@@ -64,6 +64,7 @@ namespace erl::geometry {
         [[nodiscard]] bool
         AllowMerge(const AbstractOctreeNode *other) const override {
             ERL_DEBUG_ASSERT(other != nullptr, "other node is nullptr.");
+            ERL_DEBUG_ASSERT(dynamic_cast<const OccupancyOctreeNode *>(other) != nullptr, "other node is not OccupancyOctreeNode.");
             const auto *other_node = reinterpret_cast<const OccupancyOctreeNode *>(other);
             if (m_num_children_ > 0 || other_node->m_num_children_ > 0) { return false; }
             return m_log_odds_ == other_node->m_log_odds_;

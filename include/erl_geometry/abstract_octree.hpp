@@ -4,6 +4,7 @@
 #include "abstract_octree_node.hpp"
 #include "nd_tree_setting.hpp"
 
+#include "erl_common/factory_pattern.hpp"
 #include "erl_common/string_utils.hpp"
 
 #include <functional>
@@ -23,6 +24,8 @@ namespace erl::geometry {
         inline static std::map<std::string, std::function<std::shared_ptr<AbstractOctree>(const std::shared_ptr<NdTreeSetting>&)>> s_class_id_mapping_ = {};
 
     public:
+        using Factory = common::FactoryPattern<AbstractOctree, false, std::shared_ptr<NdTreeSetting>>;
+
         AbstractOctree() = delete;  // no default constructor
 
         explicit AbstractOctree(std::shared_ptr<NdTreeSetting> setting)
@@ -68,25 +71,19 @@ namespace erl::geometry {
          * @return
          */
         static std::shared_ptr<AbstractOctree>
-        CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting);
+        CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting) {
+            return Factory::GetInstance().Create(tree_id, setting);
+        }
 
         template<typename Derived>
-        static std::enable_if_t<std::is_base_of_v<AbstractOctree, Derived>, bool>
+        static bool
         Register(std::string tree_type = "") {
-            if (tree_type.empty()) { tree_type = demangle(typeid(Derived).name()); }
-            if (s_class_id_mapping_.find(tree_type) != s_class_id_mapping_.end()) {
-                ERL_WARN("{} is already registered.", tree_type);
-                return false;
-            }
-
-            s_class_id_mapping_[tree_type] = [](const std::shared_ptr<NdTreeSetting>& setting) {
+            return Factory::GetInstance().Register<Derived>(tree_type, [](const std::shared_ptr<NdTreeSetting>& setting) {
                 auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
                 if (setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }
                 ERL_ASSERTM(tree_setting != nullptr, "setting is nullptr.");
                 return std::make_shared<Derived>(tree_setting);
-            };
-            ERL_DEBUG("{} is registered.", tree_type);
-            return true;
+            });
         }
 
         //-- setting

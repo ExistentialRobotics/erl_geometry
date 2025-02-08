@@ -7,17 +7,6 @@
 
 namespace erl::geometry {
 
-    std::shared_ptr<AbstractOctree>
-    AbstractOctree::CreateTree(const std::string &tree_id, const std::shared_ptr<NdTreeSetting> &setting) {
-        const auto it = s_class_id_mapping_.find(tree_id);
-        if (it == s_class_id_mapping_.end()) {
-            ERL_WARN("Unknown Octree type: {}. Here are the registered Octree types:", tree_id);
-            for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
-            return nullptr;
-        }
-        return it->second(setting);
-    }
-
     bool
     AbstractOctree::Write(const std::string &filename) const {
         const auto path = std::filesystem::absolute(filename);

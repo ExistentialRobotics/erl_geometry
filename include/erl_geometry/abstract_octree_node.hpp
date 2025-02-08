@@ -98,7 +98,7 @@ namespace erl::geometry {
             const auto it = s_class_id_mapping_.find(node_type);
             if (it == s_class_id_mapping_.end()) {
                 ERL_WARN("Unknown Octree node type: {}. Here are the registered node types:", node_type);
-                for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
+                for (const auto &[node_type_str, _]: s_class_id_mapping_) { ERL_WARN("  - {}", node_type_str); }
                 return nullptr;
             }
             return it->second(depth, child_index);
@@ -177,14 +177,14 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] bool
-        HasChild(uint32_t index) const {
+        HasChild(const uint32_t index) const {
             if (m_children_ == nullptr) { return false; }
             ERL_DEBUG_ASSERT(index < 8, "Index must be in [0, 7], but got %u.", index);
             return m_children_[index] != nullptr;
         }
 
         [[nodiscard]] AbstractOctreeNode *
-        CreateChild(uint32_t child_index) {
+        CreateChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u already exists.", child_index);
             AbstractOctreeNode *child = this->Create(m_depth_ + 1, static_cast<int>(child_index));
@@ -194,7 +194,7 @@ namespace erl::geometry {
         }
 
         void
-        RemoveChild(uint32_t child_index) {
+        RemoveChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "Child %u does not exist.", child_index);
             delete m_children_[child_index];
@@ -205,14 +205,14 @@ namespace erl::geometry {
 
         template<typename Derived>
         Derived *
-        GetChild(uint32_t child_index) {
+        GetChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             return static_cast<Derived *>(m_children_[child_index]);
         }
 
         template<typename Derived>
         [[nodiscard]] const Derived *
-        GetChild(uint32_t child_index) const {
+        GetChild(const uint32_t child_index) const {
             ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
             return static_cast<const Derived *>(m_children_[child_index]);
         }
