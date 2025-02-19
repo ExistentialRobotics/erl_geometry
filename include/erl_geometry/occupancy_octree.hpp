@@ -6,13 +6,15 @@
 
 namespace erl::geometry {
 
-    class OccupancyOctree : public OccupancyOctreeBase<OccupancyOctreeNode, OccupancyOctreeBaseSetting> {
+    template<typename Dtype>
+    class OccupancyOctree : public OccupancyOctreeBase<Dtype, OccupancyOctreeNode, OccupancyOctreeBaseSetting> {
     public:
         using Setting = OccupancyOctreeBaseSetting;
+        using Super = OccupancyOctreeBase<Dtype, OccupancyOctreeNode, OccupancyOctreeBaseSetting>;
         using Drawer = OccupancyOctreeDrawer<OccupancyOctree>;
 
         explicit OccupancyOctree(const std::shared_ptr<OccupancyOctreeBaseSetting> &setting)
-            : OccupancyOctreeBase(setting) {}
+            : Super(setting) {}
 
         OccupancyOctree()
             : OccupancyOctree(std::make_shared<OccupancyOctreeBaseSetting>()) {}
@@ -30,7 +32,7 @@ namespace erl::geometry {
         operator=(OccupancyOctree &&other) = default;
 
     protected:
-        [[nodiscard]] std::shared_ptr<AbstractOctree>
+        [[nodiscard]] std::shared_ptr<AbstractOctree<Dtype>>
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) {
@@ -41,9 +43,17 @@ namespace erl::geometry {
         }
     };
 
-    ERL_REGISTER_OCTREE(OccupancyOctree);
+    using OccupancyOctree_d = OccupancyOctree<double>;
+    using OccupancyOctree_f = OccupancyOctree<float>;
+
+    ERL_REGISTER_OCTREE(OccupancyOctree_d);
+    ERL_REGISTER_OCTREE(OccupancyOctree_f);
 }  // namespace erl::geometry
 
 template<>
-struct YAML::convert<erl::geometry::OccupancyOctree::Drawer::Setting>
-    : public ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree::Drawer::Setting> {};  // namespace YAML
+struct YAML::convert<erl::geometry::OccupancyOctree_d::Drawer::Setting>
+    : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_d::Drawer::Setting> {};
+
+template<>
+struct YAML::convert<erl::geometry::OccupancyOctree_f::Drawer::Setting>
+    : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_f::Drawer::Setting> {};

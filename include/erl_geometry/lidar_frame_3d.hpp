@@ -6,28 +6,55 @@
 #include "erl_common/logging.hpp"
 #include "erl_common/yaml.hpp"
 
+#include <absl/container/flat_hash_map.h>
+
+#include <utility>
+
 namespace erl::geometry {
 
-    class LidarFramePartition3D;
-
-    class LidarFrame3D : public RangeSensorFrame3D {
+    template<typename Dtype>
+    class LidarFrame3D : public RangeSensorFrame3D<Dtype> {
         friend class LidarFramePartition3D;
 
     public:
-        struct Setting : public common::Yamlable<Setting, RangeSensorFrame3D::Setting> {
-            double azimuth_min = -M_PI;
-            double azimuth_max = M_PI;
-            double elevation_min = -M_PI / 2;
-            double elevation_max = M_PI / 2;
+        using Super = RangeSensorFrame3D<Dtype>;
+        using Matrix = typename Super::Matrix;
+        using Matrix3 = typename Super::Matrix3;
+        using Matrix2X = Eigen::Matrix2X<Dtype>;
+        using Vector = typename Super::Vector;
+        using Vector3 = typename Super::Vector3;
+        using Vector2 = typename Super::Vector2;
+
+        struct Setting : common::Yamlable<Setting, typename Super::Setting> {
+            Dtype azimuth_min = -M_PI;
+            Dtype azimuth_max = M_PI;
+            Dtype elevation_min = -M_PI / 2;
+            Dtype elevation_max = M_PI / 2;
             long num_azimuth_lines = 360;
             long num_elevation_lines = 180;
+
+            struct YamlConvertImpl {
+                static YAML::Node
+                encode(const Setting &setting);
+
+                static bool
+                decode(const YAML::Node &node, Setting &setting);
+            };
         };
 
-        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+        class Partition {
+            LidarFrame3D *m_lidar_frame_ = nullptr;
+            Matrix2X m_ray_indices_ = {};
+        };
+
+        // inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+
+    private:
+        inline static const std::string kFileHeader = fmt::format("# erl::geometry::LidarFrame3D<{}>", type_name<Dtype>());
 
     protected:
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        std::vector<LidarFramePartition3D> m_partitions_ = {};
+        std::vector<Partition> m_partitions_ = {};
         bool m_partitioned_ = false;
 
     public:
@@ -35,29 +62,25 @@ namespace erl::geometry {
 
         void
         Reset() {
-            m_max_valid_range_ = std::numeric_limits<double>::min();
+            Super::m_max_valid_range_ = std::numeric_limits<Dtype>::min();
             m_partitioned_ = false;
         }
 
         [[nodiscard]] bool
-        PointIsInFrame(const Eigen::Vector3d &xyz_frame) const override {
-            if (const double range = xyz_frame.norm(); range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { return false; }
-            return CoordsIsInFrame(ComputeFrameCoords(xyz_frame.normalized()));
+        PointIsInFrame(const Vector3 &xyz_frame) const override {
+            if (const Dtype range = xyz_frame.norm(); range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { return false; }
+            return Super::CoordsIsInFrame(ComputeFrameCoords(xyz_frame.normalized()));
         }
 
-        [[nodiscard]] Eigen::Vector2d
-        ComputeFrameCoords(const Eigen::Vector3d &dir_frame) const override {
-            Eigen::Vector2d frame_coords;
-            common::DirectionToAzimuthElevation(dir_frame, frame_coords[0], frame_coords[1]);
+        [[nodiscard]] Vector2
+        ComputeFrameCoords(const Vector3 &dir_frame) const override {
+            Vector2 frame_coords;
+            common::DirectionToAzimuthElevation<Dtype>(dir_frame, frame_coords[0], frame_coords[1]);
             return frame_coords;
         }
 
         void
-        UpdateRanges(
-            const Eigen::Ref<const Eigen::Matrix3d> &rotation,
-            const Eigen::Ref<const Eigen::Vector3d> &translation,
-            Eigen::MatrixXd ranges,
-            bool partition_rays) override;
+        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, Matrix ranges, bool partition_rays) override;
 
         [[nodiscard]] std::shared_ptr<const Setting>
         GetSetting() const {
@@ -66,12 +89,12 @@ namespace erl::geometry {
 
         [[nodiscard]] long
         GetNumAzimuthLines() const {
-            return m_frame_coords_.rows();
+            return Super::m_frame_coords_.rows();
         }
 
         [[nodiscard]] long
         GetNumElevationLines() const {
-            return m_frame_coords_.cols();
+            return Super::m_frame_coords_.cols();
         }
 
         [[nodiscard]] bool
@@ -79,14 +102,14 @@ namespace erl::geometry {
             return m_partitioned_;
         }
 
-        [[nodiscard]] const std::vector<LidarFramePartition3D> &
+        [[nodiscard]] const std::vector<Partition> &
         GetPartitions() const {
-            ERL_ASSERTM(m_partitioned_, "LidarFrame3D::GetPartitions() is called before partitioning.");
+            ERL_ASSERTM(m_partitioned_, "LidarFrame3D<Dtype>::GetPartitions() is called before partitioning.");
             return m_partitions_;
         }
 
         [[nodiscard]] bool
-        operator==(const RangeSensorFrame3D &other) const override;
+        operator==(const Super &other) const override;
 
         [[nodiscard]] bool
         Write(const std::string &filename) const override;
@@ -105,40 +128,18 @@ namespace erl::geometry {
         PartitionRays();
     };
 
-    class LidarFramePartition3D {
-        LidarFrame3D *m_lidar_frame_ = nullptr;
-        Eigen::Matrix2Xd m_ray_indices_ = {};
-    };
+#include "lidar_frame_3d.tpp"
 
-    ERL_REGISTER_RANGE_SENSOR_FRAME_3D(LidarFrame3D);
+    using LidarFrame3Dd = LidarFrame3D<double>;
+    using LidarFrame3Df = LidarFrame3D<float>;
+
+    // ERL_REGISTER_RANGE_SENSOR_FRAME_3D(LidarFrame3Dd);
+    // ERL_REGISTER_RANGE_SENSOR_FRAME_3D(LidarFrame3Df);
+
 }  // namespace erl::geometry
 
-// ReSharper disable CppInconsistentNaming
 template<>
-struct YAML::convert<erl::geometry::LidarFrame3D::Setting> {
-    static Node
-    encode(const erl::geometry::LidarFrame3D::Setting &rhs) {
-        Node node = convert<erl::geometry::RangeSensorFrame3D::Setting>::encode(rhs);
-        node["azimuth_min"] = rhs.azimuth_min;
-        node["azimuth_max"] = rhs.azimuth_max;
-        node["elevation_min"] = rhs.elevation_min;
-        node["elevation_max"] = rhs.elevation_max;
-        node["num_azimuth_lines"] = rhs.num_azimuth_lines;
-        node["num_elevation_lines"] = rhs.num_elevation_lines;
-        return node;
-    }
+struct YAML::convert<erl::geometry::LidarFrame3Dd::Setting> : erl::geometry::LidarFrame3Dd::Setting::YamlConvertImpl {};
 
-    static bool
-    decode(const Node &node, erl::geometry::LidarFrame3D::Setting &rhs) {
-        if (!convert<erl::geometry::RangeSensorFrame3D::Setting>::decode(node, rhs)) { return false; }
-        rhs.azimuth_min = node["azimuth_min"].as<double>();
-        rhs.azimuth_max = node["azimuth_max"].as<double>();
-        rhs.elevation_min = node["elevation_min"].as<double>();
-        rhs.elevation_max = node["elevation_max"].as<double>();
-        rhs.num_azimuth_lines = node["num_azimuth_lines"].as<long>();
-        rhs.num_elevation_lines = node["num_elevation_lines"].as<long>();
-        return true;
-    }
-};  // namespace YAML
-
-// ReSharper restore CppInconsistentNaming
+template<>
+struct YAML::convert<erl::geometry::LidarFrame3Df::Setting> : erl::geometry::LidarFrame3Df::Setting::YamlConvertImpl {};

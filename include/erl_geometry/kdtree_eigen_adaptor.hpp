@@ -136,6 +136,8 @@ namespace erl::geometry {
 
     using KdTree3d = KdTreeEigenAdaptor<double, 3>;
     using KdTree2d = KdTreeEigenAdaptor<double, 2>;
+    using KdTree3f = KdTreeEigenAdaptor<float, 3>;
+    using KdTree2f = KdTreeEigenAdaptor<float, 2>;
 }  // namespace erl::geometry
 
 // ReSharper restore CppInconsistentNaming

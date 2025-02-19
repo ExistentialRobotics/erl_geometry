@@ -8,6 +8,7 @@
 
 #include "erl_common/random.hpp"
 
+#include <erl_common/block_timer.hpp>
 #include <omp.h>
 
 #include <list>
@@ -33,8 +34,8 @@ namespace erl::geometry {
 
     ERL_REGISTER_YAMLABLE(OccupancyOctreeBaseSetting);
 
-    template<class Node, class Setting>
-    class OccupancyOctreeBase : public OctreeImpl<Node, AbstractOccupancyOctree, Setting> {
+    template<typename Dtype, class Node, class Setting>
+    class OccupancyOctreeBase : public OctreeImpl<Dtype, Node, AbstractOccupancyOctree<Dtype>, Setting> {
         static_assert(std::is_base_of_v<OccupancyOctreeNode, Node>);
         static_assert(std::is_base_of_v<OccupancyOctreeBaseSetting, Setting>);
 
@@ -46,10 +47,16 @@ namespace erl::geometry {
         OctreeKeyVectorMap m_end_point_mapping_ = {};           // buffer used for inserting point cloud to track the end points
 
     public:
+        using Super = OctreeImpl<Dtype, Node, AbstractOccupancyOctree<Dtype>, Setting>;
+        using Matrix3X = Eigen::Matrix3X<Dtype>;
+        using Matrix3 = Eigen::Matrix3<Dtype>;
+        using Vector3 = Eigen::Vector3<Dtype>;
+        using Vector = Eigen::VectorX<Dtype>;
+
         OccupancyOctreeBase() = delete;  // no default constructor
 
         explicit OccupancyOctreeBase(const std::shared_ptr<Setting>& setting)
-            : OctreeImpl<Node, AbstractOccupancyOctree, Setting>(setting),
+            : Super(setting),
               m_setting_(std::static_pointer_cast<OccupancyOctreeBaseSetting>(setting)) {}
 
         OccupancyOctreeBase(const OccupancyOctreeBase& other) = default;
@@ -59,9 +66,9 @@ namespace erl::geometry {
         OccupancyOctreeBase&
         operator=(OccupancyOctreeBase&& other) noexcept = default;
 
-        [[nodiscard]] std::shared_ptr<AbstractOctree>
+        [[nodiscard]] std::shared_ptr<AbstractOctree<Dtype>>
         Clone() const override {
-            std::shared_ptr<AbstractOctree> tree = OctreeImpl<Node, AbstractOccupancyOctree, Setting>::Clone();
+            std::shared_ptr<AbstractOctree<Dtype>> tree = Super::Clone();
             std::shared_ptr<OccupancyOctreeBase> occupancy_tree = std::dynamic_pointer_cast<OccupancyOctreeBase>(tree);
             occupancy_tree->m_changed_keys_ = m_changed_keys_;
             occupancy_tree->m_discrete_end_point_mapping_ = m_discrete_end_point_mapping_;
@@ -80,18 +87,18 @@ namespace erl::geometry {
          * Sample positions from the free space.
          */
         void
-        SamplePositions(const std::size_t num_positions, std::vector<Eigen::Vector3d>& positions) const {
+        SamplePositions(const std::size_t num_positions, std::vector<Vector3>& positions) const {
             positions.clear();
             positions.reserve(num_positions);
-            double min_x, min_y, min_z, max_x, max_y, max_z;
+            Dtype min_x, min_y, min_z, max_x, max_y, max_z;
             this->GetMetricMinMax(min_x, min_y, min_z, max_x, max_y, max_z);
-            std::uniform_real_distribution<double> uniform_x(min_x, max_x);
-            std::uniform_real_distribution<double> uniform_y(min_y, max_y);
-            std::uniform_real_distribution<double> uniform_z(min_z, max_z);
+            std::uniform_real_distribution<Dtype> uniform_x(min_x, max_x);
+            std::uniform_real_distribution<Dtype> uniform_y(min_y, max_y);
+            std::uniform_real_distribution<Dtype> uniform_z(min_z, max_z);
             while (positions.size() < num_positions) {
-                double x = uniform_x(common::g_random_engine);
-                double y = uniform_y(common::g_random_engine);
-                double z = uniform_z(common::g_random_engine);
+                Dtype x = uniform_x(common::g_random_engine);
+                Dtype y = uniform_y(common::g_random_engine);
+                Dtype z = uniform_z(common::g_random_engine);
                 const Node* node = this->Search(x, y, z);
                 if (node == nullptr || this->IsNodeOccupied(node)) { continue; }
                 positions.emplace_back(x, y, z);
@@ -111,9 +118,9 @@ namespace erl::geometry {
          */
         virtual void
         InsertPointCloud(
-            const Eigen::Ref<const Eigen::Matrix3Xd>& points,
-            const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
-            const double max_range,
+            const Eigen::Ref<const Matrix3X>& points,
+            const Eigen::Ref<const Vector3>& sensor_origin,
+            const Dtype max_range,
             const bool parallel,
             const bool lazy_eval,
             const bool discretize) {
@@ -140,9 +147,9 @@ namespace erl::geometry {
          */
         void
         ComputeDiscreteUpdateForPointCloud(
-            const Eigen::Ref<const Eigen::Matrix3Xd>& points,
-            const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
-            const double max_range,
+            const Eigen::Ref<const Matrix3X>& points,
+            const Eigen::Ref<const Vector3>& sensor_origin,
+            const Dtype max_range,
             const bool parallel,
             OctreeKeyVector& free_cells,
             OctreeKeyVector& occupied_cells) {
@@ -150,7 +157,7 @@ namespace erl::geometry {
             const long num_points = points.cols();
             if (num_points == 0) { return; }
 
-            Eigen::Matrix3Xd new_points(3, num_points);
+            Matrix3X new_points(3, num_points);
             m_discrete_end_point_mapping_.clear();
             for (long i = 0; i < num_points; ++i) {
                 const auto& point = points.col(i);
@@ -165,9 +172,9 @@ namespace erl::geometry {
 
         void
         ComputeUpdateForPointCloud(
-            const Eigen::Ref<const Eigen::Matrix3Xd>& points,
-            const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
-            const double max_range,
+            const Eigen::Ref<const Matrix3X>& points,
+            const Eigen::Ref<const Vector3>& sensor_origin,
+            const Dtype max_range,
             const bool parallel,
             OctreeKeyVector& free_cells,
             OctreeKeyVector& occupied_cells) {
@@ -182,20 +189,21 @@ namespace erl::geometry {
             free_cells.clear();
             occupied_cells.clear();
 
-            std::vector<double> ranges(num_points);
-            std::vector<std::array<double, 3>> diffs(num_points);
+            std::vector<Dtype> ranges(num_points);
+            std::vector<std::array<Dtype, 3>> diffs(num_points);
             omp_set_num_threads(this->m_key_rays_.size());
 
             // insert occupied endpoint
             const bool aabb_limit = m_setting_->use_aabb_limit;
-            const Aabb3D& aabb = m_setting_->aabb;
+            const auto& aabb = m_setting_->aabb.cast<Dtype>();
+
             for (long i = 0; i < num_points; ++i) {
                 const auto& point = points.col(i);
 
-                double& dx = diffs[i][0];
-                double& dy = diffs[i][1];
-                double& dz = diffs[i][2];
-                double& range = ranges[i];
+                Dtype& dx = diffs[i][0];
+                Dtype& dy = diffs[i][1];
+                Dtype& dz = diffs[i][2];
+                Dtype& range = ranges[i];
 
                 dx = point[0] - sensor_origin[0];
                 dy = point[1] - sensor_origin[1];
@@ -220,9 +228,9 @@ namespace erl::geometry {
                 }
             }
 
-            const double& sx = sensor_origin[0];
-            const double& sy = sensor_origin[1];
-            const double& sz = sensor_origin[2];
+            const Dtype& sx = sensor_origin[0];
+            const Dtype& sy = sensor_origin[1];
+            const Dtype& sz = sensor_origin[2];
 
             // we may need to handle thousands of rays, it is inefficient to create a key ray buffer for each ray
             // which may cause memory allocation and deallocation frequently
@@ -233,12 +241,12 @@ namespace erl::geometry {
                 uint32_t thread_idx = omp_get_thread_num();
                 OctreeKeyRay& key_ray = this->m_key_rays_[thread_idx];
 
-                const double& range = ranges[i];
-                double ex = point[0];
-                double ey = point[1];
-                double ez = point[2];
+                const Dtype& range = ranges[i];
+                Dtype ex = point[0];
+                Dtype ey = point[1];
+                Dtype ez = point[2];
                 if ((max_range >= 0.) && (range > max_range)) {  // crop ray at max_range
-                    const double r = max_range / range;
+                    const Dtype r = max_range / range;
                     ex = sx + diffs[i][0] * r;
                     ey = sy + diffs[i][1] * r;
                     ez = sz + diffs[i][2] * r;
@@ -249,7 +257,7 @@ namespace erl::geometry {
                 {
                     // slower than ComputeRayKeys, there is always a thread busy with this critical section
                     for (auto& key: key_ray) {
-                        if (m_end_point_mapping_.find(key) != m_end_point_mapping_.end()) { continue; }  // skip keys marked as occupied
+                        if (m_end_point_mapping_.contains(key)) { continue; }  // skip keys marked as occupied
                         if (const auto [_, new_key] = free_cells_set.emplace(key); new_key) { free_cells.push_back(key); }
                     }
                 }
@@ -268,9 +276,9 @@ namespace erl::geometry {
          */
         virtual void
         InsertPointCloudRays(
-            const Eigen::Ref<const Eigen::Matrix3Xd>& points,
-            const Eigen::Ref<const Eigen::Vector3d>& sensor_origin,
-            const double max_range,
+            const Eigen::Ref<const Matrix3X>& points,
+            const Eigen::Ref<const Vector3>& sensor_origin,
+            const Dtype max_range,
             bool parallel,
             const bool lazy_eval) {
 
@@ -308,14 +316,14 @@ namespace erl::geometry {
          * @return
          */
         virtual bool
-        InsertRay(double sx, double sy, double sz, double ex, double ey, double ez, const double max_range, bool lazy_eval) {
-            const double dx = ex - sx;
-            const double dy = ey - sy;
-            const double dz = ez - sz;
-            const double range = std::sqrt(dx * dx + dy * dy + dz * dz);
+        InsertRay(Dtype sx, Dtype sy, Dtype sz, Dtype ex, Dtype ey, Dtype ez, const Dtype max_range, bool lazy_eval) {
+            const Dtype dx = ex - sx;
+            const Dtype dy = ey - sy;
+            const Dtype dz = ez - sz;
+            const Dtype range = std::sqrt(dx * dx + dy * dy + dz * dz);
             auto& key_ray = this->m_key_rays_[0];
             if (max_range > 0 && range > max_range) {  // cut ray at max_range
-                const double r = max_range / range;
+                const Dtype r = max_range / range;
                 ex = sx + dx * r;
                 ey = sy + dy * r;
                 ez = sz + dz * r;
@@ -333,10 +341,10 @@ namespace erl::geometry {
         //-- cast ray
         OccupancyNdTreeBatchRayCaster<OccupancyOctreeBase, 3>
         GetBatchRayCaster(
-            Eigen::Matrix3Xd origins,
-            Eigen::Matrix3Xd directions,
-            const Eigen::VectorXd& max_ranges,
-            const Eigen::VectorXd& node_paddings,
+            Matrix3X origins,
+            Matrix3X directions,
+            const Vector& max_ranges,
+            const Vector& node_paddings,
             const Eigen::VectorXb& bidirectional_flags,
             const Eigen::VectorXb& leaf_only_flags,
             const Eigen::VectorXi& min_node_depths,
@@ -355,16 +363,16 @@ namespace erl::geometry {
 
         void
         CastRays(
-            const Eigen::Ref<const Eigen::Vector3d>& position,
-            const Eigen::Ref<const Eigen::Matrix3d>& rotation,
-            const Eigen::Ref<const Eigen::VectorXd>& azimuth_angles,
-            const Eigen::Ref<const Eigen::VectorXd>& elevation_angles,
+            const Eigen::Ref<const Vector3>& position,
+            const Eigen::Ref<const Matrix3>& rotation,
+            const Eigen::Ref<const Vector>& azimuth_angles,
+            const Eigen::Ref<const Vector>& elevation_angles,
             const bool ignore_unknown,
-            const double max_range,
+            const Dtype max_range,
             const bool prune_rays,  // whether to prune rays after the first hit of the same occupied node
             const bool parallel,
             std::vector<std::pair<long, long>>& hit_ray_indices,  // (azimuth_idx, elevation_idx) of the hit rays
-            std::vector<Eigen::Vector3d>& hit_positions,
+            std::vector<Vector3>& hit_positions,
             std::vector<const Node*>& hit_nodes) const {
 
             const long num_azimuths = azimuth_angles.size();
@@ -396,13 +404,10 @@ namespace erl::geometry {
                 const long idx_base = i * num_elevations;
                 for (long j = 0; j < num_elevations; ++j) {
                     long idx = idx_base + j;
-                    const double cos_elevation = std::cos(elevation_angles[j]);
-                    Eigen::Vector3d direction(
-                        std::cos(azimuth_angles[i]) * cos_elevation,
-                        std::sin(azimuth_angles[i]) * cos_elevation,
-                        std::sin(elevation_angles[j]));
+                    const Dtype cos_elevation = std::cos(elevation_angles[j]);
+                    Vector3 direction(std::cos(azimuth_angles[i]) * cos_elevation, std::sin(azimuth_angles[i]) * cos_elevation, std::sin(elevation_angles[j]));
                     direction = rotation * direction;
-                    Eigen::Vector3d& hit_position = hit_positions[idx];
+                    Vector3& hit_position = hit_positions[idx];
                     hit_nodes[idx] = this->CastRay(
                         position[0],
                         position[1],
@@ -421,7 +426,7 @@ namespace erl::geometry {
             absl::flat_hash_set<const Node*> hit_nodes_set;
 
             std::vector<std::pair<long, long>> filtered_hit_ray_indices;
-            std::vector<Eigen::Vector3d> filtered_hit_positions;
+            std::vector<Vector3> filtered_hit_positions;
             std::vector<const Node*> filtered_hit_nodes;
 
             filtered_hit_ray_indices.reserve(num_rays);
@@ -450,14 +455,14 @@ namespace erl::geometry {
 
         void
         CastRays(
-            const Eigen::Ref<const Eigen::Matrix3Xd>& positions,
-            const Eigen::Ref<const Eigen::Matrix3Xd>& directions,
+            const Eigen::Ref<const Matrix3X>& positions,
+            const Eigen::Ref<const Matrix3X>& directions,
             const bool ignore_unknown,
-            const double max_range,
+            const Dtype max_range,
             const bool prune_rays,
             const bool parallel,
             std::vector<long>& hit_ray_indices,
-            std::vector<Eigen::Vector3d>& hit_positions,
+            std::vector<Vector3>& hit_positions,
             std::vector<const Node*>& hit_nodes) const {
             long num_rays = 0;
             if (positions.cols() != 1 && directions.cols() != 1) {
@@ -527,7 +532,7 @@ namespace erl::geometry {
             absl::flat_hash_set<const Node*> hit_nodes_set;
 
             std::vector<long> filtered_hit_ray_indices;
-            std::vector<Eigen::Vector3d> filtered_hit_positions;
+            std::vector<Vector3> filtered_hit_positions;
             std::vector<const Node*> filtered_hit_nodes;
             filtered_hit_ray_indices.reserve(num_rays);
             filtered_hit_positions.reserve(num_rays);
@@ -555,17 +560,17 @@ namespace erl::geometry {
 
         const OccupancyOctreeNode*
         GetHitOccupiedNode(
-            const double px,
-            const double py,
-            const double pz,
-            const double vx,
-            const double vy,
-            const double vz,
+            const Dtype px,
+            const Dtype py,
+            const Dtype pz,
+            const Dtype vx,
+            const Dtype vy,
+            const Dtype vz,
             const bool ignore_unknown,
-            const double max_range,
-            double& ex,
-            double& ey,
-            double& ez) const override {
+            const Dtype max_range,
+            Dtype& ex,
+            Dtype& ey,
+            Dtype& ez) const override {
             return static_cast<const OccupancyOctreeNode*>(CastRay(px, py, pz, vx, vy, vz, ignore_unknown, max_range, ex, ey, ez));
         }
 
@@ -586,18 +591,8 @@ namespace erl::geometry {
          * @return node pointer if the ray hits an occupied cell, nullptr otherwise.
          */
         const Node*
-        CastRay(
-            double px,
-            double py,
-            double pz,
-            double vx,
-            double vy,
-            double vz,
-            const bool ignore_unknown,
-            const double max_range,
-            double& ex,
-            double& ey,
-            double& ez) const {
+        CastRay(Dtype px, Dtype py, Dtype pz, Dtype vx, Dtype vy, Dtype vz, const bool ignore_unknown, const Dtype max_range, Dtype& ex, Dtype& ey, Dtype& ez)
+            const {
             // Similar to OctreeImpl::ComputeRayKeys, but with extra hitting checks
 
             OctreeKey current_key;
@@ -618,7 +613,7 @@ namespace erl::geometry {
                 return nullptr;
             }
 
-            const double v_norm = std::sqrt(vx * vx + vy * vy + vz * vz);
+            const Dtype v_norm = std::sqrt(vx * vx + vy * vy + vz * vz);
             vx /= v_norm;
             vy /= v_norm;
             vz /= v_norm;
@@ -653,36 +648,36 @@ namespace erl::geometry {
             }
 
             // compute t_max and t_delta
-            const double resolution = this->m_setting_->resolution;
-            double t_max[3];
-            double t_delta[3];
+            const Dtype resolution = this->m_setting_->resolution;
+            Dtype t_max[3];
+            Dtype t_delta[3];
             if (step[0] == 0) {
-                t_max[0] = std::numeric_limits<double>::infinity();
-                t_delta[0] = std::numeric_limits<double>::infinity();
+                t_max[0] = std::numeric_limits<Dtype>::infinity();
+                t_delta[0] = std::numeric_limits<Dtype>::infinity();
             } else {
-                const double voxel_border = this->KeyToCoord(current_key[0]) + static_cast<double>(step[0]) * 0.5 * resolution;
+                const Dtype voxel_border = this->KeyToCoord(current_key[0]) + static_cast<Dtype>(step[0]) * 0.5 * resolution;
                 t_max[0] = (voxel_border - px) / vx;
                 t_delta[0] = resolution / std::abs(vx);
             }
             if (step[1] == 0) {
-                t_max[1] = std::numeric_limits<double>::infinity();
-                t_delta[1] = std::numeric_limits<double>::infinity();
+                t_max[1] = std::numeric_limits<Dtype>::infinity();
+                t_delta[1] = std::numeric_limits<Dtype>::infinity();
             } else {
-                const double voxel_border = this->KeyToCoord(current_key[1]) + static_cast<double>(step[1]) * 0.5 * resolution;
+                const Dtype voxel_border = this->KeyToCoord(current_key[1]) + static_cast<Dtype>(step[1]) * 0.5 * resolution;
                 t_max[1] = (voxel_border - py) / vy;
                 t_delta[1] = resolution / std::abs(vy);
             }
             if (step[2] == 0) {
-                t_max[2] = std::numeric_limits<double>::infinity();
-                t_delta[2] = std::numeric_limits<double>::infinity();
+                t_max[2] = std::numeric_limits<Dtype>::infinity();
+                t_delta[2] = std::numeric_limits<Dtype>::infinity();
             } else {
-                const double voxel_border = this->KeyToCoord(current_key[2]) + static_cast<double>(step[2]) * 0.5 * resolution;
+                const Dtype voxel_border = this->KeyToCoord(current_key[2]) + static_cast<Dtype>(step[2]) * 0.5 * resolution;
                 t_max[2] = (voxel_border - pz) / vz;
                 t_delta[2] = resolution / std::abs(vz);
             }
 
             // incremental phase
-            const double max_range_sq = max_range * max_range;
+            const Dtype max_range_sq = max_range * max_range;
             const long max_key_val = (this->m_tree_key_offset_ << 1) - 1;
             while (true) {
                 int idx = 0;
@@ -704,7 +699,7 @@ namespace erl::geometry {
                 this->KeyToCoord(current_key, ex, ey, ez);
                 // check if max_range is reached
                 if (max_range_set) {
-                    if (const double dx = ex - px, dy = ey - py, dz = ez - pz; (dx * dx + dy * dy + dz * dz) > max_range_sq) { return nullptr; }
+                    if (const Dtype dx = ex - px, dy = ey - py, dz = ez - pz; (dx * dx + dy * dy + dz * dz) > max_range_sq) { return nullptr; }
                 }
                 // search node of the new key
                 const Node* current_node = this->Search(current_key);
@@ -748,7 +743,7 @@ namespace erl::geometry {
          * @return
          */
         Node*
-        UpdateNode(double x, double y, double z, const bool occupied, const bool lazy_eval) {
+        UpdateNode(Dtype x, Dtype y, Dtype z, const bool occupied, const bool lazy_eval) {
             OctreeKey key;
             if (!this->CoordToKeyChecked(x, y, z, key)) { return nullptr; }
             return this->UpdateNode(key, occupied, lazy_eval);
@@ -768,21 +763,19 @@ namespace erl::geometry {
         }
 
         Node*
-        UpdateNode(double x, double y, double z, const float log_odds_delta, const bool lazy_eval) {
+        UpdateNode(Dtype x, Dtype y, Dtype z, const float log_odds_delta, const bool lazy_eval) {
             OctreeKey key;
             if (!this->CoordToKeyChecked(x, y, z, key)) { return nullptr; }
             return this->UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
         Node*
-        UpdateNode(const OctreeKey& key, const float log_odds_delta, const bool lazy_eval) {
-            auto leaf = const_cast<Node*>(this->Search(key));
-            auto log_odds_delta_double = static_cast<double>(log_odds_delta);
+        UpdateNode(const OctreeKey& key, float log_odds_delta, const bool lazy_eval) {
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
-            if (leaf) {
-                if (!leaf->AllowUpdateLogOdds(log_odds_delta_double)) { return leaf; }
-                if (log_odds_delta_double >= 0 && leaf->GetLogOdds() >= m_setting_->log_odd_max) { return leaf; }
-                if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= m_setting_->log_odd_min) { return leaf; }
+            if (auto leaf = const_cast<Node*>(this->Search(key)); leaf != nullptr) {
+                if (!leaf->AllowUpdateLogOdds(log_odds_delta)) { return leaf; }
+                if (log_odds_delta >= 0 && leaf->GetLogOdds() >= static_cast<Dtype>(m_setting_->log_odd_max)) { return leaf; }
+                if (log_odds_delta <= 0 && leaf->GetLogOdds() <= static_cast<Dtype>(m_setting_->log_odd_min)) { return leaf; }
             }
 
             const bool create_root = this->m_root_ == nullptr;
@@ -791,12 +784,12 @@ namespace erl::geometry {
                 ++this->m_tree_size_;
                 ERL_DEBUG_ASSERT(this->m_tree_size_ == 1, "tree size is not 1 after root creation.");
             }
-            return static_cast<Node*>(this->UpdateNodeRecurs(this->m_root_.get(), create_root, key, log_odds_delta_double, lazy_eval));
+            return static_cast<Node*>(this->UpdateNodeRecurs(this->m_root_.get(), create_root, key, log_odds_delta, lazy_eval));
         }
 
     private:
         Node*
-        UpdateNodeRecurs(Node* node, const bool node_just_created, const OctreeKey& key, const double log_odds_delta, const bool lazy_eval) {
+        UpdateNodeRecurs(Node* node, const bool node_just_created, const OctreeKey& key, const Dtype log_odds_delta, const bool lazy_eval) {
             ERL_DEBUG_ASSERT(node != nullptr, "node is nullptr.");
 
             const uint32_t depth = node->GetDepth();
@@ -845,8 +838,8 @@ namespace erl::geometry {
         UpdateNodeLogOdds(Node* node, float log_odd_delta) {
             node->AddLogOdds(log_odd_delta);
             const float l = node->GetLogOdds();
-            const double log_odd_min = m_setting_->log_odd_min;
-            const double log_odd_max = m_setting_->log_odd_max;
+            const Dtype log_odd_min = m_setting_->log_odd_min;
+            const Dtype log_odd_max = m_setting_->log_odd_max;
             if (l < log_odd_min) {
                 node->SetLogOdds(log_odd_min);
                 return;
@@ -892,8 +885,8 @@ namespace erl::geometry {
             if (this->m_root_ == nullptr) { return; }
             std::list<Node*> stack;
             stack.emplace_back(static_cast<Node*>(this->m_root_.get()));
-            const double log_odd_min = m_setting_->log_odd_min;
-            const double log_odd_max = m_setting_->log_odd_max;
+            const auto log_odd_min = static_cast<Dtype>(m_setting_->log_odd_min);
+            const auto log_odd_max = static_cast<Dtype>(m_setting_->log_odd_max);
             while (!stack.empty()) {
                 Node* node = stack.back();
                 stack.pop_back();
@@ -930,8 +923,8 @@ namespace erl::geometry {
             std::list<std::pair<Node*, bool>> stack;  // node, is_new_node
             stack.emplace_back(this->m_root_.get(), true);
 
-            const double log_odd_min = m_setting_->log_odd_min;
-            const double log_odd_max = m_setting_->log_odd_max;
+            const auto log_odd_min = static_cast<Dtype>(m_setting_->log_odd_min);
+            const auto log_odd_max = static_cast<Dtype>(m_setting_->log_odd_max);
 
             while (!stack.empty()) {
                 auto& top = stack.back();

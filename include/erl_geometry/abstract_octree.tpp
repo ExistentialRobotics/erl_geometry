@@ -1,4 +1,4 @@
-#include "erl_geometry/abstract_octree.hpp"
+#pragma once
 
 #include "erl_common/logging.hpp"
 
@@ -7,8 +7,9 @@
 
 namespace erl::geometry {
 
+    template<typename Dtype>
     bool
-    AbstractOctree::Write(const std::string &filename) const {
+    AbstractOctree<Dtype>::Write(const std::string &filename) const {
         const auto path = std::filesystem::absolute(filename);
         ERL_INFO("Writing octree to file: {}", path);
         std::filesystem::create_directories(path.parent_path());
@@ -26,8 +27,9 @@ namespace erl::geometry {
 
     static const std::string kFileHeader = "# erl::geometry::AbstractOctree";
 
+    template<typename Dtype>
     std::ostream &
-    AbstractOctree::Write(std::ostream &s) const {
+    AbstractOctree<Dtype>::Write(std::ostream &s) const {
         // write header
         s << kFileHeader << std::endl
           << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
@@ -40,8 +42,9 @@ namespace erl::geometry {
         return this->WriteData(s);
     }
 
-    std::shared_ptr<AbstractOctree>
-    AbstractOctree::Read(const std::string &filename) {
+    template<typename Dtype>
+    std::shared_ptr<AbstractOctree<Dtype>>
+    AbstractOctree<Dtype>::Read(const std::string &filename) {
         ERL_INFO("Reading octree from file: {}", std::filesystem::absolute(filename));
         std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
         if (!file.is_open()) {
@@ -54,8 +57,9 @@ namespace erl::geometry {
         return tree;
     }
 
-    std::shared_ptr<AbstractOctree>
-    AbstractOctree::Read(std::istream &s) {
+    template<typename Dtype>
+    std::shared_ptr<AbstractOctree<Dtype>>
+    AbstractOctree<Dtype>::Read(std::istream &s) {
         if (!s.good()) {
             ERL_WARN("Input stream is not ready for reading");
             return nullptr;
@@ -94,8 +98,9 @@ namespace erl::geometry {
         return tree;
     }
 
+    template<typename Dtype>
     bool
-    AbstractOctree::LoadData(const std::string &filename) {
+    AbstractOctree<Dtype>::LoadData(const std::string &filename) {
         ERL_INFO("Loading data from file: {}", std::filesystem::absolute(filename));
         std::ifstream s(filename.c_str(), std::ios_base::in | std::ios_base::binary);
         if (!s.is_open()) {
@@ -107,8 +112,9 @@ namespace erl::geometry {
         return success;
     }
 
+    template<typename Dtype>
     bool
-    AbstractOctree::LoadData(std::istream &s) {
+    AbstractOctree<Dtype>::LoadData(std::istream &s) {
         if (!s.good()) {
             ERL_WARN("Input stream is not ready for reading");
             return false;
@@ -146,8 +152,9 @@ namespace erl::geometry {
         return GetSize() == size;
     }
 
+    template<typename Dtype>
     bool
-    AbstractOctree::ReadHeader(std::istream &s, std::string &tree_id, uint32_t &size) {
+    AbstractOctree<Dtype>::ReadHeader(std::istream &s, std::string &tree_id, uint32_t &size) {
         // initialize output variables
         tree_id = "";
         size = 0;

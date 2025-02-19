@@ -53,6 +53,12 @@ namespace erl::geometry {
         Intersection(const Aabb &rhs) const {
             return {this->m_min.cwiseMax(rhs.m_min), this->m_max.cwiseMin(rhs.m_max)};
         }
+
+        template<typename Dtype>
+        Aabb<Dtype, Dim>
+        Cast() const {
+            return {this->m_min.template cast<Dtype>(), this->m_max.template cast<Dtype>()};
+        }
     };
 
     using Aabb2D = Aabb<double, 2>;

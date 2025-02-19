@@ -3,26 +3,24 @@
 #include "abstract_octree.hpp"
 #include "occupancy_nd_tree_setting.hpp"
 #include "occupancy_octree_node.hpp"
-#include "octree_key.hpp"
 
 namespace erl::geometry {
 
     /**
      * AbstractOccupancyOctree is a base class that implements generic occupancy quadtree functionality.
      */
-    class AbstractOccupancyOctree : public AbstractOctree {
+    template<typename Dtype>
+    class AbstractOccupancyOctree : public AbstractOctree<Dtype> {
         std::shared_ptr<OccupancyNdTreeSetting> m_setting_ = nullptr;
 
     protected:
-        // binary file header identifier
-        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";  // cppcheck-suppress unusedStructMember
+        using Super = AbstractOctree<Dtype>;
+        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";  // binary file header identifier
 
     public:
         AbstractOccupancyOctree() = delete;  // no default constructor
 
-        explicit AbstractOccupancyOctree(std::shared_ptr<OccupancyNdTreeSetting> setting)
-            : AbstractOctree(setting),
-              m_setting_(std::move(setting)) {}
+        explicit AbstractOccupancyOctree(std::shared_ptr<OccupancyNdTreeSetting> setting);
 
         AbstractOccupancyOctree(const AbstractOccupancyOctree&) = default;
         AbstractOccupancyOctree&
@@ -89,33 +87,28 @@ namespace erl::geometry {
     public:
         //-- occupancy queries
         [[nodiscard]] bool
-        IsNodeOccupied(const OccupancyOctreeNode* node) const {
-            return node->GetLogOdds() > m_setting_->log_odd_occ_threshold;
-        }
+        IsNodeOccupied(const OccupancyOctreeNode* node) const;
 
         [[nodiscard]] bool
-        IsNodeAtThreshold(const OccupancyOctreeNode* node) const {
-            const float log_odds = node->GetLogOdds();
-            return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
-        }
+        IsNodeAtThreshold(const OccupancyOctreeNode* node) const;
 
         //-- search
-        [[nodiscard]] virtual const OccupancyOctreeNode*
+        const OccupancyOctreeNode*
         GetHitOccupiedNode(
-            double px,
-            double py,
-            double pz,
-            double vx,
-            double vy,
-            double vz,
+            const Eigen::Ref<typename Super::Vector3>& p,
+            const Eigen::Ref<typename Super::Vector3>& v,
             bool ignore_unknown,
-            double max_range,
-            double& ex,
-            double& ey,
-            double& ez) const = 0;
+            Dtype max_range,
+            typename Super::Vector3& hit_position);
+
+        [[nodiscard]] virtual const OccupancyOctreeNode*
+        GetHitOccupiedNode(Dtype px, Dtype py, Dtype pz, Dtype vx, Dtype vy, Dtype vz, bool ignore_unknown, Dtype max_range, Dtype& ex, Dtype& ey, Dtype& ez)
+            const = 0;
 
         //-- update functions
         virtual void
         ToMaxLikelihood() = 0;
     };
 }  // namespace erl::geometry
+
+#include "abstract_occupancy_octree.tpp"

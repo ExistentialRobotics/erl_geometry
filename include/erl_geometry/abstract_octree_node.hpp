@@ -1,12 +1,11 @@
 #pragma once
 
+#include "erl_common/factory_pattern.hpp"
 #include "erl_common/logging.hpp"
 #include "erl_common/string_utils.hpp"
 #include "erl_common/tracy.hpp"
 
 #include <cstdint>
-#include <functional>
-#include <map>
 #include <memory>
 #include <string>
 
@@ -20,9 +19,10 @@ namespace erl::geometry {
         int m_child_index_ = -1;
         AbstractOctreeNode **m_children_ = nullptr;
         uint32_t m_num_children_ = 0;
-        inline static std::map<std::string, std::function<std::shared_ptr<AbstractOctreeNode>(uint32_t, int)>> s_class_id_mapping_ = {};
 
     public:
+        using Factory = common::FactoryPattern<AbstractOctreeNode, false, false, uint32_t, int>;
+
         // rules of five: https://www.youtube.com/watch?v=juAZDfsaMvY
         // except for user-defined constructor,
         // always define: destructor, copy constructor, copy assignment, move constructor, move assignment
@@ -33,7 +33,7 @@ namespace erl::geometry {
             : m_depth_(depth),
               m_child_index_(child_index) {
             ERL_DEBUG_WARN_ONCE_COND(
-                typeid(*this) != typeid(AbstractOctreeNode) && s_class_id_mapping_.find(GetNodeType()) == s_class_id_mapping_.end(),
+                typeid(*this) != typeid(AbstractOctreeNode) && !Factory::GetInstance().IsRegistered(GetNodeType()),
                 "Tree type {} not registered, do you forget to use ERL_REGISTER_OCTREE_NODE({})?",
                 GetNodeType(),
                 GetNodeType());
@@ -95,26 +95,15 @@ namespace erl::geometry {
 
         static std::shared_ptr<AbstractOctreeNode>
         CreateNode(const std::string &node_type, const uint32_t depth, const int child_index) {
-            const auto it = s_class_id_mapping_.find(node_type);
-            if (it == s_class_id_mapping_.end()) {
-                ERL_WARN("Unknown Octree node type: {}. Here are the registered node types:", node_type);
-                for (const auto &[node_type_str, _]: s_class_id_mapping_) { ERL_WARN("  - {}", node_type_str); }
-                return nullptr;
-            }
-            return it->second(depth, child_index);
+            return Factory::GetInstance().Create(node_type, depth, child_index);
         }
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractOctreeNode, Derived>, bool>
         Register(std::string node_type = "") {
-            if (node_type.empty()) { node_type = demangle(typeid(Derived).name()); }
-            if (s_class_id_mapping_.find(node_type) != s_class_id_mapping_.end()) {
-                ERL_WARN("{} is already registered.", node_type);
-                return false;
-            }
-
-            s_class_id_mapping_[node_type] = [](uint32_t depth, int child_index) { return std::make_shared<Derived>(depth, child_index); };
-            return true;
+            return Factory::GetInstance().Register<Derived>(node_type, [](uint32_t depth, int child_index) {
+                return std::make_shared<Derived>(depth, child_index);
+            });
         }
 
         /**

@@ -2,51 +2,73 @@
 
 #include "kdtree_eigen_adaptor.hpp"
 
+#include "erl_common/factory_pattern.hpp"
 #include "erl_common/yaml.hpp"
 
+#include <absl/container/flat_hash_map.h>
+
 namespace erl::geometry {
+
+    template<typename Dtype>
     class RangeSensorFrame3D {
     public:
         struct Setting : common::Yamlable<Setting> {
             long row_margin = 0;
             long col_margin = 0;
-            double valid_range_min = 0.0;
-            double valid_range_max = std::numeric_limits<double>::max();
-            double discontinuity_factor = 10;
-            double rolling_diff_discount = 0.9;
+            Dtype valid_range_min = 0.0;
+            Dtype valid_range_max = std::numeric_limits<Dtype>::max();
+            Dtype discontinuity_factor = 10;
+            Dtype rolling_diff_discount = 0.9;
             int min_partition_size = 5;
+
+            struct YamlConvertImpl {
+                static YAML::Node
+                encode(const Setting &setting);
+
+                static bool
+                decode(const YAML::Node &node, Setting &setting);
+            };
         };
 
+        using Matrix = Eigen::MatrixX<Dtype>;
+        using Matrix3X = Eigen::Matrix3X<Dtype>;
+        using Matrix3 = Eigen::Matrix3<Dtype>;
+        using Vector = Eigen::VectorX<Dtype>;
+        using Vector3 = Eigen::Vector3<Dtype>;
+        using Vector2 = Eigen::Vector2<Dtype>;
+        using KdTree = KdTreeEigenAdaptor<Dtype, 3>;
+
+    private:
         inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
-
-    protected:
-        inline static std::map<std::string, std::function<std::shared_ptr<RangeSensorFrame3D>(const std::shared_ptr<Setting> &)>> s_class_id_mapping_ = {};
-
+        inline static const std::string kFileHeader = fmt::format("# erl::geometry::RangeSensorFrame3D<{}>", type_name<Dtype>());
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
-        Eigen::Matrix3d m_rotation_ = {};
-        Eigen::Vector3d m_translation_ = {};
+    protected:
+        Matrix3 m_rotation_ = {};
+        Vector3 m_translation_ = {};
 
-        Eigen::MatrixX<Eigen::Vector2d> m_frame_coords_ = {};  // (row_coord, col_coord) in frame, e.g. (azimuth, elevation) for LiDAR, (v, u) for RGBD
-        Eigen::MatrixXd m_ranges_ = {};
+        Eigen::MatrixX<Vector2> m_frame_coords_ = {};  // (row_coord, col_coord) in frame, e.g. (azimuth, elevation) for LiDAR, (v, u) for RGBD
+        Matrix m_ranges_ = {};
 
         // the memory layout of the following matrices is (azimuth, elevation, 3), and it is okay to access the data using raw pointer directly
         // because the memory is contiguous.
 
-        Eigen::MatrixX<Eigen::Vector3d> m_dirs_frame_ = {};  // directions in frame, (vx, vy, vz), normalized
-        Eigen::MatrixX<Eigen::Vector3d> m_dirs_world_ = {};  // directions in world, (vx, vy, vz), normalized
+        Eigen::MatrixX<Vector3> m_dirs_frame_ = {};  // directions in frame, (vx, vy, vz), normalized
+        Eigen::MatrixX<Vector3> m_dirs_world_ = {};  // directions in world, (vx, vy, vz), normalized
 
-        Eigen::MatrixX<Eigen::Vector3d> m_end_pts_frame_ = {};  // end points in frame, (x, y, z)
-        Eigen::MatrixX<Eigen::Vector3d> m_end_pts_world_ = {};  // end points in world, (x, y, z)
+        Eigen::MatrixX<Vector3> m_end_pts_frame_ = {};  // end points in frame, (x, y, z)
+        Eigen::MatrixX<Vector3> m_end_pts_world_ = {};  // end points in world, (x, y, z)
 
         Eigen::MatrixXb m_mask_hit_ = {};                            // if i-th element is true, then i-th vertex is a hit
         Eigen::MatrixXb m_mask_continuous_ = {};                     // if i-th element is true, then (i-1, i) edge is continuous
         std::vector<std::pair<long, long>> m_hit_ray_indices_ = {};  // hit ray indices
-        std::vector<Eigen::Vector3d> m_hit_points_world_ = {};       // hit points in world
-        double m_max_valid_range_ = std::numeric_limits<double>::min();
-        std::shared_ptr<KdTree3d> m_kd_tree_ = std::make_shared<KdTree3d>();
+        std::vector<Vector3> m_hit_points_world_ = {};               // hit points in world
+        Dtype m_max_valid_range_ = std::numeric_limits<Dtype>::min();
+        std::shared_ptr<KdTree> m_kd_tree_ = std::make_shared<KdTree>();
 
     public:
+        using Factory = common::FactoryPattern<RangeSensorFrame3D, false, false, const std::shared_ptr<Setting> &>;
+
         explicit RangeSensorFrame3D(std::shared_ptr<Setting> setting)
             : m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr when creating RangeSensorFrame3D.");
@@ -59,29 +81,8 @@ namespace erl::geometry {
         Create(const std::string &type, const std::shared_ptr<Setting> &setting);
 
         template<typename Derived>
-        static std::enable_if_t<std::is_base_of_v<RangeSensorFrame3D, Derived>, bool>
-        Register(std::string frame_type = "") {
-            if (frame_type.empty()) { frame_type = demangle(typeid(Derived).name()); }
-            if (s_class_id_mapping_.find(frame_type) != s_class_id_mapping_.end()) {
-                ERL_WARN("Derived RangeSensorFrame3D of type {} is already registered.", frame_type);
-                return false;
-            }
-            s_class_id_mapping_[frame_type] = [](const std::shared_ptr<Setting> &setting) -> std::shared_ptr<RangeSensorFrame3D> {
-                const std::string frame_type = demangle(typeid(Derived).name());
-                if (setting == nullptr) {
-                    ERL_WARN("setting is nullptr before creating a derived RangeSensorFrame3D of type {}.", frame_type);
-                    return nullptr;
-                }
-                auto frame_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
-                if (frame_setting == nullptr) {
-                    ERL_WARN("Failed to cast setting for derived RangeSensorFrame3D of type {}.", frame_type);
-                    return nullptr;
-                }
-                return std::make_shared<Derived>(frame_setting);
-            };
-            ERL_DEBUG("{} is registered.", frame_type);
-            return true;
-        }
+        static bool
+        Register(std::string frame_type = "");
 
         [[nodiscard]] long
         GetNumRays() const {
@@ -93,12 +94,12 @@ namespace erl::geometry {
             return static_cast<long>(m_hit_ray_indices_.size());
         }
 
-        [[nodiscard]] const Eigen::Matrix3d &
+        [[nodiscard]] const Matrix3 &
         GetRotationMatrix() const {
             return m_rotation_;
         }
 
-        [[nodiscard]] const Eigen::Vector3d &
+        [[nodiscard]] const Vector3 &
         GetTranslationVector() const {
             return m_translation_;
         }
@@ -111,75 +112,71 @@ namespace erl::geometry {
             return pose.matrix();
         }
 
-        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector2d> &
+        [[nodiscard]] const Eigen::MatrixX<Vector2> &
         GetFrameCoords() const {
             return m_frame_coords_;
         }
 
         [[nodiscard]] virtual bool
-        PointIsInFrame(const Eigen::Vector3d &xyz_frame) const = 0;
+        PointIsInFrame(const Vector3 &xyz_frame) const = 0;
 
         [[nodiscard]] bool
-        CoordsIsInFrame(const Eigen::Vector2d &frame_coords) const {
-            const Eigen::Vector2d &top_left = m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
-            const Eigen::Vector2d &bottom_right = m_frame_coords_(  //
+        CoordsIsInFrame(const Vector2 &frame_coords) const {
+            const Vector2 &top_left = m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
+            const Vector2 &bottom_right = m_frame_coords_(  //
                 m_frame_coords_.rows() - m_setting_->row_margin - 1,
                 m_frame_coords_.cols() - m_setting_->col_margin - 1);
             return frame_coords[0] >= top_left[0] && frame_coords[0] <= bottom_right[0] &&  //
                    frame_coords[1] >= top_left[1] && frame_coords[1] <= bottom_right[1];
         }
 
-        [[nodiscard]] virtual Eigen::Vector2d
-        ComputeFrameCoords(const Eigen::Vector3d &xyz_frame) const = 0;
+        [[nodiscard]] virtual Vector2
+        ComputeFrameCoords(const Vector3 &xyz_frame) const = 0;
 
-        [[nodiscard]] virtual Eigen::Vector3d
-        WorldToFrameSo3(const Eigen::Vector3d &dir_world) const {
+        [[nodiscard]] virtual Vector3
+        WorldToFrameSo3(const Vector3 &dir_world) const {
             return m_rotation_.transpose() * dir_world;
         }
 
-        [[nodiscard]] virtual Eigen::Vector3d
-        FrameToWorldSo3(const Eigen::Vector3d &dir_frame) const {
+        [[nodiscard]] virtual Vector3
+        FrameToWorldSo3(const Vector3 &dir_frame) const {
             return m_rotation_ * dir_frame;
         }
 
-        [[nodiscard]] virtual Eigen::Vector3d
-        WorldToFrameSe3(const Eigen::Vector3d &xyz_world) const {
+        [[nodiscard]] virtual Vector3
+        WorldToFrameSe3(const Vector3 &xyz_world) const {
             return m_rotation_.transpose() * (xyz_world - m_translation_);
         }
 
-        [[nodiscard]] virtual Eigen::Vector3d
-        FrameToWorldSe3(const Eigen::Vector3d &xyz_frame) const {
+        [[nodiscard]] virtual Vector3
+        FrameToWorldSe3(const Vector3 &xyz_frame) const {
             return m_rotation_ * xyz_frame + m_translation_;
         }
 
         virtual void
-        UpdateRanges(
-            const Eigen::Ref<const Eigen::Matrix3d> &rotation,
-            const Eigen::Ref<const Eigen::Vector3d> &translation,
-            Eigen::MatrixXd ranges,
-            bool partition_rays) = 0;
+        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, Matrix ranges, bool partition_rays) = 0;
 
-        [[nodiscard]] const Eigen::MatrixXd &
+        [[nodiscard]] const Matrix &
         GetRanges() const {
             return m_ranges_;
         }
 
-        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Vector3> &
         GetRayDirectionsInFrame() const {
             return m_dirs_frame_;
         }
 
-        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Vector3> &
         GetRayDirectionsInWorld() const {
             return m_dirs_world_;
         }
 
-        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Vector3> &
         GetEndPointsInFrame() const {
             return m_end_pts_frame_;
         }
 
-        [[nodiscard]] const Eigen::MatrixX<Eigen::Vector3d> &
+        [[nodiscard]] const Eigen::MatrixX<Vector3> &
         GetEndPointsInWorld() const {
             return m_end_pts_world_;
         }
@@ -189,12 +186,12 @@ namespace erl::geometry {
             return m_hit_ray_indices_;
         }
 
-        [[nodiscard]] const std::vector<Eigen::Vector3d> &
+        [[nodiscard]] const std::vector<Vector3> &
         GetHitPointsWorld() const {
             return m_hit_points_world_;
         }
 
-        [[nodiscard]] double
+        [[nodiscard]] Dtype
         GetMaxValidRange() const {
             return m_max_valid_range_;
         }
@@ -211,48 +208,48 @@ namespace erl::geometry {
 
         void
         ComputeClosestEndPoint(
-            const Eigen::Ref<const Eigen::Vector3d> &position_world,
+            const Eigen::Ref<const Vector3> &position_world,
             long &end_point_row_index,
             long &end_point_col_index,
-            double &distance,
+            Dtype &distance,
             bool brute_force = false);
 
         void
         SampleAlongRays(
             long num_samples_per_ray,
-            double max_in_obstacle_dist,
-            double sampled_rays_ratio,
-            Eigen::Matrix3Xd &positions_world,
-            Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances) const;
+            Dtype max_in_obstacle_dist,
+            Dtype sampled_rays_ratio,
+            Matrix3X &positions_world,
+            Matrix3X &directions_world,
+            Vector &distances) const;
 
         void
         SampleAlongRays(
-            double range_step,
-            double max_in_obstacle_dist,
-            double sampled_rays_ratio,
-            Eigen::Matrix3Xd &positions_world,
-            Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances) const;
+            Dtype range_step,
+            Dtype max_in_obstacle_dist,
+            Dtype sampled_rays_ratio,
+            Matrix3X &positions_world,
+            Matrix3X &directions_world,
+            Vector &distances) const;
 
         void
         SampleNearSurface(
             long num_samples_per_ray,
-            double max_offset,
-            double sampled_rays_ratio,
-            Eigen::Matrix3Xd &positions_world,
-            Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances) const;
+            Dtype max_offset,
+            Dtype sampled_rays_ratio,
+            Matrix3X &positions_world,
+            Matrix3X &directions_world,
+            Vector &distances) const;
 
         void
         SampleInRegionHpr(  // HPR: hidden point removal
             long num_positions,
             long num_along_ray_samples_per_ray,
             long num_near_surface_samples_per_ray,
-            double max_in_obstacle_dist,
-            Eigen::Matrix3Xd &positions_world,
-            Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances,
+            Dtype max_in_obstacle_dist,
+            Matrix3X &positions_world,
+            Matrix3X &directions_world,
+            Vector &distances,
             bool parallel = false) const;
 
         void
@@ -260,16 +257,16 @@ namespace erl::geometry {
             long num_hit_points,
             long num_samples_per_azimuth_segment,
             long num_azimuth_segments,
-            Eigen::Matrix3Xd &positions_world,
-            Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances,
+            Matrix3X &positions_world,
+            Matrix3X &directions_world,
+            Vector &distances,
             bool parallel = false) const;
 
         void
         ComputeRaysAt(
-            const Eigen::Ref<const Eigen::Vector3d> &position_world,
-            Eigen::Matrix3Xd &directions_world,
-            Eigen::VectorXd &distances,
+            const Eigen::Ref<const Vector3> &position_world,
+            Matrix3X &directions_world,
+            Vector &distances,
             std::vector<long> &visible_hit_point_indices) const;
 
         [[nodiscard]] virtual bool
@@ -299,10 +296,10 @@ namespace erl::geometry {
             long num_positions,
             long num_along_ray_samples_per_ray,
             long num_near_surface_samples_per_ray,
-            double max_in_obstacle_dist,
-            Eigen::Matrix3Xd *positions_world_ptr,
-            Eigen::Matrix3Xd *directions_world_ptr,
-            Eigen::VectorXd *distances_ptr) const;
+            Dtype max_in_obstacle_dist,
+            Matrix3X *positions_world_ptr,
+            Matrix3X *directions_world_ptr,
+            Vector *distances_ptr) const;
 
         void
         SampleInRegionVrsThread(
@@ -311,42 +308,18 @@ namespace erl::geometry {
             const long *hit_point_index_end,
             long num_samples_per_azimuth_segment,
             long num_azimuth_segments,
-            Eigen::Matrix3Xd *positions_world_ptr,
-            Eigen::Matrix3Xd *directions_world_ptr,
-            Eigen::VectorXd *distances_ptr) const;
+            Matrix3X *positions_world_ptr,
+            Matrix3X *directions_world_ptr,
+            Vector *distances_ptr) const;
     };
 
-#define ERL_REGISTER_RANGE_SENSOR_FRAME_3D(Derived) inline const volatile bool kRegistered##Derived = RangeSensorFrame3D::Register<Derived>()
+#define ERL_REGISTER_RANGE_SENSOR_FRAME_3D(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
 }  // namespace erl::geometry
 
-// ReSharper disable CppInconsistentNaming
+#include "range_sensor_frame_3d.tpp"
+
 template<>
-struct YAML::convert<erl::geometry::RangeSensorFrame3D::Setting> {
-    static Node
-    encode(const erl::geometry::RangeSensorFrame3D::Setting &rhs) {
-        Node node;
-        node["row_margin"] = rhs.row_margin;
-        node["col_margin"] = rhs.col_margin;
-        node["valid_range_min"] = rhs.valid_range_min;
-        node["valid_range_max"] = rhs.valid_range_max;
-        node["discontinuity_factor"] = rhs.discontinuity_factor;
-        node["rolling_diff_discount"] = rhs.rolling_diff_discount;
-        node["min_partition_size"] = rhs.min_partition_size;
-        return node;
-    }
+struct YAML::convert<erl::geometry::RangeSensorFrame3D<double>::Setting> : erl::geometry::RangeSensorFrame3D<double>::Setting::YamlConvertImpl {};
 
-    static bool
-    decode(const Node &node, erl::geometry::RangeSensorFrame3D::Setting &rhs) {
-        if (!node.IsMap()) { return false; }
-        rhs.row_margin = node["row_margin"].as<long>();
-        rhs.col_margin = node["col_margin"].as<long>();
-        rhs.valid_range_min = node["valid_range_min"].as<double>();
-        rhs.valid_range_max = node["valid_range_max"].as<double>();
-        rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
-        rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
-        rhs.min_partition_size = node["min_partition_size"].as<int>();
-        return true;
-    }
-};
-
-// ReSharper restore CppInconsistentNaming
+template<>
+struct YAML::convert<erl::geometry::RangeSensorFrame3D<float>::Setting> : erl::geometry::RangeSensorFrame3D<float>::Setting::YamlConvertImpl {};

@@ -132,20 +132,23 @@ TEST(OccupancyQuadtree, CoordsAndKey) {
     tree.KeyToCoord(key, x_inv, y_inv);
     EXPECT_FLOAT_EQ(0.025, x_inv);
     EXPECT_FLOAT_EQ(0.025, y_inv);
+    QuadtreeKey key_inv = tree.CoordToKey(x_inv, y_inv);
+    EXPECT_EQ(key, key_inv);
 
     tree_setting->resolution = 0.1;
     tree.ApplySetting();
-    key[0] = 32888;
+    key[0] = 32888;  // this is a key but will not appear exactly in the depth 14
     key[1] = 32760;
-    tree.KeyToCoord(key, 14, x_inv, y_inv);
+    tree.KeyToCoord(key, 14, x_inv, y_inv);  // get the center of the cell of depth 14
     EXPECT_FLOAT_EQ(12.2, x_inv);
     EXPECT_FLOAT_EQ(-0.6, y_inv);
-    tree.KeyToCoord(key, 14, x_inv, y_inv);
-    EXPECT_FLOAT_EQ(12.0, x_inv);
-    EXPECT_FLOAT_EQ(-0.8, y_inv);
-    key = tree.CoordToKey(12.0, -0.8);
-    EXPECT_EQ(key[0], 32888);
-    EXPECT_EQ(key[1], 32760);
+    key = tree.CoordToKey(x_inv, y_inv, 14);  // not the same key
+    EXPECT_EQ(key[0], 32890);
+    EXPECT_EQ(key[1], 32762);
+
+    const uint64_t morton_code = key.ToMortonCode();
+    const QuadtreeKey key_from_morton_code(morton_code);
+    EXPECT_EQ(key, key_from_morton_code);
 }
 
 TEST(OccupancyQuadtree, Prune) {

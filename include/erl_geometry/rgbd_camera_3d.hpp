@@ -5,15 +5,19 @@
 
 #include "erl_common/opencv.hpp"
 
+#include <open3d/geometry/TriangleMesh.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 
 #include <memory>
 
 namespace erl::geometry {
 
-    class RgbdCamera3D : public CameraBase3D {
+    template<typename Dtype>
+    class RgbdCamera3D {
     public:
-        using Setting = CameraIntrinsic;
+        using Setting = CameraIntrinsic<Dtype>;
+        using Matrix3 = Eigen::Matrix3<Dtype>;
+        using Vector3 = Eigen::Vector3<Dtype>;
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
@@ -42,11 +46,11 @@ namespace erl::geometry {
          * @param translation The translation of the camera.
          */
         [[nodiscard]] std::pair<cv::Mat, cv::Mat>
-        Scan(const Eigen::Ref<const Eigen::Matrix3d> &orientation, const Eigen::Ref<const Eigen::Vector3d> &translation) const;
+        Scan(const Eigen::Ref<const Matrix3> &orientation, const Eigen::Ref<const Vector3> &translation) const;
 
-        [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
+        [[nodiscard]] Eigen::MatrixX<Vector3>
         GetRayDirectionsInFrame() const {
-            return ComputeRayDirectionsInFrame(
+            return CameraBase3D<Dtype>::ComputeRayDirectionsInFrame(
                 m_setting_->image_height,
                 m_setting_->image_width,
                 m_setting_->camera_fx,
@@ -55,4 +59,9 @@ namespace erl::geometry {
                 m_setting_->camera_cy);
         }
     };
+
+    using RgbdCamera3Dd = RgbdCamera3D<double>;
+    using RgbdCamera3Df = RgbdCamera3D<float>;
 }  // namespace erl::geometry
+
+#include "rgbd_camera_3d.tpp"

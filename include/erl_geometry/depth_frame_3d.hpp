@@ -9,15 +9,32 @@ namespace erl::geometry {
 
     class DepthFramePartition3D;
 
-    class DepthFrame3D : public RangeSensorFrame3D {
+    template<typename Dtype>
+    class DepthFrame3D : public RangeSensorFrame3D<Dtype> {
     public:
-        struct Setting : common::Yamlable<Setting, RangeSensorFrame3D::Setting> {
-            CameraIntrinsic camera_intrinsic = {};
+        using Super = RangeSensorFrame3D<Dtype>;
+        using Matrix = typename Super::Matrix;
+        using Matrix3 = typename Super::Matrix3;
+        using Vector3 = typename Super::Vector3;
+        using Vector2 = typename Super::Vector2;
+
+        struct Setting : common::Yamlable<Setting, typename Super::Setting> {
+            CameraIntrinsic<Dtype> camera_intrinsic = {};
+
+            struct YamlConvertImpl {
+                static YAML::Node
+                encode(const Setting &setting);
+
+                static bool
+                decode(const YAML::Node &node, Setting &setting);
+            };
         };
 
-        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+        // inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
 
-    protected:
+    private:
+        inline static const std::string kFileHeader = fmt::format("# erl::geometry::DepthFrame3D<{}>", type_name<Dtype>());
+
         std::shared_ptr<Setting> m_setting_ = nullptr;
         std::vector<DepthFramePartition3D> m_partitions_ = {};
         bool m_partitioned_ = false;
@@ -26,51 +43,31 @@ namespace erl::geometry {
         explicit DepthFrame3D(std::shared_ptr<Setting> setting);
 
         [[nodiscard]] std::shared_ptr<const Setting>
-        GetSetting() const {
-            return m_setting_;
-        }
+        GetSetting() const;
 
         void
-        Reset() {
-            m_max_valid_range_ = std::numeric_limits<double>::min();
-            m_partitioned_ = false;
-        }
+        Reset();
 
         [[nodiscard]] long
-        GetImageHeight() const {
-            return m_frame_coords_.rows();
-        }
+        GetImageHeight() const;
 
         [[nodiscard]] long
-        GetImageWidth() const {
-            return m_frame_coords_.cols();
-        }
+        GetImageWidth() const;
 
         [[nodiscard]] bool
-        IsPartitioned() const {
-            return m_partitioned_;
-        }
+        IsPartitioned() const;
 
         [[nodiscard]] bool
-        PointIsInFrame(const Eigen::Vector3d &xyz_frame) const override {
-            if (xyz_frame[2] < 0) { return false; }  // behind the camera
-            return CoordsIsInFrame(ComputeFrameCoords(xyz_frame));
-        }
+        PointIsInFrame(const Vector3 &xyz_frame) const override;
 
-        [[nodiscard]] Eigen::Vector2d
-        ComputeFrameCoords(const Eigen::Vector3d &dir_frame) const override {
-            return {dir_frame[1] / dir_frame[2], dir_frame[0] / dir_frame[2]};
-        }
+        [[nodiscard]] Vector2
+        ComputeFrameCoords(const Vector3 &dir_frame) const override;
 
-        [[nodiscard]] static Eigen::MatrixXd
-        DepthImageToDepth(const Eigen::MatrixXd &depth_img, const double depth_scale) {
-            return depth_img / depth_scale;
-        }
+        [[nodiscard]] static Matrix
+        DepthImageToDepth(const Matrix &depth_img, double depth_scale);
 
-        [[nodiscard]] static Eigen::MatrixXd
-        DepthToDepthImage(const Eigen::MatrixXd &depth, const double depth_scale) {
-            return depth * depth_scale;
-        }
+        [[nodiscard]] static Matrix
+        DepthToDepthImage(const Matrix &depth, double depth_scale);
 
         /**
          * @brief Update the frame with new depth measurements.
@@ -80,34 +77,21 @@ namespace erl::geometry {
          * @param partition_rays whether to partition the rays.
          */
         void
-        UpdateRanges(
-            const Eigen::Ref<const Eigen::Matrix3d> &rotation,
-            const Eigen::Ref<const Eigen::Vector3d> &translation,
-            Eigen::MatrixXd depth,
-            bool partition_rays) override;
+        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, Matrix depth, bool partition_rays) override;
 
         void
         UpdateRanges(
-            const Eigen::Ref<const Eigen::Matrix3d> &rotation,
-            const Eigen::Ref<const Eigen::Vector3d> &translation,
+            const Eigen::Ref<const Matrix3> &rotation,
+            const Eigen::Ref<const Vector3> &translation,
             const std::string &depth_file,
-            const double depth_scale,
-            const bool partition_rays = false) {
-            cv::Mat depth_img = cv::imread(depth_file, cv::IMREAD_UNCHANGED);
-            depth_img.convertTo(depth_img, CV_64FC1);  // convert to double
-            Eigen::MatrixXd depth;
-            cv::cv2eigen(depth_img, depth);
-            UpdateRanges(rotation, translation, DepthImageToDepth(depth, depth_scale), partition_rays);
-        }
+            double depth_scale,
+            bool partition_rays = false);
 
         [[nodiscard]] const std::vector<DepthFramePartition3D> &
-        GetPartitions() const {
-            ERL_ASSERTM(m_partitioned_, "LidarFrame3D::GetPartitions() is called before partitioning.");
-            return m_partitions_;
-        }
+        GetPartitions() const;
 
         [[nodiscard]] bool
-        operator==(const RangeSensorFrame3D &other) const override;
+        operator==(const Super &other) const override;
 
         [[nodiscard]] bool
         Write(const std::string &filename) const override;
@@ -126,32 +110,23 @@ namespace erl::geometry {
         PartitionRays();
 
         void
-        UpdateFrameCoords() {
-            m_setting_->camera_intrinsic.ComputeFrameDirections(m_frame_coords_, m_dirs_frame_);
-        }
+        UpdateFrameCoords();
     };
 
     class DepthFramePartition3D {};
 
-    ERL_REGISTER_RANGE_SENSOR_FRAME_3D(DepthFrame3D);
+    using DepthFrame3Dd = DepthFrame3D<double>;
+    using DepthFrame3Df = DepthFrame3D<float>;
+
+    // ERL_REGISTER_RANGE_SENSOR_FRAME_3D(DepthFrame3Dd);
+    // ERL_REGISTER_RANGE_SENSOR_FRAME_3D(DepthFrame3Df);
+
 }  // namespace erl::geometry
 
-// ReSharper disable CppInconsistentNaming
+#include "depth_frame_3d.tpp"
+
 template<>
-struct YAML::convert<erl::geometry::DepthFrame3D::Setting> {
-    static Node
-    encode(const erl::geometry::DepthFrame3D::Setting &rhs) {
-        Node node = convert<erl::geometry::RangeSensorFrame3D::Setting>::encode(rhs);
-        node["camera_intrinsic"] = rhs.camera_intrinsic;
-        return node;
-    }
+struct YAML::convert<erl::geometry::DepthFrame3D<double>::Setting> : erl::geometry::DepthFrame3D<double>::Setting::YamlConvertImpl {};
 
-    static bool
-    decode(const Node &node, erl::geometry::DepthFrame3D::Setting &rhs) {
-        if (!convert<erl::geometry::RangeSensorFrame3D::Setting>::decode(node, rhs)) { return false; }
-        rhs.camera_intrinsic = node["camera_intrinsic"].as<erl::geometry::CameraIntrinsic>();
-        return true;
-    }
-};  // namespace YAML
-
-// ReSharper restore CppInconsistentNaming
+template<>
+struct YAML::convert<erl::geometry::DepthFrame3D<float>::Setting> : erl::geometry::DepthFrame3D<float>::Setting::YamlConvertImpl {};

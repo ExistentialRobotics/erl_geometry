@@ -2,6 +2,7 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <libmorton/morton.h>
 
 #include <cstdint>
 #include <vector>
@@ -39,6 +40,13 @@ namespace erl::geometry {
 
         QuadtreeKey(const KeyType a, const KeyType b)
             : m_k_{a, b} {}
+
+        explicit QuadtreeKey(const uint64_t& morton_code) {
+            uint_fast32_t x, y;
+            libmorton::morton2D_64_decode(morton_code, x, y);
+            m_k_[0] = static_cast<KeyType>(x);
+            m_k_[1] = static_cast<KeyType>(y);
+        }
 
         QuadtreeKey(const QuadtreeKey& other)
             : m_k_{other.m_k_[0], other.m_k_[1]} {}
@@ -105,6 +113,11 @@ namespace erl::geometry {
         [[nodiscard]] explicit
         operator std::string() const {
             return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]);
+        }
+
+        [[nodiscard]] uint64_t
+        ToMortonCode() const {
+            return libmorton::morton2D_64_encode(m_k_[0], m_k_[1]);
         }
 
         /**

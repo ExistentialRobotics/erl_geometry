@@ -60,7 +60,7 @@ namespace erl::geometry {
             if (ray_info.dir_world.dot(viewing_direction) <= 0.0) { continue; }  // skip points behind the viewing position
             // 1.
             Eigen::Vector3d dir_local = rotation * ray_info.dir_world;
-            common::DirectionToAzimuthElevation(dir_local, ray_info.ray_azimuth, ray_info.ray_elevation);
+            common::DirectionToAzimuthElevation<double>(dir_local, ray_info.ray_azimuth, ray_info.ray_elevation);
             auto azimuth_index = static_cast<long>((ray_info.ray_azimuth + M_PI) / azimuth_resolution) % num_azimuth_segments;
             // 2.
             Eigen::Vector3d point_local = rotation * (hit_points.col(i) - hit_points.col(point_index));

@@ -10,7 +10,17 @@
 #define SENSOR_ORIGIN_Z    0.0
 #define VISUALIZER_SECONDS 1
 
-using namespace erl::geometry;
+// using namespace erl::geometry;
+using Dtype = float;
+using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
+using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
+using OccupancyOctreeNode = erl::geometry::OccupancyOctreeNode;
+using Open3dVisualizerWrapper = erl::geometry::Open3dVisualizerWrapper;
+using OctreeKey = erl::geometry::OctreeKey;
+using Vector = Eigen::VectorX<Dtype>;
+using Vector3 = Eigen::Vector3<Dtype>;
+using Matrix = Eigen::MatrixX<Dtype>;
+using Matrix3X = Eigen::Matrix3X<Dtype>;
 
 TEST(OccupancyOctree, IO) {
     OccupancyOctree tree;
@@ -40,16 +50,16 @@ TEST(OccupancyOctree, InsertPointCloud) {
 
     constexpr long num_azimuths = NUM_AZIMUTHS;
     constexpr long num_elevations = NUM_ELEVATIONS;
-    Eigen::VectorXd azimuths = Eigen::VectorXd::LinSpaced(num_azimuths, -M_PI, M_PI);
-    Eigen::VectorXd elevations = Eigen::VectorXd::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
+    Vector azimuths = Vector::LinSpaced(num_azimuths, -M_PI, M_PI);
+    Vector elevations = Vector::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
 
     long n = num_azimuths * num_elevations;
-    Eigen::Matrix3Xd points(3, n);
-    Eigen::Vector3d sensor_origin(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z);
+    Matrix3X points(3, n);
+    Vector3 sensor_origin(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z);
 
     for (long i = 0, k = 0; i < num_elevations; ++i) {
         for (long j = 0; j < num_azimuths; ++j, ++k) {
-            constexpr double radius = SPHERE_RADIUS;
+            constexpr Dtype radius = SPHERE_RADIUS;
             // clang-format off
             points.col(k) << std::cos(elevations[i]) * std::cos(azimuths[j]) * radius + sensor_origin.x(),
                              std::cos(elevations[i]) * std::sin(azimuths[j]) * radius + sensor_origin.y(),
@@ -58,7 +68,7 @@ TEST(OccupancyOctree, InsertPointCloud) {
         }
     }
 
-    double max_range = -1.;
+    Dtype max_range = -1.;
     bool parallel = false;
     bool lazy_eval = false;
     bool discretize = false;
@@ -77,7 +87,11 @@ TEST(OccupancyOctree, InsertPointCloud) {
     {
         std::size_t node_cnt = 0;
         for (auto itr = tree->BeginTree(); itr != tree->EndTree(); ++itr) { ++node_cnt; }
-        EXPECT_EQ(node_cnt, 7359);
+        if (std::is_same_v<Dtype, float>) {
+            EXPECT_EQ(node_cnt, 7361);
+        } else {
+            EXPECT_EQ(node_cnt, 7359);
+        }
         EXPECT_EQ(tree->GetSize(), node_cnt);
     }
 
@@ -118,16 +132,16 @@ TEST(OccupancyOctree, InsertPointCloudRays) {
 
     constexpr long num_azimuths = NUM_AZIMUTHS;
     constexpr long num_elevations = NUM_ELEVATIONS;
-    Eigen::VectorXd azimuths = Eigen::VectorXd::LinSpaced(num_azimuths, -M_PI, M_PI);
-    Eigen::VectorXd elevations = Eigen::VectorXd::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
+    Vector azimuths = Vector::LinSpaced(num_azimuths, -M_PI, M_PI);
+    Vector elevations = Vector::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
 
     long n = num_azimuths * num_elevations;
-    Eigen::Matrix3Xd points(3, n);
-    Eigen::Vector3d sensor_origin(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z);
+    Matrix3X points(3, n);
+    Vector3 sensor_origin(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z);
 
     for (long i = 0, k = 0; i < num_elevations; ++i) {
         for (long j = 0; j < num_azimuths; ++j, ++k) {
-            constexpr double radius = SPHERE_RADIUS;
+            constexpr Dtype radius = SPHERE_RADIUS;
             // clang-format off
             points.col(k) << std::cos(elevations[i]) * std::cos(azimuths[j]) * radius + sensor_origin.x(),
                              std::cos(elevations[i]) * std::sin(azimuths[j]) * radius + sensor_origin.y(),
@@ -136,7 +150,7 @@ TEST(OccupancyOctree, InsertPointCloudRays) {
         }
     }
 
-    double max_range = -1.;
+    Dtype max_range = -1.;
     bool parallel = false;
     bool lazy_eval = false;
     erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&] {
@@ -174,16 +188,16 @@ TEST(OccupancyOctree, InsertRay) {
 
     constexpr long num_azimuths = NUM_AZIMUTHS;
     constexpr long num_elevations = NUM_ELEVATIONS;
-    Eigen::VectorXd azimuths = Eigen::VectorXd::LinSpaced(num_azimuths, -M_PI, M_PI);
-    Eigen::VectorXd elevations = Eigen::VectorXd::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
+    Vector azimuths = Vector::LinSpaced(num_azimuths, -M_PI, M_PI);
+    Vector elevations = Vector::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
 
     long n = num_azimuths * num_elevations;
-    Eigen::Matrix3Xd points(3, n);
-    Eigen::Vector3d sensor_origin(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z);
+    Matrix3X points(3, n);
+    Vector3 sensor_origin(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z);
 
     for (long i = 0, k = 0; i < num_elevations; ++i) {
         for (long j = 0; j < num_azimuths; ++j, ++k) {
-            constexpr double radius = SPHERE_RADIUS;
+            constexpr Dtype radius = SPHERE_RADIUS;
             // clang-format off
             points.col(k) << std::cos(elevations[i]) * std::cos(azimuths[j]) * radius + sensor_origin.x(),
                              std::cos(elevations[i]) * std::sin(azimuths[j]) * radius + sensor_origin.y(),
@@ -192,7 +206,7 @@ TEST(OccupancyOctree, InsertRay) {
         }
     }
 
-    double max_range = -1.;
+    Dtype max_range = -1.;
     bool lazy_eval = false;
     erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&] {
         for (int i = 0; i < points.cols(); ++i) {
@@ -227,20 +241,24 @@ TEST(OccupancyOctree, CoordsAndKey) {
     const auto tree_setting = std::make_shared<OccupancyOctree::Setting>();
     tree_setting->resolution = 0.05;
     const OccupancyOctree tree(tree_setting);
-    constexpr double x = 0;
-    constexpr double y = 0;
-    constexpr double z = 0;
+    constexpr Dtype x = 0;
+    constexpr Dtype y = 0;
+    constexpr Dtype z = 0;
     OctreeKey key;
     EXPECT_TRUE(tree.CoordToKeyChecked(x, y, z, key));
-    double x_inv = 0, y_inv = 0, z_inv = 0;
+    Dtype x_inv = 0, y_inv = 0, z_inv = 0;
     tree.KeyToCoord(key, x_inv, y_inv, z_inv);
     EXPECT_FLOAT_EQ(0.025, x_inv);
     EXPECT_FLOAT_EQ(0.025, y_inv);
     EXPECT_FLOAT_EQ(0.025, z_inv);
+
+    const uint64_t morton_code = key.ToMortonCode();
+    const OctreeKey key_from_morton_code(morton_code);
+    EXPECT_EQ(key, key_from_morton_code);
 }
 
 TEST(OccupancyOctree, Prune) {
-    double resolution = 0.01;
+    Dtype resolution = 0.01;
     auto tree_setting = std::make_shared<OccupancyOctree::Setting>();
     tree_setting->resolution = resolution;
     auto tree = std::make_shared<OccupancyOctree>(tree_setting);
@@ -251,7 +269,7 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_EQ(tree->GetSize(), 0);
 
     // single occupied cell should be found
-    double x = -0.05, y = -0.02, z = 0.05;
+    Dtype x = -0.05, y = -0.02, z = 0.05;
     OctreeKey single_key;
     EXPECT_TRUE(tree->CoordToKeyChecked(x, y, z, single_key));
     bool occupied = true;
@@ -377,9 +395,9 @@ TEST(OccupancyOctree, Prune) {
         for (int j = 0; j <= 31 && !failed; ++j) {
             for (int k = 0; k <= 31 && !failed; ++k) {
                 auto node = tree->UpdateNode(  //
-                    static_cast<double>(i) * resolution + 0.001,
-                    static_cast<double>(j) * resolution + 0.001,
-                    static_cast<double>(k) * resolution + 0.001,
+                    static_cast<Dtype>(i) * resolution + 0.001,
+                    static_cast<Dtype>(j) * resolution + 0.001,
+                    static_cast<Dtype>(k) * resolution + 0.001,
                     occupied,
                     lazy_eval);
                 EXPECT_TRUE(node != nullptr);
@@ -402,9 +420,9 @@ TEST(OccupancyOctree, Prune) {
         for (int j = 0; j <= 31 && !failed; ++j) {
             for (int k = 0; k <= 31 && !failed; ++k) {
                 auto node = tree->Search(
-                    static_cast<double>(i) * resolution + 0.001,
-                    static_cast<double>(j) * resolution + 0.001,
-                    static_cast<double>(k) * resolution + 0.001);
+                    static_cast<Dtype>(i) * resolution + 0.001,
+                    static_cast<Dtype>(j) * resolution + 0.001,
+                    static_cast<Dtype>(k) * resolution + 0.001);
                 EXPECT_TRUE(node != nullptr);
                 EXPECT_TRUE(tree->IsNodeOccupied(node));
                 if (node == nullptr || !tree->IsNodeOccupied(node)) { failed = 1; }
@@ -419,9 +437,9 @@ TEST(OccupancyOctree, Prune) {
         for (int j = 0; j <= 31 && !failed; ++j) {
             for (int k = 0; k <= 31 && !failed; ++k) {
                 auto node = tree->Search(
-                    static_cast<double>(i) * resolution + 0.001,
-                    static_cast<double>(j) * resolution + 0.001,
-                    static_cast<double>(k) * resolution + 0.001);
+                    static_cast<Dtype>(i) * resolution + 0.001,
+                    static_cast<Dtype>(j) * resolution + 0.001,
+                    static_cast<Dtype>(k) * resolution + 0.001);
                 EXPECT_TRUE(node != nullptr);
                 EXPECT_TRUE(tree->IsNodeOccupied(node));
                 if (node == nullptr || !tree->IsNodeOccupied(node)) { failed = 1; }
@@ -611,15 +629,15 @@ TEST(OccupancyOctree, RayCasting) {
     unsigned int hit = 0;
     unsigned int miss = 0;
     unsigned int unknown = 0;
-    double mean_dist = 0;
+    Dtype mean_dist = 0;
     const auto tree_setting = std::make_shared<OccupancyOctree::Setting>();
     tree_setting->resolution = 0.05;
     auto sampled_surface = std::make_shared<OccupancyOctree>(tree_setting);
-    Eigen::VectorXd azimuths = Eigen::VectorXd::LinSpaced(NUM_AZIMUTHS, -M_PI, M_PI);
-    Eigen::VectorXd elevations = Eigen::VectorXd::LinSpaced(NUM_ELEVATIONS, -M_PI / 2, M_PI / 2);
+    Vector azimuths = Vector::LinSpaced(NUM_AZIMUTHS, -M_PI, M_PI);
+    Vector elevations = Vector::LinSpaced(NUM_ELEVATIONS, -M_PI / 2, M_PI / 2);
 
     long n = NUM_AZIMUTHS * NUM_ELEVATIONS;
-    Eigen::Matrix3Xd dirs(3, n);
+    Matrix3X dirs(3, n);
     for (long i = 0, k = 0; i < NUM_ELEVATIONS; ++i) {
         for (long j = 0; j < NUM_AZIMUTHS; ++j, ++k) {
             // clang-format off
@@ -632,14 +650,14 @@ TEST(OccupancyOctree, RayCasting) {
 
     for (int i = 0; i < n; ++i) {
         constexpr bool ignore_unknown = false;
-        constexpr double max_range = 6;
+        constexpr Dtype max_range = 6;
 
-        if (double ex = 0, ey = 0, ez = 0;  //
+        if (Dtype ex = 0, ey = 0, ez = 0;  //
             tree->CastRay(SENSOR_ORIGIN_X, SENSOR_ORIGIN_Y, SENSOR_ORIGIN_Z, dirs(0, i), dirs(1, i), dirs(2, i), ignore_unknown, max_range, ex, ey, ez)) {
             hit++;
-            double dx = ex - SENSOR_ORIGIN_X;
-            double dy = ey - SENSOR_ORIGIN_Y;
-            double dz = ez - SENSOR_ORIGIN_Z;
+            Dtype dx = ex - SENSOR_ORIGIN_X;
+            Dtype dy = ey - SENSOR_ORIGIN_Y;
+            Dtype dz = ez - SENSOR_ORIGIN_Z;
             mean_dist += std::sqrt(dx * dx + dy * dy + dz * dz);
             sampled_surface->UpdateNode(ex, ey, ez, true, false);
         } else {
@@ -657,6 +675,6 @@ TEST(OccupancyOctree, RayCasting) {
     EXPECT_EQ(hit, n);
     EXPECT_EQ(miss, 0);
     EXPECT_EQ(unknown, 0);
-    mean_dist /= static_cast<double>(hit);
+    mean_dist /= static_cast<Dtype>(hit);
     EXPECT_NEAR(mean_dist, SPHERE_RADIUS, 0.02);
 }

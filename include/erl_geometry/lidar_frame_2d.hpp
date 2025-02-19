@@ -18,7 +18,7 @@ namespace erl::geometry {
         friend class LidarFramePartition2D;
 
     public:
-        struct Setting : public common::Yamlable<Setting> {
+        struct Setting : common::Yamlable<Setting> {
             double valid_range_min = 0.0;
             double valid_range_max = std::numeric_limits<double>::infinity();
             double angle_min = -M_PI;

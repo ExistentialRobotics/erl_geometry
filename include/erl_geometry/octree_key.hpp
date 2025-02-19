@@ -2,6 +2,7 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <libmorton/morton.h>
 
 #include <cstdint>
 #include <vector>
@@ -39,6 +40,14 @@ namespace erl::geometry {
 
         OctreeKey(const KeyType a, const KeyType b, const KeyType c)
             : m_k_{a, b, c} {}
+
+        explicit OctreeKey(const uint64_t& morton_code) {
+            uint_fast32_t x, y, z;
+            libmorton::morton3D_64_decode(morton_code, x, y, z);
+            m_k_[0] = static_cast<KeyType>(x);
+            m_k_[1] = static_cast<KeyType>(y);
+            m_k_[2] = static_cast<KeyType>(z);
+        }
 
         OctreeKey(const OctreeKey& other)
             : m_k_{other.m_k_[0], other.m_k_[1], other.m_k_[2]} {}
@@ -115,6 +124,11 @@ namespace erl::geometry {
         [[nodiscard]] explicit
         operator std::string() const {
             return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]) + "," + std::to_string(m_k_[2]);
+        }
+
+        [[nodiscard]] uint64_t
+        ToMortonCode() const {
+            return libmorton::morton3D_64_encode(m_k_[0], m_k_[1], m_k_[2]);
         }
 
         /**

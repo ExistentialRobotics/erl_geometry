@@ -17,6 +17,8 @@ namespace erl::geometry {
     /**
      * AbstractOctree is a base class for all octree implementations. It provides a common interface for factory pattern and file I/O.
      */
+
+    template<typename Dtype>
     class AbstractOctree {
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
 
@@ -24,18 +26,14 @@ namespace erl::geometry {
         inline static std::map<std::string, std::function<std::shared_ptr<AbstractOctree>(const std::shared_ptr<NdTreeSetting>&)>> s_class_id_mapping_ = {};
 
     public:
-        using Factory = common::FactoryPattern<AbstractOctree, false, std::shared_ptr<NdTreeSetting>>;
+        using Factory = common::FactoryPattern<AbstractOctree, false, false, std::shared_ptr<NdTreeSetting>>;
+        using Vector3 = Eigen::Vector3<Dtype>;
 
         AbstractOctree() = delete;  // no default constructor
 
         explicit AbstractOctree(std::shared_ptr<NdTreeSetting> setting)
             : m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
-            ERL_DEBUG_WARN_ONCE_COND(
-                typeid(*this) != typeid(AbstractOctree) && s_class_id_mapping_.find(GetTreeType()) == s_class_id_mapping_.end(),
-                "Tree type {} not registered, do you forget to use ERL_REGISTER_OCTREE({})?",
-                GetTreeType(),
-                GetTreeType());
         }
 
         AbstractOctree(const AbstractOctree& other) = default;
@@ -78,7 +76,7 @@ namespace erl::geometry {
         template<typename Derived>
         static bool
         Register(std::string tree_type = "") {
-            return Factory::GetInstance().Register<Derived>(tree_type, [](const std::shared_ptr<NdTreeSetting>& setting) {
+            return Factory::GetInstance().template Register<Derived>(tree_type, [](const std::shared_ptr<NdTreeSetting>& setting) {
                 auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
                 if (setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }
                 ERL_ASSERTM(tree_setting != nullptr, "setting is nullptr.");
@@ -136,9 +134,9 @@ namespace erl::geometry {
             return m_setting_->tree_depth;
         }
 
-        [[nodiscard]] double
+        [[nodiscard]] Dtype
         GetResolution() const {
-            return m_setting_->resolution;
+            return static_cast<Dtype>(m_setting_->resolution);
         }
 
         [[nodiscard]] virtual std::size_t
@@ -148,135 +146,135 @@ namespace erl::geometry {
         [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsagePerNode() const = 0;
 
-        Eigen::Vector3d
+        Vector3
         GetMetricMin() {
-            Eigen::Vector3d min;
+            Vector3 min;
             GetMetricMin(min.x(), min.y(), min.z());
             return min;
         }
 
-        [[nodiscard]] Eigen::Vector3d
+        [[nodiscard]] Vector3
         GetMetricMin() const {
-            Eigen::Vector3d min;
+            Vector3 min;
             GetMetricMin(min.x(), min.y(), min.z());
             return min;
         }
 
         void
-        GetMetricMin(Eigen::Vector3d& min) {
+        GetMetricMin(Vector3& min) {
             GetMetricMin(min.x(), min.y(), min.z());
         }
 
         void
-        GetMetricMin(Eigen::Vector3d& min) const {
+        GetMetricMin(Vector3& min) const {
             GetMetricMin(min.x(), min.y(), min.z());
         }
 
         virtual void
-        GetMetricMin(double& x, double& y, double& z) = 0;
+        GetMetricMin(Dtype& x, Dtype& y, Dtype& z) = 0;
         virtual void
-        GetMetricMin(double& x, double& y, double& z) const = 0;
+        GetMetricMin(Dtype& x, Dtype& y, Dtype& z) const = 0;
 
-        Eigen::Vector3d
+        Vector3
         GetMetricMax() {
-            Eigen::Vector3d max;
+            Vector3 max;
             GetMetricMax(max.x(), max.y(), max.z());
             return max;
         }
 
-        [[nodiscard]] Eigen::Vector3d
+        [[nodiscard]] Vector3
         GetMetricMax() const {
-            Eigen::Vector3d max;
+            Vector3 max;
             GetMetricMax(max.x(), max.y(), max.z());
             return max;
         }
 
         void
-        GetMetricMax(Eigen::Vector3d& max) {
+        GetMetricMax(Vector3& max) {
             GetMetricMax(max.x(), max.y(), max.z());
         }
 
         void
-        GetMetricMax(Eigen::Vector3d& max) const {
+        GetMetricMax(Vector3& max) const {
             GetMetricMax(max.x(), max.y(), max.z());
         }
 
         virtual void
-        GetMetricMax(double& x, double& y, double& z) = 0;
+        GetMetricMax(Dtype& x, Dtype& y, Dtype& z) = 0;
         virtual void
-        GetMetricMax(double& x, double& y, double& z) const = 0;
+        GetMetricMax(Dtype& x, Dtype& y, Dtype& z) const = 0;
 
-        Aabb3D
+        Aabb<Dtype, 3>
         GetMetricAabb() {
-            Eigen::Vector3d min, max;
+            Vector3 min, max;
             GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
             return {min, max};
         }
 
-        [[nodiscard]] Aabb3D
+        [[nodiscard]] Aabb<Dtype, 3>
         GetMetricAabb() const {
-            Eigen::Vector3d min, max;
+            Vector3 min, max;
             GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
             return {min, max};
         }
 
-        std::pair<Eigen::Vector3d, Eigen::Vector3d>
+        std::pair<Vector3, Vector3>
         GetMetricMinMax() {
-            Eigen::Vector3d min, max;
+            Vector3 min, max;
             GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
             return {std::move(min), std::move(max)};
         }
 
-        [[nodiscard]] std::pair<Eigen::Vector3d, Eigen::Vector3d>
+        [[nodiscard]] std::pair<Vector3, Vector3>
         GetMetricMinMax() const {
-            Eigen::Vector3d min, max;
+            Vector3 min, max;
             GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
             return {std::move(min), std::move(max)};
         }
 
         void
-        GetMetricMinMax(Eigen::Vector3d& min, Eigen::Vector3d& max) {
+        GetMetricMinMax(Vector3& min, Vector3& max) {
             GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
         }
 
         void
-        GetMetricMinMax(Eigen::Vector3d& min, Eigen::Vector3d& max) const {
+        GetMetricMinMax(Vector3& min, Vector3& max) const {
             GetMetricMinMax(min.x(), min.y(), min.z(), max.x(), max.y(), max.z());
         }
 
         virtual void
-        GetMetricMinMax(double& min_x, double& min_y, double& min_z, double& max_x, double& max_y, double& max_z) = 0;
+        GetMetricMinMax(Dtype& min_x, Dtype& min_y, Dtype& min_z, Dtype& max_x, Dtype& max_y, Dtype& max_z) = 0;
         virtual void
-        GetMetricMinMax(double& min_x, double& min_y, double& min_z, double& max_x, double& max_y, double& max_z) const = 0;
+        GetMetricMinMax(Dtype& min_x, Dtype& min_y, Dtype& min_z, Dtype& max_x, Dtype& max_y, Dtype& max_z) const = 0;
 
-        Eigen::Vector3d
+        Vector3
         GetMetricSize() {
-            Eigen::Vector3d size;
+            Vector3 size;
             GetMetricSize(size.x(), size.y(), size.z());
             return size;
         }
 
-        [[nodiscard]] Eigen::Vector3d
+        [[nodiscard]] Vector3
         GetMetricSize() const {
-            Eigen::Vector3d size;
+            Vector3 size;
             GetMetricSize(size.x(), size.y(), size.z());
             return size;
         }
 
         void
-        GetMetricSize(Eigen::Vector3d& size) {
+        GetMetricSize(Vector3& size) {
             GetMetricSize(size.x(), size.y(), size.z());
         }
 
         void
-        GetMetricSize(Eigen::Vector3d& size) const {
+        GetMetricSize(Vector3& size) const {
             GetMetricSize(size.x(), size.y(), size.z());
         }
 
         virtual void
-        GetMetricSize(double& x, double& y, double& z) = 0;
+        GetMetricSize(Dtype& x, Dtype& y, Dtype& z) = 0;
         virtual void
-        GetMetricSize(double& x, double& y, double& z) const = 0;
+        GetMetricSize(Dtype& x, Dtype& y, Dtype& z) const = 0;
 
         //-- IO
         virtual void
@@ -337,19 +335,19 @@ namespace erl::geometry {
 
         //-- search node
         [[nodiscard]] virtual const AbstractOctreeNode*
-        SearchNode(double x, double y, double z, uint32_t max_depth) const = 0;
+        SearchNode(Dtype x, Dtype y, Dtype z, uint32_t max_depth) const = 0;
 
         //-- iterators
         struct OctreeNodeIterator {
             virtual ~OctreeNodeIterator() = default;
 
-            [[nodiscard]] virtual double
+            [[nodiscard]] virtual Dtype
             GetX() const = 0;
-            [[nodiscard]] virtual double
+            [[nodiscard]] virtual Dtype
             GetY() const = 0;
-            [[nodiscard]] virtual double
+            [[nodiscard]] virtual Dtype
             GetZ() const = 0;
-            [[nodiscard]] virtual double
+            [[nodiscard]] virtual Dtype
             GetNodeSize() const = 0;
             [[nodiscard]] virtual uint32_t
             GetDepth() const = 0;
@@ -365,7 +363,7 @@ namespace erl::geometry {
         GetTreeIterator(uint32_t max_depth) const = 0;
 
         [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
-        GetLeafInAabbIterator(const Aabb3D& aabb, uint32_t max_depth) const = 0;
+        GetLeafInAabbIterator(const Aabb<Dtype, 3>& aabb, uint32_t max_depth) const = 0;
 
     protected:
         /**
@@ -396,5 +394,7 @@ namespace erl::geometry {
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
     };
 
-#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctree::Register<Derived>()
+#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
 }  // namespace erl::geometry
+
+#include "abstract_octree.tpp"

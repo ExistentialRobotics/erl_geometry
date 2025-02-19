@@ -10,7 +10,7 @@
 
 // parameters
 #define WINDOW_NAME          "OccupancyOctree_Build"
-#define OCTREE_RESOLUTION    0.15
+#define OCTREE_RESOLUTION    0.1
 #define AZIMUTH_MIN          (-M_PI)
 #define AZIMUTH_MAX          M_PI
 #define ELEVATION_MIN        (-M_PI / 2)
@@ -21,10 +21,22 @@
 #define MAX_POINT_CLOUD_SIZE 1000000
 #define STRIDE               1
 
+using Dtype = float;
+using Lidar3D = erl::geometry::Lidar3D<Dtype>;
+using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
+using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
+using OccupancyOctreeNode = erl::geometry::OccupancyOctreeNode;
+using Open3dVisualizerWrapper = erl::geometry::Open3dVisualizerWrapper;
+using Vector = Eigen::VectorX<Dtype>;
+using Vector3 = Eigen::Vector3<Dtype>;
+using Matrix = Eigen::MatrixX<Dtype>;
+using Matrix3 = Eigen::Matrix3<Dtype>;
+using Matrix3X = Eigen::Matrix3X<Dtype>;
+using Matrix4 = Eigen::Matrix4<Dtype>;
+
 TEST(OccupancyOctree, Build) {
     GTEST_PREPARE_OUTPUT_DIR();
     using namespace erl::common;
-    using namespace erl::geometry;
 
     std::string mesh_file = (gtest_src_dir / "../../data/house_expo_room_1451.ply").string();
     std::string traj_file = (gtest_src_dir / "../../data/house_expo_room_1451.csv").string();
@@ -43,9 +55,9 @@ TEST(OccupancyOctree, Build) {
     lidar_setting->num_elevation_lines = NUM_ELEVATION_LINES;
     auto lidar = Lidar3D(lidar_setting, o3d_scene);
 
-    Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(traj_file, EigenTextFormat::kCsvFmt).transpose();
+    Matrix3X traj_2d = LoadEigenMatrixFromTextFile<Dtype>(traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
-    std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
+    std::vector<Matrix4> path_3d = erl::geometry::ConvertPath2dTo3d<Dtype>(traj_2d, 1.0);
 
     auto octree_setting = std::make_shared<OccupancyOctree::Setting>();
     octree_setting->resolution = OCTREE_RESOLUTION;
@@ -74,10 +86,12 @@ TEST(OccupancyOctree, Build) {
     drawer.SetOctree(octree);
 
     std::size_t pose_idx = 0;
-    Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
+    Eigen::MatrixX<Vector3> ray_directions = lidar.GetRayDirectionsInFrame();
 
     bool octree_saved = false;
     int animation_cnt = 0;
+    double mean_scan_time = 0;
+    double mean_insert_time = 0;
     auto callback = [&](Open3dVisualizerWrapper *wrapper, open3d::visualization::Visualizer *vis) {
         if (pose_idx >= path_3d.size()) {
             if (octree_saved) {
@@ -98,51 +112,58 @@ TEST(OccupancyOctree, Build) {
             return false;
         }
         const auto t_start = std::chrono::high_resolution_clock::now();
-        Eigen::Matrix4d &pose = path_3d[pose_idx];
+        const Matrix4 &pose = path_3d[pose_idx].cast<Dtype>();
         pose_idx += STRIDE;
-        const Eigen::Matrix3d orientation = pose.topLeftCorner<3, 3>();
-        Eigen::Vector3d sensor_origin = pose.topRightCorner<3, 1>();
+        const Matrix3 orientation = pose.topLeftCorner<3, 3>();
+        Vector3 sensor_origin = pose.topRightCorner<3, 1>();
 
-        auto t0 = std::chrono::high_resolution_clock::now();
-        Eigen::MatrixXd ranges = lidar.Scan(orientation, sensor_origin);
-        auto t1 = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-        std::cout << "==== " << pose_idx << " ====" << std::endl  //
-                  << "Scan time: " << duration << " ms." << std::endl;
+        std::cout << "==== " << pose_idx << " ====" << std::endl;
+        double dt = 0;
+        Matrix ranges;
+        {
+            ERL_BLOCK_TIMER_MSG_TIME("Scan time", dt);
+            ranges = lidar.Scan(orientation, sensor_origin);
+        }
+        mean_scan_time = (mean_scan_time * animation_cnt + dt) / (animation_cnt + 1);
 
-        line_set_traj->points_.emplace_back(sensor_origin);
+        line_set_traj->points_.emplace_back(sensor_origin.cast<double>());
         if (line_set_traj->points_.size() > 1) { line_set_traj->lines_.emplace_back(line_set_traj->points_.size() - 2, line_set_traj->points_.size() - 1); }
         line_set_rays->points_.clear();
         line_set_rays->lines_.clear();
-        line_set_rays->points_.emplace_back(sensor_origin);
+        line_set_rays->points_.emplace_back(sensor_origin.cast<double>());
 
-        Eigen::Matrix3Xd points(3, ranges.size());
+        Matrix3X points(3, ranges.size());
         long cnt_points = 0;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                const double &range = ranges(i, j);
+                const Dtype &range = ranges(i, j);
                 if (!std::isfinite(range)) { continue; }
-                Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
+                Vector3 point = sensor_origin + range * orientation * ray_directions(i, j);
                 points.col(cnt_points++) = point;
-                point_cloud->points_.emplace_back(point);
-                line_set_rays->points_.emplace_back(point);
+                point_cloud->points_.emplace_back(point.cast<double>());
+                line_set_rays->points_.emplace_back(point.cast<double>());
                 line_set_rays->lines_.emplace_back(0, static_cast<long>(line_set_rays->points_.size()) - 1);
             }
         }
         points.conservativeResize(3, cnt_points);
 
         octree->ClearChangedKey();
-        t0 = std::chrono::high_resolution_clock::now();
-        octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
-        octree->UpdateInnerOccupancy();
-        octree->Prune();
-        t1 = std::chrono::high_resolution_clock::now();
-        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-        std::cout << "Insert time: " << duration << " ms." << std::endl;
+        {
+            {
+                ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
+                // octree->InsertPointCloud(points, sensor_origin, -1, false, false, true);
+                octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
+            }
+            octree->UpdateInnerOccupancy();
+            octree->Prune();
+        }
+        mean_insert_time = (mean_insert_time * animation_cnt + dt) / (animation_cnt + 1);
         std::cout << "Number of points: " << points.cols() << std::endl;
+        std::cout << "Mean scan time: " << mean_scan_time << " ms." << std::endl;
+        std::cout << "Mean insert time: " << mean_insert_time << " ms." << std::endl;
 
         for (auto itr = octree->BeginChangedKey(); itr != octree->EndChangedKey(); ++itr) {
-            double x, y, z;
+            Dtype x, y, z;
             octree->KeyToCoord(itr->first, x, y, z);
             Eigen::Vector3i voxel_index(
                 std::floor(x / voxel_grid->voxel_size_),
@@ -174,7 +195,6 @@ TEST(OccupancyOctree, Build) {
 TEST(OccupancyOctree, BuildProfiling) {
     GTEST_PREPARE_OUTPUT_DIR();
     using namespace erl::common;
-    using namespace erl::geometry;
 
     std::string mesh_file = (gtest_src_dir / "../../data/house_expo_room_1451.ply").string();
     std::string traj_file = (gtest_src_dir / "../../data/house_expo_room_1451.csv").string();
@@ -187,9 +207,9 @@ TEST(OccupancyOctree, BuildProfiling) {
     auto lidar_setting = std::make_shared<Lidar3D::Setting>();
     auto lidar = Lidar3D(lidar_setting, o3d_scene);
 
-    Eigen::MatrixXd traj_2d = LoadEigenMatrixFromTextFile<double>(traj_file, EigenTextFormat::kCsvFmt).transpose();
+    Matrix3X traj_2d = LoadEigenMatrixFromTextFile<Dtype>(traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
-    std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d(traj_2d, 1.0);
+    std::vector<Matrix4> path_3d = erl::geometry::ConvertPath2dTo3d<Dtype>(traj_2d, 1.0);
 
     auto octree_setting = std::make_shared<OccupancyOctree::Setting>();
     octree_setting->resolution = 0.01;
@@ -199,27 +219,27 @@ TEST(OccupancyOctree, BuildProfiling) {
 
     std::size_t num_cores = std::thread::hardware_concurrency();
     double max_duration = 600.0 * 32 / static_cast<double>(num_cores);
-    double max_mean_duration = 500.0 * 32 / static_cast<double>(num_cores);
+    double max_mean_duration = 520.0 * 32 / static_cast<double>(num_cores);
 
     std::size_t pose_idx = 0;
-    Eigen::MatrixX<Eigen::Vector3d> ray_directions = lidar.GetRayDirectionsInFrame();
+    Eigen::MatrixX<Vector3> ray_directions = lidar.GetRayDirectionsInFrame();
     int n = 10;
     double mean_duration = 0;
     for (int k = 0; k < 10; ++k) {
-        Eigen::Matrix4d &pose = path_3d[pose_idx];
+        const Matrix4 pose = path_3d[pose_idx].cast<Dtype>();
         pose_idx += 1;
-        Eigen::Matrix3d orientation = pose.topLeftCorner<3, 3>();
-        Eigen::Vector3d sensor_origin = pose.topRightCorner<3, 1>();
+        Matrix3 orientation = pose.topLeftCorner<3, 3>();
+        Vector3 sensor_origin = pose.topRightCorner<3, 1>();
 
-        Eigen::MatrixXd ranges = lidar.Scan(orientation, sensor_origin);
+        Matrix ranges = lidar.Scan(orientation, sensor_origin);
 
-        Eigen::Matrix3Xd points(3, ranges.size());
+        Matrix3X points(3, ranges.size());
         long cnt_points = 0;
         for (long i = 0; i < ranges.rows(); ++i) {
             for (long j = 0; j < ranges.cols(); ++j) {
-                const double &range = ranges(i, j);
+                const Dtype &range = ranges(i, j);
                 if (std::isinf(range) || std::isnan(range)) { continue; }
-                Eigen::Vector3d point = sensor_origin + range * orientation * ray_directions(i, j);
+                Vector3 point = sensor_origin + range * orientation * ray_directions(i, j);
                 points.col(cnt_points++) = point;
             }
         }

@@ -82,6 +82,13 @@ erl_catkin_package(
 ########################
 # define the libraries #
 ########################
+set(LIBMORTON_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/libmorton)
+if (EXISTS "${LIBMORTON_DIR}/CMakeLists.txt")
+    message(STATUS "libmorton found in ${LIBMORTON_DIR}")
+else ()
+    message(FATAL_ERROR "libmorton not found, run `git submodule update --init --recursive`")
+endif ()
+add_subdirectory(${LIBMORTON_DIR})  # libmorton is a header-only library
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -96,6 +103,7 @@ else ()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif ()
 target_link_libraries(${PROJECT_NAME}
+        PUBLIC libmorton
         PUBLIC nanoflann::nanoflann
         PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
         PUBLIC absl::flat_hash_map absl::flat_hash_set

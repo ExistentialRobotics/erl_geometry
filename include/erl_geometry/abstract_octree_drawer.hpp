@@ -14,7 +14,7 @@ namespace erl::geometry {
 
     class AbstractOctreeDrawer {
     public:
-        struct Setting : public common::Yamlable<Setting> {
+        struct Setting : common::Yamlable<Setting> {
             Eigen::Vector3d area_min = {-1.0, -1.0, -1.0};
             Eigen::Vector3d area_max = {1.0, 1.0, 1.0};
             Eigen::Vector3d border_color = {0.0, 0.0, 0.0};  // black
@@ -25,22 +25,13 @@ namespace erl::geometry {
     private:
         std::shared_ptr<Setting> m_setting_ = {};
 
-    protected:
-        std::shared_ptr<const AbstractOctree> m_octree_ = {};
-
     public:
-        explicit AbstractOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const AbstractOctree> octree = nullptr)
-            : m_setting_(std::move(setting)),
-              m_octree_(std::move(octree)) {
+        explicit AbstractOctreeDrawer(std::shared_ptr<Setting> setting)
+            : m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_, "setting is nullptr.");
         }
 
         virtual ~AbstractOctreeDrawer() = default;
-
-        virtual void
-        SetOctree(std::shared_ptr<const AbstractOctree> octree) {
-            m_octree_ = std::move(octree);
-        }
 
         /**
          * Create blank geometries for drawing.

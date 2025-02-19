@@ -5,11 +5,11 @@
 namespace erl::geometry::logodd {
 
     inline float
-    LogOdd(const double p) {
-        return static_cast<float>(std::log(p / (1 - p)));
+    LogOdd(const float p) {
+        return std::log(p / (1 - p));
     }
 
-    inline double
+    inline float
     Probability(const float logodd) {
         return 1.0 / (1.0 + std::exp(-logodd));
     }

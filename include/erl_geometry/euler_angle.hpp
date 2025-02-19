@@ -2,6 +2,8 @@
 
 #include "erl_common/eigen.hpp"
 
+#include <Eigen/Dense>
+
 namespace erl::geometry {
 
     enum class EulerAngleOrder {
@@ -42,7 +44,9 @@ namespace erl::geometry {
     EulerAngleOrder
     GetEulerAngleOrder(const std::string& euler_order);
 
-    Eigen::Matrix3d
-    EulerToRotation3D(double a, double b, double c, EulerAngleOrder euler_angle_order);
+    template<typename Dtype>
+    Eigen::Matrix3<Dtype>
+    EulerToRotation3D(Dtype a, Dtype b, Dtype c, EulerAngleOrder euler_angle_order);
 
+#include "euler_angle.tpp"
 }  // namespace erl::geometry
