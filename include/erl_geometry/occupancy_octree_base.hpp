@@ -8,7 +8,6 @@
 
 #include "erl_common/random.hpp"
 
-#include <erl_common/block_timer.hpp>
 #include <omp.h>
 
 #include <list>
