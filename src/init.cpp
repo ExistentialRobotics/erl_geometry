@@ -1,5 +1,4 @@
-// this file includes file headers to make sure the factory pattern works.
-#include "erl_geometry/register.hpp"
+#include "erl_geometry/init.hpp"
 
 #include "erl_geometry/depth_camera_3d.hpp"
 #include "erl_geometry/depth_frame_3d.hpp"
@@ -11,7 +10,11 @@ namespace erl::geometry {
 
 #define REGISTER(x) (void) x::Register<x>()
 
-    const bool kRegistered = []() -> bool {
+    bool initialized = false;
+
+    bool
+    Init() {
+        if (initialized) { return true; }
         REGISTER(Lidar3Dd::Setting);
         REGISTER(Lidar3Df::Setting);
         REGISTER(LidarFrame3Dd);
@@ -29,7 +32,8 @@ namespace erl::geometry {
         REGISTER(DepthFrame3Df::Setting);
         // REGISTER(RgbdCamera3Dd::Setting);  // CameraIntrinsic_d
         // REGISTER(RgbdCamera3Df::Setting);  // CameraIntrinsic_f
-
+        ERL_INFO("erl_geometry initialized");
+        initialized = true;
         return true;
-    }();
+    }
 }  // namespace erl::geometry

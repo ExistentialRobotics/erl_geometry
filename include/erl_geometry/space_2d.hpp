@@ -50,7 +50,7 @@ namespace erl::geometry {
 
         Space2D(
             const Eigen::Ref<const Eigen::MatrixXd> &map_image,
-            const common::GridMapInfo2D &grid_map_info,
+            const common::GridMapInfo2Dd &grid_map_info,
             double free_threshold,
             double delta = 0.01,
             bool parallel = false);
@@ -75,7 +75,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] Eigen::MatrixX8U
-        GenerateMapImage(const common::GridMapInfo2D &grid_map_info, bool anti_aliased = false) const;
+        GenerateMapImage(const common::GridMapInfo2Dd &grid_map_info, bool anti_aliased = false) const;
 
         /**
          * @brief Compute the signed distance field of the space as an image of which the left-bottom is (xmin, ymin), the right-top is (xmax, ymax), the
@@ -88,7 +88,7 @@ namespace erl::geometry {
          */
         [[nodiscard]] Eigen::MatrixXd
         ComputeSdfImage(
-            const common::GridMapInfo2D &grid_map_info,
+            const common::GridMapInfo2Dd &grid_map_info,
             SignMethod sign_method = SignMethod::kLineNormal,
             bool use_kdtree = false,
             bool parallel = false) const;
@@ -106,14 +106,14 @@ namespace erl::geometry {
         ComputeSdfGreedily(const Eigen::Ref<const Eigen::Vector2d> &q, SignMethod sign_method) const;
 
         [[nodiscard]] Eigen::MatrixX<Eigen::VectorXd>
-        ComputeDdf(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false) const;
+        ComputeDdf(const common::GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false) const;
 
         [[nodiscard]] Eigen::VectorXd
         ComputeDdf(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false)
             const;
 
         [[nodiscard]] Eigen::MatrixX<Eigen::VectorXd>
-        ComputeSddfV1(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false) const;
+        ComputeSddfV1(const common::GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false) const;
 
         [[nodiscard]] Eigen::VectorXd
         ComputeSddfV1(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false)
@@ -121,7 +121,7 @@ namespace erl::geometry {
 
         [[nodiscard]] Eigen::MatrixX<Eigen::VectorXd>
         ComputeSddfV2(
-            const common::GridMapInfo2D &grid_map_info,
+            const common::GridMapInfo2Dd &grid_map_info,
             const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
             SignMethod sign_method = SignMethod::kLineNormal,
             bool parallel = false) const;

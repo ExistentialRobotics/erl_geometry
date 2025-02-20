@@ -37,7 +37,7 @@ namespace erl::geometry {
         Eigen::Vector2d max = verts.rowwise().maxCoeff();
         Eigen::Vector2d resolution(0.01, 0.01);
         Eigen::Vector2i padding(10, 10);
-        auto grid_map_info = common::GridMapInfo2D(min, max, resolution, padding);
+        auto grid_map_info = common::GridMapInfo2Dd(min, max, resolution, padding);
         auto map_image = m_meter_space_->GenerateMapImage(grid_map_info);
         cv::Mat map_mat;
         cv::eigen2cv(map_image, map_mat);

@@ -1,14 +1,48 @@
-#include "erl_geometry/log_odd_map_2d.hpp"
+#pragma once
 
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/logging.hpp"
 
-#include <opencv2/imgproc.hpp>
-
 #include <utility>
 
 namespace erl::geometry {
-    LogOddMap2D::LogOddMap2D(std::shared_ptr<Setting> setting, std::shared_ptr<common::GridMapInfo2D> grid_map_info)
+
+    template<typename Dtype>
+    YAML::Node
+    LogOddMap2D<Dtype>::Setting::YamlConvertImpl::encode(const Setting &setting) {
+        YAML::Node node;
+        node["sensor_min_range"] = setting.sensor_min_range;
+        node["sensor_max_range"] = setting.sensor_max_range;
+        node["measurement_certainty"] = setting.measurement_certainty;
+        node["max_log_odd"] = setting.max_log_odd;
+        node["min_log_odd"] = setting.min_log_odd;
+        node["threshold_occupied"] = setting.threshold_occupied;
+        node["threshold_free"] = setting.threshold_free;
+        node["use_cross_kernel"] = setting.use_cross_kernel;
+        node["num_iters_for_cleaned_mask"] = setting.num_iters_for_cleaned_mask;
+        node["filter_obstacles_in_cleaned_mask"] = setting.filter_obstacles_in_cleaned_mask;
+        return node;
+    }
+
+    template<typename Dtype>
+    bool
+    LogOddMap2D<Dtype>::Setting::YamlConvertImpl::decode(const YAML::Node &node, Setting &setting) {
+        if (!node.IsMap()) { return false; }
+        setting.sensor_min_range = node["sensor_min_range"].as<Dtype>();
+        setting.sensor_max_range = node["sensor_max_range"].as<Dtype>();
+        setting.measurement_certainty = node["measurement_certainty"].as<Dtype>();
+        setting.max_log_odd = node["max_log_odd"].as<Dtype>();
+        setting.min_log_odd = node["min_log_odd"].as<Dtype>();
+        setting.threshold_occupied = node["threshold_occupied"].as<Dtype>();
+        setting.threshold_free = node["threshold_free"].as<Dtype>();
+        setting.use_cross_kernel = node["use_cross_kernel"].as<bool>();
+        setting.num_iters_for_cleaned_mask = node["num_iters_for_cleaned_mask"].as<int>();
+        setting.filter_obstacles_in_cleaned_mask = node["filter_obstacles_in_cleaned_mask"].as<bool>();
+        return true;
+    }
+
+    template<typename Dtype>
+    LogOddMap2D<Dtype>::LogOddMap2D(std::shared_ptr<Setting> setting, std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info)
         : m_setting_(std::move(setting)),
           m_grid_map_info_(std::move(grid_map_info)),
           m_log_map_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1), CV_64FC1, cv::Scalar{0}),  // ij-indexing, x to the bottom, y to the right
@@ -19,20 +53,22 @@ namespace erl::geometry {
           m_cleaned_mask_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1)),
           m_num_unexplored_cells_(m_grid_map_info_->Shape(0) * m_grid_map_info_->Shape(1)) {}
 
-    LogOddMap2D::LogOddMap2D(
+    template<typename Dtype>
+    LogOddMap2D<Dtype>::LogOddMap2D(
         std::shared_ptr<Setting> setting,
-        std::shared_ptr<common::GridMapInfo<2>> grid_map_info,
-        const Eigen::Ref<const Eigen::Matrix2Xd> &shape_metric_vertices)
+        std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info,
+        const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &shape_metric_vertices)
         : LogOddMap2D(std::move(setting), std::move(grid_map_info)) {
         m_shape_vertices_ = shape_metric_vertices;
     }
 
+    template<typename Dtype>
     void
-    LogOddMap2D::Update(
-        const Eigen::Ref<const Eigen::Vector2d> &position,
-        const double theta,
-        const Eigen::Ref<const Eigen::VectorXd> &angles_body,
-        const Eigen::Ref<const Eigen::VectorXd> &ranges) {
+    LogOddMap2D<Dtype>::Update(
+        const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
+        const Dtype theta,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &angles_body,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &ranges) {
 
         ERL_DEBUG_ASSERT(angles_body.size() == ranges.size(), "angles and ranges should be of the same shape.");
         ERL_DEBUG_ASSERT(!ranges.hasNaN(), "detect nan in ranges!");
@@ -45,25 +81,25 @@ namespace erl::geometry {
         if (mask->mask.rows == 0 || mask->mask.cols == 0) { return; }
 
         // compute parameters
-        const double log_certainty = std::log(m_setting_->measurement_certainty);
-        const double log_uncertainty = std::log(1.0 - m_setting_->measurement_certainty);
-        const double log_odd_occupied = log_certainty - log_uncertainty;
-        const double log_odd_free = log_uncertainty - log_certainty;
+        const Dtype log_certainty = std::log(m_setting_->measurement_certainty);
+        const Dtype log_uncertainty = std::log(1.0 - m_setting_->measurement_certainty);
+        const Dtype log_odd_occupied = log_certainty - log_uncertainty;
+        const Dtype log_odd_free = log_uncertainty - log_certainty;
 
         // update log_odd_map, possibility_map, occupancy_map
         for (int row = 0; row < mask->mask.rows; ++row) {
             for (int col = 0; col < mask->mask.cols; ++col) {
-                const auto &mask_value = mask->mask.at<uint8_t>(row, col);
+                const auto &mask_value = mask->mask.template at<uint8_t>(row, col);
                 if (mask_value == kUnexplored) { continue; }
 
                 const int x = mask->x_grid_min + row;
                 const int y = mask->y_grid_min + col;
-                auto &log_odd_value = m_log_map_.at<double>(x, y);
-                auto &possibility_value = m_possibility_map_.at<double>(x, y);
+                auto &log_odd_value = m_log_map_.at<Dtype>(x, y);
+                auto &possibility_value = m_possibility_map_.at<Dtype>(x, y);
                 auto &occupancy_value = m_occupancy_map_.at<uint8_t>(x, y);
-                auto &free_mask_value = m_mask_.free_mask.at<uint8_t>(x, y);
-                auto &occupied_mask_value = m_mask_.occupied_mask.at<uint8_t>(x, y);
-                auto &unexplored_mask_value = m_mask_.unexplored_mask.at<uint8_t>(x, y);
+                auto &free_mask_value = m_mask_.free_mask.template at<uint8_t>(x, y);
+                auto &occupied_mask_value = m_mask_.occupied_mask.template at<uint8_t>(x, y);
+                auto &unexplored_mask_value = m_mask_.unexplored_mask.template at<uint8_t>(x, y);
 
                 if (mask_value == kOccupied) {
                     log_odd_value += log_odd_occupied;
@@ -109,10 +145,11 @@ namespace erl::geometry {
         PostProcessMasks(position, theta);
     }
 
+    template<typename Dtype>
     void
-    LogOddMap2D::LoadExternalPossibilityMap(
-        const Eigen::Ref<const Eigen::Vector2d> &position,
-        const double theta,
+    LogOddMap2D<Dtype>::LoadExternalPossibilityMap(
+        const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
+        const Dtype theta,
         const Eigen::Ref<const Eigen::MatrixXi> &possibility_map) {
 
         ERL_ASSERTM(
@@ -131,12 +168,12 @@ namespace erl::geometry {
 
         for (int i = 0; i < n_rows; ++i) {
             for (int j = 0; j < n_cols; ++j) {
-                auto &log_odd_value = m_log_map_.at<double>(i, j);
-                auto &possibility_value = m_possibility_map_.at<double>(i, j);
+                auto &log_odd_value = m_log_map_.at<Dtype>(i, j);
+                auto &possibility_value = m_possibility_map_.at<Dtype>(i, j);
                 auto &occupancy_value = m_occupancy_map_.at<uint8_t>(i, j);
-                auto &free_mask_value = m_mask_.free_mask.at<uint8_t>(i, j);
-                auto &occupied_mask_value = m_mask_.occupied_mask.at<uint8_t>(i, j);
-                auto &unexplored_mask_value = m_mask_.unexplored_mask.at<uint8_t>(i, j);
+                auto &free_mask_value = m_mask_.free_mask.template at<uint8_t>(i, j);
+                auto &occupied_mask_value = m_mask_.occupied_mask.template at<uint8_t>(i, j);
+                auto &unexplored_mask_value = m_mask_.unexplored_mask.template at<uint8_t>(i, j);
 
                 if (possibility_map(i, j) == -1) {
                     log_odd_value = 0.;
@@ -147,22 +184,22 @@ namespace erl::geometry {
                     unexplored_mask_value = 1;
                     m_num_unexplored_cells_++;
                 } else {
-                    possibility_value = static_cast<double>(possibility_map(i, j)) / 100.;
+                    possibility_value = static_cast<Dtype>(possibility_map(i, j)) / 100.;
                     log_odd_value = std::log(possibility_value / (1. - possibility_value));
                     if (possibility_value > m_setting_->threshold_occupied) {
-                        occupancy_value = CellType::kOccupied;
+                        occupancy_value = kOccupied;
                         free_mask_value = 0;
                         occupied_mask_value = 1;
                         unexplored_mask_value = 0;
                         m_num_occupied_cells_++;
                     } else if (possibility_value < m_setting_->threshold_free) {
-                        occupancy_value = CellType::kFree;
+                        occupancy_value = kFree;
                         free_mask_value = 1;
                         occupied_mask_value = 0;
                         unexplored_mask_value = 0;
                         m_num_free_cells_++;
                     } else {
-                        occupancy_value = CellType::kUnexplored;
+                        occupancy_value = kUnexplored;
                         free_mask_value = 0;
                         occupied_mask_value = 0;
                         unexplored_mask_value = 1;
@@ -175,70 +212,140 @@ namespace erl::geometry {
         PostProcessMasks(position, theta);
     }
 
-    // void
-    // LogOddMap2D::ComputeStatisticsOfLidarFrame(
-    //     const Eigen::Ref<const Eigen::Vector2d> &position,
-    //     double theta,
-    //     const Eigen::Ref<const Eigen::VectorXd> &angles_body,
-    //     const Eigen::Ref<const Eigen::VectorXd> &ranges,
-    //     bool clip_ranges,
-    //     int &num_occupied_cells,
-    //     int &num_free_cells,
-    //     int &num_unexplored_cells,
-    //     int &num_out_of_map_cells) const {
-    //
-    //     const bool kRayMode = false;
-    //     const bool kInMapOnly = false;
-    //     ComputeStatisticsOfLidarFrameMask(
-    //         ComputeLidarFrameMask(position, theta, angles_body, ranges, clip_ranges, kRayMode, kInMapOnly),
-    //         num_occupied_cells,
-    //         num_free_cells,
-    //         num_unexplored_cells,
-    //         num_out_of_map_cells);
-    //
-    //     // num_occupied_cells = 0;
-    //     // num_free_cells = 0;
-    //     // num_unexplored_cells = 0;
-    //     // num_out_of_map_cells = 0;
-    //     //
-    //     // auto mask = ComputeLidarFrameMask(position, theta, angles_body, ranges, clip_ranges, kRayMode, kInMapOnly);
-    //     // int n_rows = mask.mask.rows;
-    //     // int n_cols = mask.mask.cols;
-    //     //
-    //     // int num_not_scanned_cells = 0;
-    //     // for (int row = 0; row < n_rows; ++row) {
-    //     //     for (int col = 0; col < n_cols; ++col) {
-    //     //         if (mask.mask.at<uint8_t>(row, col) == CellType::kUnexplored) {  // unexplored <--> not scanned
-    //     //             num_not_scanned_cells++;
-    //     //             continue;
-    //     //         }
-    //     //
-    //     //         int x = mask.x_grid_min + row;
-    //     //         int y = mask.y_grid_min + col;
-    //     //
-    //     //         if (x < 0 || y < 0 || x >= m_grid_map_info_->Shape(0) || y >= m_grid_map_info_->Shape(1)) {
-    //     //             num_out_of_map_cells++;
-    //     //             continue;
-    //     //         }
-    //     //
-    //     //         const auto &kOccupancyValue = m_occupancy_map_.at<uint8_t>(x, y);
-    //     //         if (kOccupancyValue == CellType::kOccupied) {
-    //     //             num_occupied_cells++;
-    //     //         } else if (kOccupancyValue == CellType::kFree) {
-    //     //             num_free_cells++;
-    //     //         } else if (kOccupancyValue == CellType::kUnexplored) {
-    //     //             num_unexplored_cells++;
-    //     //         } else {
-    //     //             throw std::runtime_error("Unexpected cell type.");
-    //     //         }
-    //     //     }
-    //     // }
-    //     //
-    //     // ERL_ASSERT(num_not_scanned_cells + num_free_cells + num_occupied_cells + num_unexplored_cells + num_out_of_map_cells == n_rows * n_cols);
-    // }
+    template<typename Dtype>
+    std::shared_ptr<typename LogOddMap2D<Dtype>::LidarFrameMask>
+    LogOddMap2D<Dtype>::ComputeStatisticsOfLidarFrame(
+        const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
+        const Dtype theta,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &angles_body,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &ranges,
+        const bool clip_ranges,
+        const std::shared_ptr<LidarFrameMask> &old_mask,
+        int &num_occupied_cells,
+        int &num_free_cells,
+        int &num_unexplored_cells,
+        int &num_out_of_map_cells) const {
 
+        constexpr bool ray_mode = false;
+        constexpr bool in_map_only = false;
+        auto new_mask = ComputeLidarFrameMask(position, theta, angles_body, ranges, clip_ranges, ray_mode, in_map_only, old_mask);
+        ComputeStatisticsOfLidarFrameMask(new_mask, num_occupied_cells, num_free_cells, num_unexplored_cells, num_out_of_map_cells);
+        return new_mask;
+    }
+
+    template<typename Dtype>
+    std::shared_ptr<typename LogOddMap2D<Dtype>::LidarFrameMask>
+    LogOddMap2D<Dtype>::ComputeStatisticsOfLidarFrames(
+        const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &lidar_angles_body,
+        const std::vector<Eigen::VectorX<Dtype>> &lidar_ranges,
+        const bool clip_ranges,
+        const std::shared_ptr<LidarFrameMask> &old_mask,
+        int &num_occupied_cells,
+        int &num_free_cells,
+        int &num_unexplored_cells,
+        int &num_out_of_map_cells) const {
+
+        // const bool kRayMode = false;
+        // const bool kInMapOnly = false;
+        auto new_mask = ComputeLidarFramesMask(lidar_poses, lidar_angles_body, lidar_ranges, clip_ranges, old_mask);
+        ComputeStatisticsOfLidarFrameMask(new_mask, num_occupied_cells, num_free_cells, num_unexplored_cells, num_out_of_map_cells);
+        return new_mask;
+    }
+
+    template<typename Dtype>
+    std::shared_ptr<typename LogOddMap2D<Dtype>::Setting>
+    LogOddMap2D<Dtype>::GetSetting() const {
+        return m_setting_;
+    }
+
+    template<typename Dtype>
+    std::shared_ptr<const common::GridMapInfo2D<Dtype>>
+    LogOddMap2D<Dtype>::GetGridMapInfo() const {
+        return m_grid_map_info_;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetLogMap() const {
+        return m_log_map_;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetPossibilityMap() const {
+        return m_possibility_map_;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetOccupancyMap() const {
+        return m_occupancy_map_;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetUnexploredMask() const {
+        return m_mask_.unexplored_mask;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetOccupiedMask() const {
+        return m_mask_.occupied_mask;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetFreeMask() const {
+        return m_mask_.free_mask;
+    }
+
+    template<typename Dtype>
+    std::size_t
+    LogOddMap2D<Dtype>::GetNumUnexploredCells() const {
+        return m_num_unexplored_cells_;
+    }
+
+    template<typename Dtype>
+    std::size_t
+    LogOddMap2D<Dtype>::GetNumOccupiedCells() const {
+        return m_num_occupied_cells_;
+    }
+
+    template<typename Dtype>
+    std::size_t
+    LogOddMap2D<Dtype>::GetNumFreeCells() const {
+        return m_num_free_cells_;
+    }
+
+    template<typename Dtype>
+    const typename LogOddMap2D<Dtype>::LogOddCVMask &
+    LogOddMap2D<Dtype>::GetCleanedMasks() const {
+        return m_cleaned_mask_;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetCleanedFreeMask() const {
+        return m_cleaned_mask_.free_mask;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetCleanedOccupiedMask() const {
+        return m_cleaned_mask_.occupied_mask;
+    }
+
+    template<typename Dtype>
+    cv::Mat
+    LogOddMap2D<Dtype>::GetCleanedUnexploredMask() const {
+        return m_cleaned_mask_.unexplored_mask;
+    }
+
+    template<typename Dtype>
     std::vector<Eigen::Matrix2Xi>
-    LogOddMap2D::GetFrontiers(bool clean_at_first, int approx_iters) const {
+    LogOddMap2D<Dtype>::GetFrontiers(bool clean_at_first, int approx_iters) const {
         if (m_num_free_cells_ + m_num_occupied_cells_ == 0) { return {}; }
 
         cv::Mat unexplored_mask;
@@ -296,12 +403,13 @@ namespace erl::geometry {
         return frontiers;
     }
 
-    std::shared_ptr<LogOddMap2D::LidarFrameMask>
-    LogOddMap2D::ComputeLidarFrameMask(
-        const Eigen::Ref<const Eigen::Vector2d> &position,
-        const double theta,
-        const Eigen::Ref<const Eigen::VectorXd> &angles_body,
-        const Eigen::Ref<const Eigen::VectorXd> &ranges,
+    template<typename Dtype>
+    std::shared_ptr<typename LogOddMap2D<Dtype>::LidarFrameMask>
+    LogOddMap2D<Dtype>::ComputeLidarFrameMask(
+        const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
+        const Dtype theta,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &angles_body,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &ranges,
         const bool clip_ranges,
         const bool ray_mode,
         const bool in_map_only,
@@ -313,17 +421,17 @@ namespace erl::geometry {
 
         // LidarFrameMask mask;
         auto mask = std::make_shared<LidarFrameMask>();
-        Eigen::VectorXd angles = angles_body.array() + theta;  // in world frame
+        Eigen::VectorX<Dtype> angles = angles_body.array() + theta;  // in world frame
 
         // clip the ranges if necessary, check if the ray hits an obstacle
         const long num_rays = angles.size();
         mask->occupied_grids.resize(2, num_rays);
         long num_obstacle_grids = 0;
-        Eigen::VectorXd clipped_ranges;
+        Eigen::VectorX<Dtype> clipped_ranges;
         clipped_ranges.resize(num_rays);
         for (int i = 0; i < num_rays; ++i) {
-            const double &kRange = ranges[i];
-            double &clipped_range = clipped_ranges[i];
+            const Dtype &kRange = ranges[i];
+            Dtype &clipped_range = clipped_ranges[i];
             if (kRange >= m_setting_->sensor_max_range) {
                 if (clip_ranges || std::isinf(kRange)) {
                     clipped_range = m_setting_->sensor_max_range;
@@ -356,9 +464,9 @@ namespace erl::geometry {
         }
         mask->UpdateGridRange(start_x, start_y);
         for (int i = 0; i < num_rays; ++i) {
-            Eigen::Vector2d direction(std::cos(angles[i]), std::sin(angles[i]));
+            Eigen::Vector2<Dtype> direction(std::cos(angles[i]), std::sin(angles[i]));
             if (ray_mode) { contour.emplace_back(start_y, start_x); }
-            const double &distance = clipped_ranges[i];
+            const Dtype &distance = clipped_ranges[i];
             // if (distance > clipped_ranges[i]) { distance = clipped_ranges[i]; }
             int x = m_grid_map_info_->MeterToGridForValue(position[0] + direction[0] * distance, 0);
             int y = m_grid_map_info_->MeterToGridForValue(position[1] + direction[1] * distance, 1);
@@ -387,7 +495,7 @@ namespace erl::geometry {
             return mask;
         }
 
-        mask->mask = cv::Mat(n_rows, n_cols, CV_8UC1, cv::Scalar(CellType::kUnexplored));  // cv::Mat(rows, cols, type, value)
+        mask->mask = cv::Mat(n_rows, n_cols, CV_8UC1, cv::Scalar(kUnexplored));  // cv::Mat(rows, cols, type, value)
         if (old_mask != nullptr) {
             old_mask->mask.copyTo(mask->mask(
                 cv::Rect(old_mask->y_grid_min - mask->y_grid_min, old_mask->x_grid_min - mask->x_grid_min, old_mask->mask.cols, old_mask->mask.rows)));
@@ -398,40 +506,25 @@ namespace erl::geometry {
             point.x -= mask->y_grid_min;
             point.y -= mask->x_grid_min;
         }
-        cv::drawContours(mask->mask, lidar_area_contours, 0, CellType::kFree, cv::FILLED, cv::LINE_8);
-
-        // if (old_mask != nullptr) {
-        //     ERL_INFO("old_mask size: \n{}, {}", old_mask->mask.rows, old_mask->mask.cols);
-        //     ERL_INFO("new_mask size: \n{}, {}", mask->mask.rows, mask->mask.cols);
-        //     cv::Mat old_mask_image;
-        //     old_mask->mask.copyTo(old_mask_image);
-        //     cv::transpose(old_mask_image, old_mask_image);
-        //     cv::flip(old_mask_image, old_mask_image, 0);
-        //     cv::imshow("old_mask", old_mask_image);
-        //     cv::Mat mask_image;
-        //     mask->mask.copyTo(mask_image);
-        //     cv::transpose(mask_image, mask_image);
-        //     cv::flip(mask_image, mask_image, 0);
-        //     cv::imshow("mask", mask_image);
-        //     cv::waitKey(0);
-        // }
+        cv::drawContours(mask->mask, lidar_area_contours, 0, kFree, cv::FILLED, cv::LINE_8);
 
         // draw the occupied grids
         for (int i = 0; i < num_obstacle_grids; ++i) {
             const int x = mask->occupied_grids(0, i) - mask->x_grid_min;
             if (const int y = mask->occupied_grids(1, i) - mask->y_grid_min; x >= 0 && x < n_rows && y >= 0 && y < n_cols) {
-                mask->mask.at<uint8_t>(x, y) = kOccupied;
+                mask->mask.template at<uint8_t>(x, y) = kOccupied;
             }
         }
 
         return mask;
     }
 
-    std::shared_ptr<LogOddMap2D::LidarFrameMask>
-    LogOddMap2D::ComputeLidarFramesMask(
+    template<typename Dtype>
+    std::shared_ptr<typename LogOddMap2D<Dtype>::LidarFrameMask>
+    LogOddMap2D<Dtype>::ComputeLidarFramesMask(
         const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
-        const Eigen::Ref<const Eigen::VectorXd> &lidar_angles_body,
-        const std::vector<Eigen::VectorXd> &lidar_ranges,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &lidar_angles_body,
+        const std::vector<Eigen::VectorX<Dtype>> &lidar_ranges,
         const bool clip_ranges,
         const std::shared_ptr<LidarFrameMask> &old_mask) const {
 
@@ -442,13 +535,13 @@ namespace erl::geometry {
         auto mask = std::make_shared<LidarFrameMask>();
         mask->occupied_grids.resize(2, num_rays * num_frames);
         long num_obstacle_grids = 0;
-        std::vector<Eigen::VectorXd> clipped_lidar_ranges(num_frames);
+        std::vector<Eigen::VectorX<Dtype>> clipped_lidar_ranges(num_frames);
         std::vector<std::vector<cv::Point>> lidar_area_contours(num_frames);
 
         for (long i = 0; i < num_frames; ++i) {
-            const double &lidar_x = lidar_poses(0, i);
-            const double &lidar_y = lidar_poses(1, i);
-            Eigen::VectorXd angles = lidar_angles_body.array() + lidar_poses(2, i);  // in world frame
+            const Dtype &lidar_x = lidar_poses(0, i);
+            const Dtype &lidar_y = lidar_poses(1, i);
+            Eigen::VectorX<Dtype> angles = lidar_angles_body.array() + lidar_poses(2, i);  // in world frame
             const auto &ranges = lidar_ranges[i];
             auto &clipped_ranges = clipped_lidar_ranges[i];
             clipped_ranges.resize(num_rays);
@@ -462,8 +555,8 @@ namespace erl::geometry {
 
             // clip the ranges if necessary, check if the ray hits an obstacle
             for (int j = 0; j < num_rays; ++j) {
-                const double &kRange = ranges[j];
-                double &clipped_range = clipped_ranges[j];
+                const Dtype &kRange = ranges[j];
+                Dtype &clipped_range = clipped_ranges[j];
                 if (kRange >= m_setting_->sensor_max_range) {
                     if (clip_ranges || std::isinf(kRange)) {
                         clipped_range = m_setting_->sensor_max_range;
@@ -475,7 +568,7 @@ namespace erl::geometry {
                 } else {  // the ray hit an obstacle
                     clipped_range = kRange;
                     // clang-format off
-                const double &angle = angles[j];
+                const Dtype &angle = angles[j];
                 mask->occupied_grids.col(num_obstacle_grids++) <<
                     m_grid_map_info_->MeterToGridForValue(lidar_x + kRange * std::cos(angle), 0),
                     m_grid_map_info_->MeterToGridForValue(lidar_y + kRange * std::sin(angle), 1);
@@ -488,22 +581,14 @@ namespace erl::geometry {
             int start_x = m_grid_map_info_->MeterToGridForValue(lidar_x, 0);
             int start_y = m_grid_map_info_->MeterToGridForValue(lidar_y, 1);
 
-            // if (ray_mode) {  // start, end1, end2, end3, ..., endN
-            //     contour.reserve(2 * num_rays);
-            // } else {  // area mode: start, end1, start, end2, start, end3, ..., start, endN
-            //     contour.reserve(1 + num_rays);
-            //     contour.emplace_back(start_y, start_x);
-            // }
-
             // area mode: start, end1, start, end2, start, end3, ..., start, endN
             contour.reserve(1 + num_rays);
             contour.emplace_back(start_y, start_x);
 
             mask->UpdateGridRange(start_x, start_y);
             for (int j = 0; j < num_rays; ++j) {
-                Eigen::Vector2d direction(std::cos(angles[j]), std::sin(angles[j]));
-                // if (ray_mode) { contour.emplace_back(start_y, start_x); }
-                const double distance = clipped_ranges[j];
+                Eigen::Vector2<Dtype> direction(std::cos(angles[j]), std::sin(angles[j]));
+                const Dtype distance = clipped_ranges[j];
                 int x = m_grid_map_info_->MeterToGridForValue(lidar_x + direction[0] * distance, 0);
                 int y = m_grid_map_info_->MeterToGridForValue(lidar_y + direction[1] * distance, 1);
                 contour.emplace_back(y, x);
@@ -513,12 +598,6 @@ namespace erl::geometry {
 
         mask->occupied_grids.conservativeResize(2, num_obstacle_grids);
 
-        // if (InMapOnly) {
-        //     if (mask.x_grid_min < 0) { mask.x_grid_min = 0; }
-        //     if (mask.x_grid_max >= m_grid_map_info_->Shape(0)) { mask.x_grid_max = m_grid_map_info_->Shape(0) - 1; }
-        //     if (mask.y_grid_min < 0) { mask.y_grid_min = 0; }
-        //     if (mask.y_grid_max >= m_grid_map_info_->Shape(1)) { mask.y_grid_max = m_grid_map_info_->Shape(1) - 1; }
-        // }
         if (old_mask != nullptr) {
             mask->x_grid_min = std::min(mask->x_grid_min, old_mask->x_grid_min);
             mask->x_grid_max = std::max(mask->x_grid_max, old_mask->x_grid_max);
@@ -543,14 +622,6 @@ namespace erl::geometry {
                 cv::Rect(old_mask->y_grid_min - mask->y_grid_min, old_mask->x_grid_min - mask->x_grid_min, old_mask->mask.cols, old_mask->mask.rows)));
         }
 
-        // cv::Mat image = cv::Mat::zeros(n_rows, n_cols, CV_8UC3);
-        // vector of points (x, y), in OpenCV, (x, y) = (col, row). So, mask.x is point.y, mask.y is point.x
-        // int s = 255 / int(num_frames);
-        // int d = 1;
-        // if (s == 0) {
-        //     s = 1;
-        //     d = int(num_frames) / 255;
-        // }
         for (long i = 0; i < num_frames; ++i) {
             auto &contour = lidar_area_contours[i];
             for (auto &point: contour) {
@@ -558,44 +629,22 @@ namespace erl::geometry {
                 point.y -= mask->x_grid_min;
             }
             cv::drawContours(mask->mask, lidar_area_contours, static_cast<int>(i), CellType::kFree, cv::FILLED, cv::LINE_8);
-            // cv::drawContours(image, lidar_area_contours, int(i), cv::Scalar(0, 255 - s * int(i / d), s * int(i / d)), cv::FILLED, cv::LINE_8);
         }
-        // cv::drawContours(mask.mask, lidar_area_contours, 0, CellType::kFree, cv::FILLED, cv::LINE_8);
-
-        // if (old_mask != nullptr) {
-        //     cv::Mat old_mask_image;
-        //     old_mask->mask.copyTo(old_mask_image);
-        //     cv::transpose(old_mask_image, old_mask_image);
-        //     cv::flip(old_mask_image, old_mask_image, 0);
-        //     cv::imshow("old_mask", old_mask_image);
-        //     cv::Mat mask_image;
-        //     mask->mask.copyTo(mask_image);
-        //     cv::transpose(mask_image, mask_image);
-        //     cv::flip(mask_image, mask_image, 0);
-        //     cv::imshow("mask", mask_image);
-        // }
-        // // cv::waitKey(0);
-        // std::vector<cv::Point2i> path_points;
-        // for (int i = 0; i < num_frames; ++i) { path_points.emplace_back(lidar_area_contours[i][0]); }
-        // cv::polylines(image, path_points, false, cv::Scalar(255, 0, 0), 2, cv::LINE_AA);
-        // cv::transpose(image, image);
-        // cv::flip(image, image, 0);
-        // cv::imshow("image", image);
-        // cv::waitKey(0);
 
         // draw the occupied grids
         for (int i = 0; i < num_obstacle_grids; ++i) {
             const int x = mask->occupied_grids(0, i) - mask->x_grid_min;
             if (const int y = mask->occupied_grids(1, i) - mask->y_grid_min; x >= 0 && x < n_rows && y >= 0 && y < n_cols) {
-                mask->mask.at<uint8_t>(x, y) = kOccupied;
+                mask->mask.template at<uint8_t>(x, y) = kOccupied;
             }
         }
 
         return mask;
     }
 
+    template<typename Dtype>
     void
-    LogOddMap2D::ComputeStatisticsOfLidarFrameMask(
+    LogOddMap2D<Dtype>::ComputeStatisticsOfLidarFrameMask(
         const std::shared_ptr<LidarFrameMask> &mask,
         int &num_occupied_cells,
         int &num_free_cells,
@@ -613,7 +662,7 @@ namespace erl::geometry {
         int num_not_scanned_cells = 0;
         for (int row = 0; row < n_rows; ++row) {
             for (int col = 0; col < n_cols; ++col) {
-                if (mask->mask.at<uint8_t>(row, col) == kUnexplored) {  // unexplored <--> not scanned
+                if (mask->mask.template at<uint8_t>(row, col) == kUnexplored) {  // unexplored <--> not scanned
                     num_not_scanned_cells++;
                     continue;
                 }
@@ -641,8 +690,9 @@ namespace erl::geometry {
         ERL_ASSERT(num_not_scanned_cells + num_free_cells + num_occupied_cells + num_unexplored_cells + num_out_of_map_cells == n_rows * n_cols);
     }
 
+    template<typename Dtype>
     void
-    LogOddMap2D::PostProcessMasks(const Eigen::Ref<const Eigen::Vector2d> &position, const double theta) {
+    LogOddMap2D<Dtype>::PostProcessMasks(const Eigen::Ref<const Eigen::Vector2<Dtype>> &position, const Dtype theta) {
         // update cleaned mask
         m_mask_.free_mask.copyTo(m_cleaned_mask_.free_mask);
         // dilate then erode to remove isolated free cells
@@ -665,7 +715,7 @@ namespace erl::geometry {
         robot_shape.reserve(num_vertices);
         const Eigen::Matrix2d rotation_matrix = Eigen::Rotation2Dd(theta).toRotationMatrix();
         for (int i = 0; i < num_vertices; ++i) {
-            Eigen::Vector2d vertex = rotation_matrix * m_shape_vertices_.col(i) + position;
+            Eigen::Vector2<Dtype> vertex = rotation_matrix * m_shape_vertices_.col(i) + position;
             int x = m_grid_map_info_->MeterToGridForValue(vertex[0], 0);  // row
             int y = m_grid_map_info_->MeterToGridForValue(vertex[1], 1);  // col
             robot_shape.emplace_back(y, x);                               // (col, row)

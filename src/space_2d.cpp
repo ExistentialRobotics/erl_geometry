@@ -116,7 +116,7 @@ namespace erl::geometry {
 
     Space2D::Space2D(
         const Eigen::Ref<const Eigen::MatrixXd> &map_image,  // y up, x right
-        const common::GridMapInfo2D &grid_map_info,
+        const common::GridMapInfo2Dd &grid_map_info,
         const double free_threshold,
         double delta,
         const bool parallel) {
@@ -160,7 +160,7 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixX8U
-    Space2D::GenerateMapImage(const common::GridMapInfo2D &grid_map_info, const bool anti_aliased) const {
+    Space2D::GenerateMapImage(const common::GridMapInfo2Dd &grid_map_info, const bool anti_aliased) const {
         cv::Mat cv_map_image = cv::Mat::zeros(grid_map_info.Height(), grid_map_info.Width(), CV_8UC1);
         const long n_obj = m_surface_->GetNumObjects();
         for (int i = 0; i < n_obj; ++i) {
@@ -176,7 +176,7 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixXd
-    Space2D::ComputeSdfImage(const common::GridMapInfo2D &grid_map_info, const SignMethod sign_method, const bool use_kdtree, const bool parallel) const {
+    Space2D::ComputeSdfImage(const common::GridMapInfo2Dd &grid_map_info, const SignMethod sign_method, const bool use_kdtree, const bool parallel) const {
         Eigen::MatrixXd sdf(grid_map_info.Height(), grid_map_info.Width());  // y up, x right, column-major
 
 #pragma omp parallel for if (parallel) default(none) shared(grid_map_info, sign_method, use_kdtree, sdf)
@@ -272,7 +272,7 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixX<Eigen::VectorXd>
-    Space2D::ComputeDdf(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) const {
+    Space2D::ComputeDdf(const common::GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) const {
         Eigen::MatrixX<Eigen::VectorXd> out(grid_map_info.Height(), grid_map_info.Width());
 
 #pragma omp parallel for if (parallel) default(none) shared(grid_map_info, query_directions, out, Eigen::Dynamic)
@@ -323,7 +323,7 @@ namespace erl::geometry {
     }
 
     Eigen::MatrixX<Eigen::VectorXd>
-    Space2D::ComputeSddfV1(const common::GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) const {
+    Space2D::ComputeSddfV1(const common::GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) const {
 
         const long n_directions = query_directions.cols();
         const int height = grid_map_info.Height();
@@ -380,7 +380,7 @@ namespace erl::geometry {
 
     Eigen::MatrixX<Eigen::VectorXd>
     Space2D::ComputeSddfV2(
-        const common::GridMapInfo2D &grid_map_info,
+        const common::GridMapInfo2Dd &grid_map_info,
         const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
         const SignMethod sign_method,
         const bool parallel) const {
