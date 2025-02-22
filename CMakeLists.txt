@@ -24,7 +24,7 @@ get_target_property(qhullcpp_location Qhull::qhullcpp LOCATION)
 list(APPEND Qhull_LIBRARIES ${qhull_r_location} ${qhullcpp_location})
 
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
-set(_GLOBAL_STRING "GLOBAL" STRING)
+set(_GLOBAL_STRING "GLOBAL")
 else()
 # _GLOBAL_STRING is nothing
 message(STATUS "CMake version is too low at ${CMAKE_VERSION}. Will still try, but may not work correctly.")
