@@ -10,7 +10,8 @@ namespace erl::geometry {
     /**
      * AbstractOccupancyQuadtree is a base class that implements generic occupancy quadtree functionality.
      */
-    class AbstractOccupancyQuadtree : public AbstractQuadtree {
+    template<typename Dtype>
+    class AbstractOccupancyQuadtree : public AbstractQuadtree<Dtype> {
         std::shared_ptr<OccupancyNdTreeSetting> m_setting_ = nullptr;
 
     protected:
@@ -18,10 +19,11 @@ namespace erl::geometry {
         inline static const std::string sk_BinaryFileHeader_ = "# OccupancyQuadtree binary file";  // cppcheck-suppress unusedStructMember
 
     public:
+        typedef Dtype DataType;
         AbstractOccupancyQuadtree() = delete;  // no default constructor
 
         explicit AbstractOccupancyQuadtree(std::shared_ptr<OccupancyNdTreeSetting> setting)
-            : AbstractQuadtree(setting),
+            : AbstractQuadtree<Dtype>(setting),
               m_setting_(std::move(setting)) {}
 
         AbstractOccupancyQuadtree(const AbstractOccupancyQuadtree& other) = default;
@@ -101,10 +103,12 @@ namespace erl::geometry {
 
         //-- search
         [[nodiscard]] virtual const OccupancyQuadtreeNode*
-        GetHitOccupiedNode(double px, double py, double vx, double vy, bool ignore_unknown, double max_range, double& ex, double& ey) const = 0;
+        GetHitOccupiedNode(Dtype px, Dtype py, Dtype vx, Dtype vy, bool ignore_unknown, Dtype max_range, Dtype& ex, Dtype& ey) const = 0;
 
         //-- update functions
         virtual void
         ToMaxLikelihood() = 0;
     };
 }  // namespace erl::geometry
+
+#include "abstract_occupancy_quadtree.tpp"

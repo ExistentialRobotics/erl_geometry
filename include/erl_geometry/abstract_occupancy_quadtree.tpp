@@ -4,8 +4,9 @@
 
 namespace erl::geometry {
 
+    template <typename Dtype>
     bool
-    AbstractOccupancyQuadtree::WriteBinary(const std::string &filename) {
+    AbstractOccupancyQuadtree<Dtype>::WriteBinary(const std::string &filename) {
         ERL_DEBUG("Writing Quadtree to file: {}", std::filesystem::absolute(filename));
         std::ofstream file(filename, std::ios::binary);
         if (!file.is_open()) {
@@ -17,22 +18,24 @@ namespace erl::geometry {
         const bool success = file.good();
         file.close();
         if (success) {
-            ERL_DEBUG("Successfully wrote Quadtree of type {}, size {}", GetTreeType(), GetSize());
+            ERL_DEBUG("Successfully wrote Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
         } else {
-            ERL_WARN("Failed to write Quadtree of type {}, size {}", GetTreeType(), GetSize());
+            ERL_WARN("Failed to write Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
         }
         return success;
     }
 
+    template <typename Dtype>
     std::ostream &
-    AbstractOccupancyQuadtree::WriteBinary(std::ostream &s) {
-        ToMaxLikelihood();
-        Prune();
+    AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s) {
+        this->ToMaxLikelihood();
+        this->Prune();
         return const_cast<const AbstractOccupancyQuadtree *>(this)->WriteBinary(s);
     }
 
+    template <typename Dtype>
     bool
-    AbstractOccupancyQuadtree::WriteBinary(const std::string &filename) const {
+    AbstractOccupancyQuadtree<Dtype>::WriteBinary(const std::string &filename) const {
         ERL_DEBUG("Writing Quadtree to file: {}", std::filesystem::absolute(filename));
         std::ofstream file(filename, std::ios::binary);
         if (!file.is_open()) {
@@ -44,27 +47,29 @@ namespace erl::geometry {
         const bool success = file.good();
         file.close();
         if (success) {
-            ERL_DEBUG("Successfully wrote Quadtree of type {}, size {}", GetTreeType(), GetSize());
+            ERL_DEBUG("Successfully wrote Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
         } else {
-            ERL_WARN("Failed to write Quadtree of type {}, size {}", GetTreeType(), GetSize());
+            ERL_WARN("Failed to write Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
         }
         return success;
     }
 
+    template <typename Dtype>
     std::ostream &
-    AbstractOccupancyQuadtree::WriteBinary(std::ostream &s) const {
+    AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s) const {
         s << sk_BinaryFileHeader_ << std::endl
           << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
-          << "id " << GetTreeType() << std::endl
-          << "size " << GetSize() << std::endl
+          << "id " << this->GetTreeType() << std::endl
+          << "size " << this->GetSize() << std::endl
           << "setting" << std::endl;
-        WriteSetting(s);
+        this->WriteSetting(s);
         s << "data" << std::endl;
-        return WriteBinaryData(s);
+        return this->WriteBinaryData(s);
     }
 
+    template <typename Dtype>
     bool
-    AbstractOccupancyQuadtree::ReadBinary(const std::string &filename) {
+    AbstractOccupancyQuadtree<Dtype>::ReadBinary(const std::string &filename) {
         ERL_DEBUG("Reading Quadtree from file: {}", std::filesystem::absolute(filename));
         std::ifstream file(filename.c_str(), std::ios::binary);
         if (!file.is_open()) {
@@ -77,8 +82,9 @@ namespace erl::geometry {
         return success;
     }
 
+    template <typename Dtype>
     bool
-    AbstractOccupancyQuadtree::ReadBinary(std::istream &s) {
+    AbstractOccupancyQuadtree<Dtype>::ReadBinary(std::istream &s) {
         if (!s.good()) {
             ERL_WARN("Input stream is not ready for reading");
             return false;
@@ -95,19 +101,19 @@ namespace erl::geometry {
         // read header
         std::string tree_id;
         uint32_t size;
-        if (!ReadHeader(s, tree_id, size)) { return false; }
-        if (tree_id != GetTreeType()) {
-            ERL_WARN("Error reading Quadtree header, ID does not match: {} != {}", tree_id, GetTreeType());
+        if (!this->ReadHeader(s, tree_id, size)) { return false; }
+        if (tree_id != this->GetTreeType()) {
+            ERL_WARN("Error reading Quadtree header, ID does not match: {} != {}", tree_id, this->GetTreeType());
             return false;
         }
 
         // clear and read setting
-        Clear();
-        if (!ReadSetting(s)) {
+        this->Clear();
+        if (!this->ReadSetting(s)) {
             ERL_WARN("Failed to read setting");
             return false;
         }
-        ApplySetting();
+        this->ApplySetting();
 
         // check if the next line is "data"
         std::getline(s, line);
@@ -117,8 +123,8 @@ namespace erl::geometry {
         }
 
         // read binary data
-        if (size > 0) { ReadBinaryData(s); }
-        ERL_DEBUG("Done ({} nodes).", GetSize());
-        return GetSize() == size;
+        if (size > 0) { this->ReadBinaryData(s); }
+        ERL_DEBUG("Done ({} nodes).", this->GetSize());
+        return this->GetSize() == size;
     }
 }  // namespace erl::geometry
