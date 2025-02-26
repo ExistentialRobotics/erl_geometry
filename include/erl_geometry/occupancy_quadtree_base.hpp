@@ -31,6 +31,8 @@ namespace erl::geometry {
         }
     };
 
+    ERL_REGISTER_YAMLABLE(OccupancyQuadtreeBaseSetting);
+
     template<class Node, class Setting, typename Dtype>
     class OccupancyQuadtreeBase : public QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting> {
         static_assert(std::is_base_of_v<OccupancyQuadtreeNode, Node>);
