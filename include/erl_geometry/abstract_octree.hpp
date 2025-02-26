@@ -392,6 +392,7 @@ namespace erl::geometry {
     protected:
         static bool
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
+        inline static const std::string kFileHeader = "# erl::geometry::AbstractOctree";
     };
 
 #define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()

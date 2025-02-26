@@ -25,8 +25,6 @@ namespace erl::geometry {
         return true;
     }
 
-    static const std::string kFileHeader = "# erl::geometry::AbstractOctree";
-
     template<typename Dtype>
     std::ostream &
     AbstractOctree<Dtype>::Write(std::ostream &s) const {
