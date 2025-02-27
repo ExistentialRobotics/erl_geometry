@@ -50,10 +50,10 @@ namespace erl::geometry {
     ERL_REGISTER_OCTREE(OccupancyOctree_f);
 }  // namespace erl::geometry
 
-template<>
-struct YAML::convert<erl::geometry::OccupancyOctree_d::Drawer::Setting>
-    : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_d::Drawer::Setting> {};
+// template<>
+// struct YAML::convert<erl::geometry::OccupancyOctree_d::Drawer::Setting>
+//     : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_d::Drawer::Setting> {};
 
-template<>
-struct YAML::convert<erl::geometry::OccupancyOctree_f::Drawer::Setting>
-    : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_f::Drawer::Setting> {};
+// template<>
+// struct YAML::convert<erl::geometry::OccupancyOctree_f::Drawer::Setting>
+//     : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_f::Drawer::Setting> {};
