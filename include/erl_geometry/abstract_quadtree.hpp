@@ -4,6 +4,7 @@
 #include "abstract_quadtree_node.hpp"
 #include "nd_tree_setting.hpp"
 
+#include "erl_common/factory_pattern.hpp"
 #include "erl_common/string_utils.hpp"
 
 #include <functional>
@@ -16,6 +17,7 @@ namespace erl::geometry {
     /**
      * AbstractQuadtree is a base class for all quadtree implementations. It provides a common interface for factory pattern and file I/O.
      */
+    template <typename Dtype>
     class AbstractQuadtree {
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
 
@@ -23,6 +25,8 @@ namespace erl::geometry {
         inline static std::map<std::string, std::function<std::shared_ptr<AbstractQuadtree>(const std::shared_ptr<NdTreeSetting>&)>> s_class_id_mapping_ = {};
 
     public:
+        using Factory = common::FactoryPattern<AbstractQuadtree, false, false, std::shared_ptr<NdTreeSetting>>;
+
         AbstractQuadtree() = delete;  // no default constructor
 
         explicit AbstractQuadtree(std::shared_ptr<NdTreeSetting> setting)
@@ -67,25 +71,20 @@ namespace erl::geometry {
          * @param setting
          * @return
          */
-        static std::shared_ptr<AbstractQuadtree>
-        CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting);
+         static std::shared_ptr<AbstractQuadtree>
+         CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting) {
+             return Factory::GetInstance().Create(tree_id, setting);
+         }
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractQuadtree, Derived>, bool>
         Register(std::string tree_type = "") {
-            if (tree_type.empty()) { tree_type = demangle(typeid(Derived).name()); }
-            if (s_class_id_mapping_.find(tree_type) != s_class_id_mapping_.end()) {
-                ERL_WARN("{} is already registered.", tree_type);
-                return false;
-            }
-
-            s_class_id_mapping_[tree_type] = [](const std::shared_ptr<NdTreeSetting>& setting) {
+            return Factory::GetInstance().template Register<Derived>(tree_type, [](const std::shared_ptr<NdTreeSetting>& setting) {
                 auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
-                if (tree_setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }
+                if (setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }
+                ERL_ASSERTM(tree_setting != nullptr, "setting is nullptr.");
                 return std::make_shared<Derived>(tree_setting);
-            };
-            ERL_DEBUG("{} is registered.", tree_type);
-            return true;
+            });
         }
 
         //-- setting
@@ -138,7 +137,7 @@ namespace erl::geometry {
             return m_setting_->tree_depth;
         }
 
-        [[nodiscard]] double
+        [[nodiscard]] Dtype
         GetResolution() const {
             return m_setting_->resolution;
         }
@@ -175,9 +174,9 @@ namespace erl::geometry {
         }
 
         virtual void
-        GetMetricMin(double& x, double& y) = 0;
+        GetMetricMin(Dtype& x, Dtype& y) = 0;
         virtual void
-        GetMetricMin(double& x, double& y) const = 0;
+        GetMetricMin(Dtype& x, Dtype& y) const = 0;
 
         Eigen::Vector2d
         GetMetricMax() {
@@ -204,9 +203,9 @@ namespace erl::geometry {
         }
 
         virtual void
-        GetMetricMax(double& x, double& y) = 0;
+        GetMetricMax(Dtype& x, Dtype& y) = 0;
         virtual void
-        GetMetricMax(double& x, double& y) const = 0;
+        GetMetricMax(Dtype& x, Dtype& y) const = 0;
 
         Aabb2D
         GetMetricAabb() {
@@ -247,9 +246,9 @@ namespace erl::geometry {
         }
 
         virtual void
-        GetMetricMinMax(double& min_x, double& min_y, double& max_x, double& max_y) = 0;
+        GetMetricMinMax(Dtype& min_x, Dtype& min_y, Dtype& max_x, Dtype& max_y) = 0;
         virtual void
-        GetMetricMinMax(double& min_x, double& min_y, double& max_x, double& max_y) const = 0;
+        GetMetricMinMax(Dtype& min_x, Dtype& min_y, Dtype& max_x, Dtype& max_y) const = 0;
 
         Eigen::Vector2d
         GetMetricSize() {
@@ -276,9 +275,9 @@ namespace erl::geometry {
         }
 
         virtual void
-        GetMetricSize(double& x, double& y) = 0;
+        GetMetricSize(Dtype& x, Dtype& y) = 0;
         virtual void
-        GetMetricSize(double& x, double& y) const = 0;
+        GetMetricSize(Dtype& x, Dtype& y) const = 0;
 
         //-- IO
         virtual void
@@ -339,17 +338,17 @@ namespace erl::geometry {
 
         //-- search node
         [[nodiscard]] virtual const AbstractQuadtreeNode*
-        SearchNode(double x, double y, uint32_t max_depth) const = 0;
+        SearchNode(Dtype x, Dtype y, uint32_t max_depth) const = 0;
 
         //-- iterators
         struct QuadtreeNodeIterator {
             virtual ~QuadtreeNodeIterator() = default;
 
-            [[nodiscard]] virtual double
+            [[nodiscard]] virtual Dtype
             GetX() const = 0;
-            [[nodiscard]] virtual double
+            [[nodiscard]] virtual Dtype
             GetY() const = 0;
-            [[nodiscard]] virtual double
+            [[nodiscard]] virtual Dtype
             GetNodeSize() const = 0;
             [[nodiscard]] virtual uint32_t
             GetDepth() const = 0;
@@ -394,7 +393,11 @@ namespace erl::geometry {
     protected:
         static bool
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
+        // TODO: should we specify Dtype in header?
+        inline static const std::string kFileHeader = "# erl::geometry::AbstractQuadtree";
     };
 
-#define ERL_REGISTER_QUADTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtree::Register<Derived>()
+#define ERL_REGISTER_QUADTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtree<Derived::DataType>::Register<Derived>()
 }  // namespace erl::geometry
+
+#include "abstract_quadtree.tpp"

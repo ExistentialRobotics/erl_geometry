@@ -21,24 +21,29 @@ namespace erl::geometry {
      */
     template<class Node, class Interface, class InterfaceSetting>
     class QuadtreeImpl : public Interface {
+    public:
+        using Dtype = typename Interface::DataType;
+        using IteratorType = typename AbstractQuadtree<Dtype>::QuadtreeNodeIterator;
         static_assert(std::is_base_of_v<AbstractQuadtreeNode, Node>, "Node must be derived from AbstractQuadtreeNode");
-        static_assert(std::is_base_of_v<AbstractQuadtree, Interface>, "Interface must be derived from AbstractQuadtree");
+        static_assert(std::is_base_of_v<AbstractQuadtree<Dtype>, Interface>, "Interface must be derived from AbstractQuadtree");
+
+    private:
 
         std::shared_ptr<InterfaceSetting> m_setting_ = nullptr;
 
     protected:
         std::shared_ptr<Node> m_root_ = nullptr;  // root node of the quadtree, nullptr if the quadtree is empty
-        double m_resolution_inv_ = 0.0;           // inverse of the resolution
+        Dtype m_resolution_inv_ = 0.0;           // inverse of the resolution
         uint32_t m_tree_key_offset_ = 0;          // offset of the key, = 1 << (tree_depth - 1)
         std::size_t m_tree_size_ = 0;             // number of nodes in the tree
         bool m_size_changed_ = false;             // flag indicating if the metric size of the tree has changed
-        double m_metric_max_[2] = {               // max metric coordinate of x and y
-                                   std::numeric_limits<double>::lowest(),
-                                   std::numeric_limits<double>::lowest()};
-        double m_metric_min_[2] = {// min metric coordinate of x and y
-                                   std::numeric_limits<double>::max(),
-                                   std::numeric_limits<double>::max()};
-        std::vector<double> m_size_lookup_table_;  // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
+        Dtype m_metric_max_[2] = {               // max metric coordinate of x and y
+                                   std::numeric_limits<Dtype>::lowest(),
+                                   std::numeric_limits<Dtype>::lowest()};
+        Dtype m_metric_min_[2] = {// min metric coordinate of x and y
+                                   std::numeric_limits<Dtype>::max(),
+                                   std::numeric_limits<Dtype>::max()};
+        std::vector<Dtype> m_size_lookup_table_;  // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
         std::vector<QuadtreeKeyRay> m_key_rays_;   // data structure for parallel ray casting
 
     public:
@@ -63,9 +68,9 @@ namespace erl::geometry {
         QuadtreeImpl &
         operator=(QuadtreeImpl &&other) noexcept = default;
 
-        [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree>
+        [[nodiscard]] virtual std::shared_ptr<AbstractQuadtree<Dtype>>
         Clone() const {
-            std::shared_ptr<AbstractQuadtree> tree = this->Create(nullptr);  // create a new tree
+            std::shared_ptr<AbstractQuadtree<Dtype>> tree = this->Create(nullptr);  // create a new tree
             std::shared_ptr<QuadtreeImpl> tree_impl = std::dynamic_pointer_cast<QuadtreeImpl>(tree);
             *tree_impl->m_setting_ = *m_setting_;  // copy the setting
             tree_impl->m_resolution_inv_ = m_resolution_inv_;
@@ -88,7 +93,7 @@ namespace erl::geometry {
 
         //-- comparison operators
         [[nodiscard]] bool
-        operator==(const AbstractQuadtree &other) const override {
+        operator==(const AbstractQuadtree<Dtype> &other) const override {
             if (typeid(*this) != typeid(other)) { return false; }  // compare type
             const auto &other_impl = dynamic_cast<const QuadtreeImpl &>(other);
             if (*m_setting_ != *other_impl.m_setting_) { return false; }
@@ -107,7 +112,7 @@ namespace erl::geometry {
 
         [[nodiscard]] Eigen::Vector3d
         GetTreeCenter() const {
-            double x = this->KeyToCoord(m_tree_key_offset_);
+            Dtype x = this->KeyToCoord(m_tree_key_offset_);
             return {x, x, x};
         }
 
@@ -119,7 +124,7 @@ namespace erl::geometry {
 
         [[nodiscard]] Eigen::Vector3d
         GetTreeMaxHalfSize() const {
-            double size = -this->KeyToCoord(0);
+            Dtype size = -this->KeyToCoord(0);
             return {size, size, size};
         }
 
@@ -131,14 +136,14 @@ namespace erl::geometry {
     protected:
         void
         ApplySettingToQuadtreeImpl() {
-            const double resolution = m_setting_->resolution;
+            const Dtype resolution = m_setting_->resolution;
             const uint32_t tree_depth = m_setting_->tree_depth;
             m_resolution_inv_ = 1.0 / resolution;
             m_tree_key_offset_ = 1 << (tree_depth - 1);
 
             // init node size lookup table
             m_size_lookup_table_.resize(tree_depth + 1);
-            for (uint32_t i = 0; i <= tree_depth; ++i) { m_size_lookup_table_[i] = resolution * static_cast<double>(1 << (tree_depth - i)); }
+            for (uint32_t i = 0; i <= tree_depth; ++i) { m_size_lookup_table_[i] = resolution * static_cast<Dtype>(1 << (tree_depth - i)); }
             m_size_changed_ = true;
 
             // do it on the main thread only
@@ -156,14 +161,14 @@ namespace erl::geometry {
         using Interface::GetMetricMin;
 
         void
-        GetMetricMin(double &min_x, double &min_y) override {
+        GetMetricMin(Dtype &min_x, Dtype &min_y) override {
             ComputeMinMax();
             min_x = m_metric_min_[0];
             min_y = m_metric_min_[1];
         }
 
         void
-        GetMetricMin(double &min_x, double &min_y) const override {
+        GetMetricMin(Dtype &min_x, Dtype &min_y) const override {
             if (!m_size_changed_) {
                 min_x = m_metric_min_[0];
                 min_y = m_metric_min_[1];
@@ -175,11 +180,11 @@ namespace erl::geometry {
                 return;
             }
 
-            min_x = min_y = std::numeric_limits<double>::infinity();
+            min_x = min_y = std::numeric_limits<Dtype>::infinity();
             for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
-                const double half_size = it.GetNodeSize() / 2.;
-                const double node_min_x = it.GetX() - half_size;
-                const double node_min_y = it.GetY() - half_size;
+                const Dtype half_size = it.GetNodeSize() / 2.;
+                const Dtype node_min_x = it.GetX() - half_size;
+                const Dtype node_min_y = it.GetY() - half_size;
                 if (node_min_x < min_x) { min_x = node_min_x; }
                 if (node_min_y < min_y) { min_y = node_min_y; }
             }
@@ -188,14 +193,14 @@ namespace erl::geometry {
         using Interface::GetMetricMax;
 
         void
-        GetMetricMax(double &max_x, double &max_y) override {
+        GetMetricMax(Dtype &max_x, Dtype &max_y) override {
             this->ComputeMinMax();
             max_x = m_metric_max_[0];
             max_y = m_metric_max_[1];
         }
 
         void
-        GetMetricMax(double &max_x, double &max_y) const override {
+        GetMetricMax(Dtype &max_x, Dtype &max_y) const override {
             if (!m_size_changed_) {
                 max_x = m_metric_max_[0];
                 max_y = m_metric_max_[1];
@@ -207,11 +212,11 @@ namespace erl::geometry {
                 return;
             }
 
-            max_x = max_y = -std::numeric_limits<double>::infinity();
+            max_x = max_y = -std::numeric_limits<Dtype>::infinity();
             for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
-                const double half_size = it.GetNodeSize() / 2.;
-                const double node_max_x = it.GetX() + half_size;
-                const double node_max_y = it.GetY() + half_size;
+                const Dtype half_size = it.GetNodeSize() / 2.;
+                const Dtype node_max_x = it.GetX() + half_size;
+                const Dtype node_max_y = it.GetY() + half_size;
                 if (node_max_x > max_x) { max_x = node_max_x; }
                 if (node_max_y > max_y) { max_y = node_max_y; }
             }
@@ -220,7 +225,7 @@ namespace erl::geometry {
         using Interface::GetMetricMinMax;
 
         void
-        GetMetricMinMax(double &min_x, double &min_y, double &max_x, double &max_y) override {
+        GetMetricMinMax(Dtype &min_x, Dtype &min_y, Dtype &max_x, Dtype &max_y) override {
             this->ComputeMinMax();
             min_x = m_metric_min_[0];
             min_y = m_metric_min_[1];
@@ -229,7 +234,7 @@ namespace erl::geometry {
         }
 
         void
-        GetMetricMinMax(double &min_x, double &min_y, double &max_x, double &max_y) const override {
+        GetMetricMinMax(Dtype &min_x, Dtype &min_y, Dtype &max_x, Dtype &max_y) const override {
             if (!m_size_changed_) {
                 min_x = m_metric_min_[0];
                 min_y = m_metric_min_[1];
@@ -243,15 +248,15 @@ namespace erl::geometry {
                 return;
             }
 
-            min_x = min_y = std::numeric_limits<double>::infinity();
-            max_x = max_y = -std::numeric_limits<double>::infinity();
+            min_x = min_y = std::numeric_limits<Dtype>::infinity();
+            max_x = max_y = -std::numeric_limits<Dtype>::infinity();
             for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
-                const double size = it.GetNodeSize();
-                const double half_size = size / 2.;
-                const double node_max_x = it.GetX() + half_size;
-                const double node_max_y = it.GetY() + half_size;
-                const double node_min_x = node_max_x - size;
-                const double node_min_y = node_max_y - size;
+                const Dtype size = it.GetNodeSize();
+                const Dtype half_size = size / 2.;
+                const Dtype node_max_x = it.GetX() + half_size;
+                const Dtype node_max_y = it.GetY() + half_size;
+                const Dtype node_min_x = node_max_x - size;
+                const Dtype node_min_y = node_max_y - size;
                 if (node_max_x > max_x) { max_x = node_max_x; }
                 if (node_max_y > max_y) { max_y = node_max_y; }
                 if (node_min_x < min_x) { min_x = node_min_x; }
@@ -262,15 +267,15 @@ namespace erl::geometry {
         using Interface::GetMetricSize;
 
         void
-        GetMetricSize(double &x, double &y) override {
-            double min_x, min_y, max_x, max_y;
+        GetMetricSize(Dtype &x, Dtype &y) override {
+            Dtype min_x, min_y, max_x, max_y;
             GetMetricMinMax(min_x, min_y, max_x, max_y);
             x = max_x - min_x;
             y = max_y - min_y;
         }
 
         void
-        GetMetricSize(double &x, double &y) const override {
+        GetMetricSize(Dtype &x, Dtype &y) const override {
             if (!m_size_changed_) {
                 x = m_metric_max_[0] - m_metric_min_[0];
                 y = m_metric_max_[1] - m_metric_min_[1];
@@ -282,15 +287,15 @@ namespace erl::geometry {
                 return;
             }
 
-            double min_x = std::numeric_limits<double>::infinity(), min_y = min_x;
-            double max_x = -std::numeric_limits<double>::infinity(), max_y = max_x;
+            Dtype min_x = std::numeric_limits<Dtype>::infinity(), min_y = min_x;
+            Dtype max_x = -std::numeric_limits<Dtype>::infinity(), max_y = max_x;
             for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
-                const double size = it.GetNodeSize();
-                const double half_size = size / 2.;
-                const double node_max_x = it.GetX() + half_size;
-                const double node_max_y = it.GetY() + half_size;
-                const double node_min_x = node_max_x - size;
-                const double node_min_y = node_max_y - size;
+                const Dtype size = it.GetNodeSize();
+                const Dtype half_size = size / 2.;
+                const Dtype node_max_x = it.GetX() + half_size;
+                const Dtype node_max_y = it.GetY() + half_size;
+                const Dtype node_min_x = node_max_x - size;
+                const Dtype node_min_y = node_max_y - size;
                 if (node_max_x > max_x) { max_x = node_max_x; }
                 if (node_max_y > max_y) { max_y = node_max_y; }
                 if (node_min_x < min_x) { min_x = node_min_x; }
@@ -300,7 +305,7 @@ namespace erl::geometry {
             y = max_y - min_y;
         }
 
-        [[nodiscard]] double
+        [[nodiscard]] Dtype
         GetNodeSize(const uint32_t depth) const {
             ERL_DEBUG_ASSERT(depth <= m_setting_->tree_depth, "Depth must be in [0, %u], but got %u.\n", m_setting_->tree_depth, depth);
             return m_size_lookup_table_[depth];
@@ -310,7 +315,7 @@ namespace erl::geometry {
         GetNodeAabb(const QuadtreeKey &key, const uint32_t depth) const {
             Eigen::Vector2d center;
             KeyToCoord(key, depth, center.x(), center.y());
-            const double half_size = GetNodeSize(depth) * 0.5;
+            const Dtype half_size = GetNodeSize(depth) * 0.5;
             return {center, half_size};
         }
 
@@ -379,7 +384,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey::KeyType
-        CoordToKey(const double coordinate) const {
+        CoordToKey(const Dtype coordinate) const {
             return static_cast<uint32_t>(std::floor(coordinate * m_resolution_inv_)) + m_tree_key_offset_;
         }
 
@@ -390,7 +395,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey::KeyType
-        CoordToKey(const double coordinate, uint32_t depth) const {
+        CoordToKey(const Dtype coordinate, uint32_t depth) const {
             const uint32_t tree_depth = m_setting_->tree_depth;
             ERL_DEBUG_ASSERT(depth <= tree_depth, "Depth must be in [0, %u], but got %u.\n", tree_depth, depth);
             const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
@@ -416,7 +421,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey
-        CoordToKey(const double x, const double y) const {
+        CoordToKey(const Dtype x, const Dtype y) const {
             return {CoordToKey(x), CoordToKey(y)};
         }
 
@@ -428,7 +433,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] QuadtreeKey
-        CoordToKey(const double x, const double y, uint32_t depth) const {
+        CoordToKey(const Dtype x, const Dtype y, uint32_t depth) const {
             if (depth == m_setting_->tree_depth) { return CoordToKey(x, y); }
             return {CoordToKey(x, depth), CoordToKey(y, depth)};
         }
@@ -440,7 +445,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(const double coordinate, QuadtreeKey::KeyType &key) const {
+        CoordToKeyChecked(const Dtype coordinate, QuadtreeKey::KeyType &key) const {
             if (const int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
                 scaled_coord >= 0 && static_cast<uint32_t>(scaled_coord) < (m_tree_key_offset_ << 1)) {
                 key = scaled_coord;
@@ -457,7 +462,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(const double coordinate, const uint32_t depth, QuadtreeKey::KeyType &key) const {
+        CoordToKeyChecked(const Dtype coordinate, const uint32_t depth, QuadtreeKey::KeyType &key) const {
             if (const int scaled_coord = std::floor(coordinate * m_resolution_inv_) + m_tree_key_offset_;
                 scaled_coord >= 0 && static_cast<uint32_t>(scaled_coord) < (m_tree_key_offset_ << 1)) {
                 key = AdjustKeyToDepth(static_cast<QuadtreeKey::KeyType>(scaled_coord), depth);
@@ -484,7 +489,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(const double x, const double y, QuadtreeKey &key) const {
+        CoordToKeyChecked(const Dtype x, const Dtype y, QuadtreeKey &key) const {
             if (!CoordToKeyChecked(x, key[0])) { return false; }
             if (!CoordToKeyChecked(y, key[1])) { return false; }
             return true;
@@ -499,7 +504,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        CoordToKeyChecked(const double x, const double y, uint32_t depth, QuadtreeKey &key) const {
+        CoordToKeyChecked(const Dtype x, const Dtype y, uint32_t depth, QuadtreeKey &key) const {
             ERL_DEBUG_ASSERT(depth != 0, "When depth = 0, key is 0x0, which is useless!");
             if (depth == m_setting_->tree_depth) { return CoordToKeyChecked(x, y, key); }
             if (!CoordToKeyChecked(x, depth, key[0])) { return false; }
@@ -601,9 +606,9 @@ namespace erl::geometry {
          * @param key
          * @return
          */
-        [[nodiscard]] double
+        [[nodiscard]] Dtype
         KeyToCoord(const QuadtreeKey::KeyType key) const {
-            return (static_cast<double>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) + 0.5) * m_setting_->resolution;
+            return (static_cast<Dtype>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) + 0.5) * m_setting_->resolution;
         }
 
         /**
@@ -612,14 +617,14 @@ namespace erl::geometry {
          * @param depth
          * @return
          */
-        [[nodiscard]] double
+        [[nodiscard]] Dtype
         KeyToCoord(const QuadtreeKey::KeyType key, const uint32_t depth) const {
             const uint32_t tree_depth = m_setting_->tree_depth;
             if (depth == 0) { return 0.0; }
             if (depth == tree_depth) { return KeyToCoord(key); }
             uint32_t &&diff = tree_depth - depth;
-            double &&r = this->GetNodeSize(depth);
-            return (std::floor((static_cast<double>(key) - static_cast<double>(m_tree_key_offset_)) / static_cast<double>(1 << diff)) + 0.5) * r;
+            Dtype &&r = this->GetNodeSize(depth);
+            return (std::floor((static_cast<Dtype>(key) - static_cast<Dtype>(m_tree_key_offset_)) / static_cast<Dtype>(1 << diff)) + 0.5) * r;
         }
 
         /**
@@ -629,7 +634,7 @@ namespace erl::geometry {
          * @param y
          */
         void
-        KeyToCoord(const QuadtreeKey &key, double &x, double &y) const {
+        KeyToCoord(const QuadtreeKey &key, Dtype &x, Dtype &y) const {
             x = KeyToCoord(key[0]);
             y = KeyToCoord(key[1]);
         }
@@ -642,7 +647,7 @@ namespace erl::geometry {
          * @param y
          */
         void
-        KeyToCoord(const QuadtreeKey &key, uint32_t depth, double &x, double &y) const {
+        KeyToCoord(const QuadtreeKey &key, uint32_t depth, Dtype &x, Dtype &y) const {
             if (depth == 0) {
                 x = y = 0.0;
                 return;
@@ -668,7 +673,7 @@ namespace erl::geometry {
         }
 
         //-- iterator implementation
-        class IteratorBase : public AbstractQuadtree::QuadtreeNodeIterator {
+        class IteratorBase : public AbstractQuadtree<Dtype>::QuadtreeNodeIterator {
         public:
             struct StackElement {
                 const Node *node = nullptr;
@@ -707,7 +712,7 @@ namespace erl::geometry {
                 if (m_tree_ == nullptr) { return; }
                 if (m_max_node_depth_ == 0) { m_max_node_depth_ = m_tree_->GetTreeDepth(); }
                 if (m_tree_->m_root_ != nullptr) {  // tree is not empty
-                    m_stack_.emplace_back(m_tree_->m_root_.get(), m_tree_->CoordToKey(0.0, 0.0));
+                    m_stack_.emplace_back(m_tree_->m_root_.get(), m_tree_->CoordToKey((Dtype) 0.0,  (Dtype) 0.0));
                 } else {
                     m_tree_ = nullptr;
                     m_max_node_depth_ = 0;
@@ -753,19 +758,19 @@ namespace erl::geometry {
                 return m_stack_.back().node;
             }
 
-            [[nodiscard]] double
+            [[nodiscard]] Dtype
             GetX() const override {
                 const StackElement &top = m_stack_.back();
                 return m_tree_->KeyToCoord(top.key[0], top.node->GetDepth());
             }
 
-            [[nodiscard]] double
+            [[nodiscard]] Dtype
             GetY() const override {
                 const StackElement &top = m_stack_.back();
                 return m_tree_->KeyToCoord(top.key[1], top.node->GetDepth());
             }
 
-            [[nodiscard]] double
+            [[nodiscard]] Dtype
             GetNodeSize() const override {
                 return m_tree_->GetNodeSize(m_stack_.back().node->GetDepth());
             }
@@ -854,13 +859,13 @@ namespace erl::geometry {
              * @return true if such an AABB exists, false otherwise.
              */
             bool
-            GetInTreeAabb(double &aabb_min_x, double &aabb_min_y, double &aabb_max_x, double &aabb_max_y) const {
+            GetInTreeAabb(Dtype &aabb_min_x, Dtype &aabb_min_y, Dtype &aabb_max_x, Dtype &aabb_max_y) const {
                 if (m_tree_ == nullptr) { return false; }
 
-                const double center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_);
-                const double half_size = m_tree_->GetNodeSize(0) / 2.0;
-                const double aabb_min = center - half_size;
-                const double aabb_max = center + half_size;
+                const Dtype center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_);
+                const Dtype half_size = m_tree_->GetNodeSize(0) / 2.0;
+                const Dtype aabb_min = center - half_size;
+                const Dtype aabb_max = center + half_size;
 
                 aabb_min_x = std::max(aabb_min, aabb_min_x);
                 aabb_max_x = std::min(aabb_max, aabb_max_x);
@@ -909,10 +914,10 @@ namespace erl::geometry {
             InAabbIteratorBase() = default;
 
             InAabbIteratorBase(
-                double aabb_min_x,
-                double aabb_min_y,
-                double aabb_max_x,
-                double aabb_max_y,
+                Dtype aabb_min_x,
+                Dtype aabb_min_y,
+                Dtype aabb_max_x,
+                Dtype aabb_max_y,
                 const QuadtreeImpl *tree,
                 uint32_t max_node_depth = 0)
                 : IteratorBase(tree, max_node_depth) {
@@ -982,10 +987,10 @@ namespace erl::geometry {
             TreeInAabbIterator() = default;
 
             TreeInAabbIterator(
-                double aabb_min_x,
-                double aabb_min_y,
-                double aabb_max_x,
-                double aabb_max_y,
+                Dtype aabb_min_x,
+                Dtype aabb_min_y,
+                Dtype aabb_max_x,
+                Dtype aabb_max_y,
                 const QuadtreeImpl *tree,
                 uint32_t max_node_depth = 0)
                 : InAabbIteratorBase(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, tree, max_node_depth) {}
@@ -1023,10 +1028,10 @@ namespace erl::geometry {
             LeafInAabbIterator() = default;
 
             LeafInAabbIterator(
-                double aabb_min_x,
-                double aabb_min_y,
-                double aabb_max_x,
-                double aabb_max_y,
+                Dtype aabb_min_x,
+                Dtype aabb_min_y,
+                Dtype aabb_max_x,
+                Dtype aabb_max_y,
                 const QuadtreeImpl *tree,
                 uint32_t max_leaf_depth = 0)
                 : InAabbIteratorBase(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, tree, max_leaf_depth) {
@@ -1240,7 +1245,7 @@ namespace erl::geometry {
         public:
             WestLeafNeighborIterator() = default;
 
-            WestLeafNeighborIterator(double x, double y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
+            WestLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
                 : LeafNeighborIteratorBase(tree, max_leaf_depth) {
 
                 QuadtreeKey key;
@@ -1293,7 +1298,7 @@ namespace erl::geometry {
         public:
             EastLeafNeighborIterator() = default;
 
-            EastLeafNeighborIterator(double x, double y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
+            EastLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
                 : LeafNeighborIteratorBase(tree, max_leaf_depth) {
 
                 QuadtreeKey key;
@@ -1345,7 +1350,7 @@ namespace erl::geometry {
         public:
             NorthLeafNeighborIterator() = default;
 
-            NorthLeafNeighborIterator(double x, double y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
+            NorthLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
                 : LeafNeighborIteratorBase(tree, max_leaf_depth) {
 
                 QuadtreeKey key;
@@ -1398,7 +1403,7 @@ namespace erl::geometry {
         public:
             SouthLeafNeighborIterator() = default;
 
-            SouthLeafNeighborIterator(double x, double y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
+            SouthLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth)
                 : LeafNeighborIteratorBase(tree, max_leaf_depth) {
                 QuadtreeKey key;
                 if (!this->m_tree_->CoordToKeyChecked(x, y, key)) {
@@ -1446,8 +1451,8 @@ namespace erl::geometry {
             Eigen::Vector2d m_origin_ = {};
             Eigen::Vector2d m_dir_ = {};
             Eigen::Vector2d m_dir_inv_ = {};
-            double m_max_range_ = 0.;
-            double m_node_padding_ = 0.;
+            Dtype m_max_range_ = 0.;
+            Dtype m_node_padding_ = 0.;
             bool m_bidirectional_ = false;
             bool m_leaf_only_ = false;
             uint32_t m_min_node_depth_ = 0;
@@ -1470,12 +1475,12 @@ namespace erl::geometry {
              * @param max_node_depth 0 means using the tree's max depth
              */
             NodeOnRayIterator(
-                const double px,
-                const double py,
-                const double vx,
-                const double vy,
-                const double max_range,
-                const double node_padding,
+                const Dtype px,
+                const Dtype py,
+                const Dtype vx,
+                const Dtype vy,
+                const Dtype max_range,
+                const Dtype node_padding,
                 const bool bidirectional,
                 const QuadtreeImpl *tree,
                 const bool leaf_only = false,
@@ -1491,15 +1496,15 @@ namespace erl::geometry {
                   m_min_node_depth_(min_node_depth) {
                 m_dir_inv_ = m_dir_.cwiseInverse();
                 if (this->m_stack_.empty()) { return; }
-                this->m_stack_.back().data = std::make_shared<double>(0.);
+                this->m_stack_.back().data = std::make_shared<Dtype>(0.);
                 this->SingleIncrement2();
                 if (this->m_stack_.empty()) { this->Terminate(); }
             }
 
-            [[nodiscard]] double
+            [[nodiscard]] Dtype
             GetDistance() const {
                 if (this->m_stack_.empty()) { return 0.; }
-                return *reinterpret_cast<double *>(this->m_stack_.back().data.get());
+                return *reinterpret_cast<Dtype *>(this->m_stack_.back().data.get());
             }
 
             // post-increment
@@ -1528,8 +1533,8 @@ namespace erl::geometry {
 
                 bool
                 operator()(const typename IteratorBase::StackElement &lhs, const typename IteratorBase::StackElement &rhs) const {
-                    const double lhs_dist = lhs.template GetData<double>();
-                    const double rhs_dist = rhs.template GetData<double>();
+                    const Dtype lhs_dist = lhs.template GetData<Dtype>();
+                    const Dtype rhs_dist = rhs.template GetData<Dtype>();
                     if (lhs_dist >= 0) {
                         if (rhs_dist >= 0) { return lhs_dist > rhs_dist; }  // both are positive
                         return false;
@@ -1578,12 +1583,12 @@ namespace erl::geometry {
                             typename IteratorBase::StackElement s_child;
                             QuadtreeKey::ComputeChildKey(i, center_offset_key, s.key, s_child.key);
 
-                            const double center_x = this->m_tree_->KeyToCoord(s_child.key[0], child_depth);
-                            const double center_y = this->m_tree_->KeyToCoord(s_child.key[1], child_depth);
-                            const double half_size = this->m_tree_->GetNodeSize(child_depth) / 2.0 + m_node_padding_;
+                            const Dtype center_x = this->m_tree_->KeyToCoord(s_child.key[0], child_depth);
+                            const Dtype center_y = this->m_tree_->KeyToCoord(s_child.key[1], child_depth);
+                            const Dtype half_size = this->m_tree_->GetNodeSize(child_depth) / 2.0 + m_node_padding_;
                             Eigen::Vector2d box_min(center_x - half_size, center_y - half_size);
                             Eigen::Vector2d box_max(center_x + half_size, center_y + half_size);
-                            double dist1 = 0.0, dist2 = 0.0;
+                            Dtype dist1 = 0.0, dist2 = 0.0;
                             bool intersected = false, is_inside = false;
                             ComputeIntersectionBetweenRayAndAabb2D(m_origin_, m_dir_inv_, box_min, box_max, dist1, dist2, intersected, is_inside);
                             if (!intersected) { continue; }
@@ -1592,7 +1597,7 @@ namespace erl::geometry {
                                 if (m_max_range_ > 0. && std::abs(dist1) > m_max_range_) { continue; }
                             }
                             s_child.node = child;
-                            s_child.data = std::make_shared<double>(dist1);
+                            s_child.data = std::make_shared<Dtype>(dist1);
                             this->m_stack_.push_back(s_child);
                             std::push_heap(this->m_stack_.begin(), this->m_stack_.end(), cmp);
                         }
@@ -1647,7 +1652,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] LeafInAabbIterator
-        BeginLeafInAabb(double aabb_min_x, double aabb_min_y, double aabb_max_x, double aabb_max_y, uint32_t max_depth = 0) const {
+        BeginLeafInAabb(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y, uint32_t max_depth = 0) const {
             return LeafInAabbIterator(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, this, max_depth);
         }
 
@@ -1661,7 +1666,7 @@ namespace erl::geometry {
             return LeafInAabbIterator();
         }
 
-        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        [[nodiscard]] std::shared_ptr<IteratorType>
         GetLeafInAabbIterator(const Aabb2D &aabb, uint32_t max_depth) const override {
             return std::make_shared<LeafInAabbIterator>(aabb.min().x(), aabb.min().y(), aabb.max().x(), aabb.max().y(), this, max_depth);
         }
@@ -1676,7 +1681,7 @@ namespace erl::geometry {
             return TreeIterator();
         }
 
-        [[nodiscard]] std::shared_ptr<AbstractQuadtree::QuadtreeNodeIterator>
+        [[nodiscard]] std::shared_ptr<IteratorType>
         GetTreeIterator(uint32_t max_depth) const override {
             return std::make_shared<TreeIterator>(this, max_depth);
         }
@@ -1687,7 +1692,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] TreeInAabbIterator
-        BeginTreeInAabb(double aabb_min_x, double aabb_min_y, double aabb_max_x, double aabb_max_y, uint32_t max_depth = 0) const {
+        BeginTreeInAabb(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y, uint32_t max_depth = 0) const {
             return TreeInAabbIterator(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y, this, max_depth);
         }
 
@@ -1702,7 +1707,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] WestLeafNeighborIterator
-        BeginWestLeafNeighbor(double x, double y, uint32_t max_leaf_depth = 0) const {
+        BeginWestLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const {
             return WestLeafNeighborIterator(x, y, this, max_leaf_depth);
         }
 
@@ -1717,7 +1722,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] EastLeafNeighborIterator
-        BeginEastLeafNeighbor(double x, double y, uint32_t max_leaf_depth = 0) const {
+        BeginEastLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const {
             return EastLeafNeighborIterator(x, y, this, max_leaf_depth);
         }
 
@@ -1732,7 +1737,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] NorthLeafNeighborIterator
-        BeginNorthLeafNeighbor(double x, double y, uint32_t max_leaf_depth = 0) const {
+        BeginNorthLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const {
             return NorthLeafNeighborIterator(x, y, this, max_leaf_depth);
         }
 
@@ -1747,7 +1752,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] SouthLeafNeighborIterator
-        BeginSouthLeafNeighbor(double x, double y, uint32_t max_leaf_depth = 0) const {
+        BeginSouthLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const {
             return SouthLeafNeighborIterator(x, y, this, max_leaf_depth);
         }
 
@@ -1763,12 +1768,12 @@ namespace erl::geometry {
 
         [[nodiscard]] NodeOnRayIterator
         BeginNodeOnRay(
-            double px,
-            double py,
-            double vx,
-            double vy,
-            double max_range = -1,
-            double node_padding = 0.0,
+            Dtype px,
+            Dtype py,
+            Dtype vx,
+            Dtype vy,
+            Dtype max_range = -1,
+            Dtype node_padding = 0.0,
             bool bidirectional = false,
             bool leaf_only = false,
             uint32_t min_node_depth = 0,
@@ -1780,8 +1785,8 @@ namespace erl::geometry {
         BeginNodeOnRay(
             const Eigen::Ref<const Eigen::Vector2d> &origin,
             const Eigen::Ref<const Eigen::Vector2d> &direction,
-            double max_range = -1,
-            double node_padding = 0.0,
+            Dtype max_range = -1,
+            Dtype node_padding = 0.0,
             bool bidirectional = false,
             bool leaf_only = false,
             uint32_t min_node_depth = 0,
@@ -1817,7 +1822,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        ComputeRayKeys(double sx, double sy, double ex, double ey, QuadtreeKeyRay &ray) const {
+        ComputeRayKeys(Dtype sx, Dtype sy, Dtype ex, Dtype ey, QuadtreeKeyRay &ray) const {
             // see "A Faster Voxel Traversal Algorithm for Ray Tracing" by Amanatides & Woo Digital Difference Analyzer (DDA) algorithm
             // Note that we cannot use Bresenham's line algorithm because it may miss some voxels when the ray is not axis-aligned.
             // For example, if the ray is from (0, 0) to (1, 1), Bresenham's algorithm will miss (1, 0) and (0, 1) but the ray should traverse them.
@@ -1832,12 +1837,12 @@ namespace erl::geometry {
             if (key_start == key_end) { return true; }
 
             // initialization phase
-            double direction[2];
-            double &dx = direction[0];
-            double &dy = direction[1];
+            Dtype direction[2];
+            Dtype &dx = direction[0];
+            Dtype &dy = direction[1];
             dx = ex - sx;
             dy = ey - sy;
-            const double length = std::sqrt(dx * dx + dy * dy);
+            const Dtype length = std::sqrt(dx * dx + dy * dy);
             dx /= length;
             dy /= length;
 
@@ -1863,21 +1868,21 @@ namespace erl::geometry {
             }
 
             // compute t_max and t_delta
-            const double resolution = m_setting_->resolution;
-            double t_max[2];
-            double t_delta[2];
+            const Dtype resolution = m_setting_->resolution;
+            Dtype t_max[2];
+            Dtype t_delta[2];
             if (step[0] == 0) {
-                t_max[0] = std::numeric_limits<double>::infinity();
-                t_delta[0] = std::numeric_limits<double>::infinity();
+                t_max[0] = std::numeric_limits<Dtype>::infinity();
+                t_delta[0] = std::numeric_limits<Dtype>::infinity();
             } else {
-                t_max[0] = (KeyToCoord(key_start[0]) + static_cast<double>(step[0]) * 0.5 * resolution - sx) / dx;
+                t_max[0] = (KeyToCoord(key_start[0]) + static_cast<Dtype>(step[0]) * 0.5 * resolution - sx) / dx;
                 t_delta[0] = resolution / std::abs(dx);
             }
             if (step[1] == 0) {
-                t_max[1] = std::numeric_limits<double>::infinity();
-                t_delta[1] = std::numeric_limits<double>::infinity();
+                t_max[1] = std::numeric_limits<Dtype>::infinity();
+                t_delta[1] = std::numeric_limits<Dtype>::infinity();
             } else {
-                t_max[1] = (KeyToCoord(key_start[1]) + static_cast<double>(step[1]) * 0.5 * resolution - sy) / dy;
+                t_max[1] = (KeyToCoord(key_start[1]) + static_cast<Dtype>(step[1]) * 0.5 * resolution - sy) / dy;
                 t_delta[1] = resolution / std::abs(dy);
             }
 
@@ -1925,7 +1930,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        ComputeRayCoords(const double sx, const double sy, const double ex, const double ey, std::vector<Eigen::Vector2d> &ray) const {
+        ComputeRayCoords(const Dtype sx, const Dtype sy, const Dtype ex, const Dtype ey, std::vector<Eigen::Vector2d> &ray) const {
             ray.clear();
             QuadtreeKeyRay key_ray;
             if (!ComputeRayKeys(sx, sy, ex, ey, key_ray)) { return false; }
@@ -2055,7 +2060,7 @@ namespace erl::geometry {
          * @return
          */
         uint32_t
-        DeleteNode(double x, double y, const uint32_t delete_depth = 0) {
+        DeleteNode(Dtype x, Dtype y, const uint32_t delete_depth = 0) {
             if (QuadtreeKey key; !this->CoordToKeyChecked(x, y, key)) {
                 ERL_WARN("Point ({}, {}) is out of range.", x, y);
                 return 0;
@@ -2227,7 +2232,7 @@ namespace erl::geometry {
 
         //-- Search functions
         [[nodiscard]] const AbstractQuadtreeNode *
-        SearchNode(const double x, const double y, const uint32_t max_depth) const override {
+        SearchNode(const Dtype x, const Dtype y, const uint32_t max_depth) const override {
             return static_cast<const AbstractQuadtreeNode *>(Search(x, y, max_depth));
         }
 
@@ -2239,7 +2244,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] const Node *
-        Search(double x, double y, const uint32_t max_depth = 0) const {
+        Search(Dtype x, Dtype y, const uint32_t max_depth = 0) const {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
                 ERL_WARN("Point ({}, {}) is out of range.\n", x, y);
@@ -2286,7 +2291,7 @@ namespace erl::geometry {
         }
 
         Node *
-        InsertNode(double x, double y, const uint32_t depth = 0) {
+        InsertNode(Dtype x, Dtype y, const uint32_t depth = 0) {
             QuadtreeKey key;
             if (!CoordToKeyChecked(x, y, key)) {
                 ERL_WARN("Point ({}, {}) is out of range.\n", x, y);
@@ -2408,14 +2413,14 @@ namespace erl::geometry {
             }
 
             // non-empty tree
-            m_metric_min_[0] = m_metric_min_[1] = std::numeric_limits<double>::infinity();
-            m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<double>::infinity();
+            m_metric_min_[0] = m_metric_min_[1] = std::numeric_limits<Dtype>::infinity();
+            m_metric_max_[0] = m_metric_max_[1] = -std::numeric_limits<Dtype>::infinity();
 
             for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
-                const double size = it.GetNodeSize();
-                const double half_size = size / 2.0;
-                double x = it.GetX() - half_size;
-                double y = it.GetY() - half_size;
+                const Dtype size = it.GetNodeSize();
+                const Dtype half_size = size / 2.0;
+                Dtype x = it.GetX() - half_size;
+                Dtype y = it.GetY() - half_size;
                 if (x < m_metric_min_[0]) { m_metric_min_[0] = x; }
                 if (y < m_metric_min_[1]) { m_metric_min_[1] = y; }
                 x += size;

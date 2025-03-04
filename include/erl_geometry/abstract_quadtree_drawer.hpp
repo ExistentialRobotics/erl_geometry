@@ -37,9 +37,9 @@ namespace erl::geometry {
 
         virtual ~AbstractQuadtreeDrawer() = default;
 
-        [[nodiscard]] std::shared_ptr<common::GridMapInfo2D>
+        [[nodiscard]] std::shared_ptr<common::GridMapInfo2Dd>
         GetGridMapInfo() const {
-            return std::make_shared<common::GridMapInfo2D>(
+            return std::make_shared<common::GridMapInfo2Dd>(
                 m_setting_->area_min,
                 m_setting_->area_max,
                 Eigen::Vector2d(m_setting_->resolution, m_setting_->resolution),
