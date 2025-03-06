@@ -2,7 +2,9 @@
 
 #include "kdtree_eigen_adaptor.hpp"
 
+#include "erl_common/angle_utils.hpp"
 #include "erl_common/factory_pattern.hpp"
+#include "erl_common/random.hpp"
 #include "erl_common/yaml.hpp"
 
 #include <absl/container/flat_hash_map.h>
@@ -30,16 +32,17 @@ namespace erl::geometry {
             };
         };
 
-        using Matrix = Eigen::MatrixX<Dtype>;
+        using MatrixX = Eigen::MatrixX<Dtype>;
         using Matrix3X = Eigen::Matrix3X<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;
-        using Vector = Eigen::VectorX<Dtype>;
+        using Matrix4 = Eigen::Matrix4<Dtype>;
+        using VectorX = Eigen::VectorX<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
         using Vector2 = Eigen::Vector2<Dtype>;
         using KdTree = KdTreeEigenAdaptor<Dtype, 3>;
 
     private:
-        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
+        // inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
         inline static const std::string kFileHeader = fmt::format("# erl::geometry::RangeSensorFrame3D<{}>", type_name<Dtype>());
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
@@ -48,7 +51,7 @@ namespace erl::geometry {
         Vector3 m_translation_ = {};
 
         Eigen::MatrixX<Vector2> m_frame_coords_ = {};  // (row_coord, col_coord) in frame, e.g. (azimuth, elevation) for LiDAR, (v, u) for RGBD
-        Matrix m_ranges_ = {};
+        MatrixX m_ranges_ = {};
 
         // the memory layout of the following matrices is (azimuth, elevation, 3), and it is okay to access the data using raw pointer directly
         // because the memory is contiguous.
@@ -104,9 +107,9 @@ namespace erl::geometry {
             return m_translation_;
         }
 
-        [[nodiscard]] Eigen::Matrix4d
+        [[nodiscard]] Matrix4
         GetPoseMatrix() const {
-            Eigen::Isometry3d pose;
+            Eigen::Transform<Dtype, 3, Eigen::Isometry> pose;
             pose.linear() = m_rotation_;
             pose.translation() = m_translation_;
             return pose.matrix();
@@ -154,9 +157,9 @@ namespace erl::geometry {
         }
 
         virtual void
-        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, Matrix ranges, bool partition_rays) = 0;
+        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, MatrixX ranges, bool partition_rays) = 0;
 
-        [[nodiscard]] const Matrix &
+        [[nodiscard]] const MatrixX &
         GetRanges() const {
             return m_ranges_;
         }
@@ -221,7 +224,7 @@ namespace erl::geometry {
             Dtype sampled_rays_ratio,
             Matrix3X &positions_world,
             Matrix3X &directions_world,
-            Vector &distances) const;
+            VectorX &distances) const;
 
         void
         SampleAlongRays(
@@ -230,7 +233,7 @@ namespace erl::geometry {
             Dtype sampled_rays_ratio,
             Matrix3X &positions_world,
             Matrix3X &directions_world,
-            Vector &distances) const;
+            VectorX &distances) const;
 
         void
         SampleNearSurface(
@@ -239,7 +242,7 @@ namespace erl::geometry {
             Dtype sampled_rays_ratio,
             Matrix3X &positions_world,
             Matrix3X &directions_world,
-            Vector &distances) const;
+            VectorX &distances) const;
 
         void
         SampleInRegionHpr(  // HPR: hidden point removal
@@ -249,7 +252,7 @@ namespace erl::geometry {
             Dtype max_in_obstacle_dist,
             Matrix3X &positions_world,
             Matrix3X &directions_world,
-            Vector &distances,
+            VectorX &distances,
             bool parallel = false) const;
 
         void
@@ -259,14 +262,14 @@ namespace erl::geometry {
             long num_azimuth_segments,
             Matrix3X &positions_world,
             Matrix3X &directions_world,
-            Vector &distances,
+            VectorX &distances,
             bool parallel = false) const;
 
         void
         ComputeRaysAt(
             const Eigen::Ref<const Vector3> &position_world,
             Matrix3X &directions_world,
-            Vector &distances,
+            VectorX &distances,
             std::vector<long> &visible_hit_point_indices) const;
 
         [[nodiscard]] virtual bool
@@ -299,7 +302,7 @@ namespace erl::geometry {
             Dtype max_in_obstacle_dist,
             Matrix3X *positions_world_ptr,
             Matrix3X *directions_world_ptr,
-            Vector *distances_ptr) const;
+            VectorX *distances_ptr) const;
 
         void
         SampleInRegionVrsThread(
@@ -310,10 +313,13 @@ namespace erl::geometry {
             long num_azimuth_segments,
             Matrix3X *positions_world_ptr,
             Matrix3X *directions_world_ptr,
-            Vector *distances_ptr) const;
+            VectorX *distances_ptr) const;
     };
 
-#define ERL_REGISTER_RANGE_SENSOR_FRAME_3D(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
+    using RangeSensorFrame3Dd = RangeSensorFrame3D<double>;
+    using RangeSensorFrame3Df = RangeSensorFrame3D<float>;
+
+    // #define ERL_REGISTER_RANGE_SENSOR_FRAME_3D(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
 }  // namespace erl::geometry
 
 #include "range_sensor_frame_3d.tpp"

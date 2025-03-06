@@ -11,13 +11,13 @@ namespace erl::geometry {
      */
     template<typename Dtype>
     class AbstractOccupancyOctree : public AbstractOctree<Dtype> {
+        inline static const std::string kBinaryFileHeader = fmt::format("# {} Binary File", type_name<AbstractOccupancyOctree>());
         std::shared_ptr<OccupancyNdTreeSetting> m_setting_ = nullptr;
 
-    protected:
-        using Super = AbstractOctree<Dtype>;
-        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyOctree binary file";  // binary file header identifier
-
     public:
+        using DataType = Dtype;
+        using Super = AbstractOctree<Dtype>;
+
         AbstractOccupancyOctree() = delete;  // no default constructor
 
         explicit AbstractOccupancyOctree(std::shared_ptr<OccupancyNdTreeSetting> setting);

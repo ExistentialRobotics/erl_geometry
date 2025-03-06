@@ -1,6 +1,5 @@
 #pragma once
 
-#include "abstract_octree.hpp"
 #include "open3d_visualizer_wrapper.hpp"
 
 #include "erl_common/yaml.hpp"

@@ -32,7 +32,7 @@ BindPrimitives2D(const py::module &m) {
         .def(py::init<int, Eigen::Vector2d, Eigen::Vector2d>(), py::arg("id"), py::arg("origin"), py::arg("direction"))
         .def_readwrite("origin", &Ray2D::origin)
         .def_readwrite("direction", &Ray2D::direction);
-    py::class_<AxisAlignedRectangle2D, Primitive2D, Aabb2D>(m, "AxisAlignedRectangle2D")
+    py::class_<AxisAlignedRectangle2D, Primitive2D, Aabb2Dd>(m, "AxisAlignedRectangle2D")
         .def(py::init<int, const Eigen::Vector2d &, const Eigen::Vector2d &>(), py::arg("id"), py::arg("center"), py::arg("half_sizes"));
     py::class_<Rectangle2D, Primitive2D>(m, "Rectangle2D")
         .def(py::init<int, Eigen::Vector2d, Eigen::Vector2d, double>(), py::arg("id"), py::arg("center"), py::arg("half_sizes"), py::arg("angle"))

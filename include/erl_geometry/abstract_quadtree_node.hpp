@@ -1,12 +1,11 @@
 #pragma once
 
+#include "erl_common/factory_pattern.hpp"
 #include "erl_common/logging.hpp"
 #include "erl_common/string_utils.hpp"
 #include "erl_common/tracy.hpp"
 
 #include <cstdint>
-#include <functional>
-#include <map>
 #include <memory>
 #include <string>
 
@@ -20,24 +19,19 @@ namespace erl::geometry {
         int m_child_index_ = -1;
         AbstractQuadtreeNode **m_children_ = nullptr;
         uint32_t m_num_children_ = 0;
-        inline static std::map<std::string, std::function<std::shared_ptr<AbstractQuadtreeNode>(uint32_t, int)>> s_class_id_mapping_ = {};
 
     public:
+        using Factory = common::FactoryPattern<AbstractQuadtreeNode, false, false, uint32_t, int>;
+
         // rules of five: https://www.youtube.com/watch?v=juAZDfsaMvY
         // except for user-defined constructor,
         // always define: destructor, copy constructor, copy assignment, move constructor, move assignment
 
         AbstractQuadtreeNode() = delete;
 
-        explicit AbstractQuadtreeNode(uint32_t depth, int child_index = -1)
+        explicit AbstractQuadtreeNode(const uint32_t depth, const int child_index = -1)
             : m_depth_(depth),
-              m_child_index_(child_index) {
-            ERL_DEBUG_WARN_ONCE_COND(
-                typeid(*this) != typeid(AbstractQuadtreeNode) && s_class_id_mapping_.find(GetNodeType()) == s_class_id_mapping_.end(),
-                "Tree type {} not registered, do you forget to use ERL_REGISTER_QUADTREE_NODE({})?",
-                GetNodeType(),
-                GetNodeType());
-        }
+              m_child_index_(child_index) {}
 
         /**
          * copy constructor, deep copy. If you want to do shallow copy, please wrap it in a smart pointer. AbstractOctreeNode uses raw pointers internally and
@@ -95,26 +89,15 @@ namespace erl::geometry {
 
         static std::shared_ptr<AbstractQuadtreeNode>
         CreateNode(const std::string &node_type, const uint32_t depth, const int child_index) {
-            const auto it = s_class_id_mapping_.find(node_type);
-            if (it == s_class_id_mapping_.end()) {
-                ERL_WARN("Unknown Quadtree node type: {}. Here are the registered node types:", node_type);
-                for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
-                return nullptr;
-            }
-            return it->second(depth, child_index);
+            return Factory::GetInstance().Create(node_type, depth, child_index);
         }
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractQuadtreeNode, Derived>, bool>
         Register(std::string node_type = "") {
-            if (node_type.empty()) { node_type = demangle(typeid(Derived).name()); }
-            if (s_class_id_mapping_.find(node_type) != s_class_id_mapping_.end()) {
-                ERL_WARN("{} is already registered.", node_type);
-                return false;
-            }
-
-            s_class_id_mapping_[node_type] = [](uint32_t depth, int child_index) { return std::make_shared<Derived>(depth, child_index); };
-            return true;
+            return Factory::GetInstance().Register<Derived>(node_type, [](uint32_t depth, int child_index) {
+                return std::make_shared<Derived>(depth, child_index);
+            });
         }
 
         /**
@@ -177,14 +160,14 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] bool
-        HasChild(uint32_t index) const {
+        HasChild(const uint32_t index) const {
             if (m_children_ == nullptr) { return false; }
             ERL_DEBUG_ASSERT(index < 4, "Index must be in [0, 3], but got %u.", index);
             return m_children_[index] != nullptr;
         }
 
         [[nodiscard]] AbstractQuadtreeNode *
-        CreateChild(uint32_t child_index) {
+        CreateChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 4, "Child index must be in [0, 3], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u already exists.", child_index);
             AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, static_cast<int>(child_index));
@@ -194,7 +177,7 @@ namespace erl::geometry {
         }
 
         void
-        RemoveChild(uint32_t child_index) {
+        RemoveChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 4, "Child index must be in [0, 3], but got %u.", child_index);
             ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "Child %u does not exist.", child_index);
             delete m_children_[child_index];
@@ -205,14 +188,14 @@ namespace erl::geometry {
 
         template<typename Derived>
         Derived *
-        GetChild(uint32_t child_index) {
+        GetChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(child_index < 4, "Child index must be in [0, 3], but got %u.", child_index);
             return static_cast<Derived *>(m_children_[child_index]);
         }
 
         template<typename Derived>
         [[nodiscard]] const Derived *
-        GetChild(uint32_t child_index) const {
+        GetChild(const uint32_t child_index) const {
             ERL_DEBUG_ASSERT(child_index < 4, "Child index must be in [0, 3], but got %u.", child_index);
             return static_cast<const Derived *>(m_children_[child_index]);
         }
@@ -245,5 +228,5 @@ namespace erl::geometry {
         }
     };
 
-#define ERL_REGISTER_QUADTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtreeNode::Register<Derived>()
+    // #define ERL_REGISTER_QUADTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtreeNode::Register<Derived>()
 }  // namespace erl::geometry

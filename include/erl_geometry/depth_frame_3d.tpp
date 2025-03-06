@@ -73,14 +73,14 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    typename DepthFrame3D<Dtype>::Matrix
-    DepthFrame3D<Dtype>::DepthImageToDepth(const Matrix &depth_img, const double depth_scale) {
+    typename DepthFrame3D<Dtype>::MatrixX
+    DepthFrame3D<Dtype>::DepthImageToDepth(const MatrixX &depth_img, const double depth_scale) {
         return depth_img / depth_scale;
     }
 
     template<typename Dtype>
-    typename DepthFrame3D<Dtype>::Matrix
-    DepthFrame3D<Dtype>::DepthToDepthImage(const Matrix &depth, const double depth_scale) {
+    typename DepthFrame3D<Dtype>::MatrixX
+    DepthFrame3D<Dtype>::DepthToDepthImage(const MatrixX &depth, const double depth_scale) {
         return depth * depth_scale;
     }
 
@@ -89,7 +89,7 @@ namespace erl::geometry {
     DepthFrame3D<Dtype>::UpdateRanges(
         const Eigen::Ref<const Matrix3> &rotation,
         const Eigen::Ref<const Vector3> &translation,
-        Matrix depth,
+        MatrixX depth,
         const bool partition_rays) {
 
         const long image_height = m_setting_->camera_intrinsic.image_height;
@@ -170,7 +170,7 @@ namespace erl::geometry {
         const bool partition_rays) {
         cv::Mat depth_img = cv::imread(depth_file, cv::IMREAD_UNCHANGED);
         depth_img.convertTo(depth_img, sizeof(Dtype) == 4 ? CV_32FC1 : CV_64FC1);  // convert to float or double
-        Matrix depth;
+        MatrixX depth;
         cv::cv2eigen(depth_img, depth);
         UpdateRanges(rotation, translation, DepthImageToDepth(depth, depth_scale), partition_rays);
     }

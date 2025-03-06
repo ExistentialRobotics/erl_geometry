@@ -1,13 +1,5 @@
 #pragma once
 
-#include "abstract_octree_drawer.hpp"
-
-#include "erl_common/yaml.hpp"
-
-#include <open3d/geometry/VoxelGrid.h>
-
-#include <functional>
-
 namespace erl::geometry {
     template<typename OccupancyOctreeType>
     YAML::Node

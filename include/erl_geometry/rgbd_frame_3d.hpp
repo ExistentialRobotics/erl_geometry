@@ -12,27 +12,27 @@ namespace erl::geometry {
     public:
         using Super = DepthFrame3D<Dtype>;
         using Setting = typename Super::Setting;
-        using Matrix = typename Super::Matrix;
+        using MatrixX = typename Super::MatrixX;
         using Matrix3 = typename Super::Matrix3;
         using Vector3 = typename Super::Vector3;
 
-        explicit RgbdFrame3D(std::shared_ptr<Setting> setting)
-            : Super(std::move(setting)) {}
+        explicit RgbdFrame3D(std::shared_ptr<Setting> setting);
 
         void
         UpdateRgbd(
             const Eigen::Ref<const Matrix3> &rotation,
             const Eigen::Ref<const Vector3> &translation,
-            const Matrix &depth,
+            const MatrixX &depth,
             const cv::Mat &rgb,
-            const bool partition_rays) {
-            Super::UpdateRanges(rotation, translation, depth, partition_rays);
-            rgb.convertTo(m_rgb_, CV_8UC3);
-        }
+            bool partition_rays);
 
         void
         ConvertToPointCloud(bool in_world_frame, std::vector<Vector3> &points, std::vector<Vector3> &colors) const;
     };
 
-#include "rgbd_frame_3d.tpp"
+    using RgbdFrame3Dd = RgbdFrame3D<double>;
+    using RgbdFrame3Df = RgbdFrame3D<float>;
+
 }  // namespace erl::geometry
+
+#include "rgbd_frame_3d.tpp"

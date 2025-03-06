@@ -3,7 +3,6 @@
 #include "erl_common/eigen.hpp"
 #include "erl_common/logging.hpp"
 
-#include <Eigen/Geometry>
 #include <libqhullcpp/PointCoordinates.h>
 #include <libqhullcpp/Qhull.h>
 #include <libqhullcpp/QhullFacet.h>

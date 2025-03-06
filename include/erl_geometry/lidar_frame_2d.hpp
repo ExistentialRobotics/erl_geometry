@@ -8,258 +8,227 @@
 #include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
-    class LidarFramePartition2D;
 
     /**
      * 1. detects discontinuities in a sensor frame.
      * 2. detects out-of-max-range measurements
      */
+    template<typename Dtype>
     class LidarFrame2D {
-        friend class LidarFramePartition2D;
+        inline static const std::string kFileHeader = fmt::format("# {}", type_name<LidarFrame2D>());
 
     public:
+        using Matrix2 = Eigen::Matrix2<Dtype>;
+        using Matrix3 = Eigen::Matrix3<Dtype>;
+        using Matrix2X = Eigen::Matrix2X<Dtype>;
+        using Vector2 = Eigen::Vector2<Dtype>;
+        using VectorX = Eigen::VectorX<Dtype>;
+        using KdTree = KdTreeEigenAdaptor<Dtype, 2>;
+
         struct Setting : common::Yamlable<Setting> {
-            double valid_range_min = 0.0;
-            double valid_range_max = std::numeric_limits<double>::infinity();
-            double angle_min = -M_PI;
-            double angle_max = M_PI;
+            Dtype valid_range_min = 0.0;
+            Dtype valid_range_max = std::numeric_limits<Dtype>::infinity();
+            Dtype angle_min = -M_PI;
+            Dtype angle_max = M_PI;
             long num_rays = 360;
-            double discontinuity_factor = 10;
-            double rolling_diff_discount = 0.9;
+            Dtype discontinuity_factor = 10;
+            Dtype rolling_diff_discount = 0.9;
             int min_partition_size = 5;
+
+            struct YamlConvertImpl {
+                static YAML::Node
+                encode(const Setting &setting);
+
+                static bool
+                decode(const YAML::Node &node, Setting &setting);
+            };
+        };
+
+        class Partition {
+            LidarFrame2D *m_frame_ = nullptr;
+            long m_index_begin_ = -1;
+            long m_index_end_ = -1;  // inclusive
+
+            friend class LidarFrame2D;
+
+        public:
+            Partition(LidarFrame2D *frame, long index_begin, long index_end);
+
+            [[nodiscard]] long
+            GetIndexBegin() const;
+
+            [[nodiscard]] long
+            GetIndexEnd() const;
+
+            [[nodiscard]] bool
+            AngleInPartition(Dtype angle_world) const;
         };
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        Eigen::Matrix2d m_rotation_ = {};
-        double m_rotation_angle_ = 0.0;
-        Eigen::Vector2d m_translation_ = {};
+        Matrix2 m_rotation_ = {};
+        Dtype m_rotation_angle_ = 0.0;
+        Vector2 m_translation_ = {};
 
-        Eigen::VectorXd m_angles_frame_ = {};
-        Eigen::VectorXd m_angles_world_ = {};
-        Eigen::VectorXd m_ranges_ = {};
+        VectorX m_angles_frame_ = {};
+        VectorX m_angles_world_ = {};
+        VectorX m_ranges_ = {};
 
-        std::vector<Eigen::Vector2d> m_dirs_frame_ = {};
-        std::vector<Eigen::Vector2d> m_dirs_world_ = {};
+        std::vector<Vector2> m_dirs_frame_ = {};
+        std::vector<Vector2> m_dirs_world_ = {};
 
-        std::vector<Eigen::Vector2d> m_end_pts_frame_ = {};
-        std::vector<Eigen::Vector2d> m_end_pts_world_ = {};
+        std::vector<Vector2> m_end_pts_frame_ = {};
+        std::vector<Vector2> m_end_pts_world_ = {};
 
-        Eigen::VectorXb m_mask_hit_ = {};                       // if i-th element is true, then i-th vertex is a hit
-        Eigen::VectorXb m_mask_continuous_ = {};                // if i-th element is true, then (i-1, i) edge is continuous
-        std::vector<long> m_hit_ray_indices_ = {};              // hit ray indices
-        std::vector<Eigen::Vector2d> m_hit_points_world_ = {};  // hit points in world
+        Eigen::VectorXb m_mask_hit_ = {};               // if i-th element is true, then i-th vertex is a hit
+        Eigen::VectorXb m_mask_continuous_ = {};        // if i-th element is true, then (i-1, i) edge is continuous
+        std::vector<long> m_hit_ray_indices_ = {};      // hit ray indices
+        std::vector<Vector2> m_hit_points_world_ = {};  // hit points in world
 
-        double m_max_valid_range_ = 0.0;
-        std::vector<LidarFramePartition2D> m_partitions_ = {};
+        Dtype m_max_valid_range_ = 0.0;
+        std::vector<Partition> m_partitions_ = {};
         bool m_partitioned_ = false;
-        std::shared_ptr<KdTree2d> m_kd_tree_ = std::make_shared<KdTree2d>();
+        std::shared_ptr<KdTree> m_kd_tree_ = std::make_shared<KdTree>();
 
     public:
         explicit LidarFrame2D(std::shared_ptr<Setting> setting);
 
         [[nodiscard]] bool
-        AngleIsInFrame(const double angle_frame) const {
-            return angle_frame >= m_angles_frame_[0] && angle_frame <= m_angles_frame_[m_angles_frame_.size() - 1];
-        }
+        AngleIsInFrame(Dtype angle_frame) const;
 
         [[nodiscard]] bool
-        PointIsInFrame(const Eigen::Vector2d &xy_frame) const {
-            if (xy_frame.norm() > m_max_valid_range_) { return false; }
-            const double angle_frame = std::atan2(xy_frame[1], xy_frame[0]);
-            return AngleIsInFrame(angle_frame);
-        }
+        PointIsInFrame(const Vector2 &xy_frame) const;
 
-        [[nodiscard]] Eigen::Vector2d
-        WorldToFrameSo2(const Eigen::Vector2d &dir_world) const {
-            return m_rotation_.transpose() * dir_world;
-        }
+        [[nodiscard]] Vector2
+        WorldToFrameSo2(const Vector2 &dir_world) const;
 
-        [[nodiscard]] Eigen::Vector2d
-        FrameToWorldSo2(const Eigen::Vector2d &dir_frame) const {
-            return m_rotation_ * dir_frame;
-        }
+        [[nodiscard]] Vector2
+        FrameToWorldSo2(const Vector2 &dir_frame) const;
 
-        [[nodiscard]] Eigen::Vector2d
-        WorldToFrameSe2(const Eigen::Vector2d &xy_world) const {
-            return m_rotation_.transpose() * (xy_world - m_translation_);
-        }
+        [[nodiscard]] Vector2
+        WorldToFrameSe2(const Vector2 &xy_world) const;
 
-        [[nodiscard]] Eigen::Vector2d
-        FrameToWorldSe2(const Eigen::Vector2d &xy_local) const {
-            return m_rotation_ * xy_local + m_translation_;
-        }
+        [[nodiscard]] Vector2
+        FrameToWorldSe2(const Vector2 &xy_local) const;
 
         void
-        UpdateRanges(
-            const Eigen::Ref<const Eigen::Matrix2d> &rotation,
-            const Eigen::Ref<const Eigen::Vector2d> &translation,
-            Eigen::VectorXd ranges,
-            bool partition_rays = false);
+        UpdateRanges(const Eigen::Ref<const Matrix2> &rotation, const Eigen::Ref<const Vector2> &translation, VectorX ranges, bool partition_rays = false);
 
         [[nodiscard]] const std::shared_ptr<Setting> &
-        GetSetting() const {
-            return m_setting_;
-        }
+        GetSetting() const;
 
         [[nodiscard]] long
-        GetNumRays() const {
-            return m_angles_frame_.size();
-        }
+        GetNumRays() const;
 
         [[nodiscard]] long
-        GetNumHitRays() const {
-            return static_cast<long>(m_hit_ray_indices_.size());
-        }
+        GetNumHitRays() const;
 
-        [[nodiscard]] const Eigen::Matrix2d &
-        GetRotationMatrix() const {
-            return m_rotation_;
-        }
+        [[nodiscard]] const Matrix2 &
+        GetRotationMatrix() const;
 
-        [[nodiscard]] double
-        GetRotationAngle() const {
-            return m_rotation_angle_;
-        }
+        [[nodiscard]] Dtype
+        GetRotationAngle() const;
 
-        [[nodiscard]] const Eigen::Vector2d &
-        GetTranslationVector() const {
-            return m_translation_;
-        }
+        [[nodiscard]] const Vector2 &
+        GetTranslationVector() const;
 
-        [[nodiscard]] Eigen::Matrix3d
-        GetPoseMatrix() const {
-            Eigen::Isometry2d pose;
-            pose.linear() = m_rotation_;
-            pose.translation() = m_translation_;
-            return pose.matrix();
-        }
+        [[nodiscard]] Matrix3
+        GetPoseMatrix() const;
 
-        [[nodiscard]] const Eigen::VectorXd &
-        GetAnglesInFrame() const {
-            return m_angles_frame_;
-        }
+        [[nodiscard]] const VectorX &
+        GetAnglesInFrame() const;
 
-        [[nodiscard]] const Eigen::VectorXd &
-        GetAnglesInWorld() const {
-            return m_angles_world_;
-        }
+        [[nodiscard]] const VectorX &
+        GetAnglesInWorld() const;
 
-        [[nodiscard]] const Eigen::VectorXd &
-        GetRanges() const {
-            return m_ranges_;
-        }
+        [[nodiscard]] const VectorX &
+        GetRanges() const;
 
-        [[nodiscard]] const std::vector<Eigen::Vector2d> &
-        GetRayDirectionsInFrame() const {
-            return m_dirs_frame_;
-        }
+        [[nodiscard]] const std::vector<Vector2> &
+        GetRayDirectionsInFrame() const;
 
-        [[nodiscard]] const std::vector<Eigen::Vector2d> &
-        GetRayDirectionsInWorld() const {
-            return m_dirs_world_;
-        }
+        [[nodiscard]] const std::vector<Vector2> &
+        GetRayDirectionsInWorld() const;
 
-        [[nodiscard]] const std::vector<Eigen::Vector2d> &
-        GetEndPointsInFrame() const {
-            return m_end_pts_frame_;
-        }
+        [[nodiscard]] const std::vector<Vector2> &
+        GetEndPointsInFrame() const;
 
-        [[nodiscard]] const std::vector<Eigen::Vector2d> &
-        GetEndPointsInWorld() const {
-            return m_end_pts_world_;
-        }
+        [[nodiscard]] const std::vector<Vector2> &
+        GetEndPointsInWorld() const;
 
         const Eigen::VectorXb &
-        GetHitMask() {
-            return m_mask_hit_;
-        }
+        GetHitMask();
 
         [[nodiscard]] const std::vector<long> &
-        GetHitRayIndices() const {
-            return m_hit_ray_indices_;
-        }
+        GetHitRayIndices() const;
 
-        [[nodiscard]] const std::vector<Eigen::Vector2d> &
-        GetHitPointsWorld() const {
-            return m_hit_points_world_;
-        }
+        [[nodiscard]] const std::vector<Vector2> &
+        GetHitPointsWorld() const;
 
-        [[nodiscard]] double
-        GetMaxValidRange() const {
-            return m_max_valid_range_;
-        }
+        [[nodiscard]] Dtype
+        GetMaxValidRange() const;
 
-        [[nodiscard]] const std::vector<LidarFramePartition2D> &
-        GetPartitions() const {
-            ERL_ASSERTM(m_partitioned_, "LidarFrame2D::GetPartitions() is called before partitioning.");
-            return m_partitions_;
-        }
+        [[nodiscard]] const std::vector<Partition> &
+        GetPartitions() const;
 
         [[nodiscard]] bool
-        IsPartitioned() const {
-            return m_partitioned_;
-        }
+        IsPartitioned() const;
 
         [[nodiscard]] bool
-        IsValid() const {
-            return m_max_valid_range_ > 0;
-        }
+        IsValid() const;
 
         void
-        ComputeClosestEndPoint(const Eigen::Ref<const Eigen::Vector2d> &position_world, long &end_point_index, double &distance, bool brute_force = false);
+        ComputeClosestEndPoint(const Eigen::Ref<const Vector2> &position_world, long &end_point_index, Dtype &distance, bool brute_force = false);
 
         void
         SampleAlongRays(
             long n_samples_per_ray,
-            double max_in_obstacle_dist,
-            double sampled_rays_ratio,
-            Eigen::Matrix2Xd &positions_world,
-            Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances) const;
+            Dtype max_in_obstacle_dist,
+            Dtype sampled_rays_ratio,
+            Matrix2X &positions_world,
+            Matrix2X &directions_world,
+            VectorX &distances) const;
 
         void
         SampleAlongRays(
-            double range_step,
-            double max_in_obstacle_dist,
-            double sampled_rays_ratio,
-            Eigen::Matrix2Xd &positions_world,
-            Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances) const;
+            Dtype range_step,
+            Dtype max_in_obstacle_dist,
+            Dtype sampled_rays_ratio,
+            Matrix2X &positions_world,
+            Matrix2X &directions_world,
+            VectorX &distances) const;
 
         void
         SampleNearSurface(
             long num_samples_per_ray,
-            double max_offset,
-            double sampled_rays_ratio,
-            Eigen::Matrix2Xd &positions_world,
-            Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances) const;
+            Dtype max_offset,
+            Dtype sampled_rays_ratio,
+            Matrix2X &positions_world,
+            Matrix2X &directions_world,
+            VectorX &distances) const;
 
         void
         SampleInRegion(
             long num_positions,
             long num_along_ray_samples_per_ray,
             long num_near_surface_samples_per_ray,
-            double max_in_obstacle_dist,
-            Eigen::Matrix2Xd &positions_world,
-            Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances) const;
+            Dtype max_in_obstacle_dist,
+            Matrix2X &positions_world,
+            Matrix2X &directions_world,
+            VectorX &distances) const;
 
         void
         ComputeRaysAt(
-            const Eigen::Ref<const Eigen::Vector2d> &position_world,
-            Eigen::Matrix2Xd &directions_world,
-            Eigen::VectorXd &distances,
+            const Eigen::Ref<const Vector2> &position_world,
+            Matrix2X &directions_world,
+            VectorX &distances,
             std::vector<long> &visible_hit_point_indices) const;
 
         [[nodiscard]] bool
         operator==(const LidarFrame2D &other) const;
 
         [[nodiscard]] bool
-        operator!=(const LidarFrame2D &other) const {
-            return !(*this == other);
-        }
+        operator!=(const LidarFrame2D &other) const;
 
         [[nodiscard]] bool
         Write(const std::string &filename) const;
@@ -278,71 +247,14 @@ namespace erl::geometry {
         PartitionRays();
     };
 
-    class LidarFramePartition2D {
-        LidarFrame2D *m_frame_ = nullptr;
-        long m_index_begin_ = -1;
-        long m_index_end_ = -1;  // inclusive
-
-        friend class LidarFrame2D;
-
-    public:
-        LidarFramePartition2D(LidarFrame2D *frame, const long index_begin, const long index_end)
-            : m_frame_(frame),
-              m_index_begin_(index_begin),
-              m_index_end_(index_end) {
-            ERL_DEBUG_ASSERT(m_frame_ != nullptr, "frame is nullptr.");
-            ERL_DEBUG_ASSERT(m_index_begin_ >= 0, "index_begin is negative.");
-            ERL_DEBUG_ASSERT(m_index_end_ >= 0, "index_end is negative.");
-        }
-
-        [[nodiscard]] long
-        GetIndexBegin() const {
-            return m_index_begin_;
-        }
-
-        [[nodiscard]] long
-        GetIndexEnd() const {
-            return m_index_end_ + 1;
-        }
-
-        [[nodiscard]] bool
-        AngleInPartition(const double angle_world) const {
-            const double angle_frame = common::WrapAnglePi(angle_world - m_frame_->m_rotation_angle_);
-            return (angle_frame >= m_frame_->m_angles_frame_[m_index_begin_]) && (angle_frame <= m_frame_->m_angles_frame_[m_index_end_]);
-        }
-    };
+    using LidarFrame2Dd = LidarFrame2D<double>;
+    using LidarFrame2Df = LidarFrame2D<float>;
 }  // namespace erl::geometry
 
-// ReSharper disable CppInconsistentNaming
+#include "lidar_frame_2d.tpp"
+
 template<>
-struct YAML::convert<erl::geometry::LidarFrame2D::Setting> {
-    static Node
-    encode(const erl::geometry::LidarFrame2D::Setting &rhs) {
-        Node node;
-        node["valid_range_min"] = rhs.valid_range_min;
-        node["valid_range_max"] = rhs.valid_range_max;
-        node["angle_min"] = rhs.angle_min;
-        node["angle_max"] = rhs.angle_max;
-        node["num_rays"] = rhs.num_rays;
-        node["discontinuity_factor"] = rhs.discontinuity_factor;
-        node["rolling_diff_discount"] = rhs.rolling_diff_discount;
-        node["min_partition_size"] = rhs.min_partition_size;
-        return node;
-    }
+struct YAML::convert<erl::geometry::LidarFrame2D<double>::Setting> : erl::geometry::LidarFrame2D<double>::Setting::YamlConvertImpl {};
 
-    static bool
-    decode(const Node &node, erl::geometry::LidarFrame2D::Setting &rhs) {
-        if (!node.IsMap()) { return false; }
-        rhs.valid_range_min = node["valid_range_min"].as<double>();
-        rhs.valid_range_max = node["valid_range_max"].as<double>();
-        rhs.angle_min = node["angle_min"].as<double>();
-        rhs.angle_max = node["angle_max"].as<double>();
-        rhs.num_rays = node["num_rays"].as<long>();
-        rhs.discontinuity_factor = node["discontinuity_factor"].as<double>();
-        rhs.rolling_diff_discount = node["rolling_diff_discount"].as<double>();
-        rhs.min_partition_size = node["min_partition_size"].as<int>();
-        return true;
-    }
-};  // namespace YAML
-
-// ReSharper restore CppInconsistentNaming
+template<>
+struct YAML::convert<erl::geometry::LidarFrame2D<float>::Setting> : erl::geometry::LidarFrame2D<float>::Setting::YamlConvertImpl {};

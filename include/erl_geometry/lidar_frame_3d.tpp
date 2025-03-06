@@ -32,8 +32,8 @@ LidarFrame3D<Dtype>::LidarFrame3D(std::shared_ptr<Setting> setting)
       m_setting_(std::move(setting)) {
     ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
 
-    Vector azimuths = Vector::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max);
-    Vector elevations = Vector::LinSpaced(m_setting_->num_elevation_lines, m_setting_->elevation_min, m_setting_->elevation_max);
+    VectorX azimuths = VectorX::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max);
+    VectorX elevations = VectorX::LinSpaced(m_setting_->num_elevation_lines, m_setting_->elevation_min, m_setting_->elevation_max);
     const long num_azimuths = azimuths.size();
     const long num_elevations = elevations.size();
     Super::m_frame_coords_.resize(num_azimuths, num_elevations);
@@ -56,7 +56,7 @@ void
 LidarFrame3D<Dtype>::UpdateRanges(
     const Eigen::Ref<const Matrix3> &rotation,
     const Eigen::Ref<const Vector3> &translation,
-    Matrix ranges,
+    MatrixX ranges,
     const bool partition_rays) {
 
     Super::m_rotation_ << rotation;

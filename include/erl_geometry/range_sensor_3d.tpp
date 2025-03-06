@@ -1,7 +1,7 @@
 #pragma once
 
 template<typename Dtype>
-typename RangeSensor3D<Dtype>::Matrix
+typename RangeSensor3D<Dtype>::MatrixX
 RangeSensor3D<Dtype>::Scan(
     const Eigen::Ref<const Matrix3> &orientation,
     const Eigen::Ref<const Vector3> &translation,
@@ -12,7 +12,7 @@ RangeSensor3D<Dtype>::Scan(
     Eigen::MatrixX<Vector3> directions = GetRayDirectionsInFrame();
     const long n_rows = directions.rows();
     const long n_cols = directions.cols();
-    Matrix scales(n_rows, n_cols);
+    MatrixX scales(n_rows, n_cols);
     const Eigen::Vector3f &ray_start = translation.template cast<float>();  // float32, will be copied to tensor
     // column major
     open3d::core::Tensor rays({n_rows, n_cols, 6}, open3d::core::Dtype::Float32);
@@ -48,7 +48,7 @@ RangeSensor3D<Dtype>::Scan(
 
     // copy results to Eigen matrix
     if (cache_normals && (m_normals_.rows() != n_rows || m_normals_.cols() != n_cols)) { m_normals_ = Eigen::MatrixX<Vector3>(n_rows, n_cols); }
-    Matrix ranges_mat(n_rows, n_cols);
+    MatrixX ranges_mat(n_rows, n_cols);
     std::vector<uint64_t> random_seeds(n_cols);
     for (long i = 0; i < n_cols; ++i) { random_seeds[i] = erl::common::g_random_engine(); }
 #pragma omp parallel for default(none) \

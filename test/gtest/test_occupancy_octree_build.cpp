@@ -27,9 +27,9 @@ using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
 using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
 using OccupancyOctreeNode = erl::geometry::OccupancyOctreeNode;
 using Open3dVisualizerWrapper = erl::geometry::Open3dVisualizerWrapper;
-using Vector = Eigen::VectorX<Dtype>;
+using VectorX = Eigen::VectorX<Dtype>;
 using Vector3 = Eigen::Vector3<Dtype>;
-using Matrix = Eigen::MatrixX<Dtype>;
+using MatrixX = Eigen::MatrixX<Dtype>;
 using Matrix3 = Eigen::Matrix3<Dtype>;
 using Matrix3X = Eigen::Matrix3X<Dtype>;
 using Matrix4 = Eigen::Matrix4<Dtype>;
@@ -119,7 +119,7 @@ TEST(OccupancyOctree, Build) {
 
         std::cout << "==== " << pose_idx << " ====" << std::endl;
         double dt = 0;
-        Matrix ranges;
+        MatrixX ranges;
         {
             ERL_BLOCK_TIMER_MSG_TIME("Scan time", dt);
             ranges = lidar.Scan(orientation, sensor_origin);
@@ -231,7 +231,7 @@ TEST(OccupancyOctree, BuildProfiling) {
         Matrix3 orientation = pose.topLeftCorner<3, 3>();
         Vector3 sensor_origin = pose.topRightCorner<3, 1>();
 
-        Matrix ranges = lidar.Scan(orientation, sensor_origin);
+        MatrixX ranges = lidar.Scan(orientation, sensor_origin);
 
         Matrix3X points(3, ranges.size());
         long cnt_points = 0;

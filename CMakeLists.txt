@@ -23,25 +23,18 @@ get_target_property(qhull_r_location Qhull::qhull_r LOCATION)
 get_target_property(qhullcpp_location Qhull::qhullcpp LOCATION)
 list(APPEND Qhull_LIBRARIES ${qhull_r_location} ${qhullcpp_location})
 
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
-set(_GLOBAL_STRING "GLOBAL")
-else()
-# _GLOBAL_STRING is nothing
-message(STATUS "CMake version is too low at ${CMAKE_VERSION}. Will still try, but may not work correctly.")
-endif()
-
 erl_find_package(
         PACKAGE absl
-        REQUIRED ${_GLOBAL_STRING}
+        REQUIRED
         COMMANDS APPLE "try `brew install abseil`"
         COMMANDS UBUNTU_LINUX "try `sudo apt install libabseil-dev`"
         COMMANDS ARCH_LINUX "try `sudo pacman -S abseil-cpp`")
 
 if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
-get_target_property(absl::flat_hash_map_location absl::flat_hash_map LOCATION)
-get_target_property(absl::flat_hash_set_location absl::flat_hash_set LOCATION)
-list(APPEND absl_LIBRARIES ${absl_flat_hash_map_location} ${absl_flat_hash_set_location})
-endif()
+    get_target_property(absl::flat_hash_map_location absl::flat_hash_map LOCATION)
+    get_target_property(absl::flat_hash_set_location absl::flat_hash_set LOCATION)
+    list(APPEND absl_LIBRARIES ${absl_flat_hash_map_location} ${absl_flat_hash_set_location})
+endif ()
 
 erl_find_package(
         PACKAGE Open3D
@@ -98,6 +91,7 @@ if (EXISTS "${LIBMORTON_DIR}/CMakeLists.txt")
 else ()
     message(FATAL_ERROR "libmorton not found, run `git submodule update --init --recursive`")
 endif ()
+set(BUILD_TESTING OFF)
 add_subdirectory(${LIBMORTON_DIR})  # libmorton is a header-only library
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
@@ -136,7 +130,7 @@ erl_add_python_package(
 # INSTALL
 #######################################################################################################################
 erl_install(
-        LIBRARIES ${PROJECT_NAME}
+        LIBRARIES ${PROJECT_NAME} libmorton
         PYBIND_MODULES py${PROJECT_NAME})
 
 #######################################################################################################################

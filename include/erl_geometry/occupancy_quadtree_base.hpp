@@ -17,23 +17,13 @@ namespace erl::geometry {
     struct OccupancyQuadtreeBaseSetting : public common::Yamlable<OccupancyQuadtreeBaseSetting, OccupancyNdTreeSetting> {
         bool use_change_detection = false;
         bool use_aabb_limit = false;
-        Aabb2D aabb = {};
+        Aabb2Dd aabb = {};
 
         bool
-        operator==(const NdTreeSetting& rhs) const override {
-            if (OccupancyNdTreeSetting::operator==(rhs)) {
-                const auto that = reinterpret_cast<const OccupancyQuadtreeBaseSetting&>(rhs);
-                return use_change_detection == that.use_change_detection &&  //
-                       use_aabb_limit == that.use_aabb_limit &&              //
-                       aabb == that.aabb;
-            }
-            return false;
-        }
+        operator==(const NdTreeSetting& rhs) const override;
     };
 
-    ERL_REGISTER_YAMLABLE(OccupancyQuadtreeBaseSetting);
-
-    template<class Node, class Setting, typename Dtype>
+    template<typename Dtype, class Node, class Setting>
     class OccupancyQuadtreeBase : public QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting> {
         static_assert(std::is_base_of_v<OccupancyQuadtreeNode, Node>);
         static_assert(std::is_base_of_v<OccupancyQuadtreeBaseSetting, Setting>);
@@ -249,7 +239,7 @@ namespace erl::geometry {
 
             // insert occupied endpoint
             const bool aabb_limit = m_setting_->use_aabb_limit;
-            const Aabb2D& aabb = m_setting_->aabb;
+            const Aabb2Dd& aabb = m_setting_->aabb;
             for (long i = 0; i < num_points; ++i) {
                 const auto& p = points.col(i);
 
@@ -265,7 +255,7 @@ namespace erl::geometry {
                 if (aabb_limit) {
                     // TODO: Propagate float/double changes to AABB, then remove this casting. // bounding box is specified
                     if ((aabb.contains(p.template cast<double>()) && (max_range < 0. || range <= max_range)) &&  // inside bounding box and range limit
-                        this->CoordToKeyChecked(p[0], p[1], key)) {                      // key is valid
+                        this->CoordToKeyChecked(p[0], p[1], key)) {                                              // key is valid
                         auto& indices = m_end_point_mapping_[key];
                         if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
                         indices.push_back(i);
@@ -690,7 +680,7 @@ namespace erl::geometry {
         //-- trace ray
         [[maybe_unused]] [[nodiscard]] QuadtreeKeyBoolMap::const_iterator
         BeginChangedKey() const {
-            if (!reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get())->use_change_detection) {
+            if (!this->m_setting_->use_change_detection) {
                 ERL_WARN("use_change_detection is false in setting. No changes are tracked.");
                 return m_changed_keys_.end();
             }
@@ -733,26 +723,24 @@ namespace erl::geometry {
          */
         Node*
         UpdateNode(const QuadtreeKey& key, const bool occupied, const bool lazy_eval) {
-            const double log_odds_delta = occupied ? m_setting_->log_odd_hit : m_setting_->log_odd_miss;
+            const float log_odds_delta = occupied ? m_setting_->log_odd_hit : m_setting_->log_odd_miss;
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
         Node*
-        UpdateNode(Dtype x, Dtype y, const double log_odds_delta, const bool lazy_eval) {
+        UpdateNode(Dtype x, Dtype y, const float log_odds_delta, const bool lazy_eval) {
             QuadtreeKey key;
             if (!this->CoordToKeyChecked(x, y, key)) { return nullptr; }
             return UpdateNode(key, log_odds_delta, lazy_eval);
         }
 
         Node*
-        UpdateNode(const QuadtreeKey& key, const double log_odds_delta, const bool lazy_eval) {
-            auto leaf = const_cast<Node*>(this->Search(key));
-            auto log_odds_delta_double = static_cast<double>(log_odds_delta);
+        UpdateNode(const QuadtreeKey& key, float log_odds_delta, const bool lazy_eval) {
             // early abort, no change will happen: node already at threshold or its log-odds is locked.
-            if (leaf) {
-                if (!leaf->AllowUpdateLogOdds(log_odds_delta_double)) { return leaf; }
-                if (log_odds_delta_double >= 0 && leaf->GetLogOdds() >= m_setting_->log_odd_max) { return leaf; }
-                if (log_odds_delta_double <= 0 && leaf->GetLogOdds() <= m_setting_->log_odd_min) { return leaf; }
+            if (auto leaf = const_cast<Node*>(this->Search(key))) {
+                if (!leaf->AllowUpdateLogOdds(log_odds_delta)) { return leaf; }
+                if (log_odds_delta >= 0 && leaf->GetLogOdds() >= m_setting_->log_odd_max) { return leaf; }
+                if (log_odds_delta <= 0 && leaf->GetLogOdds() <= m_setting_->log_odd_min) { return leaf; }
             }
 
             const bool create_root = this->m_root_ == nullptr;
@@ -761,12 +749,12 @@ namespace erl::geometry {
                 ++this->m_tree_size_;
                 ERL_DEBUG_ASSERT(this->m_tree_size_ == 1, "tree size is not 1 after root creation.");
             }
-            return static_cast<Node*>(this->UpdateNodeRecurs(this->m_root_.get(), create_root, key, log_odds_delta_double, lazy_eval));
+            return static_cast<Node*>(this->UpdateNodeRecurs(this->m_root_.get(), create_root, key, log_odds_delta, lazy_eval));
         }
 
     private:
         Node*
-        UpdateNodeRecurs(Node* node, const bool node_just_created, const QuadtreeKey& key, const Dtype log_odds_delta, const bool lazy_eval) {
+        UpdateNodeRecurs(Node* node, const bool node_just_created, const QuadtreeKey& key, const float log_odds_delta, const bool lazy_eval) {
             ERL_DEBUG_ASSERT(node != nullptr, "node is nullptr.");
 
             const uint32_t depth = node->GetDepth();
@@ -792,7 +780,7 @@ namespace erl::geometry {
                 return returned_node;
             }
             // last level
-            if (reinterpret_cast<OccupancyQuadtreeBaseSetting*>(this->m_setting_.get())->use_change_detection) {
+            if (this->m_setting_->use_change_detection) {
                 bool occ_before = this->IsNodeOccupied(node);
                 UpdateNodeLogOdds(node, log_odds_delta);
                 if (node_just_created) {
@@ -812,11 +800,11 @@ namespace erl::geometry {
 
     protected:
         void
-        UpdateNodeLogOdds(Node* node, Dtype log_odd_delta) {
+        UpdateNodeLogOdds(Node* node, float log_odd_delta) {
             node->AddLogOdds(log_odd_delta);
-            const Dtype l = node->GetLogOdds();
-            const Dtype log_odd_min = m_setting_->log_odd_min;
-            const Dtype log_odd_max = m_setting_->log_odd_max;
+            const float l = node->GetLogOdds();
+            const float log_odd_min = m_setting_->log_odd_min;
+            const float log_odd_max = m_setting_->log_odd_max;
             if (l < log_odd_min) {
                 node->SetLogOdds(log_odd_min);
                 return;
@@ -1000,7 +988,8 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-// ReSharper disable CppInconsistentNaming
+#include "occupancy_quadtree_base.tpp"
+
 template<>
 struct YAML::convert<erl::geometry::OccupancyQuadtreeBaseSetting> {
     static Node
@@ -1018,9 +1007,7 @@ struct YAML::convert<erl::geometry::OccupancyQuadtreeBaseSetting> {
         if (!convert<erl::geometry::OccupancyNdTreeSetting>::decode(node, rhs)) { return false; }
         rhs.use_change_detection = node["use_change_detection"].as<bool>();
         rhs.use_aabb_limit = node["use_aabb_limit"].as<bool>();
-        rhs.aabb = node["aabb"].as<erl::geometry::Aabb2D>();
+        rhs.aabb = node["aabb"].as<erl::geometry::Aabb2Dd>();
         return true;
     }
 };  // namespace YAML
-
-// ReSharper restore CppInconsistentNaming

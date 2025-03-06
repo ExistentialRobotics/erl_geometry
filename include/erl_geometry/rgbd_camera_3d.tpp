@@ -16,7 +16,7 @@ namespace erl::geometry {
         const auto image_height = static_cast<int>(m_setting_->image_height);
         const auto image_width = static_cast<int>(m_setting_->image_width);
         open3d::camera::PinholeCameraParameters camera_parameters;
-        camera_parameters.extrinsic_ = CameraBase3D<float>::ComputeExtrinsic(orientation, translation).template cast<double>();
+        camera_parameters.extrinsic_ = CameraBase3D<Dtype>::ComputeExtrinsic(orientation, translation).template cast<double>();
         camera_parameters.intrinsic_.intrinsic_matrix_ = m_setting_->GetIntrinsicMatrix().template cast<double>();
         camera_parameters.intrinsic_.height_ = image_height;
         camera_parameters.intrinsic_.width_ = image_width;

@@ -22,7 +22,7 @@ namespace erl::geometry {
             decode(const YAML::Node &node, CameraIntrinsic &intrinsic);
         };
 
-        using Matrix = Eigen::MatrixX<Dtype>;
+        using MatrixX = Eigen::MatrixX<Dtype>;
         using Matrix4 = Eigen::Matrix4<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
@@ -83,14 +83,14 @@ namespace erl::geometry {
         }
 
         void
-        ConvertDepthToDistance(const Matrix &depth, Matrix &distance) const;
+        ConvertDepthToDistance(const MatrixX &depth, MatrixX &distance) const;
 
         void
-        ConvertDistanceToDepth(const Matrix &distance, Matrix &depth) const;
+        ConvertDistanceToDepth(const MatrixX &distance, MatrixX &depth) const;
 
         void
         ConvertRgbdToPointCloud(
-            const Matrix &depth,
+            const MatrixX &depth,
             const cv::Mat &rgb,
             const std::optional<Matrix4> &optical_pose,
             std::vector<Vector3> &points,
@@ -99,12 +99,12 @@ namespace erl::geometry {
 
 #include "camera_intrinsic.tpp"
 
-    using CameraIntrinsic_d = CameraIntrinsic<double>;
-    using CameraIntrinsic_f = CameraIntrinsic<float>;
+    using CameraIntrinsicD = CameraIntrinsic<double>;
+    using CameraIntrinsicF = CameraIntrinsic<float>;
 }  // namespace erl::geometry
 
 template<>
-struct YAML::convert<erl::geometry::CameraIntrinsic<double>> : public erl::geometry::CameraIntrinsic<double>::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::CameraIntrinsic<double>> : erl::geometry::CameraIntrinsic<double>::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::CameraIntrinsic<float>> : public erl::geometry::CameraIntrinsic<float>::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::CameraIntrinsic<float>> : erl::geometry::CameraIntrinsic<float>::YamlConvertImpl {};

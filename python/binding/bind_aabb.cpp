@@ -56,6 +56,8 @@ BindAabbTemplate(const py::module &m, const char *py_class_name) {
 
 void
 BindAabb(const py::module &m) {
-    BindAabbTemplate<double, 2>(m, "Aabb2D");
-    BindAabbTemplate<double, 3>(m, "Aabb3D");
+    BindAabbTemplate<double, 2>(m, "Aabb2Dd");
+    BindAabbTemplate<double, 3>(m, "Aabb3Dd");
+    BindAabbTemplate<float, 2>(m, "Aabb2Df");
+    BindAabbTemplate<float, 3>(m, "Aabb3Df");
 }

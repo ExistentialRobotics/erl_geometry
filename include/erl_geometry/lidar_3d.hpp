@@ -11,9 +11,9 @@ namespace erl::geometry {
     class Lidar3D : public RangeSensor3D<Dtype> {
     public:
         using Super = RangeSensor3D<Dtype>;
-        using Matrix = Eigen::MatrixX<Dtype>;
+        using MatrixX = Eigen::MatrixX<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;
-        using Vector = Eigen::VectorX<Dtype>;
+        using VectorX = Eigen::VectorX<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
 
         struct Setting : common::Yamlable<Setting> {
@@ -56,10 +56,10 @@ namespace erl::geometry {
             return m_setting_;
         }
 
-        [[nodiscard]] Vector
+        [[nodiscard]] VectorX
         GetAzimuthAngles() const;
 
-        [[nodiscard]] Vector
+        [[nodiscard]] VectorX
         GetElevationAngles() const;
 
         [[nodiscard]] Eigen::MatrixX<Vector3>

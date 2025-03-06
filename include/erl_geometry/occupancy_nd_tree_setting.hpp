@@ -47,9 +47,9 @@ namespace erl::geometry {
         }
 
         bool
-        operator==(const NdTreeSetting &rhs) const override {
+        operator==(const NdTreeSetting& rhs) const override {
             if (NdTreeSetting::operator==(rhs)) {
-                const auto that = reinterpret_cast<const OccupancyNdTreeSetting &>(rhs);
+                const auto that = reinterpret_cast<const OccupancyNdTreeSetting&>(rhs);
                 return log_odd_min == that.log_odd_min && log_odd_max == that.log_odd_max &&    //
                        log_odd_hit == that.log_odd_hit && log_odd_miss == that.log_odd_miss &&  //
                        log_odd_occ_threshold == that.log_odd_occ_threshold;
@@ -57,8 +57,6 @@ namespace erl::geometry {
             return false;
         }
     };
-
-    ERL_REGISTER_YAMLABLE(NdTreeSetting);
 }  // namespace erl::geometry
 
 template<>

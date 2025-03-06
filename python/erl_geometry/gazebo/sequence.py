@@ -4,7 +4,7 @@ from typing import Union
 from typing import overload
 
 import numpy as np
-from erl_geometry import LidarFrame2D
+from erl_geometry.pyerl_geometry import LidarFrame2Dd
 from scipy.io.matlab import loadmat
 
 
@@ -42,24 +42,22 @@ class GazeboSequence:
         return self.path.shape[0]
 
     @overload
-    def __getitem__(self, item: int) -> LidarFrame2D:
-        ...
+    def __getitem__(self, item: int) -> LidarFrame2Dd: ...
 
     @overload
-    def __getitem__(self, item: slice) -> List[LidarFrame2D]:
-        ...
+    def __getitem__(self, item: slice) -> List[LidarFrame2Dd]: ...
 
-    def __getitem__(self, item: Union[slice, int]) -> Union[List[LidarFrame2D], LidarFrame2D]:
+    def __getitem__(self, item: Union[slice, int]) -> Union[List[LidarFrame2Dd], LidarFrame2Dd]:
         if isinstance(item, slice):
             return [self.__getitem__(i) for i in list(range(len(self)))[item]]
         else:
             if item < -self.path.shape[0] or item >= self.path.shape[0]:
                 raise IndexError
             x, y, theta = self.path[item]
-            frame_setting = LidarFrame2D.Setting()
+            frame_setting = LidarFrame2Dd.Setting()
             frame_setting.valid_angle_min = -np.deg2rad(135)
             frame_setting.valid_angle_max = np.deg2rad(135)
-            frame = LidarFrame2D(frame_setting)
+            frame = LidarFrame2Dd(frame_setting)
             rotation = np.array(
                 [
                     [np.cos(theta), -np.sin(theta)],

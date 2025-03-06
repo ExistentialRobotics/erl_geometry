@@ -8,7 +8,6 @@
 #include "erl_common/string_utils.hpp"
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <string>
 
@@ -20,12 +19,11 @@ namespace erl::geometry {
 
     template<typename Dtype>
     class AbstractOctree {
+        inline static const std::string kFileHeader = fmt::format("# {}", type_name<AbstractOctree>());
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
 
-    protected:
-        inline static std::map<std::string, std::function<std::shared_ptr<AbstractOctree>(const std::shared_ptr<NdTreeSetting>&)>> s_class_id_mapping_ = {};
-
     public:
+        using DataType = Dtype;
         using Factory = common::FactoryPattern<AbstractOctree, false, false, std::shared_ptr<NdTreeSetting>>;
         using Vector3 = Eigen::Vector3<Dtype>;
 
@@ -392,10 +390,9 @@ namespace erl::geometry {
     protected:
         static bool
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
-        inline static const std::string kFileHeader = "# erl::geometry::AbstractOctree";
     };
 
-#define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
+    // #define ERL_REGISTER_OCTREE(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
 }  // namespace erl::geometry
 
 #include "abstract_octree.tpp"

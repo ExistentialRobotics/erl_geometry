@@ -13,10 +13,10 @@ namespace erl::geometry {
     class DepthFrame3D : public RangeSensorFrame3D<Dtype> {
     public:
         using Super = RangeSensorFrame3D<Dtype>;
-        using Matrix = typename Super::Matrix;
-        using Matrix3 = typename Super::Matrix3;
-        using Vector3 = typename Super::Vector3;
-        using Vector2 = typename Super::Vector2;
+        using MatrixX = Eigen::MatrixX<Dtype>;
+        using Matrix3 = Eigen::Matrix3<Dtype>;
+        using Vector3 = Eigen::Vector3<Dtype>;
+        using Vector2 = Eigen::Vector2<Dtype>;
 
         struct Setting : common::Yamlable<Setting, typename Super::Setting> {
             CameraIntrinsic<Dtype> camera_intrinsic = {};
@@ -63,11 +63,11 @@ namespace erl::geometry {
         [[nodiscard]] Vector2
         ComputeFrameCoords(const Vector3 &dir_frame) const override;
 
-        [[nodiscard]] static Matrix
-        DepthImageToDepth(const Matrix &depth_img, double depth_scale);
+        [[nodiscard]] static MatrixX
+        DepthImageToDepth(const MatrixX &depth_img, double depth_scale);
 
-        [[nodiscard]] static Matrix
-        DepthToDepthImage(const Matrix &depth, double depth_scale);
+        [[nodiscard]] static MatrixX
+        DepthToDepthImage(const MatrixX &depth, double depth_scale);
 
         /**
          * @brief Update the frame with new depth measurements.
@@ -77,7 +77,7 @@ namespace erl::geometry {
          * @param partition_rays whether to partition the rays.
          */
         void
-        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, Matrix depth, bool partition_rays) override;
+        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, MatrixX depth, bool partition_rays) override;
 
         void
         UpdateRanges(

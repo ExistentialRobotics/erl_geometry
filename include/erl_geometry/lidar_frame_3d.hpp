@@ -8,8 +8,6 @@
 
 #include <absl/container/flat_hash_map.h>
 
-#include <utility>
-
 namespace erl::geometry {
 
     template<typename Dtype>
@@ -18,12 +16,12 @@ namespace erl::geometry {
 
     public:
         using Super = RangeSensorFrame3D<Dtype>;
-        using Matrix = typename Super::Matrix;
-        using Matrix3 = typename Super::Matrix3;
+        using MatrixX = Eigen::MatrixX<Dtype>;
+        using Matrix3 = Eigen::Matrix3<Dtype>;
         using Matrix2X = Eigen::Matrix2X<Dtype>;
-        using Vector = typename Super::Vector;
-        using Vector3 = typename Super::Vector3;
-        using Vector2 = typename Super::Vector2;
+        using VectorX = Eigen::VectorX<Dtype>;
+        using Vector3 = Eigen::Vector3<Dtype>;
+        using Vector2 = Eigen::Vector2<Dtype>;
 
         struct Setting : common::Yamlable<Setting, typename Super::Setting> {
             Dtype azimuth_min = -M_PI;
@@ -80,7 +78,7 @@ namespace erl::geometry {
         }
 
         void
-        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, Matrix ranges, bool partition_rays) override;
+        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, MatrixX ranges, bool partition_rays) override;
 
         [[nodiscard]] std::shared_ptr<const Setting>
         GetSetting() const {

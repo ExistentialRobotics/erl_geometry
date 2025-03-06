@@ -6,7 +6,7 @@ import numpy as np
 import numpy.typing as npt
 
 from erl_geometry.pyerl_geometry import Lidar2D
-from erl_geometry.pyerl_geometry import LidarFrame2D
+from erl_geometry.pyerl_geometry import LidarFrame2Dd
 from . import HouseExpoMap
 
 __all__ = ["load_trajectory", "HouseExpoSequence"]
@@ -39,14 +39,12 @@ class HouseExpoSequence:
         return self.path.shape[0]
 
     @overload
-    def __getitem__(self, item: int) -> LidarFrame2D:
-        ...
+    def __getitem__(self, item: int) -> LidarFrame2Dd: ...
 
     @overload
-    def __getitem__(self, item: slice) -> List[LidarFrame2D]:
-        ...
+    def __getitem__(self, item: slice) -> List[LidarFrame2Dd]: ...
 
-    def __getitem__(self, item: Union[slice, int]) -> Union[List[LidarFrame2D], LidarFrame2D]:
+    def __getitem__(self, item: Union[slice, int]) -> Union[List[LidarFrame2Dd], LidarFrame2Dd]:
         if isinstance(item, slice):
             return [self.__getitem__(i) for i in list(range(len(self)))[item]]
         else:
@@ -57,10 +55,10 @@ class HouseExpoSequence:
                 [[np.cos(rotation_angle), -np.sin(rotation_angle)], [np.sin(rotation_angle), np.cos(rotation_angle)]]
             )
             translation = self.path[item, :2]
-            frame_setting = LidarFrame2D.Setting()
+            frame_setting = LidarFrame2Dd.Setting()
             frame_setting.valid_angle_min = self.lidar.setting.min_angle
             frame_setting.valid_angle_max = self.lidar.setting.max_angle
-            frame = LidarFrame2D(frame_setting)
+            frame = LidarFrame2Dd(frame_setting)
             frame.update(
                 rotation,
                 translation,

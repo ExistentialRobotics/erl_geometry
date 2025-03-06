@@ -30,26 +30,26 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    typename Lidar3D<Dtype>::Vector
+    typename Lidar3D<Dtype>::VectorX
     Lidar3D<Dtype>::GetAzimuthAngles() const {
         if (m_setting_->azimuth_max - m_setting_->azimuth_min == 2.0 * M_PI) {
             const Dtype d = 2.0 * M_PI / static_cast<Dtype>(m_setting_->num_azimuth_lines);
-            return Vector::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max - d);
+            return VectorX::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max - d);
         }
-        return Vector::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max);
+        return VectorX::LinSpaced(m_setting_->num_azimuth_lines, m_setting_->azimuth_min, m_setting_->azimuth_max);
     }
 
     template<typename Dtype>
-    typename Lidar3D<Dtype>::Vector
+    typename Lidar3D<Dtype>::VectorX
     Lidar3D<Dtype>::GetElevationAngles() const {
-        return Vector::LinSpaced(m_setting_->num_elevation_lines, m_setting_->elevation_min, m_setting_->elevation_max);
+        return VectorX::LinSpaced(m_setting_->num_elevation_lines, m_setting_->elevation_min, m_setting_->elevation_max);
     }
 
     template<typename Dtype>
     Eigen::MatrixX<typename Lidar3D<Dtype>::Vector3>
     Lidar3D<Dtype>::GetRayDirectionsInFrame() const {
-        Vector azimuth_angles = GetAzimuthAngles();
-        Vector elevation_angles = GetElevationAngles();
+        VectorX azimuth_angles = GetAzimuthAngles();
+        VectorX elevation_angles = GetElevationAngles();
         Eigen::MatrixX<Vector3> directions(m_setting_->num_azimuth_lines, m_setting_->num_elevation_lines);
 
         using namespace erl::common;

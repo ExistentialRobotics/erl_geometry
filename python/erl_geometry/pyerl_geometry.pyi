@@ -52,7 +52,8 @@ __all__ = [
     "Space2D",
     "Lidar2D",
     "LidarFramePartition2D",
-    "LidarFrame2D",
+    "LidarFrame2Dd",
+    "LidarFrame2Df",
     "LogOddMap2D",
     "Lidar3D",
     "CameraIntrinsic",
@@ -1536,6 +1537,9 @@ class LidarFrame2D:
             "visible_hit_point_indices": list[int],
         },
     ): ...
+
+class LidarFrame2Dd(LidarFrame2D): ...
+class LidarFrame2Df(LidarFrame2D): ...
 
 class LogOddMap2D:
     class CellType(IntEnum):

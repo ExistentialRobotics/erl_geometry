@@ -1,29 +1,32 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_geometry/depth_frame_3d.hpp"
 
+template<typename Dtype>
 void
-BindDepthFrame3D(const py::module &m) {
+BindDepthFrame3DImpl(const py::module &m, const char *name) {
     using namespace erl::common;
     using namespace erl::geometry;
-    using T = DepthFrame3D;
+    using T = DepthFrame3D<Dtype>;
+    using Matrix3 = Eigen::Matrix3<Dtype>;
+    using MatrixX = Eigen::MatrixX<Dtype>;
+    using Vector3 = Eigen::Vector3<Dtype>;
 
-    py::class_<T, RangeSensorFrame3D, std::shared_ptr<T>> depth_frame(m, "DepthFrame3D");
-    py::class_<T::Setting, RangeSensorFrame3D::Setting, std::shared_ptr<T::Setting>>(depth_frame, "Setting")
+    py::class_<T, RangeSensorFrame3D<Dtype>, std::shared_ptr<T>> depth_frame(m, name);
+    py::class_<typename T::Setting, typename RangeSensorFrame3D<Dtype>::Setting, std::shared_ptr<typename T::Setting>>(depth_frame, "Setting")
         .def(py::init<>())
         .def_readwrite("camera_intrinsic", &T::Setting::camera_intrinsic);
-    depth_frame.def(py::init<std::shared_ptr<T::Setting>>(), py::arg("setting").none(false))
+    depth_frame.def(py::init<std::shared_ptr<typename T::Setting>>(), py::arg("setting").none(false))
         .def("reset", [](T &self) { self.Reset(); })
         .def(
             "update_ranges",
-            py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &, const Eigen::Ref<const Eigen::Vector3d> &, Eigen::MatrixXd, bool>(&T::UpdateRanges),
+            py::overload_cast<const Eigen::Ref<const Matrix3> &, const Eigen::Ref<const Vector3> &, MatrixX, bool>(&T::UpdateRanges),
             py::arg("rotation"),
             py::arg("translation"),
             py::arg("depth"),
             py::arg("partition_rays"))
         .def(
             "update_ranges",
-            py::overload_cast<const Eigen::Ref<const Eigen::Matrix3d> &, const Eigen::Ref<const Eigen::Vector3d> &, const std::string &, double, bool>(
-                &T::UpdateRanges),
+            py::overload_cast<const Eigen::Ref<const Matrix3> &, const Eigen::Ref<const Vector3> &, const std::string &, double, bool>(&T::UpdateRanges),
             py::arg("rotation"),
             py::arg("translation"),
             py::arg("depth_file"),
@@ -36,4 +39,10 @@ BindDepthFrame3D(const py::module &m) {
         .def_property_readonly("image_width", &T::GetImageWidth)
         .def_property_readonly("is_partitioned", [](const T &self) { return self.IsPartitioned(); })
         .def_property_readonly("partitions", [](const T &self) { return self.GetPartitions(); });
+}
+
+void
+BindDepthFrame3D(const py::module &m) {
+    BindDepthFrame3DImpl<double>(m, "DepthFrame3Dd");
+    BindDepthFrame3DImpl<float>(m, "DepthFrame3Df");
 }

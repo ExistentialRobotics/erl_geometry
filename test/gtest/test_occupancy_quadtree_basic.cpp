@@ -2,7 +2,14 @@
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
-using namespace erl::geometry;
+using Dtype = float;
+using AbstractQuadtree = erl::geometry::AbstractQuadtree<Dtype>;
+using OccupancyQuadtree = erl::geometry::OccupancyQuadtree<Dtype>;
+using OccupancyQuadtreeNode = erl::geometry::OccupancyQuadtreeNode;
+using QuadtreeKey = erl::geometry::QuadtreeKey;
+using VectorX = Eigen::VectorX<Dtype>;
+using Vector2 = Eigen::Vector2<Dtype>;
+using Matrix2X = Eigen::Matrix2X<Dtype>;
 
 TEST(OccupancyQuadtree, IO) {
     OccupancyQuadtree tree;
@@ -31,9 +38,9 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
     auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
 
     long n = 720;
-    Eigen::VectorXd angles = Eigen::VectorXd::LinSpaced(n, -M_PI, M_PI);
-    Eigen::Matrix2Xd points(2, n);
-    Eigen::Vector2d sensor_origin(1., 0);
+    VectorX angles = VectorX::LinSpaced(n, -M_PI, M_PI);
+    Matrix2X points(2, n);
+    Vector2 sensor_origin(1., 0);
 
     for (long i = 0; i < n; ++i) {
         // clang-format off
@@ -41,7 +48,7 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
                          std::sin(angles[i]) * 2 + sensor_origin.y();
         // clang-format on
     }
-    double max_range = -1.;
+    Dtype max_range = -1.;
     bool parallel = false;
     bool lazy_eval = false;
     bool discretize = false;
@@ -80,7 +87,7 @@ TEST(OccupancyQuadtree, InsertRay) {
 
     long n = 180;
     Eigen::Matrix2Xd points(2, 4 * n);
-    double d = std::sqrt(2);
+    Dtype d = std::sqrt(2);
     Eigen::VectorXd a = Eigen::VectorXd::LinSpaced(n, -d, d);
     points.row(0).segment(0, n) = a;
     points.row(1).segment(0, n).setConstant(d);
@@ -92,7 +99,7 @@ TEST(OccupancyQuadtree, InsertRay) {
     points.row(1).segment(3 * n, n) = a;
     Eigen::Vector2d sensor_origin(0., 0);
 
-    double max_range = -1;
+    Dtype max_range = -1;
     bool lazy_eval = false;
     erl::common::ReportTime<std::chrono::milliseconds>("InsertRay", 1, true, [&] {
         for (int i = 0; i < points.cols(); ++i) { tree->InsertRay(sensor_origin[0], sensor_origin[1], points(0, i), points(1, i), max_range, lazy_eval); }
@@ -124,11 +131,11 @@ TEST(OccupancyQuadtree, CoordsAndKey) {
     const auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.05;
     OccupancyQuadtree tree(tree_setting);
-    constexpr double x = 0;
-    constexpr double y = 0;
+    constexpr Dtype x = 0;
+    constexpr Dtype y = 0;
     QuadtreeKey key;
     EXPECT_TRUE(tree.CoordToKeyChecked(x, y, key));
-    double x_inv = 0, y_inv = 0;
+    Dtype x_inv = 0, y_inv = 0;
     tree.KeyToCoord(key, x_inv, y_inv);
     EXPECT_FLOAT_EQ(0.025, x_inv);
     EXPECT_FLOAT_EQ(0.025, y_inv);
@@ -152,7 +159,7 @@ TEST(OccupancyQuadtree, CoordsAndKey) {
 }
 
 TEST(OccupancyQuadtree, Prune) {
-    double resolution = 0.01;
+    Dtype resolution = 0.01;
     auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = resolution;
     auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
@@ -163,7 +170,7 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->GetSize(), 0);
 
     // single occupied cell should be found
-    double x = -0.05, y = -0.02;
+    Dtype x = -0.05, y = -0.02;
     QuadtreeKey single_key;
     EXPECT_TRUE(tree->CoordToKeyChecked(x, y, single_key));
     bool occupied = true;
@@ -268,7 +275,7 @@ TEST(OccupancyQuadtree, Prune) {
     // test larger volume pruning
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->UpdateNode(static_cast<double>(i) * resolution + 0.001, static_cast<double>(j) * resolution + 0.001, occupied, lazy_eval);
+            auto node = tree->UpdateNode(static_cast<Dtype>(i) * resolution + 0.001, static_cast<Dtype>(j) * resolution + 0.001, occupied, lazy_eval);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -282,7 +289,7 @@ TEST(OccupancyQuadtree, Prune) {
     // test expansion
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->Search(static_cast<double>(i) * resolution + 0.001, static_cast<double>(j) * resolution + 0.001);
+            auto node = tree->Search(static_cast<Dtype>(i) * resolution + 0.001, static_cast<Dtype>(j) * resolution + 0.001);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -293,7 +300,7 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_TRUE(tree->UpdateNode(single_key, occupied, lazy_eval));
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->Search(static_cast<double>(i) * resolution + 0.001, static_cast<double>(j) * resolution + 0.001);
+            auto node = tree->Search(static_cast<Dtype>(i) * resolution + 0.001, static_cast<Dtype>(j) * resolution + 0.001);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -436,25 +443,25 @@ TEST(OccupancyQuadtree, RayCasting) {
     unsigned int hit = 0;
     unsigned int miss = 0;
     unsigned int unknown = 0;
-    double mean_dist = 0;
+    Dtype mean_dist = 0;
     auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.05;
     auto sampled_surface = std::make_shared<OccupancyQuadtree>(tree_setting);
 
     int n = 10000;
     for (int i = 0; i < n; ++i) {
-        double angle = static_cast<double>(i) / 1000 * 2 * M_PI - M_PI;
-        double vx = std::cos(angle);
-        double vy = std::sin(angle);
+        Dtype angle = static_cast<Dtype>(i) / 1000 * 2 * M_PI - M_PI;
+        Dtype vx = std::cos(angle);
+        Dtype vy = std::sin(angle);
 
-        constexpr double sx = 1.0, sy = 0.;
+        constexpr Dtype sx = 1.0, sy = 0.;
         constexpr bool ignore_unknown = false;
-        constexpr double max_range = 6;
+        constexpr Dtype max_range = 6;
 
-        if (double ex = 0, ey = 0; tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
+        if (Dtype ex = 0, ey = 0; tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
             hit++;
-            double dx = ex - sx;
-            double dy = ey - sy;
+            Dtype dx = ex - sx;
+            Dtype dy = ey - sy;
             mean_dist += std::sqrt(dx * dx + dy * dy);
             sampled_surface->UpdateNode(ex, ey, true, false);
         } else {
@@ -472,6 +479,6 @@ TEST(OccupancyQuadtree, RayCasting) {
     EXPECT_EQ(hit, n);
     EXPECT_EQ(miss, 0);
     EXPECT_EQ(unknown, 0);
-    mean_dist /= static_cast<double>(hit);
+    mean_dist /= static_cast<Dtype>(hit);
     EXPECT_NEAR(mean_dist, 2.0, 0.01);
 }

@@ -1,4 +1,8 @@
+#include "pyobject_occupancy_octree.hpp"
+#include "pyobject_occupancy_quadtree.hpp"
+
 #include "erl_common/pybind11.hpp"
+#include "erl_geometry/init.hpp"
 
 void
 BindAabb(const py::module &m);
@@ -135,7 +139,25 @@ BindOpen3dHelper(py::module &m);
 void
 BindHiddenPointRemoval(py::module &m);
 
+void
+PyInit() {
+
+#define REGISTER(x) (void) x::Register<x>()
+
+    using namespace erl::geometry;
+    REGISTER(PyObjectOccupancyQuadtreeNode);
+    REGISTER(PyObjectOccupancyOctreeNode);
+    REGISTER(PyObjectOccupancyQuadtreeD);
+    REGISTER(PyObjectOccupancyQuadtreeF);
+    REGISTER(PyObjectOccupancyOctreeD);
+    REGISTER(PyObjectOccupancyOctreeF);
+
+    Init();
+}
+
 PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
+    PyInit();
+
     m.doc() = "Python 3 Interface of erl_geometry";
 
     BindAabb(m);

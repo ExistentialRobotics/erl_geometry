@@ -1,13 +1,27 @@
-#include "erl_geometry/abstract_quadtree.hpp"
+#pragma once
 
 #include "erl_common/logging.hpp"
+#include "erl_geometry/abstract_quadtree.hpp"
 
 #include <filesystem>
 #include <fstream>
 
 namespace erl::geometry {
 
-    template <typename Dtype>
+    // template<typename Dtype>
+    // std::shared_ptr<AbstractQuadtree>
+    // AbstractQuadtree::CreateTree(const std::string &tree_id, const std::shared_ptr<NdTreeSetting> &setting) {
+    //     const auto it = s_class_id_mapping_.find(tree_id);
+    //     if (it == s_class_id_mapping_.end()) {
+    //         ERL_WARN("Unknown Quadtree type: {}. Here are the registered Quadtree types:", tree_id);
+    //         for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
+    //         return nullptr;
+    //     }
+    //
+    //     return it->second(setting);
+    // }
+
+    template<typename Dtype>
     bool
     AbstractQuadtree<Dtype>::Write(const std::string &filename) const {
         const auto path = std::filesystem::absolute(filename);
@@ -25,7 +39,7 @@ namespace erl::geometry {
         return true;
     }
 
-    template <typename Dtype>
+    template<typename Dtype>
     std::ostream &
     AbstractQuadtree<Dtype>::Write(std::ostream &s) const {
         // write header
@@ -40,7 +54,7 @@ namespace erl::geometry {
         return this->WriteData(s);
     }
 
-    template <typename Dtype>
+    template<typename Dtype>
     std::shared_ptr<AbstractQuadtree<Dtype>>
     AbstractQuadtree<Dtype>::Read(const std::string &filename) {
         ERL_INFO("Reading octree from file: {}", std::filesystem::absolute(filename));
@@ -55,7 +69,7 @@ namespace erl::geometry {
         return tree;
     }
 
-    template <typename Dtype>
+    template<typename Dtype>
     std::shared_ptr<AbstractQuadtree<Dtype>>
     AbstractQuadtree<Dtype>::Read(std::istream &s) {
         if (!s.good()) {
@@ -96,7 +110,7 @@ namespace erl::geometry {
         return tree;
     }
 
-    template <typename Dtype>
+    template<typename Dtype>
     bool
     AbstractQuadtree<Dtype>::LoadData(const std::string &filename) {
         ERL_INFO("Loading data from file: {}", std::filesystem::absolute(filename));
@@ -110,7 +124,7 @@ namespace erl::geometry {
         return success;
     }
 
-    template <typename Dtype>
+    template<typename Dtype>
     bool
     AbstractQuadtree<Dtype>::LoadData(std::istream &s) {
         if (!s.good()) {
@@ -150,7 +164,7 @@ namespace erl::geometry {
         return GetSize() == size;
     }
 
-    template <typename Dtype>
+    template<typename Dtype>
     bool
     AbstractQuadtree<Dtype>::ReadHeader(std::istream &s, std::string &tree_id, uint32_t &size) {
         // initialize output variables

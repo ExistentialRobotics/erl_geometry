@@ -9,6 +9,14 @@
 
 #include <boost/program_options.hpp>
 
+using Dtype = float;
+using OccupancyQuadtree = erl::geometry::OccupancyQuadtree<Dtype>;
+using Vector2 = Eigen::Vector2<Dtype>;
+using VectorX = Eigen::VectorX<Dtype>;
+using Matrix2X = Eigen::Matrix2X<Dtype>;
+using MatrixX = Eigen::MatrixX<Dtype>;
+using Matrix2 = Eigen::Matrix2<Dtype>;
+
 const std::filesystem::path kProjectRootDir = ERL_GEOMETRY_ROOT_DIR;
 static std::string g_window_name = "OccupancyQuadtree_Build";
 
@@ -23,9 +31,9 @@ struct Options {
     bool use_ucsd_fah_2d = false;
     bool hold = false;
     int stride = 1;
-    double quadtree_resolution = 0.05;
+    Dtype quadtree_resolution = 0.05;
     bool quadtree_lazy_eval = false;  // bad, slower
-    double map_resolution = 0.025;
+    Dtype map_resolution = 0.025;
 };
 
 static Options g_options;
@@ -33,28 +41,28 @@ static Options g_options;
 TEST(OccupancyQuadtree, Build) {
 
     long max_update_cnt;
-    Eigen::Vector2d map_min(0, 0);
-    Eigen::Vector2d map_max(0, 0);
-    Eigen::Vector2d map_resolution(g_options.map_resolution, g_options.map_resolution);
+    Vector2 map_min(0, 0);
+    Vector2 map_max(0, 0);
+    Vector2 map_resolution(g_options.map_resolution, g_options.map_resolution);
     Eigen::Vector2i map_padding(10, 10);
-    std::vector<Eigen::Matrix2Xd> buf_points;
+    std::vector<Matrix2X> buf_points;
     Eigen::Matrix2Xd trajectory;
 
-    auto load_scan = [&](const Eigen::Matrix2d &rotation, const Eigen::Vector2d &translation, const Eigen::VectorXd &angles, const Eigen::VectorXd &ranges) {
+    auto load_scan = [&](const Matrix2 &rotation, const Vector2 &translation, const VectorX &angles, const VectorX &ranges) {
         const long n = ranges.size();
-        Eigen::Matrix2Xd points(2, n);
+        Matrix2X points(2, n);
         long cnt = 0;
         for (long k = 0; k < n; ++k) {
-            const double &angle = angles[k];
-            const double &range = ranges[k];
+            const Dtype &angle = angles[k];
+            const Dtype &range = ranges[k];
             if (!std::isfinite(range)) { continue; }
-            Eigen::Vector2d local_pt(std::cos(angle) * range, std::sin(angle) * range);
-            Eigen::Vector2d global_pt = rotation * local_pt + translation;
+            Vector2 local_pt(std::cos(angle) * range, std::sin(angle) * range);
+            Vector2 global_pt = rotation * local_pt + translation;
             points.col(cnt) = global_pt;
             cnt++;
 
-            const double &x = global_pt[0];
-            const double &y = global_pt[1];
+            const Dtype &x = global_pt[0];
+            const Dtype &y = global_pt[1];
             if (x < map_min[0]) { map_min[0] = x; }
             if (x > map_max[0]) { map_max[0] = x; }
             if (y < map_min[1]) { map_min[1] = y; }
@@ -80,7 +88,7 @@ TEST(OccupancyQuadtree, Build) {
         for (std::size_t i = 0; i < train_data_loader.size(); i += g_options.stride) {
             auto &df = train_data_loader[i];
             trajectory.col(j) << df.translation;
-            buf_points.push_back(load_scan(df.rotation, trajectory.col(j), df.angles, df.ranges));
+            buf_points.push_back(load_scan(df.rotation.cast<Dtype>(), trajectory.col(j).cast<Dtype>(), df.angles.cast<Dtype>(), df.ranges.cast<Dtype>()));
             j++;
             bar->Update();
         }
@@ -90,8 +98,8 @@ TEST(OccupancyQuadtree, Build) {
         tree_name = std::filesystem::path(g_options.house_expo_map_file).stem().filename().string() + "_2d";
         // load raw data
         erl::geometry::HouseExpoMap house_expo_map(g_options.house_expo_map_file, 0.2);
-        auto caster = [](const std::string &str) -> double { return std::stod(str); };
-        auto csv_trajectory = erl::common::LoadAndCastCsvFile<double>(g_options.house_expo_traj_file.c_str(), caster);
+        auto caster = [](const std::string &str) { return static_cast<Dtype>(std::stod(str)); };
+        auto csv_trajectory = erl::common::LoadAndCastCsvFile<Dtype>(g_options.house_expo_traj_file.c_str(), caster);
         // prepare buffer
         max_update_cnt = static_cast<long>(csv_trajectory.size()) / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
@@ -100,7 +108,7 @@ TEST(OccupancyQuadtree, Build) {
         auto lidar_setting = std::make_shared<erl::geometry::Lidar2D::Setting>();
         lidar_setting->num_lines = 720;
         erl::geometry::Lidar2D lidar(lidar_setting, house_expo_map.GetMeterSpace());
-        Eigen::VectorXd lidar_angles = lidar.GetAngles();
+        VectorX lidar_angles = lidar.GetAngles().cast<Dtype>();
         // load data into buffer
         long j = 0;
         std::shared_ptr<erl::common::ProgressBar> bar = erl::common::ProgressBar::Open();
@@ -108,9 +116,9 @@ TEST(OccupancyQuadtree, Build) {
         for (std::size_t i = 0; i < csv_trajectory.size(); i += g_options.stride) {
             trajectory.col(j) << csv_trajectory[i][0], csv_trajectory[i][1];
             Eigen::Matrix2d rotation = Eigen::Rotation2Dd(csv_trajectory[i][2]).toRotationMatrix();
-            Eigen::VectorXd lidar_ranges = lidar.Scan(rotation, trajectory.col(j), /*scan_in_parallel*/ true);
-            lidar_ranges += erl::common::GenerateGaussianNoise(lidar_ranges.size(), 0.0, 0.01);
-            buf_points.push_back(load_scan(rotation, trajectory.col(j), lidar_angles, lidar_ranges));
+            VectorX lidar_ranges = lidar.Scan(rotation, trajectory.col(j), /*scan_in_parallel*/ true).cast<Dtype>();
+            lidar_ranges += erl::common::GenerateGaussianNoise<Dtype>(lidar_ranges.size(), 0.0, 0.01);
+            buf_points.push_back(load_scan(rotation.cast<Dtype>(), trajectory.col(j).cast<Dtype>(), lidar_angles, lidar_ranges));
             j++;
             bar->Update();
         }
@@ -133,7 +141,7 @@ TEST(OccupancyQuadtree, Build) {
             trajectory.col(j) << pose(0, 2), pose(1, 2);
             Eigen::VectorXd angles = ros_bag_data.col(i).segment(7, num_rays);
             Eigen::VectorXd ranges = ros_bag_data.col(i).segment(7 + num_rays, num_rays);
-            buf_points.push_back(load_scan(pose.block<2, 2>(0, 0), trajectory.col(j), angles, ranges));
+            buf_points.push_back(load_scan(pose.block<2, 2>(0, 0).cast<Dtype>(), trajectory.col(j).cast<Dtype>(), angles.cast<Dtype>(), ranges.cast<Dtype>()));
             bar->Update();
         }
         bar->Close();
@@ -141,20 +149,20 @@ TEST(OccupancyQuadtree, Build) {
     }
 
     // initialize occupancy quadtree
-    auto tree_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Setting>();
+    auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = g_options.quadtree_resolution;
-    auto tree = std::make_shared<erl::geometry::OccupancyQuadtree>(tree_setting);
-    std::cout << "OccupancyQuadtree Setting:" << std::endl << tree->GetSetting<erl::geometry::OccupancyQuadtree::Setting>() << std::endl;
+    auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
+    std::cout << "OccupancyQuadtree Setting:" << std::endl << tree->GetSetting<OccupancyQuadtree::Setting>() << std::endl;
 
     // setup visualization
-    auto drawer_setting = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer::Setting>();
-    drawer_setting->area_min = map_min;
-    drawer_setting->area_max = map_max;
+    auto drawer_setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
+    drawer_setting->area_min = map_min.cast<double>();
+    drawer_setting->area_max = map_max.cast<double>();
     drawer_setting->resolution = map_resolution[0];
     drawer_setting->padding = map_padding[0];
     drawer_setting->border_color = cv::Scalar(255, 0, 0, 255);
     std::cout << "OccupancyQuadtree::Drawer Setting:" << std::endl << *drawer_setting << std::endl;
-    auto drawer = std::make_shared<erl::geometry::OccupancyQuadtree::Drawer>(drawer_setting, tree);
+    auto drawer = std::make_shared<OccupancyQuadtree::Drawer>(drawer_setting, tree);
     auto grid_map_info = drawer->GetGridMapInfo();
     cv::Mat img;
     cv::Scalar trajectory_color(0, 0, 255, 255);
@@ -167,16 +175,28 @@ TEST(OccupancyQuadtree, Build) {
     max_update_cnt = static_cast<long>(buf_points.size());
     for (long i = 0; i < max_update_cnt; ++i) {
         auto t0 = std::chrono::high_resolution_clock::now();
-        tree->InsertPointCloud(buf_points[i], trajectory.col(i), /*max_range*/ 100, /*parallel*/ false, g_options.quadtree_lazy_eval, /*discrete*/ false);
+        tree->InsertPointCloud(
+            buf_points[i],
+            trajectory.col(i).cast<Dtype>(),
+            /*max_range*/ 100,
+            /*parallel*/ false,
+            g_options.quadtree_lazy_eval,
+            /*discrete*/ false);
         if (g_options.quadtree_lazy_eval) {
             tree->UpdateInnerOccupancy();
             tree->Prune();
         }
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::cout << "update time: " << std::chrono::duration<double, std::milli>(t1 - t0).count() << " ms" << std::endl;
+        std::cout << "update time: " << std::chrono::duration<Dtype, std::milli>(t1 - t0).count() << " ms" << std::endl;
 
         drawer->DrawLeaves(img);
-        erl::common::DrawTrajectoryInplace(img, trajectory.block(0, 0, 2, i), grid_map_info, trajectory_color, 2, /*pixel_based*/ true);
+        erl::common::DrawTrajectoryInplace<Dtype>(
+            img,
+            trajectory.block(0, 0, 2, i).cast<Dtype>(),
+            grid_map_info->CastSharedPtr<Dtype>(),
+            trajectory_color,
+            2,
+            /*pixel_based*/ true);
         cv::imshow(g_window_name, img);
         cv::waitKey(10);
     }
@@ -199,9 +219,9 @@ main(int argc, char *argv[]) {
             ("use-house-expo-data", po::bool_switch(&g_options.use_house_expo_lidar_2d)->default_value(g_options.use_house_expo_lidar_2d), "Use HouseExpo data")
             ("use-ros-bag-data", po::bool_switch(&g_options.use_ucsd_fah_2d)->default_value(g_options.use_ucsd_fah_2d), "Use ROS bag data")
             ("stride", po::value<int>(&g_options.stride)->default_value(g_options.stride), "stride for running the sequence")
-            ("quadtree-resolution", po::value<double>(&g_options.quadtree_resolution)->default_value(g_options.quadtree_resolution), "Quadtree resolution")
+            ("quadtree-resolution", po::value<Dtype>(&g_options.quadtree_resolution)->default_value(g_options.quadtree_resolution), "Quadtree resolution")
             ("quadtree-lazy-eval", po::bool_switch(&g_options.quadtree_lazy_eval)->default_value(g_options.quadtree_lazy_eval), "Quadtree lazy evaluation")
-            ("map-resolution", po::value<double>(&g_options.map_resolution)->default_value(g_options.map_resolution), "Map resolution")
+            ("map-resolution", po::value<Dtype>(&g_options.map_resolution)->default_value(g_options.map_resolution), "Map resolution")
             ("hold", po::bool_switch(&g_options.hold)->default_value(g_options.hold), "Hold the test until a key is pressed")
             (
                 "house-expo-map-file",

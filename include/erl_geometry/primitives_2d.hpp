@@ -165,11 +165,11 @@ namespace erl::geometry {
         }
     };
 
-    class AxisAlignedRectangle2D : public Primitive2D, public Aabb2D {
+    class AxisAlignedRectangle2D : public Primitive2D, public Aabb2Dd {
 
     public:
         AxisAlignedRectangle2D(const int id, const Eigen::Vector2d &center, const Eigen::Vector2d &half_sizes)
-            : Aabb2D(center - half_sizes, center + half_sizes) {
+            : Aabb2Dd(center - half_sizes, center + half_sizes) {
             this->id = id;
         }
 

@@ -17,29 +17,54 @@ namespace erl::geometry {
      * @param y1: y coordinate of line vertex 1
      * @param x2: x coordinate of line vertex 2
      * @param y2: y coordinate of line vertex 2
-     * @return
+     * @return the distance from the point to the line segment
      */
-    double
-    ComputeNearestDistanceFromPointToLineSegment2D(double x0, double y0, double x1, double y1, double x2, double y2);
+    template<typename Dtype>
+    Dtype
+    ComputeNearestDistanceFromPointToLineSegment2D(Dtype x0, Dtype y0, Dtype x1, Dtype y1, Dtype x2, Dtype y2);
 
+    template<typename Dtype>
     void
     ComputeIntersectionBetweenTwoLines2D(
-        const Eigen::Vector2d &p00,
-        const Eigen::Vector2d &p01,
-        const Eigen::Vector2d &p10,
-        const Eigen::Vector2d &p11,
-        double &lam1,
-        double &lam2,
+        const Eigen::Vector2<Dtype> &p00,
+        const Eigen::Vector2<Dtype> &p01,
+        const Eigen::Vector2<Dtype> &p10,
+        const Eigen::Vector2<Dtype> &p11,
+        Dtype &lam1,
+        Dtype &lam2,
         bool &intersected);
 
+    /**
+     *
+     * @tparam Dtype float or double
+     * @param p11 p1 of line 1
+     * @param p12 p2 of line 1
+     * @param p21 p1 of line 2
+     * @param p22 p2 of line 2
+     * @param lam1 the intersection point is (1-lam1) * p11 + lam1 * p12
+     * @param lam2 the intersection point is (1-lam2) * p21 + lam2 * p22
+     * @param valid whether the result is valid
+     */
+    template<typename Dtype>
+    void
+    ComputeClosestPointsBetweenTwoLines3D(
+        const Eigen::Vector3<Dtype> &p11,
+        const Eigen::Vector3<Dtype> &p12,
+        const Eigen::Vector3<Dtype> &p21,
+        const Eigen::Vector3<Dtype> &p22,
+        Dtype &lam1,
+        Dtype &lam2,
+        bool &valid);
+
+    template<typename Dtype>
     void
     ComputeIntersectionBetweenTwoLines3D(
-        const Eigen::Vector3d &p00,
-        const Eigen::Vector3d &p01,
-        const Eigen::Vector3d &p10,
-        const Eigen::Vector3d &p11,
-        double &lam1,
-        double &lam2,
+        const Eigen::Vector3<Dtype> &p11,
+        const Eigen::Vector3<Dtype> &p12,
+        const Eigen::Vector3<Dtype> &p21,
+        const Eigen::Vector3<Dtype> &p22,
+        Dtype &lam1,
+        Dtype &lam2,
         bool &intersected);
 
     /**
@@ -52,14 +77,15 @@ namespace erl::geometry {
      * @param dist: distance from p_0 to the line along direction d
      * @param intersected: whether the ray intersects the segment
      */
+    template<typename Dtype>
     void
     ComputeIntersectionBetweenRayAndLine2D(
-        const Eigen::Vector2d &p0,
-        const Eigen::Vector2d &v,
-        const Eigen::Vector2d &p1,
-        const Eigen::Vector2d &p2,
-        double &lam,
-        double &dist,
+        const Eigen::Vector2<Dtype> &p0,
+        const Eigen::Vector2<Dtype> &v,
+        const Eigen::Vector2<Dtype> &p1,
+        const Eigen::Vector2<Dtype> &p2,
+        Dtype &lam,
+        Dtype &dist,
         bool &intersected);
 
     /**
@@ -81,14 +107,15 @@ namespace erl::geometry {
      * @refitem https://en.wikipedia.org/wiki/Nicholl%E2%80%93Lee%E2%80%93Nicholl_algorithm
      * @refitem https://en.wikipedia.org/wiki/Line_clipping#Fast_clipping
      */
+    template<typename Dtype>
     void
     ComputeIntersectionBetweenRayAndAabb2D(
-        const Eigen::Vector2d &p,
-        const Eigen::Vector2d &v_inv,
-        const Eigen::Vector2d &box_min,
-        const Eigen::Vector2d &box_max,
-        double &d1,
-        double &d2,
+        const Eigen::Vector2<Dtype> &p,
+        const Eigen::Vector2<Dtype> &v_inv,
+        const Eigen::Vector2<Dtype> &box_min,
+        const Eigen::Vector2<Dtype> &box_max,
+        Dtype &d1,
+        Dtype &d2,
         bool &intersected,
         bool &is_inside);
 
@@ -102,14 +129,15 @@ namespace erl::geometry {
      * @param d2           output distance from p to the second intersection point (farthest one if p is outside the box, backward one if p is inside the box)
      * @param intersected  output whether the ray intersects the box
      */
+    template<typename Dtype>
     void
     ComputeIntersectionBetweenRayAndAabb3D(
-        const Eigen::Vector3d &p,
-        const Eigen::Vector3d &r_inv,
-        const Eigen::Vector3d &box_min,
-        const Eigen::Vector3d &box_max,
-        double &d1,
-        double &d2,
+        const Eigen::Vector3<Dtype> &p,
+        const Eigen::Vector3<Dtype> &r_inv,
+        const Eigen::Vector3<Dtype> &box_min,
+        const Eigen::Vector3<Dtype> &box_max,
+        Dtype &d1,
+        Dtype &d2,
         bool &intersected,
         bool &is_inside);
 
@@ -125,8 +153,9 @@ namespace erl::geometry {
      * @param lam2 output the second intersection point: lam2 * (x0, y0) + (1 - lam2) * (x1, y1), lam1 < lam2
      * @param intersected output whether the line intersects the ellipse
      */
+    template<typename Dtype>
     void
-    ComputeIntersectionBetweenLineAndEllipse2D(double x0, double y0, double x1, double y1, double a, double b, double &lam1, double &lam2, bool &intersected);
+    ComputeIntersectionBetweenLineAndEllipse2D(Dtype x0, Dtype y0, Dtype x1, Dtype y1, Dtype a, Dtype b, Dtype &lam1, Dtype &lam2, bool &intersected);
 
     /**
      * Compute the intersection between a line and an ellipse assumed to be centered at the origin and axis-aligned.
@@ -143,18 +172,21 @@ namespace erl::geometry {
      * @param lam2 output the second intersection point: lam2 * (x0, y0, z0) + (1 - lam2) * (x1, y1, z1), lam1 < lam2
      * @param intersected output whether the line intersects the ellipsoid
      */
+    template<typename Dtype>
     void
     ComputeIntersectionBetweenLineAndEllipsoid3D(
-        double x0,
-        double y0,
-        double z0,
-        double x1,
-        double y1,
-        double z1,
-        double a,
-        double b,
-        double c,
-        double &lam1,
-        double &lam2,
+        Dtype x0,
+        Dtype y0,
+        Dtype z0,
+        Dtype x1,
+        Dtype y1,
+        Dtype z1,
+        Dtype a,
+        Dtype b,
+        Dtype c,
+        Dtype &lam1,
+        Dtype &lam2,
         bool &intersected);
 }  // namespace erl::geometry
+
+#include "intersection.tpp"

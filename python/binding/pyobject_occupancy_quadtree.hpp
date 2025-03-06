@@ -7,20 +7,22 @@
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 namespace erl::geometry {
-    class PyObjectOccupancyQuadtree : public OccupancyQuadtreeBase<PyObjectOccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting> {
+    template<typename Dtype>
+    class PyObjectOccupancyQuadtree : public OccupancyQuadtreeBase<Dtype, PyObjectOccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting> {
     public:
         using Setting = OccupancyQuadtreeBaseSetting;
+        using Super = OccupancyQuadtreeBase<Dtype, PyObjectOccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>;
         using Drawer = OccupancyQuadtreeDrawer<PyObjectOccupancyQuadtree>;
 
         explicit PyObjectOccupancyQuadtree(const std::shared_ptr<OccupancyQuadtreeBaseSetting> &setting)
-            : OccupancyQuadtreeBase(setting) {}
+            : Super(setting) {}
 
         PyObjectOccupancyQuadtree()
             : PyObjectOccupancyQuadtree(std::make_shared<OccupancyQuadtreeBaseSetting>()) {}
 
         explicit PyObjectOccupancyQuadtree(const std::string &filename)
             : PyObjectOccupancyQuadtree() {  // resolution will be set by LoadData
-            ERL_ASSERTM(this->LoadData(filename), "Failed to read PyObjectOccupancyQuadtree from file: {}", filename);
+            ERL_ASSERTM(this->LoadData(filename), "Failed to read {} from file: {}", type_name<PyObjectOccupancyQuadtree>(), filename);
         }
 
         PyObjectOccupancyQuadtree(const PyObjectOccupancyQuadtree &other) = default;
@@ -31,20 +33,25 @@ namespace erl::geometry {
         operator=(PyObjectOccupancyQuadtree &&other) = default;
 
     protected:
-        [[nodiscard]] std::shared_ptr<AbstractQuadtree>
+        [[nodiscard]] std::shared_ptr<AbstractQuadtree<Dtype>>
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) {
-                ERL_DEBUG_ASSERT(setting == nullptr, "setting is not the type for OccupancyQuadtree.");
+                ERL_DEBUG_ASSERT(setting == nullptr, "setting is not the type for {}.", type_name<PyObjectOccupancyQuadtree>());
                 tree_setting = std::make_shared<Setting>();
             }
             return std::make_shared<PyObjectOccupancyQuadtree>(tree_setting);
         }
     };
 
-    ERL_REGISTER_QUADTREE(PyObjectOccupancyQuadtree);
+    using PyObjectOccupancyQuadtreeD = PyObjectOccupancyQuadtree<double>;
+    using PyObjectOccupancyQuadtreeF = PyObjectOccupancyQuadtree<float>;
 }  // namespace erl::geometry
 
 template<>
-struct YAML::convert<erl::geometry::PyObjectOccupancyQuadtree::Drawer::Setting>
-    : public ConvertOccupancyQuadtreeDrawerSetting<erl::geometry::PyObjectOccupancyQuadtree::Drawer::Setting> {};  // namespace YAML
+struct YAML::convert<erl::geometry::PyObjectOccupancyQuadtreeD::Drawer::Setting>
+    : public erl::geometry::PyObjectOccupancyQuadtreeD::Drawer::Setting::YamlConvertImpl {};  // namespace YAML
+
+template<>
+struct YAML::convert<erl::geometry::PyObjectOccupancyQuadtreeF::Drawer::Setting>
+    : public erl::geometry::PyObjectOccupancyQuadtreeF::Drawer::Setting::YamlConvertImpl {};  // namespace YAML

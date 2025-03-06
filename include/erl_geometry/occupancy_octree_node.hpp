@@ -147,6 +147,4 @@ namespace erl::geometry {
             m_log_odds_ += log_odds;
         }
     };
-
-    ERL_REGISTER_OCTREE_NODE(OccupancyOctreeNode);
 }  // namespace erl::geometry

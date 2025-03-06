@@ -62,7 +62,7 @@ namespace erl::geometry {
     template<typename Dtype>
     std::ostream &
     AbstractOccupancyOctree<Dtype>::WriteBinary(std::ostream &s) const {
-        s << sk_BinaryFileHeader_ << std::endl
+        s << kBinaryFileHeader << std::endl
           << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
           << "id " << Super::GetTreeType() << std::endl
           << "size " << this->GetSize() << std::endl
@@ -98,8 +98,8 @@ namespace erl::geometry {
         // check if the first line is valid
         std::string line;
         std::getline(s, line);
-        if (line.compare(0, sk_BinaryFileHeader_.length(), sk_BinaryFileHeader_) != 0) {
-            ERL_WARN("First line of Octree file header does not start with \"{}\"", sk_BinaryFileHeader_.c_str());
+        if (line.compare(0, kBinaryFileHeader.length(), kBinaryFileHeader) != 0) {
+            ERL_WARN("First line of Octree file header does not start with \"{}\"", kBinaryFileHeader.c_str());
             return false;
         }
 

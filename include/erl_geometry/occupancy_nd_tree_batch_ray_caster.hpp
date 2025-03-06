@@ -9,21 +9,24 @@ namespace erl::geometry {
     template<typename Tree, int Dim>
     class OccupancyNdTreeBatchRayCaster {
     public:
-        using Matrix = Eigen::Matrix<double, Dim, Eigen::Dynamic>;
+        using Dtype = typename Tree::DataType;
+        using VectorD = Eigen::Vector<Dtype, Dim>;
+        using VectorX = Eigen::VectorX<Dtype>;
+        using MatrixDX = Eigen::Matrix<Dtype, Dim, Eigen::Dynamic>;
         using NodeOnRayIterator = typename Tree::NodeOnRayIterator;
 
     private:
         const Tree *m_tree_ = nullptr;
-        Matrix m_origins_{};
-        Matrix m_directions_{};
+        MatrixDX m_origins_{};
+        MatrixDX m_directions_{};
         std::vector<NodeOnRayIterator> m_node_iterators_{};
 
         Eigen::VectorXb m_hit_flags_{};
         Eigen::VectorXb m_ever_hit_flags_{};
 
-        Eigen::VectorXd m_hit_distances_{};
+        VectorX m_hit_distances_{};
         std::vector<typename Tree::NodeType *> m_hit_nodes_{};
-        std::vector<Eigen::Vector<double, Dim>> m_hit_positions_{};
+        std::vector<VectorD> m_hit_positions_{};
 
         std::vector<typename Tree::NodeType *> m_frontier_nodes_;
         std::vector<typename Tree::KeyType> m_frontier_keys_;
@@ -32,10 +35,10 @@ namespace erl::geometry {
     public:
         OccupancyNdTreeBatchRayCaster(
             const Tree *tree,
-            Matrix origins,
-            Matrix directions,
-            const Eigen::VectorXd &max_ranges,
-            const Eigen::VectorXd &node_paddings,
+            MatrixDX origins,
+            MatrixDX directions,
+            const VectorX &max_ranges,
+            const VectorX &node_paddings,
             const Eigen::VectorXb &bidirectional_flags,
             const Eigen::VectorXb &leaf_only_flags,
             const Eigen::VectorXi &min_node_depths,
@@ -89,12 +92,12 @@ namespace erl::geometry {
             return m_origins_.cols();
         }
 
-        [[nodiscard]] const Matrix &
+        [[nodiscard]] const MatrixDX &
         GetRayOrigins() const {
             return m_origins_;
         }
 
-        [[nodiscard]] const Matrix &
+        [[nodiscard]] const MatrixDX &
         GetRayDirections() const {
             return m_directions_;
         }
@@ -109,7 +112,7 @@ namespace erl::geometry {
             return m_ever_hit_flags_;
         }
 
-        [[nodiscard]] const Eigen::VectorXd &
+        [[nodiscard]] const VectorX &
         GetHitDistances() const {
             return m_hit_distances_;
         }
@@ -119,7 +122,7 @@ namespace erl::geometry {
             return m_hit_nodes_;
         }
 
-        [[nodiscard]] const std::vector<Eigen::Vector<double, Dim>> &
+        [[nodiscard]] const std::vector<VectorD> &
         GetHitPositions() const {
             return m_hit_positions_;
         }

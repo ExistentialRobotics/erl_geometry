@@ -1,36 +1,39 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_geometry/abstract_occupancy_octree.hpp"
 
+template<typename Dtype>
 void
-BindAbstractOccupancyOctree(const py::module &m) {
+BindAbstractOccupancyOctreeImpl(const py::module &m, const char *name) {
     using namespace erl::geometry;
-    py::class_<AbstractOccupancyOctree, AbstractOctree, std::shared_ptr<AbstractOccupancyOctree>>(m, "AbstractOccupancyOctree")
+    using T = AbstractOccupancyOctree<Dtype>;
+
+    py::class_<T, AbstractOctree<Dtype>, std::shared_ptr<T>>(m, name)
         .def(
             "write_binary",
-            [](AbstractOccupancyOctree &self, const std::string &filename, const bool prune_at_first) -> bool {
+            [](T &self, const std::string &filename, const bool prune_at_first) -> bool {
                 if (prune_at_first) { return self.WriteBinary(filename); }
-                return const_cast<const AbstractOccupancyOctree &>(self).WriteBinary(filename);
+                return const_cast<const T &>(self).WriteBinary(filename);
             },
             py::arg("filename"),
             py::arg("prune_at_first"))
         .def(
             "read_binary",
-            [](AbstractOccupancyOctree &self, const std::string &filename) -> bool { return self.ReadBinary(filename); },
+            [](T &self, const std::string &filename) -> bool { return self.ReadBinary(filename); },
             py::arg("filename"))
-        .def("is_node_occupied", &AbstractOccupancyOctree::IsNodeOccupied, py::arg("node"))
-        .def("is_node_at_threshold", &AbstractOccupancyOctree::IsNodeAtThreshold, py::arg("node"))
+        .def("is_node_occupied", &T::IsNodeOccupied, py::arg("node"))
+        .def("is_node_at_threshold", &T::IsNodeAtThreshold, py::arg("node"))
         .def(
             "get_hit_occupied_node",
-            [](const AbstractOccupancyOctree &self,
-               const double px,
-               const double py,
-               const double pz,
-               const double vx,
-               const double vy,
-               const double vz,
+            [](const T &self,
+               const Dtype px,
+               const Dtype py,
+               const Dtype pz,
+               const Dtype vx,
+               const Dtype vy,
+               const Dtype vz,
                const bool ignore_unknown,
-               const double max_range) {
-                double ex, ey, ez;
+               const Dtype max_range) {
+                Dtype ex, ey, ez;
                 auto *node = self.GetHitOccupiedNode(px, py, pz, vx, vy, vz, ignore_unknown, max_range, ex, ey, ez);
                 py::dict result;
                 if (node == nullptr) { return result; }
@@ -48,4 +51,10 @@ BindAbstractOccupancyOctree(const py::module &m) {
             py::arg("vz"),
             py::arg("ignore_unknown"),
             py::arg("max_range"));
+}
+
+void
+BindAbstractOccupancyOctree(const py::module &m) {
+    BindAbstractOccupancyOctreeImpl<double>(m, "AbstractOccupancyOctreeD");
+    BindAbstractOccupancyOctreeImpl<float>(m, "AbstractOccupancyOctreeF");
 }

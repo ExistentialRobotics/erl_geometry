@@ -7,7 +7,7 @@ BindIntersection(py::module &m) {
 
     m.def(
          "compute_nearest_distance_from_point_to_line_segment_2d",
-         &ComputeNearestDistanceFromPointToLineSegment2D,
+         &ComputeNearestDistanceFromPointToLineSegment2D<double>,
          py::arg("point_x"),
          py::arg("point_y"),
          py::arg("line_segment_x1"),
@@ -23,7 +23,7 @@ BindIntersection(py::module &m) {
                 double lambda = 0;
                 double distance = 0;
                 bool intersected = false;
-                ComputeIntersectionBetweenRayAndLine2D(ray_start_point, ray_direction, segment_point1, segment_point2, lambda, distance, intersected);
+                ComputeIntersectionBetweenRayAndLine2D<double>(ray_start_point, ray_direction, segment_point1, segment_point2, lambda, distance, intersected);
                 return py::make_tuple(lambda, distance, intersected);
             },
             py::arg("ray_start_point"),
@@ -39,7 +39,7 @@ BindIntersection(py::module &m) {
                 double d1 = 0.0, d2 = 0.0;
                 bool intersected = false;
                 bool is_inside = false;
-                ComputeIntersectionBetweenRayAndAabb2D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected, is_inside);
+                ComputeIntersectionBetweenRayAndAabb2D<double>(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected, is_inside);
                 py::dict results;
                 results["d1"] = d1;
                 results["d2"] = d2;
@@ -60,7 +60,7 @@ BindIntersection(py::module &m) {
                 double d1 = 0.0, d2 = 0.0;
                 bool intersected = false;
                 bool is_inside = false;
-                ComputeIntersectionBetweenRayAndAabb3D(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected, is_inside);
+                ComputeIntersectionBetweenRayAndAabb3D<double>(p, r.cwiseInverse(), box_min, box_max, d1, d2, intersected, is_inside);
                 py::dict results;
                 results["d1"] = d1;
                 results["d2"] = d2;
@@ -77,7 +77,7 @@ BindIntersection(py::module &m) {
             [](const double x0, const double y0, const double x1, const double y1, const double a, const double b) {
                 double lam1 = 0.0, lam2 = 0.0;
                 bool intersected = false;
-                ComputeIntersectionBetweenLineAndEllipse2D(x0, y0, x1, y1, a, b, lam1, lam2, intersected);
+                ComputeIntersectionBetweenLineAndEllipse2D<double>(x0, y0, x1, y1, a, b, lam1, lam2, intersected);
                 return py::make_tuple(lam1, lam2, intersected);
             },
             py::arg("x0"),
@@ -99,7 +99,7 @@ BindIntersection(py::module &m) {
                const double c) {
                 double lam1 = 0.0, lam2 = 0.0;
                 bool intersected = false;
-                ComputeIntersectionBetweenLineAndEllipsoid3D(x0, y0, z0, x1, y1, z1, a, b, c, lam1, lam2, intersected);
+                ComputeIntersectionBetweenLineAndEllipsoid3D<double>(x0, y0, z0, x1, y1, z1, a, b, c, lam1, lam2, intersected);
                 return py::make_tuple(lam1, lam2, intersected);
             },
             py::arg("x0"),

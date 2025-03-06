@@ -79,6 +79,4 @@ namespace erl::geometry {
             return s;
         }
     };
-
-    ERL_REGISTER_QUADTREE_NODE(PyObjectOccupancyQuadtreeNode);  // Register the node
 }  // namespace erl::geometry

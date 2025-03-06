@@ -1,7 +1,6 @@
 #pragma once
 
-#include "erl_common/angle_utils.hpp"
-#include "erl_common/random.hpp"
+#include "erl_geometry/hidden_point_removal.hpp"
 
 namespace erl::geometry {
     template<typename Dtype>
@@ -86,7 +85,7 @@ namespace erl::geometry {
             return;
         }
 
-        if (!m_kd_tree_->Ready()) { std::const_pointer_cast<KdTree3d>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_.data()->data(), m_end_pts_world_.size()); }
+        if (!m_kd_tree_->Ready()) { std::const_pointer_cast<KdTree>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_.data()->data(), m_end_pts_world_.size()); }
         long end_point_index = -1;
         distance = std::numeric_limits<Dtype>::infinity();
         m_kd_tree_->Nearest(position_world, end_point_index, distance);
@@ -104,7 +103,7 @@ namespace erl::geometry {
         const Dtype sampled_rays_ratio,
         Matrix3X &positions_world,
         Matrix3X &directions_world,
-        Vector &distances) const {
+        VectorX &distances) const {
 
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(ray_indices.size());
@@ -142,7 +141,7 @@ namespace erl::geometry {
         const Dtype sampled_rays_ratio,
         Matrix3X &positions_world,
         Matrix3X &directions_world,
-        Vector &distances) const {
+        VectorX &distances) const {
 
         std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(ray_indices.size());
@@ -187,7 +186,7 @@ namespace erl::geometry {
         const Dtype sampled_rays_ratio,
         Matrix3X &positions_world,
         Matrix3X &directions_world,
-        Vector &distances) const {
+        VectorX &distances) const {
         std::vector<long> hit_ray_indices = common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(hit_ray_indices.size());
         const long n_samples = n_rays * num_samples_per_ray;
@@ -218,7 +217,7 @@ namespace erl::geometry {
         Dtype max_in_obstacle_dist,
         Matrix3X &positions_world,
         Matrix3X &directions_world,
-        Vector &distances,
+        VectorX &distances,
         const bool parallel) const {
         ERL_ASSERTM(num_positions > 0, "num_positions ({}) must be positive.", num_positions);
 
@@ -230,7 +229,7 @@ namespace erl::geometry {
             threads.reserve(num_threads);
             std::vector<Matrix3X> positions_world_buffers(num_threads);
             std::vector<Matrix3X> directions_world_buffers(num_threads);
-            std::vector<Vector> distances_buffers(num_threads);
+            std::vector<VectorX> distances_buffers(num_threads);
             const uint64_t seed = common::g_random_engine();
             for (uint32_t thread_idx = 0; thread_idx < num_threads; ++thread_idx) {
                 threads.emplace_back(
@@ -285,7 +284,7 @@ namespace erl::geometry {
         long num_azimuth_segments,
         Matrix3X &positions_world,
         Matrix3X &directions_world,
-        Vector &distances,
+        VectorX &distances,
         const bool parallel) const {
 
         ERL_ASSERTM(num_hit_points > 0, "num_hit_points ({}) must be positive.", num_hit_points);
@@ -307,7 +306,7 @@ namespace erl::geometry {
             threads.reserve(num_threads);
             std::vector<Matrix3X> positions_world_buffers(num_threads);
             std::vector<Matrix3X> directions_world_buffers(num_threads);
-            std::vector<Vector> distances_buffers(num_threads);
+            std::vector<VectorX> distances_buffers(num_threads);
             const uint64_t seed = common::g_random_engine();
             for (long thread_idx = 0, start = 0; thread_idx < num_threads; ++thread_idx) {
                 const long end = start + num_positions_per_thread + (thread_idx < leftover ? 1 : 0);
@@ -360,7 +359,7 @@ namespace erl::geometry {
     RangeSensorFrame3D<Dtype>::ComputeRaysAt(
         const Eigen::Ref<const Vector3> &position_world,
         Matrix3X &directions_world,
-        Vector &distances,
+        VectorX &distances,
         std::vector<long> &visible_hit_point_indices) const {
         ERL_ASSERTM(!std::isinf(m_max_valid_range_), "max valid range is not set.");
         const Dtype radius = (m_max_valid_range_ + (position_world - m_translation_).norm()) * 10.0;
@@ -696,7 +695,7 @@ namespace erl::geometry {
         const Dtype max_in_obstacle_dist,
         Matrix3X *positions_world_ptr,
         Matrix3X *directions_world_ptr,
-        Vector *distances_ptr) const {
+        VectorX *distances_ptr) const {
         const long num_hit_rays = GetNumHitRays();
         ERL_ASSERTM(num_hit_rays > 0, "no hit points. cannot sample in region.");
 
@@ -706,7 +705,7 @@ namespace erl::geometry {
         const long max_num_samples = num_positions * num_hit_rays * (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
         Matrix3X &positions_samples = *positions_world_ptr;
         Matrix3X &directions_samples = *directions_world_ptr;
-        Vector &distances_samples = *distances_ptr;
+        VectorX &distances_samples = *distances_ptr;
         positions_samples.resize(3, max_num_samples);
         directions_samples.resize(3, max_num_samples);
         distances_samples.resize(max_num_samples);
@@ -726,7 +725,7 @@ namespace erl::geometry {
             Vector3 position_scan = m_translation_ + r * m_dirs_world_(hit_azimuth_index, hit_elevation_index);
             const Dtype radius = (m_max_valid_range_ + (position_scan - m_translation_).norm()) * 10.0;
             visible_hit_point_indices.clear();
-            HiddenPointRemoval(m_hit_points_world_, position_scan, radius, visible_hit_point_indices, true, false);
+            HiddenPointRemoval<Dtype>(m_hit_points_world_, position_scan, radius, visible_hit_point_indices, true, false);
 
             if (static_cast<long>(visible_hit_point_indices.size()) == 0) {
                 position_idx--;  // retry
@@ -769,20 +768,20 @@ namespace erl::geometry {
     template<typename Dtype>
     void
     RangeSensorFrame3D<Dtype>::SampleInRegionVrsThread(
-        uint64_t seed,
+        const uint64_t seed,
         const long *hit_point_index_start,
         const long *hit_point_index_end,
         long num_samples_per_azimuth_segment,
         long num_azimuth_segments,
         Matrix3X *positions_world_ptr,
         Matrix3X *directions_world_ptr,
-        Vector *distances_ptr) const {
+        VectorX *distances_ptr) const {
         const long num_hit_rays = GetNumHitRays();
         ERL_ASSERTM(num_hit_rays > 0, "no hit points. cannot sample in region.");
 
         Matrix3X &positions_samples = *positions_world_ptr;
         Matrix3X &directions_samples = *directions_world_ptr;
-        Vector &distances_samples = *distances_ptr;
+        VectorX &distances_samples = *distances_ptr;
         long max_num_samples = num_azimuth_segments * num_samples_per_azimuth_segment * (hit_point_index_end - hit_point_index_start);
         positions_samples.resize(3, max_num_samples);
         directions_samples.resize(3, max_num_samples);
@@ -806,7 +805,7 @@ namespace erl::geometry {
             const Vector3 &viewing_dir = m_dirs_world_(hit_azimuth_index, hit_elevation_index);
             Vector3 axis = -viewing_dir.cross(Vector3(0.0, 0.0, 1.0)).normalized();
             Dtype angle = std::acos(-viewing_dir.dot(Vector3(0.0, 0.0, 1.0)));
-            Eigen::Matrix3d rotation = Eigen::AngleAxisd(angle, axis).matrix();
+            Matrix3 rotation = Eigen::AngleAxis<Dtype>(angle, axis).matrix();
             Dtype azimuth_resolution = 2.0 * M_PI / static_cast<Dtype>(num_azimuth_segments);
 
             // 1. transform the rays to the hit point's frame, and partition the rays into azimuth segments
@@ -815,7 +814,7 @@ namespace erl::geometry {
             std::vector<std::pair<Dtype, Dtype>> spherical_coords;  // azimuth, elevation
             spherical_coords.reserve(num_hit_rays);
             // 3. calculate max end_point_elevation in each azimuth segment
-            Vector max_elevations = Vector::Constant(num_azimuth_segments, -M_PI_2);
+            VectorX max_elevations = VectorX::Constant(num_azimuth_segments, -M_PI_2);
             for (long j = 0; j < m_ranges_.cols(); ++j) {
                 for (long i = 0; i < m_ranges_.rows(); ++i) {
                     if (i == hit_azimuth_index && j == hit_elevation_index) { continue; }  // skip the hit point

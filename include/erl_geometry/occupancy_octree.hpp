@@ -43,17 +43,12 @@ namespace erl::geometry {
         }
     };
 
-    using OccupancyOctree_d = OccupancyOctree<double>;
-    using OccupancyOctree_f = OccupancyOctree<float>;
-
-    ERL_REGISTER_OCTREE(OccupancyOctree_d);
-    ERL_REGISTER_OCTREE(OccupancyOctree_f);
+    using OccupancyOctreeD = OccupancyOctree<double>;
+    using OccupancyOctreeF = OccupancyOctree<float>;
 }  // namespace erl::geometry
 
-// template<>
-// struct YAML::convert<erl::geometry::OccupancyOctree_d::Drawer::Setting>
-//     : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_d::Drawer::Setting> {};
+template<>
+struct YAML::convert<erl::geometry::OccupancyOctreeD::Drawer::Setting> : erl::geometry::OccupancyOctreeD::Drawer::Setting::YamlConvertImpl {};
 
-// template<>
-// struct YAML::convert<erl::geometry::OccupancyOctree_f::Drawer::Setting>
-//     : ConvertOccupancyOctreeDrawerSetting<erl::geometry::OccupancyOctree_f::Drawer::Setting> {};
+template<>
+struct YAML::convert<erl::geometry::OccupancyOctreeF::Drawer::Setting> : erl::geometry::OccupancyOctreeF::Drawer::Setting::YamlConvertImpl {};

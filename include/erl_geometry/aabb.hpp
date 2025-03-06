@@ -61,8 +61,10 @@ namespace erl::geometry {
         }
     };
 
-    using Aabb2D = Aabb<double, 2>;
-    using Aabb3D = Aabb<double, 3>;
+    using Aabb2Dd = Aabb<double, 2>;
+    using Aabb3Dd = Aabb<double, 3>;
+    using Aabb2Df = Aabb<float, 2>;
+    using Aabb3Df = Aabb<float, 3>;
 }  // namespace erl::geometry
 
 namespace YAML {
@@ -88,8 +90,14 @@ namespace YAML {
     };
 
     template<>
-    struct convert<erl::geometry::Aabb2D> : public ConvertAabb<erl::geometry::Aabb2D> {};
+    struct convert<erl::geometry::Aabb2Dd> : public ConvertAabb<erl::geometry::Aabb2Dd> {};
 
     template<>
-    struct convert<erl::geometry::Aabb3D> : public ConvertAabb<erl::geometry::Aabb3D> {};
+    struct convert<erl::geometry::Aabb3Dd> : public ConvertAabb<erl::geometry::Aabb3Dd> {};
+
+    template<>
+    struct convert<erl::geometry::Aabb2Df> : public ConvertAabb<erl::geometry::Aabb2Df> {};
+
+    template<>
+    struct convert<erl::geometry::Aabb3Df> : public ConvertAabb<erl::geometry::Aabb3Df> {};
 }  // namespace YAML

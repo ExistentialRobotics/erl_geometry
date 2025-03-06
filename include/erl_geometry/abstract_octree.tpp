@@ -44,9 +44,9 @@ namespace erl::geometry {
     std::shared_ptr<AbstractOctree<Dtype>>
     AbstractOctree<Dtype>::Read(const std::string &filename) {
         ERL_INFO("Reading octree from file: {}", std::filesystem::absolute(filename));
-        std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+        std::ifstream file(filename, std::ios_base::in | std::ios_base::binary);
         if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename.c_str());
+            ERL_WARN("Failed to open file: {}", filename);
             return nullptr;
         }
 
@@ -67,7 +67,7 @@ namespace erl::geometry {
         std::string line;
         std::getline(s, line);
         if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
-            ERL_WARN("First line of Octree file header does not start with \"{}\"", kFileHeader.c_str());
+            ERL_WARN("First line of Octree file header does not start with \"{}\"", kFileHeader);
             return nullptr;
         }
 

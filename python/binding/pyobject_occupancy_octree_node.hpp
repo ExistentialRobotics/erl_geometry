@@ -79,6 +79,4 @@ namespace erl::geometry {
             return s;
         }
     };
-
-    ERL_REGISTER_OCTREE_NODE(PyObjectOccupancyOctreeNode);  // Register the node
 }  // namespace erl::geometry

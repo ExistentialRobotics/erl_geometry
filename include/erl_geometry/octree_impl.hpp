@@ -18,8 +18,9 @@ namespace erl::geometry {
      * @tparam Node
      * @tparam Interface
      */
-    template<typename Dtype, class Node, class Interface, class InterfaceSetting>
+    template<class Node, class Interface, class InterfaceSetting>
     class OctreeImpl : public Interface {
+        using Dtype = typename Interface::DataType;
         static_assert(std::is_base_of_v<AbstractOctreeNode, Node>, "Node must be derived from AbstractOctreeNode");
         static_assert(std::is_base_of_v<AbstractOctree<Dtype>, Interface>, "Interface must be derived from AbstractOctree");
 
@@ -225,7 +226,7 @@ namespace erl::geometry {
 
             max_x = max_y = max_z = -std::numeric_limits<Dtype>::infinity();
             for (auto it = this->BeginLeaf(), end = this->EndLeaf(); it != end; ++it) {
-                Dtype half_size = it.GetNodeSize() / 2.;
+                const Dtype half_size = it.GetNodeSize() / 2.;
                 const Dtype node_max_x = it.GetX() + half_size;
                 const Dtype node_max_y = it.GetY() + half_size;
                 const Dtype node_max_z = it.GetZ() + half_size;
@@ -868,7 +869,8 @@ namespace erl::geometry {
 
             [[nodiscard]] Aabb<Dtype, 3>
             GetNodeAabb() const {
-                return m_tree_->GetNodeAabb(m_stack_.back().key, m_stack_.back().node->GetDepth());
+                const StackElement &top = m_stack_.back();
+                return m_tree_->GetNodeAabb(top.key, top.node->GetDepth());
             }
 
             [[nodiscard]] const OctreeKey &
@@ -2052,7 +2054,7 @@ namespace erl::geometry {
             bool leaf_only = false,
             uint32_t min_node_depth = 0,
             uint32_t max_node_depth = 0) const {
-            return NodeOnRayIterator(px, py, pz, vx, vy, vz, max_range, node_padding, bidirectional, this, leaf_only, min_node_depth, max_node_depth);
+            return {px, py, pz, vx, vy, vz, max_range, node_padding, bidirectional, this, leaf_only, min_node_depth, max_node_depth};
         }
 
         [[nodiscard]] NodeOnRayIterator
@@ -2101,13 +2103,13 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        ComputeRayKeys(Dtype sx, Dtype sy, Dtype sz, Dtype ex, Dtype ey, Dtype ez, OctreeKeyRay &ray, const bool auto_clear_ray = true) const {
+        ComputeRayKeys(Dtype sx, Dtype sy, Dtype sz, Dtype ex, Dtype ey, Dtype ez, OctreeKeyRay &ray) const {
             // see "A Faster Voxel Traversal Algorithm for Ray Tracing" by Amanatides & Woo Digital Difference Analyzer (DDA) algorithm
             // Note that we cannot use Bresenham's line algorithm because it may miss some voxels when the ray is not axis-aligned.
             // For example, if the ray is from (0, 0) to (1, 1), Bresenham's algorithm will miss (1, 0) and (0, 1) but the ray should traverse them.
             // Also look at https://en.wikipedia.org/wiki/File:Bresenham.svg for another example of Bresenham's algorithm.
 
-            if (auto_clear_ray) { ray.clear(); }
+            ray.clear();
             OctreeKey key_start, key_end;
             if (!CoordToKeyChecked(sx, sy, sz, key_start) || !CoordToKeyChecked(ex, ey, ez, key_end)) {
                 ERL_WARN("Ray ({}, {}, {}) -> ({}, {}, {}) is out of range.\n", sx, sy, sz, ex, ey, ez);
@@ -2574,7 +2576,7 @@ namespace erl::geometry {
             const int min_level = tree_depth - max_depth;
             // follow nodes down to the requested level (for level = 0, it is the leaf level)
             for (int level = tree_depth - 1; level >= min_level; --level) {
-                if (uint32_t child_index = OctreeKey::ComputeChildIndex(key_at_depth, level); node->HasChild(child_index)) {
+                if (const uint32_t child_index = OctreeKey::ComputeChildIndex(key_at_depth, level); node->HasChild(child_index)) {
                     node = this->GetNodeChild(node, child_index);
                 } else {
                     // we expect a child but did not get it, is the current node a leaf?
@@ -2608,7 +2610,7 @@ namespace erl::geometry {
             Node *node = this->m_root_.get();
             const int diff = tree_depth - depth;
             for (int level = tree_depth - 1; level >= diff; --level) {
-                if (uint32_t child_index = OctreeKey::ComputeChildIndex(key, level); node->HasChild(child_index)) {
+                if (const uint32_t child_index = OctreeKey::ComputeChildIndex(key, level); node->HasChild(child_index)) {
                     node = GetNodeChild(node, child_index);
                 } else {
                     node = CreateNodeChild(node, child_index);

@@ -74,7 +74,7 @@ namespace erl::geometry {
     Ray2D::ComputeIntersections(const Ray2D &ray) const {
         double lam, dist;
         bool intersected;
-        ComputeIntersectionBetweenRayAndLine2D(origin, direction, ray.origin, ray.origin + ray.direction, lam, dist, intersected);
+        ComputeIntersectionBetweenRayAndLine2D<double>(origin, direction, ray.origin, ray.origin + ray.direction, lam, dist, intersected);
         if (!intersected) { return {}; }
         if (dist < 0) { return {}; }
         if (lam < 0) { return {}; }
@@ -152,7 +152,7 @@ namespace erl::geometry {
 
         double d1, d2;
         bool intersected, is_inside;
-        ComputeIntersectionBetweenRayAndAabb2D(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected, is_inside);
+        ComputeIntersectionBetweenRayAndAabb2D<double>(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected, is_inside);
         if (!intersected) { return {}; }
         if (std::abs(d1 - d2) < std::numeric_limits<double>::min()) { return {line.p0 + d1 * v}; }
         return {line.p0 + d1 * v, line.p0 + d2 * v};
@@ -166,7 +166,7 @@ namespace erl::geometry {
 
         double d1, d2;
         bool intersected, is_inside;
-        ComputeIntersectionBetweenRayAndAabb2D(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected, is_inside);
+        ComputeIntersectionBetweenRayAndAabb2D<double>(p0, v.cwiseInverse(), -m_half_sizes_, m_half_sizes_, d1, d2, intersected, is_inside);
         if (!intersected) { return {}; }
         std::vector<Eigen::Vector2d> intersections;
         if (d1 >= 0 && d1 <= 1) { intersections.emplace_back(segment.p0 + d1 * v); }

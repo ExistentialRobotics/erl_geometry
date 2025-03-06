@@ -1,17 +1,17 @@
 #pragma once
 
 #include "occupancy_quadtree_base.hpp"
-// #include "occupancy_quadtree_drawer.hpp"
+#include "occupancy_quadtree_drawer.hpp"
 #include "occupancy_quadtree_node.hpp"
 
 namespace erl::geometry {
 
-    template <typename Dtype>
-    class OccupancyQuadtree : public OccupancyQuadtreeBase<OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting, Dtype> {
+    template<typename Dtype>
+    class OccupancyQuadtree : public OccupancyQuadtreeBase<Dtype, OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting> {
     public:
         using Setting = OccupancyQuadtreeBaseSetting;
-        using Super = OccupancyQuadtreeBase<OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting, Dtype>;
-        // using Drawer = OccupancyQuadtreeDrawer<OccupancyQuadtree>;
+        using Super = OccupancyQuadtreeBase<Dtype, OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>;
+        using Drawer = OccupancyQuadtreeDrawer<OccupancyQuadtree>;
 
         explicit OccupancyQuadtree(const std::shared_ptr<OccupancyQuadtreeBaseSetting> &setting)
             : Super(setting) {}
@@ -57,13 +57,12 @@ namespace erl::geometry {
         }
     };
 
-    using OccupancyQuadtree_d = OccupancyQuadtree<double>;
-    using OccupancyQuadtree_f = OccupancyQuadtree<float>;
-
-    ERL_REGISTER_QUADTREE(OccupancyQuadtree_d);
-    ERL_REGISTER_QUADTREE(OccupancyQuadtree_f);
+    using OccupancyQuadtreeD = OccupancyQuadtree<double>;
+    using OccupancyQuadtreeF = OccupancyQuadtree<float>;
 }  // namespace erl::geometry
 
-// template<>
-// struct YAML::convert<erl::geometry::OccupancyQuadtree::Drawer::Setting>
-//     : public ConvertOccupancyQuadtreeDrawerSetting<erl::geometry::OccupancyQuadtree::Drawer::Setting> {};  // namespace YAML
+template<>
+struct YAML::convert<erl::geometry::OccupancyQuadtreeD::Drawer::Setting> : erl::geometry::OccupancyQuadtreeD::Drawer::Setting::YamlConvertImpl {};
+
+template<>
+struct YAML::convert<erl::geometry::OccupancyQuadtreeF::Drawer::Setting> : erl::geometry::OccupancyQuadtreeF::Drawer::Setting::YamlConvertImpl {};

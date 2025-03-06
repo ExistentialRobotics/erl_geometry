@@ -25,6 +25,9 @@ namespace erl::geometry {
         static std::vector<std::pair<Matrix3, Vector3>>
         LoadSe3(const std::string &filename, bool binary);
     };
+
+    using TrajectoryD = Trajectory<double>;
+    using TrajectoryF = Trajectory<float>;
 }  // namespace erl::geometry
 
 #include "trajectory.tpp"

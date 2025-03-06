@@ -33,6 +33,7 @@ BindUtils(py::module &m) {
             },
             py::arg("img"),
             py::arg("iso_value"))
-        .def("winding_number", &WindingNumber, py::arg("p"), py::arg("vertices"))
-        .def("convert_path_2d_to_3d", &ConvertPath2dTo3d, py::arg("path_2d"), py::arg("z"));
+        .def("winding_number", &WindingNumber<double>, py::arg("p"), py::arg("vertices"))
+        .def("convert_path_2d_to_3d_d", &ConvertPath2dTo3d<double>, py::arg("path_2d").noconvert(), py::arg("z"))
+        .def("convert_path_2d_to_3d_f", &ConvertPath2dTo3d<float>, py::arg("path_2d").noconvert(), py::arg("z"));
 }

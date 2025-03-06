@@ -10,16 +10,15 @@
 #define SENSOR_ORIGIN_Z    0.0
 #define VISUALIZER_SECONDS 1
 
-// using namespace erl::geometry;
 using Dtype = float;
 using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
 using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
 using OccupancyOctreeNode = erl::geometry::OccupancyOctreeNode;
 using Open3dVisualizerWrapper = erl::geometry::Open3dVisualizerWrapper;
 using OctreeKey = erl::geometry::OctreeKey;
-using Vector = Eigen::VectorX<Dtype>;
+using VectorX = Eigen::VectorX<Dtype>;
 using Vector3 = Eigen::Vector3<Dtype>;
-using Matrix = Eigen::MatrixX<Dtype>;
+using MatrixX = Eigen::MatrixX<Dtype>;
 using Matrix3X = Eigen::Matrix3X<Dtype>;
 
 TEST(OccupancyOctree, IO) {
@@ -50,8 +49,8 @@ TEST(OccupancyOctree, InsertPointCloud) {
 
     constexpr long num_azimuths = NUM_AZIMUTHS;
     constexpr long num_elevations = NUM_ELEVATIONS;
-    Vector azimuths = Vector::LinSpaced(num_azimuths, -M_PI, M_PI);
-    Vector elevations = Vector::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
+    VectorX azimuths = VectorX::LinSpaced(num_azimuths, -M_PI, M_PI);
+    VectorX elevations = VectorX::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
 
     long n = num_azimuths * num_elevations;
     Matrix3X points(3, n);
@@ -132,8 +131,8 @@ TEST(OccupancyOctree, InsertPointCloudRays) {
 
     constexpr long num_azimuths = NUM_AZIMUTHS;
     constexpr long num_elevations = NUM_ELEVATIONS;
-    Vector azimuths = Vector::LinSpaced(num_azimuths, -M_PI, M_PI);
-    Vector elevations = Vector::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
+    VectorX azimuths = VectorX::LinSpaced(num_azimuths, -M_PI, M_PI);
+    VectorX elevations = VectorX::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
 
     long n = num_azimuths * num_elevations;
     Matrix3X points(3, n);
@@ -188,8 +187,8 @@ TEST(OccupancyOctree, InsertRay) {
 
     constexpr long num_azimuths = NUM_AZIMUTHS;
     constexpr long num_elevations = NUM_ELEVATIONS;
-    Vector azimuths = Vector::LinSpaced(num_azimuths, -M_PI, M_PI);
-    Vector elevations = Vector::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
+    VectorX azimuths = VectorX::LinSpaced(num_azimuths, -M_PI, M_PI);
+    VectorX elevations = VectorX::LinSpaced(num_elevations, -M_PI / 2, M_PI / 2);
 
     long n = num_azimuths * num_elevations;
     Matrix3X points(3, n);
@@ -633,8 +632,8 @@ TEST(OccupancyOctree, RayCasting) {
     const auto tree_setting = std::make_shared<OccupancyOctree::Setting>();
     tree_setting->resolution = 0.05;
     auto sampled_surface = std::make_shared<OccupancyOctree>(tree_setting);
-    Vector azimuths = Vector::LinSpaced(NUM_AZIMUTHS, -M_PI, M_PI);
-    Vector elevations = Vector::LinSpaced(NUM_ELEVATIONS, -M_PI / 2, M_PI / 2);
+    VectorX azimuths = VectorX::LinSpaced(NUM_AZIMUTHS, -M_PI, M_PI);
+    VectorX elevations = VectorX::LinSpaced(NUM_ELEVATIONS, -M_PI / 2, M_PI / 2);
 
     long n = NUM_AZIMUTHS * NUM_ELEVATIONS;
     Matrix3X dirs(3, n);

@@ -1,10 +1,5 @@
 #pragma once
 
-#include "erl_common/angle_utils.hpp"
-#include "erl_common/logging.hpp"
-
-#include <utility>
-
 namespace erl::geometry {
 
     template<typename Dtype>
@@ -45,8 +40,8 @@ namespace erl::geometry {
     LogOddMap2D<Dtype>::LogOddMap2D(std::shared_ptr<Setting> setting, std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info)
         : m_setting_(std::move(setting)),
           m_grid_map_info_(std::move(grid_map_info)),
-          m_log_map_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1), CV_64FC1, cv::Scalar{0}),  // ij-indexing, x to the bottom, y to the right
-          m_possibility_map_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1), CV_64FC1, cv::Scalar{0.5}),
+          m_log_map_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1), sizeof(Dtype) == 8 ? CV_64FC1 : CV_32FC1, cv::Scalar{0}),
+          m_possibility_map_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1), sizeof(Dtype) == 8 ? CV_64FC1 : CV_32FC1, cv::Scalar{0.5}),
           m_occupancy_map_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1), CV_8UC1, cv::Scalar{CellType::kUnexplored}),
           m_kernel_(cv::getStructuringElement(m_setting_->use_cross_kernel ? cv::MORPH_CROSS : cv::MORPH_RECT, cv::Size{3, 3})),
           m_mask_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1)),
@@ -236,7 +231,7 @@ namespace erl::geometry {
     template<typename Dtype>
     std::shared_ptr<typename LogOddMap2D<Dtype>::LidarFrameMask>
     LogOddMap2D<Dtype>::ComputeStatisticsOfLidarFrames(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &lidar_poses,
         const Eigen::Ref<const Eigen::VectorX<Dtype>> &lidar_angles_body,
         const std::vector<Eigen::VectorX<Dtype>> &lidar_ranges,
         const bool clip_ranges,
@@ -713,9 +708,9 @@ namespace erl::geometry {
         std::vector<std::vector<cv::Point>> contour(1);
         auto &robot_shape = contour[0];
         robot_shape.reserve(num_vertices);
-        const Eigen::Matrix2d rotation_matrix = Eigen::Rotation2Dd(theta).toRotationMatrix();
+        const Eigen::Matrix2<Dtype> rotation_matrix = Eigen::Rotation2D<Dtype>(theta).toRotationMatrix();
         for (int i = 0; i < num_vertices; ++i) {
-            Eigen::Vector2<Dtype> vertex = rotation_matrix * m_shape_vertices_.col(i) + position;
+            Vector2 vertex = rotation_matrix * m_shape_vertices_.col(i) + position;
             int x = m_grid_map_info_->MeterToGridForValue(vertex[0], 0);  // row
             int y = m_grid_map_info_->MeterToGridForValue(vertex[1], 1);  // col
             robot_shape.emplace_back(y, x);                               // (col, row)

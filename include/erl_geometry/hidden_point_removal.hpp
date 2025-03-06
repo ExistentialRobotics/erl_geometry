@@ -14,10 +14,11 @@ namespace erl::geometry {
      * @param joggle_inputs if true, will run QHull with `QJ`.
      * @return
      */
+    template<typename Dtype>
     void
     HiddenPointRemoval(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &view_position,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &points,
+        const Eigen::Ref<const Eigen::Vector3<Dtype>> &view_position,
         double radius,
         std::vector<long> &visible_point_indices,
         bool fast = false,
@@ -35,10 +36,11 @@ namespace erl::geometry {
      * @param joggle_inputs if true, will run QHull with `QJ`.
      * @return
      */
+    template<typename Dtype>
     void
     HiddenPointRemoval(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &view_position,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &points,
+        const Eigen::Ref<const Eigen::Vector3<Dtype>> &view_position,
         double radius,
         Eigen::Matrix3Xl &mesh_triangles,
         Eigen::Matrix3Xd &mesh_vertices,
@@ -46,22 +48,24 @@ namespace erl::geometry {
         bool fast = false,
         bool joggle_inputs = false);
 
-    inline void
+    template<typename Dtype>
+    void
     HiddenPointRemoval(
-        const std::vector<Eigen::Vector3d> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &view_position,
+        const std::vector<Eigen::Vector3<Dtype>> &points,
+        const Eigen::Ref<const Eigen::Vector3<Dtype>> &view_position,
         const double radius,
         std::vector<long> &visible_point_indices,
         const bool fast,
         const bool joggle_inputs) {
-        const Eigen::Map<const Eigen::Matrix3Xd> points_mat(points[0].data(), 3, static_cast<long>(points.size()));
-        HiddenPointRemoval(points_mat, view_position, radius, visible_point_indices, fast, joggle_inputs);
+        const Eigen::Map<const Eigen::Matrix3X<Dtype>> points_mat(points[0].data(), 3, static_cast<long>(points.size()));
+        HiddenPointRemoval<Dtype>(points_mat, view_position, radius, visible_point_indices, fast, joggle_inputs);
     }
 
-    inline void
+    template<typename Dtype>
+    void
     ParallelHiddenPointRemoval(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Matrix3Xd> &view_positions,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &points,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &view_positions,
         const Eigen::Ref<const Eigen::VectorXd> &radii,
         std::vector<std::vector<long>> &visible_point_indices,
         const bool fast = false,
@@ -71,14 +75,15 @@ namespace erl::geometry {
         visible_point_indices.resize(num_view_positions);
 #pragma omp parallel for default(none) shared(num_view_positions, points, view_positions, radii, visible_point_indices, fast, joggle_inputs)
         for (long i = 0; i < num_view_positions; ++i) {
-            HiddenPointRemoval(points, view_positions.col(i), radii[i], visible_point_indices[i], fast, joggle_inputs);
+            HiddenPointRemoval<Dtype>(points, view_positions.col(i), radii[i], visible_point_indices[i], fast, joggle_inputs);
         }
     }
 
-    inline void
+    template<typename Dtype>
+    void
     ParallelHiddenPointRemoval(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Matrix3Xd> &view_positions,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &points,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &view_positions,
         const Eigen::Ref<const Eigen::VectorXd> &radii,
         std::vector<Eigen::Matrix3Xl> &mesh_triangles,
         std::vector<Eigen::Matrix3Xd> &mesh_vertices,
@@ -93,7 +98,17 @@ namespace erl::geometry {
 #pragma omp parallel for default(none) \
     shared(num_view_positions, points, view_positions, radii, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs)
         for (long i = 0; i < num_view_positions; ++i) {
-            HiddenPointRemoval(points, view_positions.col(i), radii[i], mesh_triangles[i], mesh_vertices[i], visible_point_indices[i], fast, joggle_inputs);
+            HiddenPointRemoval<Dtype>(
+                points,
+                view_positions.col(i),
+                radii[i],
+                mesh_triangles[i],
+                mesh_vertices[i],
+                visible_point_indices[i],
+                fast,
+                joggle_inputs);
         }
     }
 }  // namespace erl::geometry
+
+#include "hidden_point_removal.tpp"

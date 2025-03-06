@@ -36,11 +36,11 @@ namespace erl::geometry {
         IsInside(const Eigen::Vector3d &point) const = 0;
     };
 
-    class AxisAlignedBox : public Primitive3D, public Aabb3D {
+    class AxisAlignedBox : public Primitive3D, public Aabb3Dd {
     public:
         AxisAlignedBox(const int id, const Eigen::Vector3d &center, const Eigen::Vector3d &half_sizes)
             : Primitive3D(),
-              Aabb3D(center, half_sizes) {
+              Aabb3Dd(center, half_sizes) {
             this->id = id;
         }
 

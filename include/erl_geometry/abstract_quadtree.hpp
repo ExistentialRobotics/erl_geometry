@@ -8,7 +8,6 @@
 #include "erl_common/string_utils.hpp"
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <string>
 
@@ -17,26 +16,20 @@ namespace erl::geometry {
     /**
      * AbstractQuadtree is a base class for all quadtree implementations. It provides a common interface for factory pattern and file I/O.
      */
-    template <typename Dtype>
+    template<typename Dtype>
     class AbstractQuadtree {
+        inline static const std::string kFileHeader = fmt::format("# {}", type_name<AbstractQuadtree>());
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
-
-    protected:
-        inline static std::map<std::string, std::function<std::shared_ptr<AbstractQuadtree>(const std::shared_ptr<NdTreeSetting>&)>> s_class_id_mapping_ = {};
 
     public:
         using Factory = common::FactoryPattern<AbstractQuadtree, false, false, std::shared_ptr<NdTreeSetting>>;
+        using Vector2 = Eigen::Vector2<Dtype>;
 
         AbstractQuadtree() = delete;  // no default constructor
 
         explicit AbstractQuadtree(std::shared_ptr<NdTreeSetting> setting)
             : m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
-            ERL_DEBUG_WARN_ONCE_COND(
-                typeid(*this) != typeid(AbstractQuadtree) && s_class_id_mapping_.find(GetTreeType()) == s_class_id_mapping_.end(),
-                "Tree type {} not registered, do you forget to use ERL_REGISTER_QUADTREE({})?",
-                GetTreeType(),
-                GetTreeType());
         }
 
         AbstractQuadtree(const AbstractQuadtree& other) = default;
@@ -71,13 +64,13 @@ namespace erl::geometry {
          * @param setting
          * @return
          */
-         static std::shared_ptr<AbstractQuadtree>
-         CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting) {
-             return Factory::GetInstance().Create(tree_id, setting);
-         }
+        static std::shared_ptr<AbstractQuadtree>
+        CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting) {
+            return Factory::GetInstance().Create(tree_id, setting);
+        }
 
         template<typename Derived>
-        static std::enable_if_t<std::is_base_of_v<AbstractQuadtree, Derived>, bool>
+        static bool
         Register(std::string tree_type = "") {
             return Factory::GetInstance().template Register<Derived>(tree_type, [](const std::shared_ptr<NdTreeSetting>& setting) {
                 auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
@@ -139,7 +132,7 @@ namespace erl::geometry {
 
         [[nodiscard]] Dtype
         GetResolution() const {
-            return m_setting_->resolution;
+            return static_cast<Dtype>(m_setting_->resolution);
         }
 
         [[nodiscard]] virtual std::size_t
@@ -149,27 +142,27 @@ namespace erl::geometry {
         [[maybe_unused]] [[nodiscard]] virtual std::size_t
         GetMemoryUsagePerNode() const = 0;
 
-        Eigen::Vector2d
+        Vector2
         GetMetricMin() {
-            Eigen::Vector2d min;
+            Vector2 min;
             GetMetricMin(min.x(), min.y());
             return min;
         }
 
-        [[nodiscard]] Eigen::Vector2d
+        [[nodiscard]] Vector2
         GetMetricMin() const {
-            Eigen::Vector2d min;
+            Vector2 min;
             GetMetricMin(min.x(), min.y());
             return min;
         }
 
         void
-        GetMetricMin(Eigen::Vector2d& min) {
+        GetMetricMin(Vector2& min) {
             GetMetricMin(min.x(), min.y());
         }
 
         void
-        GetMetricMin(Eigen::Vector2d& min) const {
+        GetMetricMin(Vector2& min) const {
             GetMetricMin(min.x(), min.y());
         }
 
@@ -178,27 +171,27 @@ namespace erl::geometry {
         virtual void
         GetMetricMin(Dtype& x, Dtype& y) const = 0;
 
-        Eigen::Vector2d
+        Vector2
         GetMetricMax() {
-            Eigen::Vector2d max;
+            Vector2 max;
             GetMetricMax(max.x(), max.y());
             return max;
         }
 
-        [[nodiscard]] Eigen::Vector2d
+        [[nodiscard]] Vector2
         GetMetricMax() const {
-            Eigen::Vector2d max;
+            Vector2 max;
             GetMetricMax(max.x(), max.y());
             return max;
         }
 
         void
-        GetMetricMax(Eigen::Vector2d& max) {
+        GetMetricMax(Vector2& max) {
             GetMetricMax(max.x(), max.y());
         }
 
         void
-        GetMetricMax(Eigen::Vector2d& max) const {
+        GetMetricMax(Vector2& max) const {
             GetMetricMax(max.x(), max.y());
         }
 
@@ -207,41 +200,41 @@ namespace erl::geometry {
         virtual void
         GetMetricMax(Dtype& x, Dtype& y) const = 0;
 
-        Aabb2D
+        Aabb<Dtype, 2>
         GetMetricAabb() {
-            Eigen::Vector2d min, max;
+            Vector2 min, max;
             GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
-            return {min, max};
+            return {std::move(min), std::move(max)};
         }
 
-        [[nodiscard]] Aabb2D
+        [[nodiscard]] Aabb<Dtype, 2>
         GetMetricAabb() const {
-            Eigen::Vector2d min, max;
+            Vector2 min, max;
             GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
-            return {min, max};
+            return {std::move(min), std::move(max)};
         }
 
-        std::pair<Eigen::Vector2d, Eigen::Vector2d>
+        std::pair<Vector2, Vector2>
         GetMetricMinMax() {
-            Eigen::Vector2d min, max;
+            Vector2 min, max;
             GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
-            return {min, max};
+            return {std::move(min), std::move(max)};
         }
 
-        [[nodiscard]] std::pair<Eigen::Vector2d, Eigen::Vector2d>
+        [[nodiscard]] std::pair<Vector2, Vector2>
         GetMetricMinMax() const {
-            Eigen::Vector2d min, max;
+            Vector2 min, max;
             GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
-            return {min, max};
+            return {std::move(min), std::move(max)};
         }
 
         void
-        GetMetricMinMax(Eigen::Vector2d& min, Eigen::Vector2d& max) {
+        GetMetricMinMax(Vector2& min, Vector2& max) {
             GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
         }
 
         void
-        GetMetricMinMax(Eigen::Vector2d& min, Eigen::Vector2d& max) const {
+        GetMetricMinMax(Vector2& min, Vector2& max) const {
             GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
         }
 
@@ -250,27 +243,27 @@ namespace erl::geometry {
         virtual void
         GetMetricMinMax(Dtype& min_x, Dtype& min_y, Dtype& max_x, Dtype& max_y) const = 0;
 
-        Eigen::Vector2d
+        Vector2
         GetMetricSize() {
-            Eigen::Vector2d size;
+            Vector2 size;
             GetMetricSize(size.x(), size.y());
             return size;
         }
 
-        [[nodiscard]] Eigen::Vector2d
+        [[nodiscard]] Vector2
         GetMetricSize() const {
-            Eigen::Vector2d size;
+            Vector2 size;
             GetMetricSize(size.x(), size.y());
             return size;
         }
 
         void
-        GetMetricSize(Eigen::Vector2d& size) {
+        GetMetricSize(Vector2& size) {
             GetMetricSize(size.x(), size.y());
         }
 
         void
-        GetMetricSize(Eigen::Vector2d& size) const {
+        GetMetricSize(Vector2& size) const {
             GetMetricSize(size.x(), size.y());
         }
 
@@ -364,7 +357,7 @@ namespace erl::geometry {
         GetTreeIterator(uint32_t max_depth) const = 0;
 
         [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>
-        GetLeafInAabbIterator(const Aabb2D& aabb, uint32_t max_depth) const = 0;
+        GetLeafInAabbIterator(const Aabb<Dtype, 2>& aabb, uint32_t max_depth) const = 0;
 
     protected:
         /**
@@ -393,11 +386,9 @@ namespace erl::geometry {
     protected:
         static bool
         ReadHeader(std::istream& s, std::string& tree_id, uint32_t& size);
-        // TODO: should we specify Dtype in header?
-        inline static const std::string kFileHeader = "# erl::geometry::AbstractQuadtree";
     };
 
-#define ERL_REGISTER_QUADTREE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractQuadtree<Derived::DataType>::Register<Derived>()
+    // #define ERL_REGISTER_QUADTREE(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
 }  // namespace erl::geometry
 
 #include "abstract_quadtree.tpp"

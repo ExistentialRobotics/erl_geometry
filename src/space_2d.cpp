@@ -307,7 +307,7 @@ namespace erl::geometry {
             bool intersected;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
-                ComputeIntersectionBetweenRayAndLine2D(
+                ComputeIntersectionBetweenRayAndLine2D<double>(
                     query_points.col(i),
                     d,
                     m_surface_->vertices.col(m_surface_->lines_to_vertices(0, j)),
@@ -363,7 +363,7 @@ namespace erl::geometry {
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 auto l = m_surface_->lines_to_vertices.col(j);
-                ComputeIntersectionBetweenRayAndLine2D(
+                ComputeIntersectionBetweenRayAndLine2D<double>(
                     query_points.col(i),
                     d,
                     m_surface_->vertices.col(l.x()),
@@ -429,21 +429,21 @@ namespace erl::geometry {
             double min_dist = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 Eigen::Vector2i l = m_surface_->lines_to_vertices.col(j);
-                const auto &v_1 = m_surface_->vertices.col(l.x());
-                const auto &v_2 = m_surface_->vertices.col(l.y());
+                const auto &v1 = m_surface_->vertices.col(l.x());
+                const auto &v2 = m_surface_->vertices.col(l.y());
                 bool intersected;
-                ComputeIntersectionBetweenRayAndLine2D(q, d, v_1, v_2, lams[j], ts[j], intersected);
+                ComputeIntersectionBetweenRayAndLine2D<double>(q, d, v1, v2, lams[j], ts[j], intersected);
 
-                Eigen::Vector2d qv_1 = q - v_1;
-                auto dist_1 = qv_1.norm();
-                Eigen::Vector2d qv_2 = q - v_2;
-                if (double dist_2 = qv_2.norm(); dist_2 < dist_1) {
-                    std::swap(dist_1, dist_2);
+                Eigen::Vector2d qv1 = q - v1;
+                auto dist1 = qv1.norm();
+                Eigen::Vector2d qv2 = q - v2;
+                if (double dist2 = qv2.norm(); dist2 < dist1) {
+                    std::swap(dist1, dist2);
                     std::swap(l.x(), l.y());
                 }
 
-                if (dist_1 < min_dist) {
-                    min_dist = dist_1;
+                if (dist1 < min_dist) {
+                    min_dist = dist1;
                     is_negative = IsNegativeSdf(sign_method, q, l.x(), l.y());
                 }
             }
@@ -496,7 +496,7 @@ namespace erl::geometry {
             Eigen::Vector2d p = vertices.rowwise().mean();
             const ssize_t u = std::lround(p[0]);
             const ssize_t v = std::lround(p[1]);
-            const bool inside = WindingNumber(p, vertices);
+            const bool inside = WindingNumber<double>(p, vertices);
             m_surface_->outside_flags[i] = inside == (map_image(v, u) <= free_threshold);
         }
     }
@@ -510,7 +510,7 @@ namespace erl::geometry {
             Eigen::Vector2d p = vertices.rowwise().mean();
             Eigen::Matrix2Xd v = p.replicate(1, vertices.cols()).array() - vertices.array();
             bool &&is_negative_sdf = (m_surface_->GetObjectNormals(i).array() * v.array()).mean() < 0.;
-            bool &&inside = WindingNumber(p, vertices);
+            bool &&inside = WindingNumber<double>(p, vertices);
             m_surface_->outside_flags[i] = inside == is_negative_sdf;
         }
     }

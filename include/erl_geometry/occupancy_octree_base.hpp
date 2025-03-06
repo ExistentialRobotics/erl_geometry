@@ -17,7 +17,7 @@ namespace erl::geometry {
     struct OccupancyOctreeBaseSetting : public common::Yamlable<OccupancyOctreeBaseSetting, OccupancyNdTreeSetting> {
         bool use_change_detection = false;
         bool use_aabb_limit = false;
-        Aabb3D aabb = {};
+        Aabb3Dd aabb = {};
 
         bool
         operator==(const NdTreeSetting& rhs) const override {
@@ -31,10 +31,8 @@ namespace erl::geometry {
         }
     };
 
-    ERL_REGISTER_YAMLABLE(OccupancyOctreeBaseSetting);
-
     template<typename Dtype, class Node, class Setting>
-    class OccupancyOctreeBase : public OctreeImpl<Dtype, Node, AbstractOccupancyOctree<Dtype>, Setting> {
+    class OccupancyOctreeBase : public OctreeImpl<Node, AbstractOccupancyOctree<Dtype>, Setting> {
         static_assert(std::is_base_of_v<OccupancyOctreeNode, Node>);
         static_assert(std::is_base_of_v<OccupancyOctreeBaseSetting, Setting>);
 
@@ -46,11 +44,11 @@ namespace erl::geometry {
         OctreeKeyVectorMap m_end_point_mapping_ = {};           // buffer used for inserting point cloud to track the end points
 
     public:
-        using Super = OctreeImpl<Dtype, Node, AbstractOccupancyOctree<Dtype>, Setting>;
+        using Super = OctreeImpl<Node, AbstractOccupancyOctree<Dtype>, Setting>;
         using Matrix3X = Eigen::Matrix3X<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
-        using Vector = Eigen::VectorX<Dtype>;
+        using VectorX = Eigen::VectorX<Dtype>;
 
         OccupancyOctreeBase() = delete;  // no default constructor
 
@@ -342,8 +340,8 @@ namespace erl::geometry {
         GetBatchRayCaster(
             Matrix3X origins,
             Matrix3X directions,
-            const Vector& max_ranges,
-            const Vector& node_paddings,
+            const VectorX& max_ranges,
+            const VectorX& node_paddings,
             const Eigen::VectorXb& bidirectional_flags,
             const Eigen::VectorXb& leaf_only_flags,
             const Eigen::VectorXi& min_node_depths,
@@ -364,8 +362,8 @@ namespace erl::geometry {
         CastRays(
             const Eigen::Ref<const Vector3>& position,
             const Eigen::Ref<const Matrix3>& rotation,
-            const Eigen::Ref<const Vector>& azimuth_angles,
-            const Eigen::Ref<const Vector>& elevation_angles,
+            const Eigen::Ref<const VectorX>& azimuth_angles,
+            const Eigen::Ref<const VectorX>& elevation_angles,
             const bool ignore_unknown,
             const Dtype max_range,
             const bool prune_rays,  // whether to prune rays after the first hit of the same occupied node
@@ -1040,7 +1038,7 @@ struct YAML::convert<erl::geometry::OccupancyOctreeBaseSetting> {
         if (!convert<erl::geometry::OccupancyNdTreeSetting>::decode(node, rhs)) { return false; }
         rhs.use_change_detection = node["use_change_detection"].as<bool>();
         rhs.use_aabb_limit = node["use_aabb_limit"].as<bool>();
-        rhs.aabb = node["aabb"].as<erl::geometry::Aabb3D>();
+        rhs.aabb = node["aabb"].as<erl::geometry::Aabb3Dd>();
         return true;
     }
 };  // namespace YAML

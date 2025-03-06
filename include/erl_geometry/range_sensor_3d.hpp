@@ -13,7 +13,7 @@ namespace erl::geometry {
     public:
         using Matrix3 = Eigen::Matrix3<Dtype>;
         using Matrix3X = Eigen::Matrix3X<Dtype>;
-        using Matrix = Eigen::MatrixX<Dtype>;
+        using MatrixX = Eigen::MatrixX<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
 
     protected:
@@ -87,7 +87,7 @@ namespace erl::geometry {
         [[nodiscard]] virtual std::tuple<Matrix3, Vector3>
         GetOpticalPose(const Eigen::Ref<const Matrix3> &orientation, const Eigen::Ref<const Vector3> &translation) const = 0;
 
-        [[nodiscard]] Matrix
+        [[nodiscard]] MatrixX
         Scan(
             const Eigen::Ref<const Matrix3> &orientation,
             const Eigen::Ref<const Vector3> &translation,
@@ -95,7 +95,7 @@ namespace erl::geometry {
             Dtype noise_stddev = 0.03,
             bool cache_normals = false);
 
-        [[nodiscard]] Eigen::MatrixX<Eigen::Vector3d>
+        [[nodiscard]] Eigen::MatrixX<Vector3>
         GetCachedNormals() const {
             return m_normals_;
         }

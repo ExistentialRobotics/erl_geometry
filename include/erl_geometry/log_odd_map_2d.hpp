@@ -2,7 +2,9 @@
 
 #include "log_odd_map.hpp"
 
+#include "erl_common/angle_utils.hpp"
 #include "erl_common/grid_map_info.hpp"
+#include "erl_common/logging.hpp"
 #include "erl_common/opencv.hpp"
 #include "erl_common/yaml.hpp"
 
@@ -12,6 +14,10 @@ namespace erl::geometry {
     class LogOddMap2D : public LogOddMap {
 
     public:
+        using Vector2 = Eigen::Vector2<Dtype>;
+        using VectorX = Eigen::VectorX<Dtype>;
+        using Matrix3X = Eigen::Matrix3X<Dtype>;
+
         struct LogOddCVMask {
             cv::Mat unexplored_mask;
             cv::Mat free_mask;
@@ -68,7 +74,7 @@ namespace erl::geometry {
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
         std::shared_ptr<common::GridMapInfo2D<Dtype>> m_grid_map_info_ = nullptr;
-        cv::Mat m_log_map_ = {};
+        cv::Mat m_log_map_ = {};  // ij-indexing, x to the bottom, y to the right
         cv::Mat m_possibility_map_ = {};
         cv::Mat m_occupancy_map_ = {};
         cv::Mat m_kernel_ = {};
@@ -89,10 +95,10 @@ namespace erl::geometry {
 
         void
         Update(
-            const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,     // assumed in world frame, unit is meters
-            Dtype theta,                                                 // assumed in world frame, unit is radian
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &angles_body,  // assumed in body frame, unit is radian
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &ranges);
+            const Eigen::Ref<const Vector2> &position,     // assumed in world frame, unit is meters
+            Dtype theta,                                   // assumed in world frame, unit is radian
+            const Eigen::Ref<const VectorX> &angles_body,  // assumed in body frame, unit is radian
+            const Eigen::Ref<const VectorX> &ranges);
 
         /**
          * @brief Load external possibility map where -1 means unexplored, 0 ~ 100 means occupancy possibility, i.e. 0 means free, 100 means occupied.
@@ -101,17 +107,14 @@ namespace erl::geometry {
          * @param possibility_map
          */
         void
-        LoadExternalPossibilityMap(
-            const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
-            Dtype theta,
-            const Eigen::Ref<const Eigen::MatrixXi> &possibility_map);
+        LoadExternalPossibilityMap(const Eigen::Ref<const Vector2> &position, Dtype theta, const Eigen::Ref<const Eigen::MatrixXi> &possibility_map);
 
         std::shared_ptr<LidarFrameMask>
         ComputeStatisticsOfLidarFrame(
-            const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
+            const Eigen::Ref<const Vector2> &position,
             Dtype theta,
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &angles_body,
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &ranges,
+            const Eigen::Ref<const VectorX> &angles_body,
+            const Eigen::Ref<const VectorX> &ranges,
             bool clip_ranges,
             const std::shared_ptr<LidarFrameMask> &old_mask,
             int &num_occupied_cells,
@@ -121,9 +124,9 @@ namespace erl::geometry {
 
         std::shared_ptr<LidarFrameMask>
         ComputeStatisticsOfLidarFrames(
-            const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &lidar_angles_body,
-            const std::vector<Eigen::VectorX<Dtype>> &lidar_ranges,
+            const Eigen::Ref<const Matrix3X> &lidar_poses,
+            const Eigen::Ref<const VectorX> &lidar_angles_body,
+            const std::vector<VectorX> &lidar_ranges,
             bool clip_ranges,
             const std::shared_ptr<LidarFrameMask> &old_mask,
             int &num_occupied_cells,
@@ -182,10 +185,10 @@ namespace erl::geometry {
     private:
         [[nodiscard]] std::shared_ptr<LidarFrameMask>
         ComputeLidarFrameMask(
-            const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
+            const Eigen::Ref<const Vector2> &position,
             Dtype theta,
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &angles_body,
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &ranges,
+            const Eigen::Ref<const VectorX> &angles_body,
+            const Eigen::Ref<const VectorX> &ranges,
             bool clip_ranges,
             bool ray_mode,  // true: ray mode, false: area mode
             bool in_map_only,
@@ -194,8 +197,8 @@ namespace erl::geometry {
         [[nodiscard]] std::shared_ptr<LidarFrameMask>
         ComputeLidarFramesMask(
             const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
-            const Eigen::Ref<const Eigen::VectorX<Dtype>> &lidar_angles_body,
-            const std::vector<Eigen::VectorX<Dtype>> &lidar_ranges,
+            const Eigen::Ref<const VectorX> &lidar_angles_body,
+            const std::vector<VectorX> &lidar_ranges,
             bool clip_ranges,
             const std::shared_ptr<LidarFrameMask> &old_mask) const;
 
@@ -208,9 +211,18 @@ namespace erl::geometry {
             int &num_out_of_map_cells) const;
 
         void
-        PostProcessMasks(const Eigen::Ref<const Eigen::Vector2<Dtype>> &position, Dtype theta);
+        PostProcessMasks(const Eigen::Ref<const Vector2> &position, Dtype theta);
     };
+
+    using LogOddMap2Dd = LogOddMap2D<double>;
+    using LogOddMap2Df = LogOddMap2D<float>;
 
 }  // namespace erl::geometry
 
 #include "log_odd_map_2d.tpp"
+
+template<>
+struct YAML::convert<erl::geometry::LogOddMap2Dd::Setting> : erl::geometry::LogOddMap2Dd::Setting::YamlConvertImpl {};
+
+template<>
+struct YAML::convert<erl::geometry::LogOddMap2Df::Setting> : erl::geometry::LogOddMap2Df::Setting::YamlConvertImpl {};

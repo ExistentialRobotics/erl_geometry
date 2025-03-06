@@ -31,13 +31,7 @@ namespace erl::geometry {
 
         explicit AbstractOctreeNode(const uint32_t depth, const int child_index = -1)
             : m_depth_(depth),
-              m_child_index_(child_index) {
-            ERL_DEBUG_WARN_ONCE_COND(
-                typeid(*this) != typeid(AbstractOctreeNode) && !Factory::GetInstance().IsRegistered(GetNodeType()),
-                "Tree type {} not registered, do you forget to use ERL_REGISTER_OCTREE_NODE({})?",
-                GetNodeType(),
-                GetNodeType());
-        }
+              m_child_index_(child_index) {}
 
         /**
          * copy constructor, deep copy. If you want to do shallow copy, please wrap it in a smart pointer. AbstractOctreeNode uses raw pointers internally and
@@ -234,5 +228,5 @@ namespace erl::geometry {
         }
     };
 
-#define ERL_REGISTER_OCTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctreeNode::Register<Derived>()
+    // #define ERL_REGISTER_OCTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctreeNode::Register<Derived>()
 }  // namespace erl::geometry

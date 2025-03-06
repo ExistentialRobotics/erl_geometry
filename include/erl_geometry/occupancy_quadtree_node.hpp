@@ -106,7 +106,7 @@ namespace erl::geometry {
         }
 
         virtual bool
-        AllowUpdateLogOdds(double &delta) const {
+        AllowUpdateLogOdds(float &delta) const {
             (void) delta;
             return true;
         }
@@ -145,6 +145,4 @@ namespace erl::geometry {
             m_log_odds_ += log_odds;
         }
     };
-
-    ERL_REGISTER_QUADTREE_NODE(OccupancyQuadtreeNode);
 }  // namespace erl::geometry

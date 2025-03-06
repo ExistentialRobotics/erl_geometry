@@ -82,7 +82,7 @@ CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector2> &coords, 
 
 template<typename Dtype>
 void
-CameraIntrinsic<Dtype>::ConvertDepthToDistance(const Matrix &depth, Matrix &distance) const {
+CameraIntrinsic<Dtype>::ConvertDepthToDistance(const MatrixX &depth, MatrixX &distance) const {
     ERL_ASSERTM(depth.rows() == image_height, "depth image height ({}) does not match setting ({}).", depth.rows(), image_height);
     ERL_ASSERTM(depth.cols() == image_width, "depth image width ({}) does not match setting ({}).", depth.cols(), image_width);
 
@@ -105,7 +105,7 @@ CameraIntrinsic<Dtype>::ConvertDepthToDistance(const Matrix &depth, Matrix &dist
 
 template<typename Dtype>
 void
-CameraIntrinsic<Dtype>::ConvertDistanceToDepth(const Matrix &distance, Matrix &depth) const {
+CameraIntrinsic<Dtype>::ConvertDistanceToDepth(const MatrixX &distance, MatrixX &depth) const {
     ERL_ASSERTM(distance.rows() == image_height, "distance image height ({}) does not match setting ({}).", distance.rows(), image_height);
     ERL_ASSERTM(distance.cols() == image_width, "distance image width ({}) does not match setting ({}).", distance.cols(), image_width);
 
@@ -129,7 +129,7 @@ CameraIntrinsic<Dtype>::ConvertDistanceToDepth(const Matrix &distance, Matrix &d
 template<typename Dtype>
 void
 CameraIntrinsic<Dtype>::ConvertRgbdToPointCloud(
-    const Matrix &depth,
+    const MatrixX &depth,
     const cv::Mat &rgb,
     const std::optional<Matrix4> &optical_pose,
     std::vector<Vector3> &points,
@@ -150,7 +150,7 @@ CameraIntrinsic<Dtype>::ConvertRgbdToPointCloud(
     const Dtype fx_inv = 1.0 / camera_fx;
     const Dtype fy_inv = 1.0 / camera_fy;
     const bool has_optical_pose = optical_pose.has_value();
-    Eigen::Matrix3d rotation;
+    Matrix3 rotation;
     Vector3 translation;
     if (has_optical_pose) {
         rotation = optical_pose->template topLeftCorner<3, 3>();

@@ -1,36 +1,37 @@
+#pragma once
 // Reference: https://dl.acm.org/doi/10.1145/1276377.1276407
-
-#include "erl_geometry/hidden_point_removal.hpp"
 
 #include "erl_common/logging.hpp"
 #include "erl_geometry/convex_hull.hpp"
 
 namespace erl::geometry {
 
-    static void
-    SphericalProjection(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &camera_position,
-        const double radius,
-        Eigen::Matrix3Xd &projected_points,
-        Eigen::VectorXd &norms) {
-        const long num_points = points.cols();
-        for (long i = 0; i < num_points; ++i) {
-            auto point = points.col(i);
-            auto projected_point = projected_points.col(i);
-            double &norm = norms[i];
+    // template<typename Dtype>
+    // static void
+    // SphericalProjection(
+    //     const Eigen::Ref<const Eigen::Matrix3Xd> &points,
+    //     const Eigen::Ref<const Eigen::Vector3d> &camera_position,
+    //     const double radius,
+    //     Eigen::Matrix3Xd &projected_points,
+    //     Eigen::VectorXd &norms) {
+    //     const long num_points = points.cols();
+    //     for (long i = 0; i < num_points; ++i) {
+    //         auto point = points.col(i);
+    //         auto projected_point = projected_points.col(i);
+    //         double &norm = norms[i];
+    //
+    //         projected_point << point - camera_position;
+    //         norm = projected_point.norm();
+    //         ERL_DEBUG_ASSERT(norm < radius, "norm ({}) should be < radius ({}).", norm, radius);
+    //         projected_point << projected_point + 2 * (radius - norm) * (projected_point / norm);
+    //     }
+    // }
 
-            projected_point << point - camera_position;
-            norm = projected_point.norm();
-            ERL_DEBUG_ASSERT(norm < radius, "norm ({}) should be < radius ({}).", norm, radius);
-            projected_point << projected_point + 2 * (radius - norm) * (projected_point / norm);
-        }
-    }
-
+    template<typename Dtype>
     void
     HiddenPointRemoval(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &view_position,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &points,
+        const Eigen::Ref<const Eigen::Vector3<Dtype>> &view_position,
         const double radius,
         std::vector<long> &visible_point_indices,
         const bool fast,
@@ -40,9 +41,20 @@ namespace erl::geometry {
         // perform spherical projection
         const long num_points = points.cols();
         ERL_DEBUG_ASSERT(num_points > 0, "num_points = {}, it should be > 0.", num_points);
-        Eigen::Matrix3Xd projected_points(3, num_points + 1);
+        Eigen::Matrix3Xd projected_points(3, num_points + 1);  // qhullcpp uses double
         Eigen::VectorXd norms(num_points);
-        SphericalProjection(points, view_position, radius, projected_points, norms);
+
+        // spherical projection
+        for (long i = 0; i < num_points; ++i) {
+            auto point = points.col(i);
+            auto projected_point = projected_points.col(i);
+            double &norm = norms[i];
+
+            projected_point << (point - view_position).template cast<double>();
+            norm = projected_point.norm();
+            ERL_DEBUG_ASSERT(norm < radius, "norm ({}) should be < radius ({}).", norm, radius);
+            projected_point << projected_point + (2 * (radius - norm) / norm) * projected_point;
+        }
 
         // add origin, which may be outside the point cloud
         projected_points.col(num_points).setZero();
@@ -71,10 +83,11 @@ namespace erl::geometry {
         }
     }
 
+    template<typename Dtype>
     void
     HiddenPointRemoval(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &points,
-        const Eigen::Ref<const Eigen::Vector3d> &view_position,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &points,
+        const Eigen::Ref<const Eigen::Vector3<Dtype>> &view_position,
         const double radius,
         Eigen::Matrix3Xl &mesh_triangles,
         Eigen::Matrix3Xd &mesh_vertices,
@@ -88,7 +101,18 @@ namespace erl::geometry {
         ERL_DEBUG_ASSERT(num_points > 0, "num_points = {}, it should be > 0.", num_points);
         Eigen::Matrix3Xd projected_points(3, num_points + 1);
         Eigen::VectorXd norms(num_points);
-        SphericalProjection(points, view_position, radius, projected_points, norms);
+
+        // spherical projection
+        for (long i = 0; i < num_points; ++i) {
+            auto point = points.col(i);
+            auto projected_point = projected_points.col(i);
+            double &norm = norms[i];
+
+            projected_point << (point - view_position).template cast<double>();
+            norm = projected_point.norm();
+            ERL_DEBUG_ASSERT(norm < radius, "norm ({}) should be < radius ({}).", norm, radius);
+            projected_point << projected_point + (2 * (radius - norm) / norm) * projected_point;
+        }
 
         // add origin, which may be outside the point cloud
         projected_points.col(num_points).setZero();

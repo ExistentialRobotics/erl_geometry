@@ -35,7 +35,7 @@ BindSpace2D(const py::module &m) {
             py::arg("delta") = 0.01,
             py::arg("parallel") = false)
         .def(
-            py::init<const Eigen::Ref<const Eigen::MatrixXd> &, const GridMapInfo2D &, double, double, bool>(),
+            py::init<const Eigen::Ref<const Eigen::MatrixXd> &, const GridMapInfo2Dd &, double, double, bool>(),
             py::arg("map_image"),
             py::arg("grid_map_info"),
             py::arg("free_threshold"),
@@ -64,7 +64,7 @@ BindSpace2D(const py::module &m) {
         .def("compute_sdf_greedily", &Space2D::ComputeSdfGreedily, py::arg("q"), py::arg("sign_method"))
         .def(
             "compute_ddf",
-            [](const Space2D &space, const GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) {
+            [](const Space2D &space, const GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) {
                 auto result = space.ComputeDdf(grid_map_info, query_directions, parallel);
                 const long n_rows = result.rows();
                 const long n_cols = result.cols();
@@ -88,7 +88,7 @@ BindSpace2D(const py::module &m) {
             py::arg("parallel") = false)
         .def(
             "compute_sddf_v1",
-            [](const Space2D &space, const GridMapInfo2D &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) {
+            [](const Space2D &space, const GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, const bool parallel) {
                 auto result = space.ComputeSddfV1(grid_map_info, query_directions, parallel);
                 const long n_rows = result.rows();
                 const long n_cols = result.cols();
@@ -115,7 +115,7 @@ BindSpace2D(const py::module &m) {
         .def(
             "compute_sddf_v2",
             [](const Space2D &space,
-               const GridMapInfo2D &grid_map_info,
+               const GridMapInfo2Dd &grid_map_info,
                const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
                const Space2D::SignMethod sign_method,
                const bool parallel) {

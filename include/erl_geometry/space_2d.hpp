@@ -167,7 +167,7 @@ namespace erl::geometry {
         [[nodiscard]] bool
         IsNegativeSdfByPolygon(const Eigen::Ref<const Eigen::Vector2d> &q, const int vertex_0_idx) const {
             const auto &idx_object = m_surface_->vertices_to_objects(vertex_0_idx);
-            const bool wn = WindingNumber(q, m_surface_->GetObjectVertices(idx_object));
+            const bool wn = WindingNumber<double>(q, m_surface_->GetObjectVertices(idx_object));
             return wn == m_surface_->outside_flags[idx_object];
         }
 

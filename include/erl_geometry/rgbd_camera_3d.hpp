@@ -13,7 +13,7 @@
 namespace erl::geometry {
 
     template<typename Dtype>
-    class RgbdCamera3D {
+    class RgbdCamera3D : public CameraBase3D<Dtype> {
     public:
         using Setting = CameraIntrinsic<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;
