@@ -65,6 +65,7 @@ namespace erl::geometry {
         Eigen::MatrixXb m_mask_hit_ = {};                            // if i-th element is true, then i-th vertex is a hit
         Eigen::MatrixXb m_mask_continuous_ = {};                     // if i-th element is true, then (i-1, i) edge is continuous
         std::vector<std::pair<long, long>> m_hit_ray_indices_ = {};  // hit ray indices
+        std::vector<Vector3> m_hit_points_frame_ = {};               // hit points in frame
         std::vector<Vector3> m_hit_points_world_ = {};               // hit points in world
         Dtype m_max_valid_range_ = std::numeric_limits<Dtype>::min();
         std::shared_ptr<KdTree> m_kd_tree_ = std::make_shared<KdTree>();
@@ -137,23 +138,23 @@ namespace erl::geometry {
         ComputeFrameCoords(const Vector3 &xyz_frame) const = 0;
 
         [[nodiscard]] virtual Vector3
-        WorldToFrameSo3(const Vector3 &dir_world) const {
+        DirWorldToFrame(const Vector3 &dir_world) const {
             return m_rotation_.transpose() * dir_world;
         }
 
         [[nodiscard]] virtual Vector3
-        FrameToWorldSo3(const Vector3 &dir_frame) const {
+        DirFrameToWorld(const Vector3 &dir_frame) const {
             return m_rotation_ * dir_frame;
         }
 
         [[nodiscard]] virtual Vector3
-        WorldToFrameSe3(const Vector3 &xyz_world) const {
-            return m_rotation_.transpose() * (xyz_world - m_translation_);
+        PosWorldToFrame(const Vector3 &pos_world) const {
+            return m_rotation_.transpose() * (pos_world - m_translation_);
         }
 
         [[nodiscard]] virtual Vector3
-        FrameToWorldSe3(const Vector3 &xyz_frame) const {
-            return m_rotation_ * xyz_frame + m_translation_;
+        PosFrameToWorld(const Vector3 &pos_frame) const {
+            return m_rotation_ * pos_frame + m_translation_;
         }
 
         virtual void
@@ -187,6 +188,11 @@ namespace erl::geometry {
         [[nodiscard]] const std::vector<std::pair<long, long>> &
         GetHitRayIndices() const {
             return m_hit_ray_indices_;
+        }
+
+        [[nodiscard]] const std::vector<Vector3> &
+        GetHitPointsFrame() const {
+            return m_hit_points_frame_;
         }
 
         [[nodiscard]] const std::vector<Vector3> &

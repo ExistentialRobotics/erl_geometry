@@ -66,10 +66,10 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
         .def("point_is_in_frame", &T::PointIsInFrame, py::arg("xyz_frame"))
         .def("coords_is_in_frame", &T::CoordsIsInFrame, py::arg("frame_coords"))
         .def("compute_frame_coords", &T::ComputeFrameCoords, py::arg("xyz_frame"))
-        .def("world_to_frame_so3", &T::WorldToFrameSo3, py::arg("dir_world"))
-        .def("frame_to_world_so3", &T::FrameToWorldSo3, py::arg("dir_frame"))
-        .def("world_to_frame_se3", &T::WorldToFrameSe3, py::arg("xyz_world"))
-        .def("frame_to_world_se3", &T::FrameToWorldSe3, py::arg("xyz_frame"))
+        .def("dir_world_to_frame", &T::DirWorldToFrame, py::arg("dir_world"))
+        .def("dir_frame_to_world", &T::DirFrameToWorld, py::arg("dir_frame"))
+        .def("pos_world_to_frame", &T::PosWorldToFrame, py::arg("pos_world"))
+        .def("pos_frame_to_world", &T::PosFrameToWorld, py::arg("pos_frame"))
         .def(
             "compute_closest_end_point",
             [](T &self, const Eigen::Ref<const Vector3> &position_world, const bool brute_force) -> py::dict {

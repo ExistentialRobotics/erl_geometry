@@ -28,7 +28,7 @@ namespace erl::geometry {
             if (in_world_frame) {
                 points[k] = Super::m_hit_points_world_[k];
             } else {
-                points[k] = Super::m_end_pts_frame_(i, j);
+                points[k] = Super::m_hit_points_frame_[k];
             }
             const auto &color = m_rgb_.at<cv::Vec3b>(static_cast<int>(i), static_cast<int>(j));
             colors[k][0] = static_cast<Dtype>(color[0]) / 255.0;

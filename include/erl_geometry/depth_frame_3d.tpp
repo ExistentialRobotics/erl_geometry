@@ -112,6 +112,8 @@ namespace erl::geometry {
         Super::m_mask_hit_.setConstant(image_height, image_width, false);
         Super::m_hit_ray_indices_.clear();
         Super::m_hit_ray_indices_.reserve(image_height * image_width);
+        Super::m_hit_points_frame_.clear();
+        Super::m_hit_points_frame_.reserve(image_height * image_width);
         Super::m_hit_points_world_.clear();
         Super::m_hit_points_world_.reserve(image_height * image_width);
 
@@ -147,11 +149,13 @@ namespace erl::geometry {
         for (long u = 0; u < image_width; ++u) {
             const bool *mask_hit_ptr = Super::m_mask_hit_.col(u).data();
             const Dtype *ranges_ptr = Super::m_ranges_.col(u).data();
+            const Vector3 *end_pts_frame_ptr = Super::m_end_pts_frame_.col(u).data();
             const Vector3 *end_pts_world_ptr = Super::m_end_pts_world_.col(u).data();
             for (long v = 0; v < image_height; ++v) {
                 if (!mask_hit_ptr[v]) { continue; }
                 if (const Dtype range = ranges_ptr[v]; range > Super::m_max_valid_range_) { Super::m_max_valid_range_ = range; }
                 Super::m_hit_ray_indices_.emplace_back(v, u);
+                Super::m_hit_points_frame_.emplace_back(end_pts_frame_ptr[v]);
                 Super::m_hit_points_world_.emplace_back(end_pts_world_ptr[v]);
             }
         }

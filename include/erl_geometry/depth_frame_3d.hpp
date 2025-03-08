@@ -118,9 +118,6 @@ namespace erl::geometry {
     using DepthFrame3Dd = DepthFrame3D<double>;
     using DepthFrame3Df = DepthFrame3D<float>;
 
-    // ERL_REGISTER_RANGE_SENSOR_FRAME_3D(DepthFrame3Dd);
-    // ERL_REGISTER_RANGE_SENSOR_FRAME_3D(DepthFrame3Df);
-
 }  // namespace erl::geometry
 
 #include "depth_frame_3d.tpp"

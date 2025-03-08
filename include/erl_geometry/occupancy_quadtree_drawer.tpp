@@ -44,6 +44,18 @@ namespace erl::geometry {
     }
 
     template<typename OccupancyQuadtreeType>
+    std::shared_ptr<const OccupancyQuadtreeType>
+    OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::GetQuadtree() const {
+        return m_quadtree_;
+    }
+
+    template<typename OccupancyQuadtreeType>
+    void
+    OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::SetQuadtree(std::shared_ptr<const OccupancyQuadtreeType> quadtree) {
+        m_quadtree_ = std::move(quadtree);
+    }
+
+    template<typename OccupancyQuadtreeType>
     void
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::SetDrawTreeCallback(
         std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> draw_tree) {

@@ -92,26 +92,26 @@ namespace erl::geometry {
 
     template<typename Dtype>
     typename LidarFrame2D<Dtype>::Vector2
-    LidarFrame2D<Dtype>::WorldToFrameSo2(const Vector2 &dir_world) const {
+    LidarFrame2D<Dtype>::DirWorldToFrame(const Vector2 &dir_world) const {
         return m_rotation_.transpose() * dir_world;
     }
 
     template<typename Dtype>
     typename LidarFrame2D<Dtype>::Vector2
-    LidarFrame2D<Dtype>::FrameToWorldSo2(const Vector2 &dir_frame) const {
+    LidarFrame2D<Dtype>::DirFrameToWorld(const Vector2 &dir_frame) const {
         return m_rotation_ * dir_frame;
     }
 
     template<typename Dtype>
     typename LidarFrame2D<Dtype>::Vector2
-    LidarFrame2D<Dtype>::WorldToFrameSe2(const Vector2 &xy_world) const {
-        return m_rotation_.transpose() * (xy_world - m_translation_);
+    LidarFrame2D<Dtype>::PosWorldToFrame(const Vector2 &pos_world) const {
+        return m_rotation_.transpose() * (pos_world - m_translation_);
     }
 
     template<typename Dtype>
     typename LidarFrame2D<Dtype>::Vector2
-    LidarFrame2D<Dtype>::FrameToWorldSe2(const Vector2 &xy_local) const {
-        return m_rotation_ * xy_local + m_translation_;
+    LidarFrame2D<Dtype>::PosFrameToWorld(const Vector2 &pos_local) const {
+        return m_rotation_ * pos_local + m_translation_;
     }
 
     template<typename Dtype>
@@ -144,6 +144,8 @@ namespace erl::geometry {
 
         m_hit_ray_indices_.clear();
         m_hit_ray_indices_.reserve(n);
+        m_hit_points_frame_.clear();
+        m_hit_points_frame_.reserve(n);
         m_hit_points_world_.clear();
         m_hit_points_world_.reserve(n);
 
@@ -172,6 +174,7 @@ namespace erl::geometry {
             if (!m_mask_hit_[i]) { continue; }
             if (const Dtype &range = m_ranges_[i]; range > m_max_valid_range_) { m_max_valid_range_ = range; }
             m_hit_ray_indices_.emplace_back(i);
+            m_hit_points_frame_.emplace_back(m_end_pts_frame_[i]);
             m_hit_points_world_.emplace_back(m_end_pts_world_[i]);
         }
 
@@ -276,6 +279,12 @@ namespace erl::geometry {
     const std::vector<long> &
     LidarFrame2D<Dtype>::GetHitRayIndices() const {
         return m_hit_ray_indices_;
+    }
+
+    template<typename Dtype>
+    const std::vector<typename LidarFrame2D<Dtype>::Vector2> &
+    LidarFrame2D<Dtype>::GetHitPointsFrame() const {
+        return m_hit_points_frame_;
     }
 
     template<typename Dtype>

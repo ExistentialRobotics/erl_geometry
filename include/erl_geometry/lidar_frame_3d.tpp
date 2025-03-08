@@ -83,6 +83,8 @@ LidarFrame3D<Dtype>::UpdateRanges(
 
     Super::m_hit_ray_indices_.clear();
     Super::m_hit_ray_indices_.reserve(num_azimuths * num_elevations);
+    Super::m_hit_points_frame_.clear();
+    Super::m_hit_points_frame_.reserve(num_azimuths * num_elevations);
     Super::m_hit_points_world_.clear();
     Super::m_hit_points_world_.reserve(num_azimuths * num_elevations);
 
@@ -109,11 +111,16 @@ LidarFrame3D<Dtype>::UpdateRanges(
 
     Super::m_max_valid_range_ = 0.0;
     for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
+        const bool *mask_hit_ptr = Super::m_mask_hit_.col(elevation_idx).data();
+        const Dtype *ranges_ptr = Super::m_ranges_.col(elevation_idx).data();
+        const Vector3 *end_pts_frame_ptr = Super::m_end_pts_frame_.col(elevation_idx).data();
+        const Vector3 *end_pts_world_ptr = Super::m_end_pts_world_.col(elevation_idx).data();
         for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
-            if (!Super::m_mask_hit_(azimuth_idx, elevation_idx)) { continue; }
-            if (const Dtype &range = Super::m_ranges_(azimuth_idx, elevation_idx); range > Super::m_max_valid_range_) { Super::m_max_valid_range_ = range; }
+            if (!mask_hit_ptr[azimuth_idx]) { continue; }
+            if (const Dtype range = ranges_ptr[azimuth_idx]; range > Super::m_max_valid_range_) { Super::m_max_valid_range_ = range; }
             Super::m_hit_ray_indices_.emplace_back(azimuth_idx, elevation_idx);
-            Super::m_hit_points_world_.emplace_back(Super::m_end_pts_world_(azimuth_idx, elevation_idx));
+            Super::m_hit_points_frame_.emplace_back(end_pts_frame_ptr[azimuth_idx]);
+            Super::m_hit_points_world_.emplace_back(end_pts_world_ptr[azimuth_idx]);
         }
     }
 

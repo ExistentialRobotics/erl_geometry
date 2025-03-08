@@ -83,6 +83,7 @@ namespace erl::geometry {
         Eigen::VectorXb m_mask_hit_ = {};               // if i-th element is true, then i-th vertex is a hit
         Eigen::VectorXb m_mask_continuous_ = {};        // if i-th element is true, then (i-1, i) edge is continuous
         std::vector<long> m_hit_ray_indices_ = {};      // hit ray indices
+        std::vector<Vector2> m_hit_points_frame_ = {};  // hit points in frame
         std::vector<Vector2> m_hit_points_world_ = {};  // hit points in world
 
         Dtype m_max_valid_range_ = 0.0;
@@ -100,16 +101,16 @@ namespace erl::geometry {
         PointIsInFrame(const Vector2 &xy_frame) const;
 
         [[nodiscard]] Vector2
-        WorldToFrameSo2(const Vector2 &dir_world) const;
+        DirWorldToFrame(const Vector2 &dir_world) const;
 
         [[nodiscard]] Vector2
-        FrameToWorldSo2(const Vector2 &dir_frame) const;
+        DirFrameToWorld(const Vector2 &dir_frame) const;
 
         [[nodiscard]] Vector2
-        WorldToFrameSe2(const Vector2 &xy_world) const;
+        PosWorldToFrame(const Vector2 &pos_world) const;
 
         [[nodiscard]] Vector2
-        FrameToWorldSe2(const Vector2 &xy_local) const;
+        PosFrameToWorld(const Vector2 &pos_local) const;
 
         void
         UpdateRanges(const Eigen::Ref<const Matrix2> &rotation, const Eigen::Ref<const Vector2> &translation, VectorX ranges, bool partition_rays = false);
@@ -161,6 +162,9 @@ namespace erl::geometry {
 
         [[nodiscard]] const std::vector<long> &
         GetHitRayIndices() const;
+
+        [[nodiscard]] const std::vector<Vector2> &
+        GetHitPointsFrame() const;
 
         [[nodiscard]] const std::vector<Vector2> &
         GetHitPointsWorld() const;

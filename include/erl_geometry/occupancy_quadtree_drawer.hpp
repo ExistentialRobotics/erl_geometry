@@ -41,11 +41,14 @@ namespace erl::geometry {
     public:
         explicit OccupancyQuadtreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyQuadtreeType> quadtree = nullptr);
 
-        using AbstractQuadtreeDrawer::DrawLeaves;
-        using AbstractQuadtreeDrawer::DrawTree;
-
         [[nodiscard]] std::shared_ptr<Setting>
         GetSetting() const;
+
+        [[nodiscard]] std::shared_ptr<const OccupancyQuadtreeType>
+        GetQuadtree() const;
+
+        void
+        SetQuadtree(std::shared_ptr<const OccupancyQuadtreeType> quadtree);
 
         [[nodiscard]] std::shared_ptr<common::GridMapInfo2D<Dtype>>
         GetGridMapInfo() const {
@@ -61,6 +64,9 @@ namespace erl::geometry {
 
         void
         SetDrawLeafCallback(std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)> draw_leaf);
+
+        using AbstractQuadtreeDrawer::DrawLeaves;
+        using AbstractQuadtreeDrawer::DrawTree;
 
         void
         DrawTree(cv::Mat &mat) const override;

@@ -44,7 +44,7 @@ namespace erl::geometry {
         return Factory::GetInstance().template Register<Derived>(
             frame_type,
             [](const std::shared_ptr<Setting> &setting) -> std::shared_ptr<RangeSensorFrame3D> {
-                const std::string derived_frame_type = demangle(typeid(Derived).name());
+                const std::string derived_frame_type = type_name<Derived>();
                 if (setting == nullptr) {
                     ERL_WARN("setting is nullptr before creating a derived RangeSensorFrame3D of type {}.", derived_frame_type);
                     return nullptr;
