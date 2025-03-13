@@ -48,11 +48,3 @@ namespace erl::geometry {
     using PyObjectOccupancyOctreeD = PyObjectOccupancyOctree<double>;
     using PyObjectOccupancyOctreeF = PyObjectOccupancyOctree<float>;
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::PyObjectOccupancyOctreeD::Drawer::Setting>
-    : public erl::geometry::PyObjectOccupancyOctreeD::Drawer::Setting::YamlConvertImpl {};  // namespace YAML
-
-template<>
-struct YAML::convert<erl::geometry::PyObjectOccupancyOctreeF::Drawer::Setting>
-    : public erl::geometry::PyObjectOccupancyOctreeF::Drawer::Setting::YamlConvertImpl {};  // namespace YAML

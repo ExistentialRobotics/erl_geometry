@@ -1,28 +1,6 @@
 #pragma once
 
 namespace erl::geometry {
-    template<typename OccupancyOctreeType>
-    YAML::Node
-    OccupancyOctreeDrawer<OccupancyOctreeType>::Setting::YamlConvertImpl::encode(const Setting &setting) {
-        YAML::Node node = YAML::convert<AbstractOctreeDrawer::Setting>::encode(setting);
-        node["occupied_only"] = setting.occupied_only;
-        node["occupied_color"] = setting.occupied_color;
-        node["draw_node_boxes"] = setting.draw_node_boxes;
-        node["draw_node_borders"] = setting.draw_node_borders;
-        return node;
-    }
-
-    template<typename OccupancyOctreeType>
-    bool
-    OccupancyOctreeDrawer<OccupancyOctreeType>::Setting::YamlConvertImpl::decode(const YAML::Node &node, Setting &setting) {
-        if (!node.IsMap()) { return false; }
-        if (!YAML::convert<AbstractOctreeDrawer::Setting>::decode(node, setting)) { return false; }
-        setting.occupied_only = node["occupied_only"].as<bool>();
-        setting.occupied_color = node["occupied_color"].as<Eigen::Vector3d>();
-        setting.draw_node_boxes = node["draw_node_boxes"].as<bool>();
-        setting.draw_node_borders = node["draw_node_borders"].as<bool>();
-        return true;
-    }
 
     template<typename OccupancyOctreeType>
     OccupancyOctreeDrawer<OccupancyOctreeType>::OccupancyOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyOctreeType> octree)

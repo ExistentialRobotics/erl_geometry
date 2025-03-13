@@ -10,24 +10,25 @@
 
 namespace erl::geometry {
 
+    struct OccupancyOctreeDrawerSetting : common::Yamlable<OccupancyOctreeDrawerSetting, AbstractOctreeDrawer::Setting> {
+        bool occupied_only = false;
+        Eigen::Vector3d occupied_color = {0.67, 0.33, 0.0};  // brown
+        bool draw_node_boxes = true;
+        bool draw_node_borders = true;
+
+        struct YamlConvertImpl {
+            static YAML::Node
+            encode(const OccupancyOctreeDrawerSetting &setting);
+
+            static bool
+            decode(const YAML::Node &node, OccupancyOctreeDrawerSetting &setting);
+        };
+    };
+
     template<typename OccupancyOctreeType>
     class OccupancyOctreeDrawer : public AbstractOctreeDrawer {
     public:
-        struct Setting : common::Yamlable<Setting, AbstractOctreeDrawer::Setting> {
-            bool occupied_only = false;
-            Eigen::Vector3d occupied_color = {0.67, 0.33, 0.0};  // brown
-            bool draw_node_boxes = true;
-            bool draw_node_borders = true;
-
-            struct YamlConvertImpl {
-                static YAML::Node
-                encode(const Setting &setting);
-
-                static bool
-                decode(const YAML::Node &node, Setting &setting);
-            };
-        };
-
+        using Setting = OccupancyOctreeDrawerSetting;
         using DrawTreeCallback = std::function<void(
             const OccupancyOctreeDrawer *,                               // this
             std::vector<std::shared_ptr<open3d::geometry::Geometry>> &,  // geometries
@@ -70,3 +71,6 @@ namespace erl::geometry {
 }  // namespace erl::geometry
 
 #include "occupancy_octree_drawer.tpp"
+
+template<>
+struct YAML::convert<erl::geometry::OccupancyOctreeDrawerSetting> : erl::geometry::OccupancyOctreeDrawerSetting::YamlConvertImpl {};

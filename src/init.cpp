@@ -1,13 +1,17 @@
 #include "erl_geometry/init.hpp"
 
+#include "erl_geometry/abstract_octree_drawer.hpp"
+#include "erl_geometry/abstract_quadtree_drawer.hpp"
 #include "erl_geometry/depth_camera_3d.hpp"
 #include "erl_geometry/depth_frame_3d.hpp"
 #include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/lidar_frame_3d.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/occupancy_octree_base.hpp"
+#include "erl_geometry/occupancy_octree_drawer.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_base.hpp"
+#include "erl_geometry/occupancy_quadtree_drawer.hpp"
 #include "erl_geometry/range_sensor_frame_3d.hpp"
 #include "erl_geometry/rgbd_camera_3d.hpp"
 #include "erl_geometry/rgbd_frame_3d.hpp"
@@ -16,11 +20,14 @@ namespace erl::geometry {
 
 #define REGISTER(x) (void) x::Register<x>()
 
-    bool initialized = false;
+    bool initialized = Init();
 
     bool
     Init() {
-        if (initialized) { return true; }
+        static bool initialized_ = false;
+
+        if (initialized_) { return true; }
+
         REGISTER(Lidar3Dd::Setting);
         REGISTER(Lidar3Df::Setting);
         REGISTER(LidarFrame3Dd);
@@ -57,8 +64,14 @@ namespace erl::geometry {
         REGISTER(OccupancyQuadtreeD);
         REGISTER(OccupancyQuadtreeF);
 
+        REGISTER(AbstractQuadtreeDrawer::Setting);
+        REGISTER(AbstractOctreeDrawer::Setting);
+        REGISTER(OccupancyQuadtreeDrawerSettingD);
+        REGISTER(OccupancyQuadtreeDrawerSettingF);
+        REGISTER(OccupancyOctreeDrawerSetting);
+
         ERL_INFO("erl_geometry initialized");
-        initialized = true;
+        initialized_ = true;
         return true;
     }
 }  // namespace erl::geometry

@@ -16,8 +16,6 @@ namespace erl::geometry {
             int border_thickness = 1;
         };
 
-        inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
-
     private:
         std::shared_ptr<Setting> m_setting_ = {};
 

@@ -47,11 +47,3 @@ namespace erl::geometry {
     using PyObjectOccupancyQuadtreeD = PyObjectOccupancyQuadtree<double>;
     using PyObjectOccupancyQuadtreeF = PyObjectOccupancyQuadtree<float>;
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::PyObjectOccupancyQuadtreeD::Drawer::Setting>
-    : public erl::geometry::PyObjectOccupancyQuadtreeD::Drawer::Setting::YamlConvertImpl {};  // namespace YAML
-
-template<>
-struct YAML::convert<erl::geometry::PyObjectOccupancyQuadtreeF::Drawer::Setting>
-    : public erl::geometry::PyObjectOccupancyQuadtreeF::Drawer::Setting::YamlConvertImpl {};  // namespace YAML

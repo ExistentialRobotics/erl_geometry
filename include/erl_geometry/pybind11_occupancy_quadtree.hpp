@@ -384,7 +384,8 @@ BindOccupancyQuadtree(
                Eigen::Vector4i free_color,
                Eigen::Vector4i border_color,
                const int border_thickness) {
-                auto drawer_setting = std::make_shared<typename Quadtree::Drawer::Setting>();
+                using Drawer = OccupancyQuadtreeDrawer<Quadtree>;
+                auto drawer_setting = std::make_shared<typename Drawer::Setting>();
                 if (area_min.has_value()) {
                     drawer_setting->area_min = area_min.value();
                 } else {
@@ -425,7 +426,7 @@ BindOccupancyQuadtree(
                 }
                 drawer_setting->border_thickness = border_thickness;
 
-                auto drawer = std::make_shared<typename Quadtree::Drawer>(drawer_setting, self);
+                auto drawer = std::make_shared<Drawer>(drawer_setting, self);
                 cv::Mat mat;
                 if (leaf_only) {
                     drawer->DrawLeaves(mat);

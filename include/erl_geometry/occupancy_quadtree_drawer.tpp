@@ -2,9 +2,9 @@
 
 namespace erl::geometry {
 
-    template<typename OccupancyQuadtreeType>
+    template<typename Dtype>
     YAML::Node
-    OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::Setting::YamlConvertImpl::encode(const Setting &setting) {
+    OccupancyQuadtreeDrawerSetting<Dtype>::YamlConvertImpl::encode(const OccupancyQuadtreeDrawerSetting &setting) {
         YAML::Node node = YAML::convert<AbstractQuadtreeDrawer::Setting>::encode(setting);
         node["area_min"] = setting.area_min;
         node["area_max"] = setting.area_max;
@@ -14,14 +14,14 @@ namespace erl::geometry {
         return node;
     }
 
-    template<typename OccupancyQuadtreeType>
+    template<typename Dtype>
     bool
-    OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::Setting::YamlConvertImpl::decode(const YAML::Node &node, Setting &setting) {
+    OccupancyQuadtreeDrawerSetting<Dtype>::YamlConvertImpl::decode(const YAML::Node &node, OccupancyQuadtreeDrawerSetting &setting) {
         if (!node.IsMap()) { return false; }
         if (!YAML::convert<AbstractQuadtreeDrawer::Setting>::decode(node, setting)) { return false; }
         setting.area_min = node["area_min"].as<Eigen::Vector2<Dtype>>();
         setting.area_max = node["area_max"].as<Eigen::Vector2<Dtype>>();
-        setting.resolution = node["resolution"].as<double>();
+        setting.resolution = node["resolution"].as<Dtype>();
         setting.occupied_color = node["occupied_color"].as<cv::Scalar>();
         setting.free_color = node["free_color"].as<cv::Scalar>();
         return true;
@@ -35,10 +35,15 @@ namespace erl::geometry {
           m_setting_(std::move(setting)),
           m_quadtree_(std::move(quadtree)) {
         ERL_ASSERTM(m_setting_, "setting is nullptr.");
+        m_grid_map_info_ = std::make_shared<common::GridMapInfo2D<Dtype>>(
+            m_setting_->area_min,
+            m_setting_->area_max,
+            Eigen::Vector2<Dtype>(m_setting_->resolution, m_setting_->resolution),
+            Eigen::Vector2i(m_setting_->padding, m_setting_->padding));
     }
 
     template<typename OccupancyQuadtreeType>
-    std::shared_ptr<typename OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::Setting>
+    std::shared_ptr<const typename OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::Setting>
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::GetSetting() const {
         return m_setting_;
     }
@@ -53,6 +58,12 @@ namespace erl::geometry {
     void
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::SetQuadtree(std::shared_ptr<const OccupancyQuadtreeType> quadtree) {
         m_quadtree_ = std::move(quadtree);
+    }
+
+    template<typename OccupancyQuadtreeType>
+    std::shared_ptr<const common::GridMapInfo2D<typename OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::Dtype>>
+    OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::GetGridMapInfo() const {
+        return m_grid_map_info_;
     }
 
     template<typename OccupancyQuadtreeType>
@@ -72,8 +83,7 @@ namespace erl::geometry {
     template<typename OccupancyQuadtreeType>
     void
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::DrawTree(cv::Mat &mat) const {
-        const auto grid_map_info = GetGridMapInfo();
-        if (!mat.total()) { mat = cv::Mat(std::vector<int>{grid_map_info->Height(), grid_map_info->Width()}, CV_8UC4, m_setting_->bg_color); }
+        if (!mat.total()) { mat = cv::Mat(std::vector<int>{m_grid_map_info_->Height(), m_grid_map_info_->Width()}, CV_8UC4, m_setting_->bg_color); }
         if (m_quadtree_ == nullptr) { return; }
         std::shared_ptr<const OccupancyQuadtreeType> quadtree = std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
         if (quadtree == nullptr) {
@@ -82,23 +92,23 @@ namespace erl::geometry {
         }
 
         const bool draw_border = (m_setting_->border_thickness > 0) && (m_setting_->border_color != m_setting_->occupied_color);
-
         auto it = quadtree->BeginTree();
         auto end = quadtree->EndTree();
+        Eigen::Matrix2<Dtype> area;
         for (; it != end; ++it) {
-            const double node_size = it.GetNodeSize();
-            const double half_size = node_size / 2.0;
-            const double x = it.GetX();
-            const double y = it.GetY();
+            const Dtype node_size = it.GetNodeSize();
+            const Dtype half_size = node_size / 2.0;
+            const Dtype x = it.GetX();
+            const Dtype y = it.GetY();
 
-            Eigen::Vector2i aabb_min = grid_map_info->MeterToPixelForPoints(Eigen::Vector2<Dtype>(x - half_size, y - half_size));
-            Eigen::Vector2i aabb_max = grid_map_info->MeterToPixelForPoints(Eigen::Vector2<Dtype>(x + half_size, y + half_size));
+            area << x - half_size, x + half_size, y - half_size, y + half_size;
+            Eigen::Matrix2i area_px = GetPixelCoordsForPositions(area, true);
 
             if (!it->HasAnyChild()) {  // leaf node
                 cv::rectangle(
                     mat,
-                    cv::Point(aabb_min.x(), aabb_min.y()),
-                    cv::Point(aabb_max.x(), aabb_max.y()),
+                    cv::Point(area_px(0, 0), area_px(1, 0)),  // min
+                    cv::Point(area_px(0, 1), area_px(1, 1)),  // max
                     quadtree->IsNodeOccupied(*it) ? m_setting_->occupied_color : m_setting_->free_color,
                     -1);
             }
@@ -106,8 +116,8 @@ namespace erl::geometry {
             if (draw_border) {
                 cv::rectangle(
                     mat,
-                    cv::Point(aabb_min.x(), aabb_min.y()),
-                    cv::Point(aabb_max.x(), aabb_max.y()),
+                    cv::Point(area_px(0, 0), area_px(1, 0)),  // min
+                    cv::Point(area_px(0, 1), area_px(1, 1)),  // max
                     m_setting_->border_color,
                     m_setting_->border_thickness);
             }
@@ -119,8 +129,7 @@ namespace erl::geometry {
     template<typename OccupancyQuadtreeType>
     void
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::DrawLeaves(cv::Mat &mat) const {
-        const auto grid_map_info = GetGridMapInfo();
-        if (!mat.total()) { mat = cv::Mat(std::vector<int>{grid_map_info->Height(), grid_map_info->Width()}, CV_8UC4, m_setting_->bg_color); }
+        if (!mat.total()) { mat = cv::Mat(std::vector<int>{m_grid_map_info_->Height(), m_grid_map_info_->Width()}, CV_8UC4, m_setting_->bg_color); }
         if (m_quadtree_ == nullptr) { return; }
         std::shared_ptr<const OccupancyQuadtreeType> quadtree = std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
         if (quadtree == nullptr) {
@@ -129,32 +138,33 @@ namespace erl::geometry {
         }
 
         const bool draw_border = (m_setting_->border_thickness > 0) && (m_setting_->border_color != m_setting_->occupied_color);
-
         auto it = quadtree->BeginLeaf();
         auto end = quadtree->EndLeaf();
+        Eigen::Matrix2<Dtype> area;
         for (; it != end; ++it) {
 
             ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!");
 
-            const double node_size = it.GetNodeSize();
-            const double half_size = node_size / 2.0;
-            const double x = it.GetX();
-            const double y = it.GetY();
+            const Dtype node_size = it.GetNodeSize();
+            const Dtype half_size = node_size / 2.0;
+            const Dtype x = it.GetX();
+            const Dtype y = it.GetY();
 
-            Eigen::Vector2i aabb_min = grid_map_info->MeterToPixelForPoints(Eigen::Vector2<Dtype>(x - half_size, y - half_size));
-            Eigen::Vector2i aabb_max = grid_map_info->MeterToPixelForPoints(Eigen::Vector2<Dtype>(x + half_size, y + half_size));
+            area << x - half_size, x + half_size, y - half_size, y + half_size;
+            Eigen::Matrix2i area_px = GetPixelCoordsForPositions(area, true);
+
             cv::rectangle(
                 mat,
-                cv::Point(aabb_min.x(), aabb_min.y()),
-                cv::Point(aabb_max.x(), aabb_max.y()),
+                cv::Point(area_px(0, 0), area_px(1, 0)),  // min
+                cv::Point(area_px(0, 1), area_px(1, 1)),  // max
                 quadtree->IsNodeOccupied(*it) ? m_setting_->occupied_color : m_setting_->free_color,
                 -1);
 
             if (draw_border) {
                 cv::rectangle(
                     mat,
-                    cv::Point(aabb_min.x(), aabb_min.y()),
-                    cv::Point(aabb_max.x(), aabb_max.y()),
+                    cv::Point(area_px(0, 0), area_px(1, 0)),  // min
+                    cv::Point(area_px(0, 1), area_px(1, 1)),  // max
                     m_setting_->border_color,
                     m_setting_->border_thickness);
             }

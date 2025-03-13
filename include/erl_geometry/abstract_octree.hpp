@@ -7,7 +7,6 @@
 #include "erl_common/factory_pattern.hpp"
 #include "erl_common/string_utils.hpp"
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -72,8 +71,8 @@ namespace erl::geometry {
         }
 
         template<typename Derived>
-        static bool
-        Register(std::string tree_type = "") {
+        static std::enable_if_t<std::is_base_of_v<AbstractOctree, Derived>, bool>
+        Register(const std::string& tree_type = "") {
             return Factory::GetInstance().template Register<Derived>(tree_type, [](const std::shared_ptr<NdTreeSetting>& setting) {
                 auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
                 if (setting == nullptr) { tree_setting = std::make_shared<typename Derived::Setting>(); }

@@ -2224,6 +2224,11 @@ namespace erl::geometry {
             return static_cast<const AbstractQuadtreeNode *>(Search(x, y, max_depth));
         }
 
+        [[nodiscard]] const Node *
+        Search(const Eigen::Ref<const Vector2> &position, const uint32_t max_depth = 0) const {
+            return Search(position.x(), position.y(), max_depth);
+        }
+
         /**
          * Search node given a point.
          * @param x

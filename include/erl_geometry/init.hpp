@@ -9,7 +9,4 @@ namespace erl::geometry {
      */
     bool
     Init();
-
-    inline const static bool kAutoInitialized = Init();
-
 }  // namespace erl::geometry

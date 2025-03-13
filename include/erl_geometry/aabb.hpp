@@ -49,6 +49,14 @@ namespace erl::geometry {
             return !(*this == rhs);
         }
 
+        [[nodiscard]] bool
+        IsValid() const {
+            for (int i = 0; i < Dim; ++i) {
+                if (half_sizes[i] < 0) { return false; }
+            }
+            return true;
+        }
+
         [[nodiscard]] Aabb
         Intersection(const Aabb &rhs) const {
             return {this->m_min.cwiseMax(rhs.m_min), this->m_max.cwiseMin(rhs.m_max)};

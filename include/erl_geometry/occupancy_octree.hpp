@@ -1,7 +1,6 @@
 #pragma once
 
 #include "occupancy_octree_base.hpp"
-#include "occupancy_octree_drawer.hpp"
 #include "occupancy_octree_node.hpp"
 
 namespace erl::geometry {
@@ -11,7 +10,6 @@ namespace erl::geometry {
     public:
         using Setting = OccupancyOctreeBaseSetting;
         using Super = OccupancyOctreeBase<Dtype, OccupancyOctreeNode, OccupancyOctreeBaseSetting>;
-        using Drawer = OccupancyOctreeDrawer<OccupancyOctree>;
 
         explicit OccupancyOctree(const std::shared_ptr<OccupancyOctreeBaseSetting> &setting)
             : Super(setting) {}
@@ -46,9 +44,3 @@ namespace erl::geometry {
     using OccupancyOctreeD = OccupancyOctree<double>;
     using OccupancyOctreeF = OccupancyOctree<float>;
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::OccupancyOctreeD::Drawer::Setting> : erl::geometry::OccupancyOctreeD::Drawer::Setting::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::OccupancyOctreeF::Drawer::Setting> : erl::geometry::OccupancyOctreeF::Drawer::Setting::YamlConvertImpl {};

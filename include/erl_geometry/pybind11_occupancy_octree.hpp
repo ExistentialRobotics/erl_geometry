@@ -439,7 +439,8 @@ BindOccupancyOctree(
                const int window_height,
                const int window_left,
                const int window_top) {
-                auto drawer_setting = std::make_shared<typename Octree::Drawer::Setting>();
+                using Drawer = OccupancyOctreeDrawer<Octree>;
+                auto drawer_setting = std::make_shared<typename Drawer::Setting>();
                 for (int i = 0; i < 3; ++i) {
                     drawer_setting->occupied_color[0] = occupied_color[0];
                     drawer_setting->occupied_color[1] = occupied_color[1];
@@ -450,7 +451,7 @@ BindOccupancyOctree(
                     drawer_setting->border_color[2] = border_color[2];
                 }
 
-                auto drawer = std::make_shared<typename Octree::Drawer>(drawer_setting, self);
+                auto drawer = std::make_shared<Drawer>(drawer_setting, self);
                 auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
                 visualizer_setting->window_width = window_width;
                 visualizer_setting->window_height = window_height;
