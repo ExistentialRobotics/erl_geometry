@@ -15,7 +15,7 @@ namespace erl::geometry {
         float log_odd_occ_threshold = 0;  // threshold that is used to decide whether a cell is occupied or not, default: 0 in log odd = 0.5 in probability
 
         void
-        SetProbabilityHit(const double p) {
+        SetProbabilityHit(const float p) {
             log_odd_hit = logodd::LogOdd(p);
             ERL_WARN_COND(log_odd_hit <= 0, "ProbabilityHit should be > 0, but is {}", log_odd_hit);
         }
@@ -26,7 +26,7 @@ namespace erl::geometry {
         }
 
         void
-        SetProbabilityMiss(const double p) {
+        SetProbabilityMiss(const float p) {
             log_odd_miss = logodd::LogOdd(p);
             ERL_WARN_COND(log_odd_miss >= 0, "ProbabilityMiss should be < 0, but is {}", log_odd_miss);
         }
@@ -37,11 +37,11 @@ namespace erl::geometry {
         }
 
         void
-        SetProbabilityOccupiedThreshold(const double p) {
+        SetProbabilityOccupiedThreshold(const float p) {
             log_odd_occ_threshold = logodd::LogOdd(p);
         }
 
-        [[nodiscard]] double
+        [[nodiscard]] float
         GetProbabilityOccupiedThreshold() const {
             return logodd::Probability(log_odd_occ_threshold);
         }
