@@ -17,6 +17,12 @@ void
 BindOccupancyNdTreeSetting(const py::module &m);
 
 void
+BindOccupancyQuadtreeDrawerSetting(const py::module &m);
+
+void
+BindOccupancyOctreeDrawerSetting(const py::module &m);
+
+void
 BindQuadtreeKey(const py::module &m);
 
 void
@@ -168,6 +174,9 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindOccupancyNdTreeSetting(m);
     BindOccupancyQuadtreeBaseSetting(m);
     BindOccupancyOctreeBaseSetting(m);
+
+    BindOccupancyQuadtreeDrawerSetting(m);
+    BindOccupancyOctreeDrawerSetting(m);
 
     BindQuadtreeKey(m);
 

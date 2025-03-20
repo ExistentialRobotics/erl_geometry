@@ -705,7 +705,7 @@ BindOccupancyOctree(
             py::arg("leaf_only") = true,
             py::arg("min_node_depth") = 0,
             py::arg("max_node_depth") = 0);
-    BindOccupancyOctreeDrawer<OccupancyOctreeDrawer<Octree>, Octree>(tree, "Drawer");
+    BindOccupancyOctreeDrawer<Octree>(tree, "Drawer");
 
     return tree;
 }

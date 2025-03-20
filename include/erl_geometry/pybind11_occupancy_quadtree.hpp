@@ -614,7 +614,7 @@ BindOccupancyQuadtree(
             py::arg("leaf_only") = false,
             py::arg("min_node_depth") = 0,
             py::arg("max_node_depth") = 0);
-    BindOccupancyQuadtreeDrawer<OccupancyQuadtreeDrawer<Quadtree>, Quadtree>(tree, "Drawer");
+    BindOccupancyQuadtreeDrawer<Quadtree>(tree, "Drawer");
 
     return tree;
 }

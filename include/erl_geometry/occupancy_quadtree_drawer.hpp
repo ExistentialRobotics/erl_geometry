@@ -7,7 +7,6 @@
 #include <functional>
 
 namespace erl::geometry {
-
     template<typename Dtype>
     struct OccupancyQuadtreeDrawerSetting : common::Yamlable<OccupancyQuadtreeDrawerSetting<Dtype>, AbstractQuadtreeDrawer::Setting> {
         Eigen::Vector2<Dtype> area_min = {0.0, 0.0};
@@ -19,10 +18,10 @@ namespace erl::geometry {
 
         struct YamlConvertImpl {
             static YAML::Node
-            encode(const OccupancyQuadtreeDrawerSetting &setting);
+            encode(const OccupancyQuadtreeDrawerSetting& setting);
 
             static bool
-            decode(const YAML::Node &node, OccupancyQuadtreeDrawerSetting &setting);
+            decode(const YAML::Node& node, OccupancyQuadtreeDrawerSetting& setting);
         };
     };
 
@@ -32,29 +31,30 @@ namespace erl::geometry {
     template<typename OccupancyQuadtreeType>
     class OccupancyQuadtreeDrawer : public AbstractQuadtreeDrawer {
     public:
-        using Dtype = typename OccupancyQuadtreeType::DataType;
+        using Tree = OccupancyQuadtreeType;
+        using Dtype = typename Tree::DataType;
         using Setting = OccupancyQuadtreeDrawerSetting<Dtype>;
-        using DrawTreeCallback = std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)>;
-        using DrawLeafCallback = std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)>;
+        using DrawTreeCallback = std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::TreeIterator&)>;
+        using DrawLeafCallback = std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::LeafIterator&)>;
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
         std::shared_ptr<common::GridMapInfo2D<Dtype>> m_grid_map_info_ = nullptr;
-        std::shared_ptr<const OccupancyQuadtreeType> m_quadtree_ = nullptr;
+        std::shared_ptr<const Tree> m_quadtree_ = nullptr;
         DrawTreeCallback m_draw_tree_ = {};
         DrawLeafCallback m_draw_leaf_ = {};
 
     public:
-        explicit OccupancyQuadtreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyQuadtreeType> quadtree = nullptr);
+        explicit OccupancyQuadtreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const Tree> quadtree = nullptr);
 
         [[nodiscard]] std::shared_ptr<const Setting>
         GetSetting() const;
 
-        [[nodiscard]] std::shared_ptr<const OccupancyQuadtreeType>
+        [[nodiscard]] std::shared_ptr<const Tree>
         GetQuadtree() const;
 
         void
-        SetQuadtree(std::shared_ptr<const OccupancyQuadtreeType> quadtree);
+        SetQuadtree(std::shared_ptr<const Tree> quadtree);
 
         [[nodiscard]] std::shared_ptr<const common::GridMapInfo2D<Dtype>>
         GetGridMapInfo() const;
@@ -66,13 +66,13 @@ namespace erl::geometry {
          * @return matrix of pixel coordinates (2 x N)
          */
         [[nodiscard]] Eigen::Matrix2Xi
-        GetPixelCoordsForPositions(const Eigen::Matrix2X<Dtype> &positions, const bool scaled_position) const {
+        GetPixelCoordsForPositions(const Eigen::Matrix2X<Dtype>& positions, const bool scaled_position) const {
             if (scaled_position) { return m_grid_map_info_->MeterToPixelForPoints(positions.array() / m_setting_->scaling); }
             return m_grid_map_info_->MeterToPixelForPoints(positions);
         }
 
         [[nodiscard]] Eigen::Matrix2Xi
-        GetPixelCoordsForVectors(const Eigen::Matrix2X<Dtype> &vectors) const {
+        GetPixelCoordsForVectors(const Eigen::Matrix2X<Dtype>& vectors) const {
             return m_grid_map_info_->MeterToPixelForVectors(vectors);
         }
 
@@ -83,32 +83,31 @@ namespace erl::geometry {
          * @return matrix of meter coordinates (2 x N)
          */
         [[nodiscard]] Eigen::Matrix2X<Dtype>
-        GetMeterCoordsForPositions(const Eigen::Matrix2Xi &pixel_coords, const bool scaled_position) const {
+        GetMeterCoordsForPositions(const Eigen::Matrix2Xi& pixel_coords, const bool scaled_position) const {
             if (scaled_position) { return m_grid_map_info_->PixelToMeterForPoints(pixel_coords).array() * m_setting_->scaling; }
             return m_grid_map_info_->PixelToMeterForPoints(pixel_coords);
         }
 
         [[nodiscard]] Eigen::Matrix2X<Dtype>
-        GetMeterCoordsForVectors(const Eigen::Matrix2Xi &pixel_coords) const {
+        GetMeterCoordsForVectors(const Eigen::Matrix2Xi& pixel_coords) const {
             return m_grid_map_info_->PixelToMeterForVectors(pixel_coords);
         }
 
         void
-        SetDrawTreeCallback(std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::TreeIterator &)> draw_tree);
+        SetDrawTreeCallback(std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::TreeIterator&)> draw_tree);
 
         void
-        SetDrawLeafCallback(std::function<void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename OccupancyQuadtreeType::LeafIterator &)> draw_leaf);
+        SetDrawLeafCallback(std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::LeafIterator&)> draw_leaf);
 
         using AbstractQuadtreeDrawer::DrawLeaves;
         using AbstractQuadtreeDrawer::DrawTree;
 
         void
-        DrawTree(cv::Mat &mat) const override;
+        DrawTree(cv::Mat& mat) const override;
 
         void
-        DrawLeaves(cv::Mat &mat) const override;
+        DrawLeaves(cv::Mat& mat) const override;
     };
-
 }  // namespace erl::geometry
 
 #include "occupancy_quadtree_drawer.tpp"
