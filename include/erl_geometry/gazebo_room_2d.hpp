@@ -7,20 +7,6 @@ namespace erl::geometry {
 
     class GazeboRoom2D {
 
-        template<typename T>
-        static void
-        ReadVar(char *&data_ptr, T &var) {
-            var = reinterpret_cast<T *>(data_ptr)[0];
-            data_ptr += sizeof(T);
-        }
-
-        template<typename T>
-        static void
-        ReadPtr(char *&data_ptr, const size_t n, T *&ptr) {
-            ptr = reinterpret_cast<T *>(data_ptr);
-            data_ptr += sizeof(T) * n;
-        }
-
     public:
         static constexpr double kSensorOffsetX = 0.08;  // sensor x-offset in the robot frame (IMU frame).
         static constexpr double kSensorOffsetY = 0.;    // sensor y-offset in the robot frame (IMU frame).
@@ -32,8 +18,6 @@ namespace erl::geometry {
             Eigen::Vector2d translation;  // 2D position
             Eigen::VectorXd angles;
             Eigen::VectorXd ranges;
-
-            TrainDataFrame(double *pa, double *pr, const double *pose_ptr, int numel);
         };
 
         class TrainDataLoader {

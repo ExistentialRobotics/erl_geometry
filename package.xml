@@ -11,9 +11,11 @@
     <buildtool_depend>catkin</buildtool_depend>
 
     <build_depend>erl_common</build_depend>
+    <build_depend>erl_covariance</build_depend>
     <build_depend>Qhull</build_depend>
     <build_depend>Open3D</build_depend>
 
     <build_export_depend>erl_common</build_export_depend>
+    <build_export_depend>erl_covariance</build_export_depend>
 
 </package>

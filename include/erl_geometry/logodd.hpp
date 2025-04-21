@@ -6,11 +6,11 @@ namespace erl::geometry::logodd {
 
     inline float
     LogOdd(const float p) {
-        return std::log(p / (1 - p));
+        return std::log(p / (1.0f - p));
     }
 
     inline float
     Probability(const float logodd) {
-        return 1.0 / (1.0 + std::exp(-logodd));
+        return 1.0f / (1.0f + std::exp(-logodd));
     }
 }  // namespace erl::geometry::logodd

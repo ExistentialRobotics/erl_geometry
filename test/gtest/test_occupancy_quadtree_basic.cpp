@@ -7,6 +7,7 @@ using AbstractQuadtree = erl::geometry::AbstractQuadtree<Dtype>;
 using OccupancyQuadtree = erl::geometry::OccupancyQuadtree<Dtype>;
 using OccupancyQuadtreeNode = erl::geometry::OccupancyQuadtreeNode;
 using QuadtreeKey = erl::geometry::QuadtreeKey;
+using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<OccupancyQuadtree>;
 using VectorX = Eigen::VectorX<Dtype>;
 using Vector2 = Eigen::Vector2<Dtype>;
 using Matrix2X = Eigen::Matrix2X<Dtype>;
@@ -56,12 +57,12 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
         tree->InsertPointCloud(points, sensor_origin, max_range, parallel, lazy_eval, discretize);
     });
 
-    auto setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
+    auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->area_min << -3, -3;
     setting->area_max << 4, 4;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    OccupancyQuadtree::Drawer drawer(setting, tree);
+    OccupancyQuadtreeDrawer drawer(setting, tree);
     drawer.DrawLeaves("test_insert_point_cloud_by_point_cloud.png");
 
     EXPECT_TRUE(tree->WriteBinary("circle.bt"));  // pruned, binary tree
@@ -105,12 +106,12 @@ TEST(OccupancyQuadtree, InsertRay) {
         for (int i = 0; i < points.cols(); ++i) { tree->InsertRay(sensor_origin[0], sensor_origin[1], points(0, i), points(1, i), max_range, lazy_eval); }
     });
 
-    auto setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
+    auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->area_min << -3, -3;
     setting->area_max << 4, 4;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    OccupancyQuadtree::Drawer drawer(setting, tree);
+    OccupancyQuadtreeDrawer drawer(setting, tree);
     drawer.DrawLeaves("test_insert_point_cloud_by_ray.png");
 
     EXPECT_TRUE(tree->WriteBinary("square.bt"));
@@ -431,12 +432,12 @@ TEST(OccupancyQuadtree, RayCasting) {
     auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
     EXPECT_TRUE(tree != nullptr);
 
-    auto setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
+    auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->area_min << -4, -4;
     setting->area_max << 4, 4;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    OccupancyQuadtree::Drawer drawer(setting, tree);
+    OccupancyQuadtreeDrawer drawer(setting, tree);
     drawer.DrawLeaves("read_circle.png");
 
     ERL_INFO("Casting rays in circle ...");

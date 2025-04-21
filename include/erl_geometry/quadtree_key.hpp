@@ -23,13 +23,13 @@ namespace erl::geometry {
     public:
         // Hash function for OctreeKey when used with absl containers.
         template<typename H>
-        [[maybe_unused]] friend H
+        friend H
         AbslHashValue(H h, const QuadtreeKey& key) {
             return H::combine(std::move(h), key.m_k_[0], key.m_k_[1]);
         }
 
         // Hash function for OctreeKey when used with std hash containers.
-        struct [[maybe_unused]] KeyHash {
+        struct KeyHash {
             [[nodiscard]] std::size_t
             operator()(const QuadtreeKey& key) const {
                 return static_cast<std::size_t>(key.m_k_[0]) << 16 | static_cast<std::size_t>(key.m_k_[1]);

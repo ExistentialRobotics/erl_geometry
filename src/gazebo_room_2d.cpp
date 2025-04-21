@@ -2,37 +2,34 @@
 
 namespace erl::geometry {
 
-    GazeboRoom2D::TrainDataFrame::TrainDataFrame(double *pa, double *pr, const double *pose_ptr, const int numel) {
-        angles.resize(numel);
-        ranges.resize(numel);
-        std::copy_n(pa, numel, angles.begin());
-        std::copy_n(pr, numel, ranges.begin());
+    template<typename T>
+    static void
+    ReadVar(char *&data_ptr, T &var) {
+        var = reinterpret_cast<T *>(data_ptr)[0];
+        data_ptr += sizeof(T);
+    }
 
-        // clang-format off
-        rotation << pose_ptr[2], pose_ptr[4],
-                    pose_ptr[3], pose_ptr[5];
-        translation << pose_ptr[0], pose_ptr[1];
-        // clang-format on
-        translation += rotation * Eigen::Vector2d(kSensorOffsetX, kSensorOffsetY);
+    template<typename T>
+    static void
+    ReadPtr(char *&data_ptr, const size_t n, T *&ptr) {
+        ptr = reinterpret_cast<T *>(data_ptr);
+        data_ptr += sizeof(T) * n;
     }
 
     GazeboRoom2D::TrainDataLoader::TrainDataLoader(const std::string &path) {
-        auto data = erl::common::LoadBinaryFile<char>(path);
 
-        char *data_ptr = data.data();
-        const auto data_ptr_begin = data_ptr;
-        const size_t data_size = data.size();
-        int numel;
-        double *pa, *pr, *pose_ptr;
-        std::size_t pose_size;
+        const std::filesystem::path folder(path);
+        const Eigen::Matrix3Xd poses = common::LoadEigenMatrixFromBinaryFile(folder / "poses.dat");                 // (3, N)
+        const Eigen::MatrixXd ranges = common::LoadEigenMatrixFromBinaryFile(folder / "ranges.dat");                // (270, N)
+        const Eigen::VectorXd thetas = common::LoadEigenMatrixFromBinaryFile(folder / "thetas.dat").leftCols<1>();  // (N, )
 
-        while (data_ptr < data_ptr_begin + data_size) {
-            ReadVar(data_ptr, numel);
-            ReadPtr(data_ptr, numel, pa);
-            ReadPtr(data_ptr, numel, pr);
-            ReadVar(data_ptr, pose_size);
-            ReadPtr(data_ptr, pose_size, pose_ptr);
-            m_data_frames_.emplace_back(pa, pr, pose_ptr, numel);
+        for (long i = 0; i < poses.cols(); ++i) {
+            TrainDataFrame frame;
+            frame.rotation = Eigen::Rotation2Dd(poses(2, i)).toRotationMatrix();
+            frame.translation = poses.col(i).head<2>() + frame.rotation * Eigen::Vector2d(kSensorOffsetX, kSensorOffsetY);
+            frame.angles = thetas;
+            frame.ranges = ranges.col(i);
+            m_data_frames_.emplace_back(std::move(frame));
         }
     }
 

@@ -1,9 +1,11 @@
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
+#include "erl_geometry/occupancy_octree_drawer.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
 #include "erl_geometry/utils.hpp"
 
+#include <open3d/geometry/VoxelGrid.h>
 #include <open3d/io/TriangleMeshIO.h>
 
 #include <filesystem>
@@ -26,6 +28,7 @@ using Lidar3D = erl::geometry::Lidar3D<Dtype>;
 using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
 using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
 using OccupancyOctreeNode = erl::geometry::OccupancyOctreeNode;
+using OccupancyOctreeDrawer = erl::geometry::OccupancyOctreeDrawer<OccupancyOctree>;
 using Open3dVisualizerWrapper = erl::geometry::Open3dVisualizerWrapper;
 using VectorX = Eigen::VectorX<Dtype>;
 using Vector3 = Eigen::Vector3<Dtype>;
@@ -78,11 +81,11 @@ TEST(OccupancyOctree, Build) {
     voxel_grid->voxel_size_ = octree_setting->resolution;
     visualizer.AddGeometries({point_cloud, line_set_traj, line_set_rays, voxel_grid});
 
-    auto drawer_setting = std::make_shared<OccupancyOctree::Drawer::Setting>();
+    auto drawer_setting = std::make_shared<OccupancyOctreeDrawer::Setting>();
     drawer_setting->area_min = mesh_legacy->GetMinBound();
     drawer_setting->area_max = mesh_legacy->GetMaxBound();
     drawer_setting->occupied_only = true;
-    OccupancyOctree::Drawer drawer(drawer_setting);
+    OccupancyOctreeDrawer drawer(drawer_setting);
     drawer.SetOctree(octree);
 
     std::size_t pose_idx = 0;
@@ -102,7 +105,7 @@ TEST(OccupancyOctree, Build) {
             EXPECT_TRUE(octree->WriteBinary((test_output_dir / "house_expo_room_1451_3d.bt").string()));
             octree_saved = true;
             wrapper->ClearGeometries();
-            std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = OccupancyOctree::Drawer::GetBlankGeometries();
+            std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = OccupancyOctreeDrawer::GetBlankGeometries();
             drawer.DrawLeaves(geometries);
             geometries.push_back(point_cloud);
             geometries.push_back(line_set_traj);

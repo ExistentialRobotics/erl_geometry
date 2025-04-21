@@ -88,6 +88,30 @@ namespace erl::geometry {
         Dtype &dist,
         bool &intersected);
 
+    template<typename Dtype, int Dim>
+    std::enable_if_t<Dim == 2>
+    ComputeIntersectionBetweenRayAndAabb(
+        const Eigen::Vector2<Dtype> &p,
+        const Eigen::Vector2<Dtype> &v_inv,
+        const Eigen::Vector2<Dtype> &box_min,
+        const Eigen::Vector2<Dtype> &box_max,
+        Dtype &d1,
+        Dtype &d2,
+        bool &intersected,
+        bool &is_inside);
+
+    template<typename Dtype, int Dim>
+    std::enable_if_t<Dim == 3>
+    ComputeIntersectionBetweenRayAndAabb(
+        const Eigen::Vector3<Dtype> &p,
+        const Eigen::Vector3<Dtype> &v_inv,
+        const Eigen::Vector3<Dtype> &box_min,
+        const Eigen::Vector3<Dtype> &box_max,
+        Dtype &d1,
+        Dtype &d2,
+        bool &intersected,
+        bool &is_inside);
+
     /**
      * find the intersection between ray [p, r] and axis-aligned bounding box [box_min, box_max]
      * @param p            ray start point

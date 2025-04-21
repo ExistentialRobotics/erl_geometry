@@ -6,11 +6,13 @@
 #include "erl_geometry/house_expo_map.hpp"
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/occupancy_quadtree.hpp"
+#include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 #include <boost/program_options.hpp>
 
 using Dtype = float;
 using OccupancyQuadtree = erl::geometry::OccupancyQuadtree<Dtype>;
+using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<OccupancyQuadtree>;
 using Vector2 = Eigen::Vector2<Dtype>;
 using VectorX = Eigen::VectorX<Dtype>;
 using Matrix2X = Eigen::Matrix2X<Dtype>;
@@ -155,14 +157,14 @@ TEST(OccupancyQuadtree, Build) {
     std::cout << "OccupancyQuadtree Setting:" << std::endl << tree->GetSetting<OccupancyQuadtree::Setting>() << std::endl;
 
     // setup visualization
-    auto drawer_setting = std::make_shared<OccupancyQuadtree::Drawer::Setting>();
-    drawer_setting->area_min = map_min.cast<double>();
-    drawer_setting->area_max = map_max.cast<double>();
+    auto drawer_setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
+    drawer_setting->area_min = map_min;
+    drawer_setting->area_max = map_max;
     drawer_setting->resolution = map_resolution[0];
     drawer_setting->padding = map_padding[0];
     drawer_setting->border_color = cv::Scalar(255, 0, 0, 255);
     std::cout << "OccupancyQuadtree::Drawer Setting:" << std::endl << *drawer_setting << std::endl;
-    auto drawer = std::make_shared<OccupancyQuadtree::Drawer>(drawer_setting, tree);
+    auto drawer = std::make_shared<OccupancyQuadtreeDrawer>(drawer_setting, tree);
     auto grid_map_info = drawer->GetGridMapInfo();
     cv::Mat img;
     cv::Scalar trajectory_color(0, 0, 255, 255);

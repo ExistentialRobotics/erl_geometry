@@ -11,7 +11,7 @@ if (NOT COMMAND erl_project_setup)
 endif ()
 erl_project_setup(
         ${PROJECT_NAME}
-        ERL_PACKAGES erl_common)
+        ERL_PACKAGES erl_common erl_covariance)
 
 erl_find_package(
         PACKAGE Qhull

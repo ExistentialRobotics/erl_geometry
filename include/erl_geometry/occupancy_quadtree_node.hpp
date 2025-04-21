@@ -3,6 +3,8 @@
 #include "abstract_quadtree_node.hpp"
 #include "logodd.hpp"
 
+#include "erl_common/tracy.hpp"
+
 #include <cstdint>
 
 namespace erl::geometry {
@@ -90,12 +92,12 @@ namespace erl::geometry {
         }
 
         //-- node occupancy
-        [[nodiscard]] double
+        [[nodiscard]] float
         GetOccupancy() const {
             return logodd::Probability(m_log_odds_);
         }
 
-        [[nodiscard]] const float &
+        [[nodiscard]] float
         GetLogOdds() const {
             return m_log_odds_;
         }
@@ -111,17 +113,17 @@ namespace erl::geometry {
             return true;
         }
 
-        [[maybe_unused]] [[nodiscard]] double
+        [[nodiscard]] float
         GetMeanChildLogOdds() const {
-            if (!HasAnyChild()) { return -std::numeric_limits<double>::infinity(); }  // log(0)
+            if (!HasAnyChild()) { return -std::numeric_limits<float>::infinity(); }  // log(0)
 
-            double mean = 0;
+            float mean = 0;
             for (int i = 0; i < 4; ++i) {
                 const auto *child = reinterpret_cast<OccupancyQuadtreeNode *>(m_children_[i]);
                 if (child == nullptr) { continue; }
                 mean += child->GetOccupancy();
             }
-            mean /= static_cast<double>(m_num_children_);
+            mean /= static_cast<float>(m_num_children_);
 
             return logodd::LogOdd(mean);
         }
