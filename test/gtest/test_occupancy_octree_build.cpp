@@ -150,7 +150,7 @@ TEST(OccupancyOctree, Build) {
         }
         points.conservativeResize(3, cnt_points);
 
-        octree->ClearChangedKey();
+        octree->ClearChangedKeys();
         {
             {
                 ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
@@ -165,14 +165,14 @@ TEST(OccupancyOctree, Build) {
         std::cout << "Mean scan time: " << mean_scan_time << " ms." << std::endl;
         std::cout << "Mean insert time: " << mean_insert_time << " ms." << std::endl;
 
-        for (auto itr = octree->BeginChangedKey(); itr != octree->EndChangedKey(); ++itr) {
+        for (auto [key, just_created]: octree->GetChangedKeys()) {
             Dtype x, y, z;
-            octree->KeyToCoord(itr->first, x, y, z);
+            octree->KeyToCoord(key, x, y, z);
             Eigen::Vector3i voxel_index(
                 std::floor(x / voxel_grid->voxel_size_),
                 std::floor(y / voxel_grid->voxel_size_),
                 std::floor(z / voxel_grid->voxel_size_));
-            if (octree->IsNodeOccupied(octree->Search(itr->first))) {
+            if (octree->IsNodeOccupied(octree->Search(key))) {
                 voxel_grid->AddVoxel(open3d::geometry::Voxel(voxel_index, Eigen::Vector3d(0.5, 0.5, 0.5)));
             } else {
                 voxel_grid->RemoveVoxel(voxel_index);
@@ -249,7 +249,7 @@ TEST(OccupancyOctree, BuildProfiling) {
         points.conservativeResize(3, cnt_points);
 
         auto t0 = std::chrono::high_resolution_clock::now();
-        octree->ClearChangedKey();
+        octree->ClearChangedKeys();
         octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
         octree->UpdateInnerOccupancy();
         octree->Prune();
