@@ -7,11 +7,11 @@
 namespace erl::geometry {
 
     /**
-     * AbstractOccupancyOctree is a base class that implements generic occupancy quadtree functionality.
+     * AbstractOccupancyOctree is a base class that implements generic occupancy octree
+     * functionality.
      */
     template<typename Dtype>
     class AbstractOccupancyOctree : public AbstractOctree<Dtype> {
-        inline static const std::string kBinaryFileHeader = fmt::format("# {} Binary File", type_name<AbstractOccupancyOctree>());
         std::shared_ptr<OccupancyNdTreeSetting> m_setting_ = nullptr;
 
     public:
@@ -31,47 +31,30 @@ namespace erl::geometry {
 
         //--IO
         /**
-         * Write the tree as a binary sequence to file. Before writing, the tree is pruned.
-         * @param filename
+         * Write the tree as a binary sequence to stream.
+         * @param s
+         * @param prune If true, the tree is pruned before writing.
          * @return
          */
         bool
-        WriteBinary(const std::string& filename);
-        /**
-         * Write the tree as a binary sequence to stream. Before writing, the tree is pruned.
-         * @param s
-         * @return
-         */
-        std::ostream&
-        WriteBinary(std::ostream& s);
-        /**
-         * Write the tree to a binary file. The tree is not pruned before writing.
-         * @param filename
-         * @return
-         */
-        [[nodiscard]] bool
-        WriteBinary(const std::string& filename) const;
+        WriteBinary(std::ostream& s, bool prune);
+
         /**
          * Write the tree to a binary stream. The tree is not pruned before writing.
          * @param s
          * @return
          */
-        std::ostream&
+        [[nodiscard]] bool
         WriteBinary(std::ostream& s) const;
+
         /**
          * Write the actual tree data to a binary stream.
          * @param s
          * @return
          */
-        virtual std::ostream&
+        virtual bool
         WriteBinaryData(std::ostream& s) const = 0;
-        /**
-         * Read the tree from a binary file.
-         * @param filename
-         * @return
-         */
-        bool
-        ReadBinary(const std::string& filename);
+
         /**
          * Read the tree from a binary stream.
          * @param s
@@ -80,11 +63,9 @@ namespace erl::geometry {
         bool
         ReadBinary(std::istream& s);
 
-    private:
-        virtual std::istream&
+        virtual bool
         ReadBinaryData(std::istream& s) = 0;
 
-    public:
         //-- occupancy queries
         [[nodiscard]] bool
         IsNodeOccupied(const OccupancyOctreeNode* node) const;
@@ -102,8 +83,18 @@ namespace erl::geometry {
             typename Super::Vector3& hit_position);
 
         [[nodiscard]] virtual const OccupancyOctreeNode*
-        GetHitOccupiedNode(Dtype px, Dtype py, Dtype pz, Dtype vx, Dtype vy, Dtype vz, bool ignore_unknown, Dtype max_range, Dtype& ex, Dtype& ey, Dtype& ez)
-            const = 0;
+        GetHitOccupiedNode(
+            Dtype px,
+            Dtype py,
+            Dtype pz,
+            Dtype vx,
+            Dtype vy,
+            Dtype vz,
+            bool ignore_unknown,
+            Dtype max_range,
+            Dtype& ex,
+            Dtype& ey,
+            Dtype& ez) const = 0;
 
         //-- update functions
         virtual void

@@ -23,9 +23,10 @@
  * | (0, 1)   3    (1, 1)
  * V
  *
- * There are 16 kinds of contour lines. For each case, we need to consider different edges to do sub-pixel computation.
+ * There are 16 kinds of contour lines. For each case, we need to consider different edges to do
+ * sub-pixel computation.
  * |  v  |    pattern   | edges to consider |
- * |  0  | [0, 0; 0, 0] | kNone              |
+ * |  0  | [0, 0; 0, 0] | None              |
  * |  1  | [0, 0; 1, 0] | 0, 3              |
  * |  2  | [0, 0; 0, 1] | 2, 3              |
  * |  3  | [0, 0; 1, 1] | 0, 2              |
@@ -40,7 +41,7 @@
  * |  12 | [1, 1; 0, 0] | 0, 2              |
  * |  13 | [1, 1; 1, 0] | 2, 3              |
  * |  14 | [1, 1; 0, 1] | 0, 3              |
- * |  15 | [1, 1; 1, 1] | kNone              |
+ * |  15 | [1, 1; 1, 1] | None              |
  */
 
 namespace erl::geometry {
@@ -88,46 +89,63 @@ namespace erl::geometry {
             {base_edge_table[2], base_edge_table[3]},
             {base_edge_table[0], base_edge_table[2]},
             {base_edge_table[1], base_edge_table[2]},
-            {base_edge_table[0], base_edge_table[3], base_edge_table[1], base_edge_table[2]},  // val = 5 and 1, 2
+            {base_edge_table[0],
+             base_edge_table[3],
+             base_edge_table[1],
+             base_edge_table[2]},  // val = 5 and 1, 2
             {base_edge_table[1], base_edge_table[3]},
             {base_edge_table[0], base_edge_table[1]},
             {base_edge_table[0], base_edge_table[1]},
             {base_edge_table[1], base_edge_table[3]},
-            {base_edge_table[0], base_edge_table[1], base_edge_table[2], base_edge_table[3]},  // and 2, 3
+            {base_edge_table[0],
+             base_edge_table[1],
+             base_edge_table[2],
+             base_edge_table[3]},  // and 2, 3
             {base_edge_table[1], base_edge_table[2]},
             {base_edge_table[0], base_edge_table[2]},
             {base_edge_table[2], base_edge_table[3]},
             {base_edge_table[0], base_edge_table[3]},
             {base_edge_table[4], base_edge_table[4]}};  // 16 x 2 Edge, 16 x 8 long
 
-        static auto sort_lines_to_objects = [](Eigen::Matrix2Xi &lines_to_vertices, Eigen::Matrix2Xi &objects_to_lines) {
-            const long num_lines = lines_to_vertices.cols();
-            objects_to_lines.setConstant(2, num_lines + 1, -1);  // estimated maximum number of objects
-            objects_to_lines(0, 0) = 0;
+        static auto sort_lines_to_objects = [](Eigen::Matrix2Xi &lines_to_vertices_,
+                                               Eigen::Matrix2Xi &objects_to_lines_) {
+            const long num_lines = lines_to_vertices_.cols();
+            // estimated maximum number of objects
+            objects_to_lines_.setConstant(2, num_lines + 1, -1);
+            objects_to_lines_(0, 0) = 0;
 
             bool reverse = false;
             int num_objects = 0;
             for (int line_idx = 0; line_idx < num_lines; ++line_idx) {
-                int vertex_idx = lines_to_vertices(1, line_idx);
+                int vertex_idx = lines_to_vertices_(1, line_idx);
                 const int next_line_idx = line_idx + 1;
 
                 int next_connected_line_idx = next_line_idx;
                 for (; next_connected_line_idx < num_lines; ++next_connected_line_idx) {
-                    if (lines_to_vertices(0, next_connected_line_idx) == vertex_idx || lines_to_vertices(1, next_connected_line_idx) == vertex_idx) { break; }
+                    if (lines_to_vertices_(0, next_connected_line_idx) == vertex_idx ||
+                        lines_to_vertices_(1, next_connected_line_idx) == vertex_idx) {
+                        break;
+                    }
                 }
 
                 if (next_connected_line_idx != num_lines) {
-                    lines_to_vertices.col(next_line_idx).swap(lines_to_vertices.col(next_connected_line_idx));
-                    if (lines_to_vertices(1, next_line_idx) == vertex_idx) {
-                        std::swap(lines_to_vertices(0, next_line_idx), lines_to_vertices(1, next_line_idx));
+                    lines_to_vertices_.col(next_line_idx)
+                        .swap(lines_to_vertices_.col(next_connected_line_idx));
+                    if (lines_to_vertices_(1, next_line_idx) == vertex_idx) {
+                        std::swap(
+                            lines_to_vertices_(0, next_line_idx),
+                            lines_to_vertices_(1, next_line_idx));
                     }
-                } else {  // reverse the line sequence of the current object, try to extend it from the other end
-                    const int obj_begin_line_idx = objects_to_lines(0, num_objects);
-                    vertex_idx = lines_to_vertices(0, obj_begin_line_idx);
+                } else {
+                    // reverse the line sequence of the current object, try to extend it from the
+                    // other end
+                    const int obj_begin_line_idx = objects_to_lines_(0, num_objects);
+                    vertex_idx = lines_to_vertices_(0, obj_begin_line_idx);
 
                     next_connected_line_idx = next_line_idx;
                     for (; next_connected_line_idx < num_lines; ++next_connected_line_idx) {
-                        if (lines_to_vertices(0, next_connected_line_idx) == vertex_idx || lines_to_vertices(1, next_connected_line_idx) == vertex_idx) {
+                        if (lines_to_vertices_(0, next_connected_line_idx) == vertex_idx ||
+                            lines_to_vertices_(1, next_connected_line_idx) == vertex_idx) {
                             break;
                         }
                     }
@@ -135,40 +153,56 @@ namespace erl::geometry {
                     if (next_connected_line_idx != num_lines) {
                         // reverse the sequence from beginIdx to i (included)
                         reverse = true;
-                        auto block = lines_to_vertices.block(0, obj_begin_line_idx, 2, next_line_idx - obj_begin_line_idx);
-                        block.colwise().reverseInPlace();  // reverse each column: swap line start & end
+                        auto block = lines_to_vertices_.block(
+                            0,
+                            obj_begin_line_idx,
+                            2,
+                            next_line_idx - obj_begin_line_idx);
+                        // reverse each column: swap line start and end
+                        block.colwise().reverseInPlace();
                         block.rowwise().reverseInPlace();  // reverse each row: reverse line order
 
-                        lines_to_vertices.col(next_line_idx).swap(lines_to_vertices.col(next_connected_line_idx));
-                        if (lines_to_vertices(1, next_line_idx) == vertex_idx) {
-                            std::swap(lines_to_vertices(0, next_line_idx), lines_to_vertices(1, next_line_idx));
+                        lines_to_vertices_.col(next_line_idx)
+                            .swap(lines_to_vertices_.col(next_connected_line_idx));
+                        if (lines_to_vertices_(1, next_line_idx) == vertex_idx) {
+                            std::swap(
+                                lines_to_vertices_(0, next_line_idx),
+                                lines_to_vertices_(1, next_line_idx));
                         }
                     } else {  // both ends cannot be extended anymore
                         if (reverse) {
-                            auto block = lines_to_vertices.block(0, obj_begin_line_idx, 2, next_line_idx - obj_begin_line_idx);
-                            block.colwise().reverseInPlace();  // reverse each column: swap line start & end
-                            block.rowwise().reverseInPlace();  // reverse each row: reverse line order
+                            auto block = lines_to_vertices_.block(
+                                0,
+                                obj_begin_line_idx,
+                                2,
+                                next_line_idx - obj_begin_line_idx);
+                            // reverse each column: swap line start and end
+                            block.colwise().reverseInPlace();
+                            // reverse each row: reverse line order
+                            block.rowwise().reverseInPlace();
                             reverse = false;
                         }
-                        objects_to_lines(1, num_objects++) = next_line_idx;
-                        objects_to_lines(0, num_objects) = next_line_idx;
+                        objects_to_lines_(1, num_objects++) = next_line_idx;
+                        objects_to_lines_(0, num_objects) = next_line_idx;
                     }
                 }
             }
 
-            if (objects_to_lines(0, num_objects) == -1) { objects_to_lines(1, num_objects++) = static_cast<int>(num_lines); }
-            objects_to_lines.conservativeResize(2, num_objects);
+            if (objects_to_lines_(0, num_objects) == -1) {
+                objects_to_lines_(1, num_objects++) = static_cast<int>(num_lines);
+            }
+            objects_to_lines_.conservativeResize(2, num_objects);
         };
 
         const long img_height = img.rows();
         const long img_width = img.cols();
-
-        auto b_mat = Eigen::MatrixX<bool>(img_height, img_width);  // binary mGoalMask of img <= iso_value
+        // binary mGoalMask of img <= iso_value
+        auto b_mat = Eigen::MatrixX<bool>(img_height, img_width);
 
         std::vector<Edge> edges;
         std::unordered_map<Edge, int, HashEdge> unique_edges;
 
-        // 1. compute first row of b_mat
+        // 1. compute the first row of b_mat
         for (long y = 0; y < img_width; y++) { b_mat(0, y) = img(0, y) <= iso_value; }
 
         // 2. compute vMat
@@ -176,7 +210,8 @@ namespace erl::geometry {
         //      b. compute v, Update edges, unique_edges and lines_to_vertices
         int idx_3, idx_4;
         auto get_edge_index = [&](const Edge &e) -> int {
-            auto [map_pair, is_new_edge] = unique_edges.try_emplace(e, edges.size());  // assign value to `e` only when it is a new key
+            // assign value to `e` only when it is a new key
+            auto [map_pair, is_new_edge] = unique_edges.try_emplace(e, edges.size());
             if (is_new_edge) { edges.push_back(e); }
             auto &[edge, edge_index] = *map_pair;
             return edge_index;
@@ -189,34 +224,48 @@ namespace erl::geometry {
             for (long u = 0; u < img_width - 1; u++) {
                 b_mat(v + 1, u + 1) = img(v + 1, u + 1) <= iso_value;
 
-                if (const int val = b_mat(v, u) << 3 | b_mat(v, u + 1) << 2 | b_mat(v + 1, u + 1) << 1 | b_mat(v + 1, u); val > 0 && val < 15) {
+                if (const int val = b_mat(v, u) << 3 | b_mat(v, u + 1) << 2 |
+                                    b_mat(v + 1, u + 1) << 1 | b_mat(v + 1, u);
+                    val > 0 && val < 15) {
                     const auto &[e1_v1, e1_v2] = edge_pair_table[val][0];
-                    int idx_1 = get_edge_index({{u + e1_v1.x(), v + e1_v1.y()}, {u + e1_v2.x(), v + e1_v2.y()}});
+                    int idx_1 = get_edge_index(
+                        {{u + e1_v1.x(), v + e1_v1.y()}, {u + e1_v2.x(), v + e1_v2.y()}});
 
                     const auto &[e2_v1, e2_v2] = edge_pair_table[val][1];
-                    int idx_2 = get_edge_index({{u + e2_v1.x(), v + e2_v1.y()}, {u + e2_v2.x(), v + e2_v2.y()}});
+                    int idx_2 = get_edge_index(
+                        {{u + e2_v1.x(), v + e2_v1.y()}, {u + e2_v2.x(), v + e2_v2.y()}});
 
-                    if (lines_to_vertices.cols() == num_lines) { lines_to_vertices.conservativeResize(2, 2 * num_lines + 1); }
+                    if (lines_to_vertices.cols() == num_lines) {
+                        lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
+                    }
                     lines_to_vertices.col(num_lines++) << idx_1, idx_2;
 
                     if (val == 5) {
                         const auto &[e3_v1, e3_v2] = edge_pair_table[val][2];
-                        idx_3 = get_edge_index({{u + e3_v1.x(), v + e3_v1.y()}, {u + e3_v2.x(), v + e3_v2.y()}});
+                        idx_3 = get_edge_index(
+                            {{u + e3_v1.x(), v + e3_v1.y()}, {u + e3_v2.x(), v + e3_v2.y()}});
 
                         const auto &[e4_v1, e4_v2] = edge_pair_table[val][3];
-                        idx_4 = get_edge_index({{u + e4_v1.x(), v + e4_v1.y()}, {u + e4_v2.x(), v + e4_v2.y()}});
+                        idx_4 = get_edge_index(
+                            {{u + e4_v1.x(), v + e4_v1.y()}, {u + e4_v2.x(), v + e4_v2.y()}});
 
-                        if (lines_to_vertices.cols() == num_lines) { lines_to_vertices.conservativeResize(2, 2 * num_lines + 1); }
+                        if (lines_to_vertices.cols() == num_lines) {
+                            lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
+                        }
                         lines_to_vertices.col(num_lines++) << idx_3, idx_4;
 
                     } else if (val == 10) {
                         const auto &[e3_v1, e3_v2] = edge_pair_table[val][2];
-                        idx_3 = get_edge_index({{u + e3_v1.x(), v + e3_v1.y()}, {u + e3_v2.x(), v + e3_v2.y()}});
+                        idx_3 = get_edge_index(
+                            {{u + e3_v1.x(), v + e3_v1.y()}, {u + e3_v2.x(), v + e3_v2.y()}});
 
                         const auto &[e4_v1, e4_v2] = edge_pair_table[val][3];
-                        idx_4 = get_edge_index({{u + e4_v1.x(), v + e4_v1.y()}, {u + e4_v2.x(), v + e4_v2.y()}});
+                        idx_4 = get_edge_index(
+                            {{u + e4_v1.x(), v + e4_v1.y()}, {u + e4_v2.x(), v + e4_v2.y()}});
 
-                        if (lines_to_vertices.cols() == num_lines) { lines_to_vertices.conservativeResize(2, 2 * num_lines + 1); }
+                        if (lines_to_vertices.cols() == num_lines) {
+                            lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
+                        }
                         lines_to_vertices.col(num_lines++) << idx_3, idx_4;
                     }
                 }

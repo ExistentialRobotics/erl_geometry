@@ -9,34 +9,47 @@
 namespace erl::geometry {
 
     /**
-     * OctreeImpl is a template class that implements generic octree functionality. The tree is centered at the origin.
+     * OctreeImpl is a template class that implements generic octree functionality. The tree is
+     * centered at the origin.
      * @tparam Node
      * @tparam Interface
      */
     template<class Node, class Interface, class InterfaceSetting>
     class OctreeImpl : public Interface {
         using Dtype = typename Interface::DataType;
-        static_assert(std::is_base_of_v<AbstractOctreeNode, Node>, "Node must be derived from AbstractOctreeNode");
-        static_assert(std::is_base_of_v<AbstractOctree<Dtype>, Interface>, "Interface must be derived from AbstractOctree");
+        static_assert(
+            std::is_base_of_v<AbstractOctreeNode, Node>,
+            "Node must be derived from AbstractOctreeNode");
+        static_assert(
+            std::is_base_of_v<AbstractOctree<Dtype>, Interface>,
+            "Interface must be derived from AbstractOctree");
 
         std::shared_ptr<InterfaceSetting> m_setting_ = nullptr;
 
     protected:
-        std::shared_ptr<Node> m_root_ = nullptr;  // root node of the quadtree, nullptr if the quadtree is empty
-        Dtype m_resolution_inv_ = 0;              // inverse of the resolution
-        uint32_t m_tree_key_offset_ = 0;          // offset of the key, = 1 << (tree_depth - 1)
-        std::size_t m_tree_size_ = 0;             // number of nodes in the tree
-        bool m_size_changed_ = false;             // flag indicating if the metric size of the tree has changed
-        Dtype m_metric_max_[3] = {                // max metric coordinate of x, y and z
-                                  std::numeric_limits<Dtype>::lowest(),
-                                  std::numeric_limits<Dtype>::lowest(),
-                                  std::numeric_limits<Dtype>::lowest()};
+        // root node of the quadtree, nullptr if the quadtree is empty
+        std::shared_ptr<Node> m_root_ = nullptr;
+        // inverse of the resolution
+        Dtype m_resolution_inv_ = 0;
+        // offset of the key, = 1 << (tree_depth - 1)
+        uint32_t m_tree_key_offset_ = 0;
+        // number of nodes in the tree
+        std::size_t m_tree_size_ = 0;
+        // flag indicating if the metric size of the tree has changed
+        bool m_size_changed_ = false;
+        // max metric coordinate of x, y and z
+        Dtype m_metric_max_[3] = {
+            std::numeric_limits<Dtype>::lowest(),
+            std::numeric_limits<Dtype>::lowest(),
+            std::numeric_limits<Dtype>::lowest()};
         Dtype m_metric_min_[3] = {// min metric coordinate of x, y and z
                                   std::numeric_limits<Dtype>::max(),
                                   std::numeric_limits<Dtype>::max(),
                                   std::numeric_limits<Dtype>::max()};
-        std::vector<Dtype> m_size_lookup_table_;  // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
-        std::vector<OctreeKeyRay> m_key_rays_;    // data structure for parallel ray casting
+        // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
+        std::vector<Dtype> m_size_lookup_table_;
+        // data structure for parallel ray casting
+        std::vector<OctreeKeyRay> m_key_rays_;
 
     public:
         using NodeType = Node;
@@ -109,10 +122,22 @@ namespace erl::geometry {
         using Interface::GetMetricMinMax;
 
         void
-        GetMetricMinMax(Dtype &min_x, Dtype &min_y, Dtype &min_z, Dtype &max_x, Dtype &max_y, Dtype &max_z) override;
+        GetMetricMinMax(
+            Dtype &min_x,
+            Dtype &min_y,
+            Dtype &min_z,
+            Dtype &max_x,
+            Dtype &max_y,
+            Dtype &max_z) override;
 
         void
-        GetMetricMinMax(Dtype &min_x, Dtype &min_y, Dtype &min_z, Dtype &max_x, Dtype &max_y, Dtype &max_z) const override;
+        GetMetricMinMax(
+            Dtype &min_x,
+            Dtype &min_y,
+            Dtype &min_z,
+            Dtype &max_x,
+            Dtype &max_y,
+            Dtype &max_z) const override;
 
         using Interface::GetMetricSize;
 
@@ -141,7 +166,8 @@ namespace erl::geometry {
         ComputeNumberOfNodes() const;
 
         //-- key / coordinate operations
-        // ref: https://www.tandfonline.com/doi/abs/10.1080/10867651.2002.10487560?journalCode=ujgt19
+        // ref:
+        // https://www.tandfonline.com/doi/abs/10.1080/10867651.2002.10487560?journalCode=ujgt19
         /**
          * Convert 1-dim coordinate to key at depth N.
          * @param coordinate
@@ -187,7 +213,7 @@ namespace erl::geometry {
         CoordToKey(Dtype x, Dtype y, Dtype z, uint32_t depth) const;
 
         /**
-         * Convert 1-dim coordinate to key at depth N with boundary check.
+         * Convert 1-dim coordinate to a key at depth N with the boundary check.
          * @param coordinate
          * @param key
          * @return
@@ -196,7 +222,7 @@ namespace erl::geometry {
         CoordToKeyChecked(Dtype coordinate, OctreeKey::KeyType &key) const;
 
         /**
-         * Convert 1-dim coordinate to key at a given depth with boundary check.
+         * Convert 1-dim coordinate to a key at a given depth with the boundary check.
          * @param coordinate
          * @param depth
          * @param key
@@ -209,10 +235,11 @@ namespace erl::geometry {
         CoordToKeyChecked(const Eigen::Ref<const Vector3> &coord, OctreeKey &key) const;
 
         [[nodiscard]] bool
-        CoordToKeyChecked(const Eigen::Ref<const Vector3> &coord, uint32_t depth, OctreeKey &key) const;
+        CoordToKeyChecked(const Eigen::Ref<const Vector3> &coord, uint32_t depth, OctreeKey &key)
+            const;
 
         /**
-         * Convert 3-dim coordinate to key at depth N with boundary check.
+         * Convert 3-dim coordinate to a key at depth N with the boundary check.
          * @param x
          * @param y
          * @param z
@@ -223,7 +250,7 @@ namespace erl::geometry {
         CoordToKeyChecked(Dtype x, Dtype y, Dtype z, OctreeKey &key) const;
 
         /**
-         * Convert 3-dim coordinate to key at a given depth with boundary check.
+         * Convert 3-dim coordinate to a key at a given depth with the boundary check.
          * @param x
          * @param y
          * @param z
@@ -235,7 +262,7 @@ namespace erl::geometry {
         CoordToKeyChecked(Dtype x, Dtype y, Dtype z, uint32_t depth, OctreeKey &key) const;
 
         /**
-         * Adjust 1-dim key from the lowest level (max depth) to a given depth.
+         * Adjust the 1-dim key from the lowest level (max depth) to a given depth.
          * @param key the key at the lowest level
          * @param depth the target depth
          * @return
@@ -244,7 +271,7 @@ namespace erl::geometry {
         AdjustKeyToDepth(OctreeKey::KeyType key, uint32_t depth) const;
 
         /**
-         * Adjust 3-dim key from the lowest level (max depth) to a given depth.
+         * Adjust the 3-dim key from the lowest level (max depth) to a given depth.
          * @param key the key at the lowest level
          * @param depth the target depth
          * @return
@@ -253,10 +280,14 @@ namespace erl::geometry {
         AdjustKeyToDepth(const OctreeKey &key, uint32_t depth) const;
 
         void
-        ComputeCommonAncestorKey(const OctreeKey &key1, const OctreeKey &key2, OctreeKey &ancestor_key, uint32_t &ancestor_depth) const;
+        ComputeCommonAncestorKey(
+            const OctreeKey &key1,
+            const OctreeKey &key2,
+            OctreeKey &ancestor_key,
+            uint32_t &ancestor_depth) const;
 
         /**
-         * Compute the key of the west(left) neighbor of a node.
+         * Compute the key of the west (left) neighbor.
          * @param key
          * @param depth 0 means root
          * @param neighbor_key
@@ -268,13 +299,16 @@ namespace erl::geometry {
         ComputeEastNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const;
 
         bool
-        ComputeNorthNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const;
+        ComputeNorthNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key)
+            const;
 
         bool
-        ComputeSouthNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const;
+        ComputeSouthNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key)
+            const;
 
         bool
-        ComputeBottomNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const;
+        ComputeBottomNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key)
+            const;
 
         bool
         ComputeTopNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const;
@@ -288,7 +322,7 @@ namespace erl::geometry {
         KeyToCoord(OctreeKey::KeyType key) const;
 
         /**
-         * Convert 1-dim key to coordinate at a given depth.
+         * Convert a 1-dim key to coordinate at a given depth.
          * @param key
          * @param depth
          * @return
@@ -307,7 +341,7 @@ namespace erl::geometry {
         KeyToCoord(const OctreeKey &key, Dtype &x, Dtype &y, Dtype &z) const;
 
         /**
-         * Convert 3-dim key to coordinate at a given depth.
+         * Convert a 3-dim key to coordinate at a given depth.
          * @param key
          * @param depth
          * @param x
@@ -420,7 +454,8 @@ namespace erl::geometry {
             Terminate();
 
             /**
-             * @brief Get the biggest in-tree axis-aligned bounding box (AABB) that is inside the given AABB.
+             * @brief Get the biggest in-tree axis-aligned bounding box (AABB) that is inside the
+             * given AABB.
              *
              * @param aabb_min_x
              * @param aabb_min_y
@@ -431,7 +466,13 @@ namespace erl::geometry {
              * @return true if such an AABB exists, false otherwise.
              */
             bool
-            GetInTreeAabb(Dtype &aabb_min_x, Dtype &aabb_min_y, Dtype &aabb_min_z, Dtype &aabb_max_x, Dtype &aabb_max_y, Dtype &aabb_max_z) const;
+            GetInTreeAabb(
+                Dtype &aabb_min_x,
+                Dtype &aabb_min_y,
+                Dtype &aabb_min_z,
+                Dtype &aabb_max_x,
+                Dtype &aabb_max_y,
+                Dtype &aabb_max_z) const;
         };
 
         class TreeIterator : public IteratorBase {
@@ -469,7 +510,11 @@ namespace erl::geometry {
                 const OctreeImpl *tree,
                 uint32_t max_node_depth = 0);
 
-            InAabbIteratorBase(OctreeKey aabb_min_key, OctreeKey aabb_max_key, const OctreeImpl *tree, uint32_t max_node_depth = 0);
+            InAabbIteratorBase(
+                OctreeKey aabb_min_key,
+                OctreeKey aabb_max_key,
+                const OctreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
         protected:
             void
@@ -490,7 +535,11 @@ namespace erl::geometry {
                 const OctreeImpl *tree,
                 uint32_t max_node_depth = 0);
 
-            TreeInAabbIterator(OctreeKey aabb_min_key, OctreeKey aabb_max_key, const OctreeImpl *tree, uint32_t max_node_depth = 0);
+            TreeInAabbIterator(
+                OctreeKey aabb_min_key,
+                OctreeKey aabb_max_key,
+                const OctreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
             // post-increment
             TreeInAabbIterator
@@ -521,7 +570,11 @@ namespace erl::geometry {
                 const OctreeImpl *tree,
                 uint32_t max_leaf_depth = 0);
 
-            LeafInAabbIterator(OctreeKey aabb_min_key, OctreeKey aabb_max_key, const OctreeImpl *tree, uint32_t max_leaf_depth = 0);
+            LeafInAabbIterator(
+                OctreeKey aabb_min_key,
+                OctreeKey aabb_max_key,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth = 0);
 
             // post-increment
             LeafInAabbIterator
@@ -557,7 +610,11 @@ namespace erl::geometry {
         public:
             LeafOfNodeIterator() = default;
 
-            LeafOfNodeIterator(OctreeKey key, uint32_t cluster_depth, const OctreeImpl *tree, uint32_t max_node_depth = 0);
+            LeafOfNodeIterator(
+                OctreeKey key,
+                uint32_t cluster_depth,
+                const OctreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
             // post-increment
             LeafOfNodeIterator
@@ -593,7 +650,13 @@ namespace erl::geometry {
              * @param increase
              */
             void
-            Init(OctreeKey key, uint32_t key_depth, int changing_dim1, int changing_dim2, int unchanged_dim, bool increase);
+            Init(
+                OctreeKey key,
+                uint32_t key_depth,
+                int changing_dim1,
+                int changing_dim2,
+                int unchanged_dim,
+                bool increase);
 
             void
             SingleIncrementOf(int changing_dim1, int changing_dim2);
@@ -608,9 +671,18 @@ namespace erl::geometry {
         public:
             WestLeafNeighborIterator() = default;
 
-            WestLeafNeighborIterator(Dtype x, Dtype y, Dtype z, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            WestLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                Dtype z,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            WestLeafNeighborIterator(const OctreeKey &key, uint32_t key_depth, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            WestLeafNeighborIterator(
+                const OctreeKey &key,
+                uint32_t key_depth,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             WestLeafNeighborIterator
@@ -633,9 +705,18 @@ namespace erl::geometry {
         public:
             EastLeafNeighborIterator() = default;
 
-            EastLeafNeighborIterator(Dtype x, Dtype y, Dtype z, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            EastLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                Dtype z,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            EastLeafNeighborIterator(const OctreeKey &key, uint32_t key_depth, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            EastLeafNeighborIterator(
+                const OctreeKey &key,
+                uint32_t key_depth,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             EastLeafNeighborIterator
@@ -658,9 +739,18 @@ namespace erl::geometry {
         public:
             NorthLeafNeighborIterator() = default;
 
-            NorthLeafNeighborIterator(Dtype x, Dtype y, Dtype z, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            NorthLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                Dtype z,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            NorthLeafNeighborIterator(const OctreeKey &key, uint32_t key_depth, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            NorthLeafNeighborIterator(
+                const OctreeKey &key,
+                uint32_t key_depth,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             NorthLeafNeighborIterator
@@ -683,9 +773,18 @@ namespace erl::geometry {
         public:
             SouthLeafNeighborIterator() = default;
 
-            SouthLeafNeighborIterator(Dtype x, Dtype y, Dtype z, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            SouthLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                Dtype z,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            SouthLeafNeighborIterator(const OctreeKey &key, uint32_t key_depth, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            SouthLeafNeighborIterator(
+                const OctreeKey &key,
+                uint32_t key_depth,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             SouthLeafNeighborIterator
@@ -708,9 +807,18 @@ namespace erl::geometry {
         public:
             TopLeafNeighborIterator() = default;
 
-            TopLeafNeighborIterator(Dtype x, Dtype y, Dtype z, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            TopLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                Dtype z,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            TopLeafNeighborIterator(const OctreeKey &key, uint32_t key_depth, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            TopLeafNeighborIterator(
+                const OctreeKey &key,
+                uint32_t key_depth,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             auto
@@ -733,9 +841,18 @@ namespace erl::geometry {
         public:
             BottomLeafNeighborIterator() = default;
 
-            BottomLeafNeighborIterator(Dtype x, Dtype y, Dtype z, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            BottomLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                Dtype z,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            BottomLeafNeighborIterator(const OctreeKey &key, uint32_t key_depth, const OctreeImpl *tree, uint32_t max_leaf_depth);
+            BottomLeafNeighborIterator(
+                const OctreeKey &key,
+                uint32_t key_depth,
+                const OctreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             auto
@@ -811,7 +928,9 @@ namespace erl::geometry {
             struct StackElementCompare {  // for min-heap
 
                 bool
-                operator()(const typename IteratorBase::StackElement &lhs, const typename IteratorBase::StackElement &rhs) const;
+                operator()(
+                    const typename IteratorBase::StackElement &lhs,
+                    const typename IteratorBase::StackElement &rhs) const;
             };
 
             void
@@ -842,11 +961,20 @@ namespace erl::geometry {
         BeginLeafInAabb(const Aabb<Dtype, 3> &aabb, uint32_t max_depth = 0) const;
 
         [[nodiscard]] LeafInAabbIterator
-        BeginLeafInAabb(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_min_z, Dtype aabb_max_x, Dtype aabb_max_y, Dtype aabb_max_z, uint32_t max_depth = 0)
-            const;
+        BeginLeafInAabb(
+            Dtype aabb_min_x,
+            Dtype aabb_min_y,
+            Dtype aabb_min_z,
+            Dtype aabb_max_x,
+            Dtype aabb_max_y,
+            Dtype aabb_max_z,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] LeafInAabbIterator
-        BeginLeafInAabb(const OctreeKey &aabb_min_key, const OctreeKey &aabb_max_key, uint32_t max_depth = 0) const;
+        BeginLeafInAabb(
+            const OctreeKey &aabb_min_key,
+            const OctreeKey &aabb_max_key,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] LeafInAabbIterator
         EndLeafInAabb() const;
@@ -867,11 +995,20 @@ namespace erl::geometry {
         BeginTreeInAabb(const Aabb<Dtype, 3> &aabb, uint32_t max_depth = 0) const;
 
         [[nodiscard]] TreeInAabbIterator
-        BeginTreeInAabb(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_min_z, Dtype aabb_max_x, Dtype aabb_max_y, Dtype aabb_max_z, uint32_t max_depth = 0)
-            const;
+        BeginTreeInAabb(
+            Dtype aabb_min_x,
+            Dtype aabb_min_y,
+            Dtype aabb_min_z,
+            Dtype aabb_max_x,
+            Dtype aabb_max_y,
+            Dtype aabb_max_z,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] TreeInAabbIterator
-        BeginTreeInAabb(const OctreeKey &aabb_min_key, const OctreeKey &aabb_max_key, uint32_t max_depth = 0) const;
+        BeginTreeInAabb(
+            const OctreeKey &aabb_min_key,
+            const OctreeKey &aabb_max_key,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] TreeInAabbIterator
         EndTreeInAabb() const;
@@ -880,7 +1017,8 @@ namespace erl::geometry {
         BeginWestLeafNeighbor(Dtype x, Dtype y, Dtype z, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] WestLeafNeighborIterator
-        BeginWestLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginWestLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0)
+            const;
 
         [[nodiscard]] WestLeafNeighborIterator
         EndWestLeafNeighbor() const;
@@ -889,7 +1027,8 @@ namespace erl::geometry {
         BeginEastLeafNeighbor(Dtype x, Dtype y, Dtype z, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] EastLeafNeighborIterator
-        BeginEastLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginEastLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0)
+            const;
 
         [[nodiscard]] EastLeafNeighborIterator
         EndEastLeafNeighbor() const;
@@ -898,7 +1037,10 @@ namespace erl::geometry {
         BeginNorthLeafNeighbor(Dtype x, Dtype y, Dtype z, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] NorthLeafNeighborIterator
-        BeginNorthLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginNorthLeafNeighbor(
+            const OctreeKey &key,
+            uint32_t key_depth,
+            uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] NorthLeafNeighborIterator
         EndNorthLeafNeighbor() const;
@@ -907,7 +1049,10 @@ namespace erl::geometry {
         BeginSouthLeafNeighbor(Dtype x, Dtype y, Dtype z, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] SouthLeafNeighborIterator
-        BeginSouthLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginSouthLeafNeighbor(
+            const OctreeKey &key,
+            uint32_t key_depth,
+            uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] SouthLeafNeighborIterator
         EndSouthLeafNeighbor() const;
@@ -916,7 +1061,8 @@ namespace erl::geometry {
         BeginTopLeafNeighbor(Dtype x, Dtype y, Dtype z, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] TopLeafNeighborIterator
-        BeginTopLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginTopLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0)
+            const;
 
         [[nodiscard]] TopLeafNeighborIterator
         EndTopLeafNeighbor() const;
@@ -925,7 +1071,10 @@ namespace erl::geometry {
         BeginBottomLeafNeighbor(Dtype x, Dtype y, Dtype z, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] BottomLeafNeighborIterator
-        BeginBottomLeafNeighbor(const OctreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginBottomLeafNeighbor(
+            const OctreeKey &key,
+            uint32_t key_depth,
+            uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] BottomLeafNeighborIterator
         EndBottomLeafNeighbor() const;
@@ -961,8 +1110,9 @@ namespace erl::geometry {
 
         //-- ray tracing
         /**
-         * Trace a ray from origin to end (excluded), returning a OctreeKeyRay of all nodes' OctreeKey traversed by the ray. For each key, the
-         * corresponding node may not exist. You can use Search() to check if the node exists.
+         * Trace a ray from origin to end (excluded), returning the OctreeKeyRay of all nodes'
+         * OctreeKey traversed by the ray. For each key, the corresponding node may not exist. You
+         * can use Search() to check if the node exists.
          * @param sx x coordinate of the origin
          * @param sy y coordinate of the origin
          * @param sz z coordinate of the origin
@@ -973,11 +1123,19 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        ComputeRayKeys(Dtype sx, Dtype sy, Dtype sz, Dtype ex, Dtype ey, Dtype ez, OctreeKeyRay &ray) const;
+        ComputeRayKeys(
+            Dtype sx,
+            Dtype sy,
+            Dtype sz,
+            Dtype ex,
+            Dtype ey,
+            Dtype ez,
+            OctreeKeyRay &ray) const;
 
         /**
-         * Trace a ray from origin to end (excluded), returning a list of all nodes' coordinates traversed by the ray. For each coordinate, the
-         * corresponding node may not exist. You can use Search() to check if the node exists.
+         * Trace a ray from origin to end (excluded), returning a list of all nodes' coordinates
+         * traversed by the ray. For each coordinate, the corresponding node may not exist. You can
+         * use Search() to check if the node exists.
          * @param sx x coordinate of the origin
          * @param sy y coordinate of the origin
          * @param sz z coordinate of the origin
@@ -988,11 +1146,18 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        ComputeRayCoords(Dtype sx, Dtype sy, Dtype sz, Dtype ex, Dtype ey, Dtype ez, std::vector<Vector3> &ray) const;
+        ComputeRayCoords(
+            Dtype sx,
+            Dtype sy,
+            Dtype sz,
+            Dtype ex,
+            Dtype ey,
+            Dtype ez,
+            std::vector<Vector3> &ray) const;
 
         /**
-         * Clear KeyRay vector to minimize unneeded memory. This is only useful for the StaticMemberInitializer classes, don't call it for a quadtree that
-         * is actually used.
+         * Clear KeyRay vector to minimize unneeded memory. This is only useful for the
+         * StaticMemberInitializer classes, don't call it for a quadtree that is actually used.
          */
         void
         ClearKeyRays();
@@ -1011,7 +1176,8 @@ namespace erl::geometry {
         DeleteNodeChild(Node *node, uint32_t child_idx, const OctreeKey &key);
 
         /**
-         * Get a child node of the given node. Before calling this function, make sure node->HasChildrenPtr() or node->HasAnyChild() returns true.
+         * Get a child node of the given node. Before calling this function, make sure
+         * node->HasChildrenPtr() or node->HasAnyChild() returns true.
          * @param node
          * @param child_idx
          * @return
@@ -1020,7 +1186,8 @@ namespace erl::geometry {
         GetNodeChild(Node *node, uint32_t child_idx);
 
         /**
-         * Get a child node of the given node. Before calling this function, make sure node->HasChildrenPtr() or node->HasAnyChild() returns true.
+         * Get a child node of the given node. Before calling this function, make sure
+         * node->HasChildrenPtr() or node->HasAnyChild() returns true.
          * @param node
          * @param child_idx
          * @return
@@ -1029,8 +1196,9 @@ namespace erl::geometry {
         GetNodeChild(const Node *node, uint32_t child_idx) const;
 
         /**
-         * Check if a node is collapsible. For example, for occupancy quadtree, a node is collapsible if all its children exist, none of them have its own
-         * children, and they all have the same occupancy value.
+         * Check if a node is collapsible. For example, for occupancy quadtree, a node is
+         * collapsible if all its children exist, none of them have its own children, and they all
+         * have the same occupancy value.
          * @param node
          * @return
          */
@@ -1038,7 +1206,7 @@ namespace erl::geometry {
         IsNodeCollapsible(const Node *node) const;
 
         /**
-         * Expand a node: all children are created and their data is copied from the parent.
+         * Expand a node: all children are created, and their data is copied from the parent.
          * @param node
          * @return
          */
@@ -1058,8 +1226,8 @@ namespace erl::geometry {
          * @param x
          * @param y
          * @param z
-         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >= delete_depth will be deleted. If delete_depth == 0, delete at
-         * the lowest level.
+         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >=
+         * delete_depth will be deleted. If delete_depth == 0, delete at the lowest level.
          * @return
          */
         uint32_t
@@ -1068,8 +1236,8 @@ namespace erl::geometry {
         /**
          * Delete nodes that contain the given key, at or deeper than the given delete_depth.
          * @param key
-         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >= delete_depth will be deleted. If delete_depth == 0, delete at
-         * the lowest level.
+         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >=
+         * delete_depth will be deleted. If delete_depth == 0, delete at the lowest level.
          * @return
          */
         void
@@ -1078,7 +1246,7 @@ namespace erl::geometry {
     protected:
         /**
          * Callback before deleting a child node.
-         * @param node parent node, may be nullptr if the child is the root node
+         * @param node parent node, which may be nullptr if the child is the root node
          * @param child child node to be deleted
          * @param key the key of the child node
          */
@@ -1086,8 +1254,9 @@ namespace erl::geometry {
         OnDeleteNodeChild(Node *node, Node *child, const OctreeKey &key);
 
         /**
-         * Delete child nodes down to max_depth matching the given key of the given node that is at the given depth.
-         * @param node node at depth, must not be nullptr, and it will not be deleted
+         * Delete child nodes down to max_depth matching the given key of the given node that is at
+         * the given depth.
+         * @param node node at depth, which must not be nullptr, and it will not be deleted
          * @param key
          * @param max_depth
          * @return
@@ -1113,7 +1282,8 @@ namespace erl::geometry {
         Clear() override;
 
         /**
-         * Lossless compression of the tree: a node will replace all of its children if the node is collapsible.
+         * Lossless compression of the tree: a node will replace all of its children if the node is
+         * collapsible.
          */
         void
         Prune() override;
@@ -1150,7 +1320,7 @@ namespace erl::geometry {
          * @param x
          * @param y
          * @param z
-         * @param max_depth max depth to search. However, max_depth=0 means searching from root.
+         * @param max_depth Max depth to search. However, max_depth=0 means searching from the root.
          * @return
          */
         [[nodiscard]] const Node *
@@ -1159,7 +1329,7 @@ namespace erl::geometry {
         /**
          * Search node at specified depth given a key.
          * @param key
-         * @param max_depth max depth to search. However, max_depth=0 means searching from root.
+         * @param max_depth Max depth to search. However, max_depth=0 means searching from the root.
          * @return
          */
         [[nodiscard]] const Node *
@@ -1174,7 +1344,8 @@ namespace erl::geometry {
     protected:
         //-- file IO
         /**
-         * Read all nodes from the input stream (without file header). For general file IO, use AbstractOctree::Read.
+         * Read all nodes from the input stream (without the file header). For general file IO, use
+         * AbstractOctree::Read.
          */
         std::istream &
         ReadData(std::istream &s) override;

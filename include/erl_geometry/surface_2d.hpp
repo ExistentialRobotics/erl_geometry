@@ -5,13 +5,20 @@
 namespace erl::geometry {
 
     struct Surface2D {
-        Eigen::Matrix2Xd vertices;                         // each column is a vertex
-        Eigen::Matrix2Xd normals;                          // each column is the normal of the corresponding vertex in vertices
-        Eigen::Matrix2Xi lines_to_vertices;                // each column is a pair of vertex indices of a line segment
-        Eigen::Matrix2Xi objects_to_lines;                 // each column is a pair of start & end line indices of a polygon object
-        Eigen::VectorXb outside_flags;                     // if true, the outside of polygon is free space
-        Eigen::VectorXi vertices_to_objects;               // the i-th element is the index of the object that the i-th vertex belongs to
-        std::vector<Eigen::VectorXi> objects_to_vertices;  // each item is a list of vertex indices of an object
+        // each column is a vertex
+        Eigen::Matrix2Xd vertices;
+        // each column is the normal of the corresponding vertex in vertices
+        Eigen::Matrix2Xd normals;
+        // each column is a pair of vertex indices of a line segment
+        Eigen::Matrix2Xi lines_to_vertices;
+        // each column is a pair of start and end line indices of a polygon object
+        Eigen::Matrix2Xi objects_to_lines;
+        // if true, the outside of polygon is free space
+        Eigen::VectorXb outside_flags;
+        // the i-th element is the index of the object that the i-th vertex belongs to
+        Eigen::VectorXi vertices_to_objects;
+        // each item is a list of vertex indices for an object
+        std::vector<Eigen::VectorXi> objects_to_vertices;
 
         Surface2D() = delete;
 
@@ -64,12 +71,32 @@ namespace erl::geometry {
 
         [[nodiscard]] Eigen::Matrix2Xd
         GetObjectVertices(const int idx_object) const {
+#if EIGEN_VERSION_AT_LEAST(3, 4, 0)
             return vertices(Eigen::indexing::all, objects_to_vertices[idx_object]);
+#else
+            Eigen::Matrix2Xd object_vertices;
+            const auto &indices = objects_to_vertices[idx_object];
+            object_vertices.resize(2, indices.size());
+            for (long i = 0; i < object_vertices.cols(); ++i) {
+                object_vertices.col(i) = vertices.col(indices[i]);
+            }
+            return object_vertices;
+#endif
         }
 
         [[nodiscard]] Eigen::Matrix2Xd
         GetObjectNormals(const int idx_object) const {
+#if EIGEN_VERSION_AT_LEAST(3, 4, 0)
             return normals(Eigen::indexing::all, objects_to_vertices[idx_object]);
+#else
+            Eigen::Matrix2Xd object_normals;
+            const auto &indices = objects_to_vertices[idx_object];
+            object_normals.resize(2, indices.size());
+            for (long i = 0; i < object_normals.cols(); ++i) {
+                object_normals.col(i) = normals.col(indices[i]);
+            }
+            return object_normals;
+#endif
         }
 
         [[nodiscard]] std::pair<int, int>
@@ -77,11 +104,19 @@ namespace erl::geometry {
 
             const auto &object_to_vertices = objects_to_vertices[vertices_to_objects[idx_vertex_0]];
             const long n_obj_vtx = object_to_vertices.size();
-            const auto last_vtx_idx = n_obj_vtx - 1;
-            if (const auto itr = std::find(object_to_vertices.begin(), object_to_vertices.end(), idx_vertex_0); itr != object_to_vertices.end()) {
-                idx_vertex_0 = static_cast<int>(std::distance(object_to_vertices.begin(), itr));
-                auto idx_vertex_1 = idx_vertex_0 == 0 ? object_to_vertices[last_vtx_idx] : object_to_vertices[idx_vertex_0 - 1];
-                auto idx_vertex_2 = idx_vertex_0 == last_vtx_idx ? object_to_vertices[0] : object_to_vertices[idx_vertex_0 + 1];
+            for (long i = 0; i < n_obj_vtx; ++i) {
+                if (object_to_vertices[i] != idx_vertex_0) { continue; }
+                int idx_vertex_1, idx_vertex_2;
+                if (i == 0) {
+                    idx_vertex_1 = object_to_vertices[n_obj_vtx - 1];
+                    idx_vertex_2 = object_to_vertices[1];
+                } else if (i == n_obj_vtx - 1) {
+                    idx_vertex_1 = object_to_vertices[i - 1];
+                    idx_vertex_2 = object_to_vertices[0];
+                } else {
+                    idx_vertex_1 = object_to_vertices[i - 1];
+                    idx_vertex_2 = object_to_vertices[i + 1];
+                }
                 return {idx_vertex_1, idx_vertex_2};
             }
             return {-1, -1};

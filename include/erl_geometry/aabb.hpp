@@ -9,7 +9,7 @@ namespace erl::geometry {
     struct AabbBase {};
 
     template<typename ScalarType, int Dim>
-    struct Aabb : public Eigen::AlignedBox<ScalarType, Dim>, public AabbBase {
+    struct Aabb : Eigen::AlignedBox<ScalarType, Dim>, AabbBase {
 
         using Scalar = ScalarType;
         using Point = Eigen::Vector<Scalar, Dim>;
@@ -20,7 +20,9 @@ namespace erl::geometry {
         Aabb() = default;
 
         Aabb(Point center, Scalar half_size)
-            : Eigen::AlignedBox<Scalar, Dim>(center.array() - half_size, center.array() + half_size),
+            : Eigen::AlignedBox<Scalar, Dim>(
+                  center.array() - half_size,
+                  center.array() + half_size),
               center(std::move(center)),
               half_sizes(Point::Constant(half_size)) {}
 
@@ -78,34 +80,36 @@ namespace erl::geometry {
 namespace YAML {
     template<typename AABB>
     struct ConvertAabb {
-        static_assert(std::is_base_of_v<erl::geometry::AabbBase, AABB>, "AABB must be derived from AabbBase");
+        static_assert(
+            std::is_base_of_v<erl::geometry::AabbBase, AABB>,
+            "AABB must be derived from AabbBase");
 
         static Node
-        encode(const AABB &rhs) {
+        encode(const AABB &aabb) {
             Node node;
-            node["center"] = rhs.center;
-            node["half_sizes"] = rhs.half_sizes;
+            ERL_YAML_SAVE_ATTR(node, aabb, center);
+            ERL_YAML_SAVE_ATTR(node, aabb, half_sizes);
             return node;
         }
 
         static bool
-        decode(const Node &node, AABB &rhs) {
+        decode(const Node &node, AABB &aabb) {
             if (!node.IsMap()) { return false; }
-            rhs.center = node["center"].as<typename AABB::Point>();
-            rhs.half_sizes = node["half_sizes"].as<typename AABB::Point>();
+            ERL_YAML_LOAD_ATTR_TYPE(node, aabb, center, typename AABB::Point);
+            ERL_YAML_LOAD_ATTR_TYPE(node, aabb, half_sizes, typename AABB::Point);
             return true;
         }
     };
 
     template<>
-    struct convert<erl::geometry::Aabb2Dd> : public ConvertAabb<erl::geometry::Aabb2Dd> {};
+    struct convert<erl::geometry::Aabb2Dd> : ConvertAabb<erl::geometry::Aabb2Dd> {};
 
     template<>
-    struct convert<erl::geometry::Aabb3Dd> : public ConvertAabb<erl::geometry::Aabb3Dd> {};
+    struct convert<erl::geometry::Aabb3Dd> : ConvertAabb<erl::geometry::Aabb3Dd> {};
 
     template<>
-    struct convert<erl::geometry::Aabb2Df> : public ConvertAabb<erl::geometry::Aabb2Df> {};
+    struct convert<erl::geometry::Aabb2Df> : ConvertAabb<erl::geometry::Aabb2Df> {};
 
     template<>
-    struct convert<erl::geometry::Aabb3Df> : public ConvertAabb<erl::geometry::Aabb3Df> {};
+    struct convert<erl::geometry::Aabb3Df> : ConvertAabb<erl::geometry::Aabb3Df> {};
 }  // namespace YAML

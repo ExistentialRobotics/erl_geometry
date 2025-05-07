@@ -3,7 +3,8 @@
 namespace erl::geometry {
 
     YAML::Node
-    OccupancyOctreeDrawerSetting::YamlConvertImpl::encode(const OccupancyOctreeDrawerSetting &setting) {
+    OccupancyOctreeDrawerSetting::YamlConvertImpl::encode(
+        const OccupancyOctreeDrawerSetting &setting) {
         YAML::Node node = YAML::convert<AbstractOctreeDrawer::Setting>::encode(setting);
         node["occupied_only"] = setting.occupied_only;
         node["occupied_color"] = setting.occupied_color;
@@ -13,7 +14,9 @@ namespace erl::geometry {
     }
 
     bool
-    OccupancyOctreeDrawerSetting::YamlConvertImpl::decode(const YAML::Node &node, OccupancyOctreeDrawerSetting &setting) {
+    OccupancyOctreeDrawerSetting::YamlConvertImpl::decode(
+        const YAML::Node &node,
+        OccupancyOctreeDrawerSetting &setting) {
         if (!node.IsMap()) { return false; }
         if (!YAML::convert<AbstractOctreeDrawer::Setting>::decode(node, setting)) { return false; }
         setting.occupied_only = node["occupied_only"].as<bool>();

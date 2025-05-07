@@ -25,7 +25,7 @@ namespace erl::geometry {
         using VectorX = Eigen::VectorX<Dtype>;
         using KdTree = KdTreeEigenAdaptor<Dtype, 2>;
 
-        struct Setting : common::Yamlable<Setting> {
+        struct Setting : public common::Yamlable<Setting> {
             Dtype valid_range_min = 0.0;
             Dtype valid_range_max = std::numeric_limits<Dtype>::infinity();
             Dtype angle_min = -M_PI;
@@ -234,14 +234,14 @@ namespace erl::geometry {
         [[nodiscard]] bool
         operator!=(const LidarFrame2D &other) const;
 
-        [[nodiscard]] bool
-        Write(const std::string &filename) const;
+        // [[nodiscard]] bool
+        // Write(const std::string &filename) const;
 
         [[nodiscard]] bool
         Write(std::ostream &s) const;
 
-        [[nodiscard]] bool
-        Read(const std::string &filename);
+        // [[nodiscard]] bool
+        // Read(const std::string &filename);
 
         [[nodiscard]] bool
         Read(std::istream &s);
@@ -258,7 +258,7 @@ namespace erl::geometry {
 #include "lidar_frame_2d.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::LidarFrame2D<double>::Setting> : erl::geometry::LidarFrame2D<double>::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::LidarFrame2D<double>::Setting> : erl::geometry::LidarFrame2Dd::Setting::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::LidarFrame2D<float>::Setting> : erl::geometry::LidarFrame2D<float>::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::LidarFrame2D<float>::Setting> : erl::geometry::LidarFrame2Df::Setting::YamlConvertImpl {};

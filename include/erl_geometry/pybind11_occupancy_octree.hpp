@@ -9,15 +9,23 @@ template<class Node, class NodeParent = void>
 std::enable_if_t<std::is_same_v<NodeParent, void>, py::class_<Node, py::RawPtrWrapper<Node>>>
 BindOccupancyOctreeNode(const py::module &m, const char *node_name) {
     py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
-    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"));
+    node.def(
+        "get_child",
+        py::overload_cast<uint32_t>(&Node::template GetChild<Node>),
+        py::arg("child_idx"));
     return node;
 }
 
 template<class Node, class NodeParent>
-std::enable_if_t<!std::is_same_v<NodeParent, void>, py::class_<Node, NodeParent, py::RawPtrWrapper<Node>>>
+std::enable_if_t<
+    !std::is_same_v<NodeParent, void>,
+    py::class_<Node, NodeParent, py::RawPtrWrapper<Node>>>
 BindOccupancyOctreeNode(const py::module &m, const char *node_name) {
     py::class_<Node, NodeParent, py::RawPtrWrapper<Node>> node(m, node_name);
-    node.def("get_child", py::overload_cast<uint32_t>(&Node::template GetChild<Node>), py::arg("child_idx"))
+    node.def(
+            "get_child",
+            py::overload_cast<uint32_t>(&Node::template GetChild<Node>),
+            py::arg("child_idx"))
         .def_property_readonly("occupancy", &Node::GetOccupancy)
         .def_property_readonly("log_odds", &Node::GetLogOdds)
         .def_property_readonly("mean_child_log_odds", &Node::GetMeanChildLogOdds)
@@ -32,8 +40,10 @@ auto
 BindOccupancyOctree(
     const py::module &m,
     const char *tree_name,
-    std::function<void(py::class_<Octree, erl::geometry::AbstractOccupancyOctree<typename Octree::DataType>, std::shared_ptr<Octree>> &)> additional_bindings =
-        nullptr) {
+    std::function<void(py::class_<
+                       Octree,
+                       erl::geometry::AbstractOccupancyOctree<typename Octree::DataType>,
+                       std::shared_ptr<Octree>> &)> additional_bindings = nullptr) {
 
     using namespace erl::common;
     using namespace erl::geometry;
@@ -46,7 +56,8 @@ BindOccupancyOctree(
     py::class_<Octree, AbstractOccupancyOctree<Dtype>, std::shared_ptr<Octree>> tree(m, tree_name);
 
     if (additional_bindings) { additional_bindings(tree); }
-    if (std::is_same_v<typename Octree::Setting, OccupancyOctreeBaseSetting> && !py::hasattr(tree, "Setting")) {
+    if (std::is_same_v<typename Octree::Setting, OccupancyOctreeBaseSetting> &&
+        !py::hasattr(tree, "Setting")) {
         ERL_DEBUG("Bind default Setting type to {}", tree_name);
         tree.def("Setting", []() { return std::make_shared<typename Octree::Setting>(); });
     }
@@ -71,11 +82,17 @@ BindOccupancyOctree(
 
     // OccupancyOctreeBase methods, except iterators
     tree.def(py::init<>())
-        .def(py::init<>([](const std::shared_ptr<typename Octree::Setting> &setting) { return std::make_shared<Octree>(setting); }), py::arg("setting"))
+        .def(
+            py::init<>([](const std::shared_ptr<typename Octree::Setting> &setting) {
+                return std::make_shared<Octree>(setting);
+            }),
+            py::arg("setting"))
         .def(
             py::init<>([](const std::string &filename, const bool use_derived_constructor) {
                 if (use_derived_constructor) { return std::make_shared<Octree>(filename); }
-                if (std::shared_ptr<Octree> octree = Octree::template ReadAs<Octree>(filename)) { return octree; }
+                if (std::shared_ptr<Octree> octree = Octree::template ReadAs<Octree>(filename)) {
+                    return octree;
+                }
                 throw std::runtime_error("Failed to read octree from " + filename);
             }),
             py::arg("filename"),
@@ -171,7 +188,16 @@ BindOccupancyOctree(
                 std::vector<long> hit_ray_indices;
                 std::vector<Vector3> hit_positions;
                 std::vector<const Node *> hit_nodes;
-                self.CastRays(positions, directions, ignore_unknown, max_range, prune_rays, parallel, hit_ray_indices, hit_positions, hit_nodes);
+                self.CastRays(
+                    positions,
+                    directions,
+                    ignore_unknown,
+                    max_range,
+                    prune_rays,
+                    parallel,
+                    hit_ray_indices,
+                    hit_positions,
+                    hit_nodes);
                 py::dict result;
                 result["hit_ray_indices"] = hit_ray_indices;
                 result["hit_positions"] = hit_positions;
@@ -197,9 +223,18 @@ BindOccupancyOctree(
             py::arg("max_node_depths") = py::array_t<int>())
         .def(
             "cast_ray",
-            [](const Octree &self, Dtype px, Dtype py, Dtype pz, Dtype vx, Dtype vy, Dtype vz, bool ignore_unknown, Dtype max_range) {
+            [](const Octree &self,
+               Dtype px,
+               Dtype py,
+               Dtype pz,
+               Dtype vx,
+               Dtype vy,
+               Dtype vz,
+               bool ignore_unknown,
+               Dtype max_range) {
                 Dtype ex, ey, ez;
-                const Node *hit_node = self.CastRay(px, py, pz, vx, vy, vz, ignore_unknown, max_range, ex, ey, ez);
+                const Node *hit_node =
+                    self.CastRay(px, py, pz, vx, vy, vz, ignore_unknown, max_range, ex, ey, ez);
                 py::dict result;
                 result["hit_node"] = hit_node;
                 result["ex"] = ex;
@@ -255,16 +290,30 @@ BindOccupancyOctree(
         .def_property_readonly("tree_max_half_size", &Octree::GetTreeMaxHalfSize)
         .def_property_readonly("metric_min", [](Octree &self) { return self.GetMetricMin(); })
         .def_property_readonly("metric_max", [](Octree &self) { return self.GetMetricMax(); })
-        .def_property_readonly("metric_min_max", [](Octree &self) { return self.GetMetricMinMax(); })
+        .def_property_readonly(
+            "metric_min_max",
+            [](Octree &self) { return self.GetMetricMinMax(); })
         .def_property_readonly("metric_aabb", [](Octree &self) { return self.GetMetricAabb(); })
         .def_property_readonly("metric_size", [](Octree &self) { return self.GetMetricSize(); })
         .def("get_node_size", &Octree::GetNodeSize, py::arg("depth"))
         .def_property_readonly("number_of_leaf_nodes", &Octree::ComputeNumberOfLeafNodes)
         .def_property_readonly("memory_usage", &Octree::GetMemoryUsage)
         .def_property_readonly("memory_usage_per_node", &Octree::GetMemoryUsagePerNode)
-        .def("coord_to_key", py::overload_cast<Dtype>(&Octree::CoordToKey, py::const_), py::arg("coordinate"))
-        .def("coord_to_key", py::overload_cast<Dtype, uint32_t>(&Octree::CoordToKey, py::const_), py::arg("coordinate"), py::arg("depth"))
-        .def("coord_to_key", py::overload_cast<Dtype, Dtype, Dtype>(&Octree::CoordToKey, py::const_), py::arg("x"), py::arg("y"), py::arg("z"))
+        .def(
+            "coord_to_key",
+            py::overload_cast<Dtype>(&Octree::CoordToKey, py::const_),
+            py::arg("coordinate"))
+        .def(
+            "coord_to_key",
+            py::overload_cast<Dtype, uint32_t>(&Octree::CoordToKey, py::const_),
+            py::arg("coordinate"),
+            py::arg("depth"))
+        .def(
+            "coord_to_key",
+            py::overload_cast<Dtype, Dtype, Dtype>(&Octree::CoordToKey, py::const_),
+            py::arg("x"),
+            py::arg("y"),
+            py::arg("z"))
         .def(
             "coord_to_key",
             py::overload_cast<Dtype, Dtype, Dtype, uint32_t>(&Octree::CoordToKey, py::const_),
@@ -275,14 +324,18 @@ BindOccupancyOctree(
         .def(
             "coord_to_key_checked",
             [](const Octree &self, Dtype coordinate) {
-                if (OctreeKey::KeyType key; self.CoordToKeyChecked(coordinate, key)) { return std::optional<OctreeKey::KeyType>(key); }
+                if (OctreeKey::KeyType key; self.CoordToKeyChecked(coordinate, key)) {
+                    return std::optional<OctreeKey::KeyType>(key);
+                }
                 return std::optional<OctreeKey::KeyType>();
             },
             py::arg("coordinate"))
         .def(
             "coord_to_key_checked",
             [](const Octree &self, Dtype coordinate, uint32_t depth) {
-                if (OctreeKey::KeyType key; self.CoordToKeyChecked(coordinate, depth, key)) { return std::optional<OctreeKey::KeyType>(key); }
+                if (OctreeKey::KeyType key; self.CoordToKeyChecked(coordinate, depth, key)) {
+                    return std::optional<OctreeKey::KeyType>(key);
+                }
                 return std::optional<OctreeKey::KeyType>();
             },
             py::arg("coordinate"),
@@ -290,7 +343,9 @@ BindOccupancyOctree(
         .def(
             "coord_to_key_checked",
             [](const Octree &self, Dtype x, Dtype y, Dtype z) {
-                if (OctreeKey key; self.CoordToKeyChecked(x, y, z, key)) { return std::optional<OctreeKey>(key); }
+                if (OctreeKey key; self.CoordToKeyChecked(x, y, z, key)) {
+                    return std::optional<OctreeKey>(key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("x"),
@@ -299,15 +354,25 @@ BindOccupancyOctree(
         .def(
             "coord_to_key_checked",
             [](const Octree &self, Dtype x, Dtype y, Dtype z, uint32_t depth) {
-                if (OctreeKey key; self.CoordToKeyChecked(x, y, z, depth, key)) { return std::optional<OctreeKey>(key); }
+                if (OctreeKey key; self.CoordToKeyChecked(x, y, z, depth, key)) {
+                    return std::optional<OctreeKey>(key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("x"),
             py::arg("y"),
             py::arg("z"),
             py::arg("depth"))
-        .def("adjust_key_to_depth", py::overload_cast<OctreeKey::KeyType, uint32_t>(&Octree::AdjustKeyToDepth, py::const_), py::arg("key"), py::arg("depth"))
-        .def("adjust_key_to_depth", py::overload_cast<const OctreeKey &, uint32_t>(&Octree::AdjustKeyToDepth, py::const_), py::arg("key"), py::arg("depth"))
+        .def(
+            "adjust_key_to_depth",
+            py::overload_cast<OctreeKey::KeyType, uint32_t>(&Octree::AdjustKeyToDepth, py::const_),
+            py::arg("key"),
+            py::arg("depth"))
+        .def(
+            "adjust_key_to_depth",
+            py::overload_cast<const OctreeKey &, uint32_t>(&Octree::AdjustKeyToDepth, py::const_),
+            py::arg("key"),
+            py::arg("depth"))
         .def(
             "compute_common_ancestor_key",
             [](const Octree &self, const OctreeKey &key1, const OctreeKey &key2) {
@@ -319,7 +384,9 @@ BindOccupancyOctree(
         .def(
             "compute_west_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                if (OctreeKey neighbor_key; self.ComputeWestNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                if (OctreeKey neighbor_key; self.ComputeWestNeighborKey(key, depth, neighbor_key)) {
+                    return std::optional<OctreeKey>(neighbor_key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("key"),
@@ -327,7 +394,9 @@ BindOccupancyOctree(
         .def(
             "compute_east_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                if (OctreeKey neighbor_key; self.ComputeEastNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                if (OctreeKey neighbor_key; self.ComputeEastNeighborKey(key, depth, neighbor_key)) {
+                    return std::optional<OctreeKey>(neighbor_key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("key"),
@@ -335,7 +404,10 @@ BindOccupancyOctree(
         .def(
             "compute_north_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                if (OctreeKey neighbor_key; self.ComputeNorthNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                if (OctreeKey neighbor_key;
+                    self.ComputeNorthNeighborKey(key, depth, neighbor_key)) {
+                    return std::optional<OctreeKey>(neighbor_key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("key"),
@@ -343,7 +415,10 @@ BindOccupancyOctree(
         .def(
             "compute_south_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                if (OctreeKey neighbor_key; self.ComputeSouthNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                if (OctreeKey neighbor_key;
+                    self.ComputeSouthNeighborKey(key, depth, neighbor_key)) {
+                    return std::optional<OctreeKey>(neighbor_key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("key"),
@@ -351,7 +426,9 @@ BindOccupancyOctree(
         .def(
             "compute_top_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                if (OctreeKey neighbor_key; self.ComputeTopNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                if (OctreeKey neighbor_key; self.ComputeTopNeighborKey(key, depth, neighbor_key)) {
+                    return std::optional<OctreeKey>(neighbor_key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("key"),
@@ -359,13 +436,23 @@ BindOccupancyOctree(
         .def(
             "compute_bottom_neighbor_key",
             [](const Octree &self, const OctreeKey &key, uint32_t depth) {
-                if (OctreeKey neighbor_key; self.ComputeBottomNeighborKey(key, depth, neighbor_key)) { return std::optional<OctreeKey>(neighbor_key); }
+                if (OctreeKey neighbor_key;
+                    self.ComputeBottomNeighborKey(key, depth, neighbor_key)) {
+                    return std::optional<OctreeKey>(neighbor_key);
+                }
                 return std::optional<OctreeKey>();
             },
             py::arg("key"),
             py::arg("depth"))
-        .def("key_to_coord", py::overload_cast<OctreeKey::KeyType>(&Octree::KeyToCoord, py::const_), py::arg("key"))
-        .def("key_to_coord", py::overload_cast<OctreeKey::KeyType, uint32_t>(&Octree::KeyToCoord, py::const_), py::arg("key"), py::arg("depth"))
+        .def(
+            "key_to_coord",
+            py::overload_cast<OctreeKey::KeyType>(&Octree::KeyToCoord, py::const_),
+            py::arg("key"))
+        .def(
+            "key_to_coord",
+            py::overload_cast<OctreeKey::KeyType, uint32_t>(&Octree::KeyToCoord, py::const_),
+            py::arg("key"),
+            py::arg("depth"))
         .def(
             "key_to_coord",
             [](const Octree &self, const OctreeKey &key) {
@@ -386,7 +473,9 @@ BindOccupancyOctree(
         .def(
             "compute_ray_keys",
             [](const Octree &self, Dtype sx, Dtype sy, Dtype sz, Dtype ex, Dtype ey, Dtype ez) {
-                if (OctreeKeyRay ray; self.ComputeRayKeys(sx, sy, sz, ex, ey, ez, ray)) { return std::optional<OctreeKeyRay>(ray); }
+                if (OctreeKeyRay ray; self.ComputeRayKeys(sx, sy, sz, ex, ey, ez, ray)) {
+                    return std::optional<OctreeKeyRay>(ray);
+                }
                 return std::optional<OctreeKeyRay>();
             },
             py::arg("sx"),
@@ -398,7 +487,9 @@ BindOccupancyOctree(
         .def(
             "compute_ray_coords",
             [](const Octree &self, Dtype sx, Dtype sy, Dtype sz, Dtype ex, Dtype ey, Dtype ez) {
-                if (std::vector<Vector3> ray; self.ComputeRayCoords(sx, sy, sz, ex, ey, ez, ray)) { return std::optional<std::vector<Vector3>>(ray); }
+                if (std::vector<Vector3> ray; self.ComputeRayCoords(sx, sy, sz, ex, ey, ez, ray)) {
+                    return std::optional<std::vector<Vector3>>(ray);
+                }
                 return std::optional<std::vector<Vector3>>();
             },
             py::arg("sx"),
@@ -408,13 +499,32 @@ BindOccupancyOctree(
             py::arg("ey"),
             py::arg("ez"))
         .def("create_node_child", &Octree::CreateNodeChild, py::arg("node"), py::arg("child_idx"))
-        .def("delete_node_child", &Octree::DeleteNodeChild, py::arg("node"), py::arg("child_idx"), py::arg("key"))
-        .def("get_node_child", py::overload_cast<Node *, uint32_t>(&Octree::GetNodeChild), py::arg("node"), py::arg("child_idx"))
+        .def(
+            "delete_node_child",
+            &Octree::DeleteNodeChild,
+            py::arg("node"),
+            py::arg("child_idx"),
+            py::arg("key"))
+        .def(
+            "get_node_child",
+            py::overload_cast<Node *, uint32_t>(&Octree::GetNodeChild),
+            py::arg("node"),
+            py::arg("child_idx"))
         .def("is_node_collapsible", &Octree::IsNodeCollapsible, py::arg("node"))
         .def("expand_node", &Octree::ExpandNode, py::arg("node"))
         .def("prune_node", &Octree::PruneNode, py::arg("node"))
-        .def("delete_node", py::overload_cast<Dtype, Dtype, Dtype, uint32_t>(&Octree::DeleteNode), py::arg("x"), py::arg("y"), py::arg("z"), py::arg("depth"))
-        .def("delete_node", py::overload_cast<const OctreeKey &, uint32_t>(&Octree::DeleteNode), py::arg("key"), py::arg("depth"))
+        .def(
+            "delete_node",
+            py::overload_cast<Dtype, Dtype, Dtype, uint32_t>(&Octree::DeleteNode),
+            py::arg("x"),
+            py::arg("y"),
+            py::arg("z"),
+            py::arg("depth"))
+        .def(
+            "delete_node",
+            py::overload_cast<const OctreeKey &, uint32_t>(&Octree::DeleteNode),
+            py::arg("key"),
+            py::arg("depth"))
         .def("clear", &Octree::Clear)
         .def("prune", &Octree::Prune)
         .def("expand", &Octree::Expand)
@@ -426,9 +536,23 @@ BindOccupancyOctree(
             py::arg("y"),
             py::arg("z"),
             py::arg("max_depth") = 0)
-        .def("search", py::overload_cast<const OctreeKey &, uint32_t>(&Octree::Search, py::const_), py::arg("key"), py::arg("max_depth") = 0)
-        .def("insert_node", py::overload_cast<Dtype, Dtype, Dtype, uint32_t>(&Octree::InsertNode), py::arg("x"), py::arg("y"), py::arg("z"), py::arg("depth"))
-        .def("insert_node", py::overload_cast<const OctreeKey &, uint32_t>(&Octree::InsertNode), py::arg("key"), py::arg("depth"))
+        .def(
+            "search",
+            py::overload_cast<const OctreeKey &, uint32_t>(&Octree::Search, py::const_),
+            py::arg("key"),
+            py::arg("max_depth") = 0)
+        .def(
+            "insert_node",
+            py::overload_cast<Dtype, Dtype, Dtype, uint32_t>(&Octree::InsertNode),
+            py::arg("x"),
+            py::arg("y"),
+            py::arg("z"),
+            py::arg("depth"))
+        .def(
+            "insert_node",
+            py::overload_cast<const OctreeKey &, uint32_t>(&Octree::InsertNode),
+            py::arg("key"),
+            py::arg("depth"))
         .def(
             "visualize",
             [](std::shared_ptr<Octree> &self,
@@ -457,7 +581,8 @@ BindOccupancyOctree(
                 visualizer_setting->window_height = window_height;
                 visualizer_setting->window_left = window_left;
                 visualizer_setting->window_top = window_top;
-                const auto visualizer = std::make_shared<Open3dVisualizerWrapper>(visualizer_setting);
+                const auto visualizer =
+                    std::make_shared<Open3dVisualizerWrapper>(visualizer_setting);
                 std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries;
                 if (leaf_only) {
                     drawer->DrawLeaves(geometries);
@@ -476,36 +601,75 @@ BindOccupancyOctree(
             py::arg("window_top") = 50);
 
     // Iterators defined in OctreeImpl
-    py::class_<typename Octree::IteratorBase, typename AbstractOctree<Dtype>::OctreeNodeIterator>(tree, "IteratorBase")
-        .def("__eq__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self == other; })
-        .def("__ne__", [](const typename Octree::IteratorBase &self, const typename Octree::IteratorBase &other) { return self != other; })
+    py::class_<typename Octree::IteratorBase, typename AbstractOctree<Dtype>::OctreeNodeIterator>(
+        tree,
+        "IteratorBase")
+        .def(
+            "__eq__",
+            [](const typename Octree::IteratorBase &self,
+               const typename Octree::IteratorBase &other) { return self == other; })
+        .def(
+            "__ne__",
+            [](const typename Octree::IteratorBase &self,
+               const typename Octree::IteratorBase &other) { return self != other; })
         .def_property_readonly("node", py::overload_cast<>(&Octree::IteratorBase::GetNode))
         .def_property_readonly("node_aabb", &Octree::IteratorBase::GetNodeAabb)
         .def_property_readonly("key", &Octree::IteratorBase::GetKey)
         .def_property_readonly("index_key", &Octree::IteratorBase::GetIndexKey);
 
-    (void) py::class_<typename Octree::TreeIterator, typename Octree::IteratorBase>(tree, "TreeIterator");
-    (void) py::class_<typename Octree::TreeInAabbIterator, typename Octree::IteratorBase>(tree, "TreeInAabbIterator");
-    (void) py::class_<typename Octree::LeafIterator, typename Octree::IteratorBase>(tree, "LeafIterator");
-    (void) py::class_<typename Octree::LeafOfNodeIterator, typename Octree::IteratorBase>(tree, "LeafOfNodeIterator");
-    (void) py::class_<typename Octree::LeafInAabbIterator, typename Octree::IteratorBase>(tree, "LeafInAabbIterator");
-    (void) py::class_<typename Octree::WestLeafNeighborIterator, typename Octree::IteratorBase>(tree, "WestLeafNeighborIterator");
-    (void) py::class_<typename Octree::EastLeafNeighborIterator, typename Octree::IteratorBase>(tree, "EastLeafNeighborIterator");
-    (void) py::class_<typename Octree::NorthLeafNeighborIterator, typename Octree::IteratorBase>(tree, "NorthLeafNeighborIterator");
-    (void) py::class_<typename Octree::SouthLeafNeighborIterator, typename Octree::IteratorBase>(tree, "SouthLeafNeighborIterator");
-    (void) py::class_<typename Octree::TopLeafNeighborIterator, typename Octree::IteratorBase>(tree, "TopLeafNeighborIterator");
-    (void) py::class_<typename Octree::BottomLeafNeighborIterator, typename Octree::IteratorBase>(tree, "BottomLeafNeighborIterator");
-    py::class_<typename Octree::NodeOnRayIterator, typename Octree::IteratorBase>(tree, "NodeOnRayIterator")
+    (void) py::class_<typename Octree::TreeIterator, typename Octree::IteratorBase>(
+        tree,
+        "TreeIterator");
+    (void) py::class_<typename Octree::TreeInAabbIterator, typename Octree::IteratorBase>(
+        tree,
+        "TreeInAabbIterator");
+    (void) py::class_<typename Octree::LeafIterator, typename Octree::IteratorBase>(
+        tree,
+        "LeafIterator");
+    (void) py::class_<typename Octree::LeafOfNodeIterator, typename Octree::IteratorBase>(
+        tree,
+        "LeafOfNodeIterator");
+    (void) py::class_<typename Octree::LeafInAabbIterator, typename Octree::IteratorBase>(
+        tree,
+        "LeafInAabbIterator");
+    (void) py::class_<typename Octree::WestLeafNeighborIterator, typename Octree::IteratorBase>(
+        tree,
+        "WestLeafNeighborIterator");
+    (void) py::class_<typename Octree::EastLeafNeighborIterator, typename Octree::IteratorBase>(
+        tree,
+        "EastLeafNeighborIterator");
+    (void) py::class_<typename Octree::NorthLeafNeighborIterator, typename Octree::IteratorBase>(
+        tree,
+        "NorthLeafNeighborIterator");
+    (void) py::class_<typename Octree::SouthLeafNeighborIterator, typename Octree::IteratorBase>(
+        tree,
+        "SouthLeafNeighborIterator");
+    (void) py::class_<typename Octree::TopLeafNeighborIterator, typename Octree::IteratorBase>(
+        tree,
+        "TopLeafNeighborIterator");
+    (void) py::class_<typename Octree::BottomLeafNeighborIterator, typename Octree::IteratorBase>(
+        tree,
+        "BottomLeafNeighborIterator");
+    py::class_<typename Octree::NodeOnRayIterator, typename Octree::IteratorBase>(
+        tree,
+        "NodeOnRayIterator")
         .def_property_readonly("distance", &Octree::NodeOnRayIterator::GetDistance);
 
     tree.def(
             "iter_leaf",
-            [](Octree &self, const uint32_t max_depth) { return py::wrap_iterator(self.BeginLeaf(max_depth), self.EndLeaf()); },
+            [](Octree &self, const uint32_t max_depth) {
+                return py::wrap_iterator(self.BeginLeaf(max_depth), self.EndLeaf());
+            },
             py::arg("max_depth") = 0)
         .def(
             "iter_leaf_of_node",
-            [](Octree &self, const OctreeKey &node_key, const uint32_t node_depth, const uint32_t max_depth) {
-                return py::wrap_iterator(self.BeginLeafOfNode(node_key, node_depth, max_depth), self.EndLeafOfNode());
+            [](Octree &self,
+               const OctreeKey &node_key,
+               const uint32_t node_depth,
+               const uint32_t max_depth) {
+                return py::wrap_iterator(
+                    self.BeginLeafOfNode(node_key, node_depth, max_depth),
+                    self.EndLeafOfNode());
             },
             py::arg("node_key"),
             py::arg("node_depth"),
@@ -521,7 +685,14 @@ BindOccupancyOctree(
                const Dtype aabb_max_z,
                const uint32_t max_depth) {
                 return py::wrap_iterator(
-                    self.BeginLeafInAabb(aabb_min_x, aabb_min_y, aabb_min_z, aabb_max_x, aabb_max_y, aabb_max_z, max_depth),
+                    self.BeginLeafInAabb(
+                        aabb_min_x,
+                        aabb_min_y,
+                        aabb_min_z,
+                        aabb_max_x,
+                        aabb_max_y,
+                        aabb_max_z,
+                        max_depth),
                     self.EndLeafInAabb());
             },
             py::arg("aabb_min_x"),
@@ -533,15 +704,22 @@ BindOccupancyOctree(
             py::arg("max_depth") = 0)
         .def(
             "iter_leaf_in_aabb",
-            [](Octree &self, const OctreeKey &aabb_min_key, const OctreeKey &aabb_max_key, const uint32_t max_depth) {
-                return py::wrap_iterator(self.BeginLeafInAabb(aabb_min_key, aabb_max_key, max_depth), self.EndLeafInAabb());
+            [](Octree &self,
+               const OctreeKey &aabb_min_key,
+               const OctreeKey &aabb_max_key,
+               const uint32_t max_depth) {
+                return py::wrap_iterator(
+                    self.BeginLeafInAabb(aabb_min_key, aabb_max_key, max_depth),
+                    self.EndLeafInAabb());
             },
             py::arg("aabb_min_key"),
             py::arg("aabb_max_key"),
             py::arg("max_depth") = 0)
         .def(
             "iter_node",
-            [](Octree &self, const uint32_t max_depth) { return py::wrap_iterator(self.BeginTree(max_depth), self.EndTree()); },
+            [](Octree &self, const uint32_t max_depth) {
+                return py::wrap_iterator(self.BeginTree(max_depth), self.EndTree());
+            },
             py::arg("max_depth") = 0)
         .def(
             "iter_node_in_aabb",
@@ -554,7 +732,14 @@ BindOccupancyOctree(
                const Dtype aabb_max_z,
                const uint32_t max_depth) {
                 return py::wrap_iterator(
-                    self.BeginTreeInAabb(aabb_min_x, aabb_min_y, aabb_min_z, aabb_max_x, aabb_max_y, aabb_max_z, max_depth),
+                    self.BeginTreeInAabb(
+                        aabb_min_x,
+                        aabb_min_y,
+                        aabb_min_z,
+                        aabb_max_x,
+                        aabb_max_y,
+                        aabb_max_z,
+                        max_depth),
                     self.EndTreeInAabb());
             },
             py::arg("aabb_min_x"),
@@ -566,16 +751,27 @@ BindOccupancyOctree(
             py::arg("max_depth") = 0)
         .def(
             "iter_node_in_aabb",
-            [](Octree &self, const OctreeKey &aabb_min_key, const OctreeKey &aabb_max_key, const uint32_t max_depth) {
-                return py::wrap_iterator(self.BeginTreeInAabb(aabb_min_key, aabb_max_key, max_depth), self.EndTreeInAabb());
+            [](Octree &self,
+               const OctreeKey &aabb_min_key,
+               const OctreeKey &aabb_max_key,
+               const uint32_t max_depth) {
+                return py::wrap_iterator(
+                    self.BeginTreeInAabb(aabb_min_key, aabb_max_key, max_depth),
+                    self.EndTreeInAabb());
             },
             py::arg("aabb_min_key"),
             py::arg("aabb_max_key"),
             py::arg("max_depth") = 0)
         .def(
             "iter_west_leaf_neighbor",
-            [](Octree &self, const Dtype x, const Dtype y, const Dtype z, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginWestLeafNeighbor(x, y, z, max_leaf_depth), self.EndWestLeafNeighbor());
+            [](Octree &self,
+               const Dtype x,
+               const Dtype y,
+               const Dtype z,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginWestLeafNeighbor(x, y, z, max_leaf_depth),
+                    self.EndWestLeafNeighbor());
             },
             py::arg("x"),
             py::arg("y"),
@@ -583,16 +779,27 @@ BindOccupancyOctree(
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_west_leaf_neighbor",
-            [](Octree &self, const OctreeKey &key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginWestLeafNeighbor(key, key_depth, max_leaf_depth), self.EndWestLeafNeighbor());
+            [](Octree &self,
+               const OctreeKey &key,
+               const uint32_t key_depth,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginWestLeafNeighbor(key, key_depth, max_leaf_depth),
+                    self.EndWestLeafNeighbor());
             },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_east_leaf_neighbor",
-            [](Octree &self, const Dtype x, const Dtype y, const Dtype z, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginEastLeafNeighbor(x, y, z, max_leaf_depth), self.EndEastLeafNeighbor());
+            [](Octree &self,
+               const Dtype x,
+               const Dtype y,
+               const Dtype z,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginEastLeafNeighbor(x, y, z, max_leaf_depth),
+                    self.EndEastLeafNeighbor());
             },
             py::arg("x"),
             py::arg("y"),
@@ -600,16 +807,27 @@ BindOccupancyOctree(
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_east_leaf_neighbor",
-            [](Octree &self, const OctreeKey &key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginEastLeafNeighbor(key, key_depth, max_leaf_depth), self.EndEastLeafNeighbor());
+            [](Octree &self,
+               const OctreeKey &key,
+               const uint32_t key_depth,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginEastLeafNeighbor(key, key_depth, max_leaf_depth),
+                    self.EndEastLeafNeighbor());
             },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_north_leaf_neighbor",
-            [](Octree &self, const Dtype x, const Dtype y, const Dtype z, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginNorthLeafNeighbor(x, y, z, max_leaf_depth), self.EndNorthLeafNeighbor());
+            [](Octree &self,
+               const Dtype x,
+               const Dtype y,
+               const Dtype z,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginNorthLeafNeighbor(x, y, z, max_leaf_depth),
+                    self.EndNorthLeafNeighbor());
             },
             py::arg("x"),
             py::arg("y"),
@@ -617,16 +835,27 @@ BindOccupancyOctree(
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_north_leaf_neighbor",
-            [](Octree &self, const OctreeKey &key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginNorthLeafNeighbor(key, key_depth, max_leaf_depth), self.EndNorthLeafNeighbor());
+            [](Octree &self,
+               const OctreeKey &key,
+               const uint32_t key_depth,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginNorthLeafNeighbor(key, key_depth, max_leaf_depth),
+                    self.EndNorthLeafNeighbor());
             },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_south_leaf_neighbor",
-            [](Octree &self, const Dtype x, const Dtype y, const Dtype z, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginSouthLeafNeighbor(x, y, z, max_leaf_depth), self.EndSouthLeafNeighbor());
+            [](Octree &self,
+               const Dtype x,
+               const Dtype y,
+               const Dtype z,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginSouthLeafNeighbor(x, y, z, max_leaf_depth),
+                    self.EndSouthLeafNeighbor());
             },
             py::arg("x"),
             py::arg("y"),
@@ -634,16 +863,27 @@ BindOccupancyOctree(
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_south_leaf_neighbor",
-            [](Octree &self, const OctreeKey &key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginSouthLeafNeighbor(key, key_depth, max_leaf_depth), self.EndSouthLeafNeighbor());
+            [](Octree &self,
+               const OctreeKey &key,
+               const uint32_t key_depth,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginSouthLeafNeighbor(key, key_depth, max_leaf_depth),
+                    self.EndSouthLeafNeighbor());
             },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_top_leaf_neighbor",
-            [](Octree &self, const Dtype x, const Dtype y, const Dtype z, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginTopLeafNeighbor(x, y, z, max_leaf_depth), self.EndTopLeafNeighbor());
+            [](Octree &self,
+               const Dtype x,
+               const Dtype y,
+               const Dtype z,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginTopLeafNeighbor(x, y, z, max_leaf_depth),
+                    self.EndTopLeafNeighbor());
             },
             py::arg("x"),
             py::arg("y"),
@@ -651,16 +891,27 @@ BindOccupancyOctree(
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_top_leaf_neighbor",
-            [](Octree &self, const OctreeKey &key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginTopLeafNeighbor(key, key_depth, max_leaf_depth), self.EndTopLeafNeighbor());
+            [](Octree &self,
+               const OctreeKey &key,
+               const uint32_t key_depth,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginTopLeafNeighbor(key, key_depth, max_leaf_depth),
+                    self.EndTopLeafNeighbor());
             },
             py::arg("key"),
             py::arg("key_depth"),
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_bottom_leaf_neighbor",
-            [](Octree &self, const Dtype x, const Dtype y, const Dtype z, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginBottomLeafNeighbor(x, y, z, max_leaf_depth), self.EndBottomLeafNeighbor());
+            [](Octree &self,
+               const Dtype x,
+               const Dtype y,
+               const Dtype z,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginBottomLeafNeighbor(x, y, z, max_leaf_depth),
+                    self.EndBottomLeafNeighbor());
             },
             py::arg("x"),
             py::arg("y"),
@@ -668,8 +919,13 @@ BindOccupancyOctree(
             py::arg("max_leaf_depth") = 0)
         .def(
             "iter_bottom_leaf_neighbor",
-            [](Octree &self, const OctreeKey &key, const uint32_t key_depth, const uint32_t max_leaf_depth) {
-                return py::wrap_iterator(self.BeginBottomLeafNeighbor(key, key_depth, max_leaf_depth), self.EndBottomLeafNeighbor());
+            [](Octree &self,
+               const OctreeKey &key,
+               const uint32_t key_depth,
+               const uint32_t max_leaf_depth) {
+                return py::wrap_iterator(
+                    self.BeginBottomLeafNeighbor(key, key_depth, max_leaf_depth),
+                    self.EndBottomLeafNeighbor());
             },
             py::arg("key"),
             py::arg("key_depth"),
@@ -690,7 +946,19 @@ BindOccupancyOctree(
                const uint32_t min_node_depth,
                const uint32_t max_node_depth) {
                 return py::wrap_iterator(
-                    self.BeginNodeOnRay(px, py, pz, vx, vy, vz, max_range, node_padding, bidirectional, leaf_only, min_node_depth, max_node_depth),
+                    self.BeginNodeOnRay(
+                        px,
+                        py,
+                        pz,
+                        vx,
+                        vy,
+                        vz,
+                        max_range,
+                        node_padding,
+                        bidirectional,
+                        leaf_only,
+                        min_node_depth,
+                        max_node_depth),
                     self.EndNodeOnRay());
             },
             py::arg("px"),

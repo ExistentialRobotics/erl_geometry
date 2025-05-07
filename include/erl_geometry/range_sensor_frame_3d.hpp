@@ -2,9 +2,7 @@
 
 #include "kdtree_eigen_adaptor.hpp"
 
-#include "erl_common/angle_utils.hpp"
 #include "erl_common/factory_pattern.hpp"
-#include "erl_common/random.hpp"
 #include "erl_common/yaml.hpp"
 
 #include <absl/container/flat_hash_map.h>
@@ -14,14 +12,11 @@ namespace erl::geometry {
     template<typename Dtype>
     class RangeSensorFrame3D {
     public:
-        struct Setting : common::Yamlable<Setting> {
+        struct Setting : public common::Yamlable<Setting> {
             long row_margin = 0;
             long col_margin = 0;
             Dtype valid_range_min = 0.0;
             Dtype valid_range_max = std::numeric_limits<Dtype>::max();
-            Dtype discontinuity_factor = 10;
-            Dtype rolling_diff_discount = 0.9;
-            int min_partition_size = 5;
 
             struct YamlConvertImpl {
                 static YAML::Node
@@ -42,41 +37,35 @@ namespace erl::geometry {
         using KdTree = KdTreeEigenAdaptor<Dtype, 3>;
 
     private:
-        // inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
-        inline static const std::string kFileHeader = fmt::format("# erl::geometry::RangeSensorFrame3D<{}>", type_name<Dtype>());
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
     protected:
         Matrix3 m_rotation_ = {};
         Vector3 m_translation_ = {};
 
-        Eigen::MatrixX<Vector2> m_frame_coords_ = {};  // (row_coord, col_coord) in frame, e.g. (azimuth, elevation) for LiDAR, (v, u) for RGBD
+        // (row_coord, col_coord) in the frame, e.g. (azimuth, elevation) for LiDAR, (v, u) for RGBD
+        Eigen::MatrixX<Vector2> m_frame_coords_ = {};
         MatrixX m_ranges_ = {};
 
-        // the memory layout of the following matrices is (azimuth, elevation, 3), and it is okay to access the data using raw pointer directly
-        // because the memory is contiguous.
+        // the memory layout of the following matrices is (azimuth, elevation, 3), and it is okay
+        // to access the data using a raw pointer directly because the memory is contiguous.
 
-        Eigen::MatrixX<Vector3> m_dirs_frame_ = {};  // directions in frame, (vx, vy, vz), normalized
-        Eigen::MatrixX<Vector3> m_dirs_world_ = {};  // directions in world, (vx, vy, vz), normalized
-
-        Eigen::MatrixX<Vector3> m_end_pts_frame_ = {};  // end points in frame, (x, y, z)
-        Eigen::MatrixX<Vector3> m_end_pts_world_ = {};  // end points in world, (x, y, z)
-
-        Eigen::MatrixXb m_mask_hit_ = {};                            // if i-th element is true, then i-th vertex is a hit
-        Eigen::MatrixXb m_mask_continuous_ = {};                     // if i-th element is true, then (i-1, i) edge is continuous
+        Eigen::MatrixX<Vector3> m_dirs_frame_ = {};  // normalized directions in frame, (vx, vy, vz)
+        Eigen::MatrixX<Vector3> m_dirs_world_ = {};  // normalized directions in world, (vx, vy, vz)
+        Eigen::MatrixX<Vector3> m_end_pts_frame_ = {};  // end points in the frame, (x, y, z)
+        Eigen::MatrixX<Vector3> m_end_pts_world_ = {};  // end points in the world, (x, y, z)
+        Eigen::MatrixXb m_mask_hit_ = {};  // if i-th element is true, then i-th vertex is a hit
         std::vector<std::pair<long, long>> m_hit_ray_indices_ = {};  // hit ray indices
-        std::vector<Vector3> m_hit_points_frame_ = {};               // hit points in frame
-        std::vector<Vector3> m_hit_points_world_ = {};               // hit points in world
+        std::vector<Vector3> m_hit_points_frame_ = {};               // hit points in the frame
+        std::vector<Vector3> m_hit_points_world_ = {};               // hit points in the world
         Dtype m_max_valid_range_ = std::numeric_limits<Dtype>::min();
         std::shared_ptr<KdTree> m_kd_tree_ = std::make_shared<KdTree>();
 
     public:
-        using Factory = common::FactoryPattern<RangeSensorFrame3D, false, false, const std::shared_ptr<Setting> &>;
+        using Factory = common::
+            FactoryPattern<RangeSensorFrame3D, false, false, const std::shared_ptr<Setting> &>;
 
-        explicit RangeSensorFrame3D(std::shared_ptr<Setting> setting)
-            : m_setting_(std::move(setting)) {
-            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr when creating RangeSensorFrame3D.");
-        }
+        explicit RangeSensorFrame3D(std::shared_ptr<Setting> setting);
 
         virtual ~RangeSensorFrame3D() = default;
 
@@ -126,7 +115,8 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         CoordsIsInFrame(const Vector2 &frame_coords) const {
-            const Vector2 &top_left = m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
+            const Vector2 &top_left =
+                m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
             const Vector2 &bottom_right = m_frame_coords_(  //
                 m_frame_coords_.rows() - m_setting_->row_margin - 1,
                 m_frame_coords_.cols() - m_setting_->col_margin - 1);
@@ -158,7 +148,10 @@ namespace erl::geometry {
         }
 
         virtual void
-        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, MatrixX ranges, bool partition_rays) = 0;
+        UpdateRanges(
+            const Eigen::Ref<const Matrix3> &rotation,
+            const Eigen::Ref<const Vector3> &translation,
+            MatrixX ranges) = 0;
 
         [[nodiscard]] const MatrixX &
         GetRanges() const {
@@ -287,13 +280,7 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] virtual bool
-        Write(const std::string &filename) const;
-
-        [[nodiscard]] virtual bool
         Write(std::ostream &s) const;
-
-        [[nodiscard]] virtual bool
-        Read(const std::string &filename);
 
         [[nodiscard]] virtual bool
         Read(std::istream &s);
@@ -324,14 +311,14 @@ namespace erl::geometry {
 
     using RangeSensorFrame3Dd = RangeSensorFrame3D<double>;
     using RangeSensorFrame3Df = RangeSensorFrame3D<float>;
-
-    // #define ERL_REGISTER_RANGE_SENSOR_FRAME_3D(Derived) inline const volatile bool kRegistered##Derived = Derived::Register<Derived>()
 }  // namespace erl::geometry
 
 #include "range_sensor_frame_3d.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::RangeSensorFrame3D<double>::Setting> : erl::geometry::RangeSensorFrame3D<double>::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::RangeSensorFrame3D<double>::Setting>
+    : erl::geometry::RangeSensorFrame3D<double>::Setting::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::RangeSensorFrame3D<float>::Setting> : erl::geometry::RangeSensorFrame3D<float>::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::RangeSensorFrame3D<float>::Setting>
+    : erl::geometry::RangeSensorFrame3D<float>::Setting::YamlConvertImpl {};

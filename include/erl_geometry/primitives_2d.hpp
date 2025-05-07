@@ -71,7 +71,10 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsOnBoundary(const Eigen::Vector2d &point) const override {
-            if (const Eigen::Vector2d v0 = p1 - p0, v1 = point - p0; std::abs(v0.x() * v1.y() - v0.y() * v1.x()) == 0) { return true; }
+            if (const Eigen::Vector2d v0 = p1 - p0, v1 = point - p0;
+                std::abs(v0.x() * v1.y() - v0.y() * v1.x()) == 0) {
+                return true;
+            }
             return false;
         }
 
@@ -107,7 +110,8 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsOnBoundary(const Eigen::Vector2d &point) const override {
-            if (const Eigen::Vector2d v0 = p1 - p0, v1 = point - p0; std::abs(v0.x() * v1.y() - v0.y() * v1.x()) == 0) {
+            if (const Eigen::Vector2d v0 = p1 - p0, v1 = point - p0;
+                std::abs(v0.x() * v1.y() - v0.y() * v1.x()) == 0) {
                 const double lam = v1.norm() / v0.norm();
                 return lam >= 0 && lam <= 1;
             }
@@ -146,7 +150,10 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsOnBoundary(const Eigen::Vector2d &point) const override {
-            if (const Eigen::Vector2d v1 = point - origin; std::abs(direction.x() * v1.y() - direction.y() * v1.x()) == 0) { return true; }
+            if (const Eigen::Vector2d v1 = point - origin;
+                std::abs(direction.x() * v1.y() - direction.y() * v1.x()) == 0) {
+                return true;
+            }
             return false;
         }
 
@@ -168,7 +175,10 @@ namespace erl::geometry {
     class AxisAlignedRectangle2D : public Primitive2D, public Aabb2Dd {
 
     public:
-        AxisAlignedRectangle2D(const int id, const Eigen::Vector2d &center, const Eigen::Vector2d &half_sizes)
+        AxisAlignedRectangle2D(
+            const int id,
+            const Eigen::Vector2d &center,
+            const Eigen::Vector2d &half_sizes)
             : Aabb2Dd(center - half_sizes, center + half_sizes) {
             this->id = id;
         }
@@ -217,7 +227,8 @@ namespace erl::geometry {
 
         /**
          *
-         * @return Vertices of the rectangle in clockwise order starting from the bottom-left corner.
+         * @return Vertices of the rectangle in clockwise order starting from the bottom-left
+         * corner.
          */
         [[nodiscard]] std::tuple<Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d>
         GetVertices() const {
@@ -252,7 +263,11 @@ namespace erl::geometry {
         Eigen::Matrix2d m_rotation_matrix_;
 
     public:
-        Rectangle2D(const int id, Eigen::Vector2d center, Eigen::Vector2d half_sizes, const double angle)
+        Rectangle2D(
+            const int id,
+            Eigen::Vector2d center,
+            Eigen::Vector2d half_sizes,
+            const double angle)
             : m_center_(std::move(center)),
               m_half_sizes_(std::move(half_sizes)),
               m_angle_(angle) {
@@ -307,7 +322,8 @@ namespace erl::geometry {
 
         /**
          *
-         * @return Vertices of the rectangle in clockwise order starting from the bottom-left corner.
+         * @return Vertices of the rectangle in clockwise order starting from the bottom-left
+         * corner.
          */
         [[nodiscard]] std::tuple<Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d, Eigen::Vector2d>
         GetVertices() const {
@@ -368,7 +384,8 @@ namespace erl::geometry {
     private:
         void
         UpdateMatrices() {
-            m_rotation_matrix_ << std::cos(m_angle_), -std::sin(m_angle_), std::sin(m_angle_), std::cos(m_angle_);
+            m_rotation_matrix_ << std::cos(m_angle_), -std::sin(m_angle_), std::sin(m_angle_),
+                std::cos(m_angle_);
         }
     };
 
@@ -380,7 +397,12 @@ namespace erl::geometry {
         Eigen::Matrix2d m_scaled_rotation_matrix_;  // sigma
 
     public:
-        Ellipse2D(const int id, Eigen::Vector2d center, const double a, const double b, const double angle)
+        Ellipse2D(
+            const int id,
+            Eigen::Vector2d center,
+            const double a,
+            const double b,
+            const double angle)
             : m_center_(std::move(center)),
               m_radii_(a, b),
               m_angle_(angle) {
@@ -425,13 +447,15 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsInside(const Eigen::Vector2d &point) const override {
-            Eigen::Vector2d p = (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radii_.array();
+            Eigen::Vector2d p =
+                (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radii_.array();
             return p.squaredNorm() <= 1.0;
         }
 
         [[nodiscard]] bool
         IsOnBoundary(const Eigen::Vector2d &point) const override {
-            Eigen::Vector2d p = (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radii_.array();
+            Eigen::Vector2d p =
+                (m_rotation_matrix_.transpose() * (point - m_center_)).array() / m_radii_.array();
             return p.squaredNorm() == 1.0;
         }
 
@@ -476,11 +500,13 @@ namespace erl::geometry {
     private:
         void
         UpdateMatrices() {
-            m_rotation_matrix_ << std::cos(m_angle_), -std::sin(m_angle_), std::sin(m_angle_), std::cos(m_angle_);
+            m_rotation_matrix_ << std::cos(m_angle_), -std::sin(m_angle_), std::sin(m_angle_),
+                std::cos(m_angle_);
             const double a = 1.0 / m_radii_.x();
             const double b = 1.0 / m_radii_.y();
             m_scaled_rotation_matrix_ << a * a, 0, 0, b * b;
-            m_scaled_rotation_matrix_ = m_rotation_matrix_ * m_scaled_rotation_matrix_ * m_rotation_matrix_.transpose();
+            m_scaled_rotation_matrix_ =
+                m_rotation_matrix_ * m_scaled_rotation_matrix_ * m_rotation_matrix_.transpose();
         }
     };
 

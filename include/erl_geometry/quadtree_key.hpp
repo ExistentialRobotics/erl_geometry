@@ -1,8 +1,9 @@
 #pragma once
 
+#include "libmorton/morton.h"
+
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include <libmorton/morton.h>
 
 #include <cstdint>
 #include <vector>
@@ -10,8 +11,9 @@
 namespace erl::geometry {
 
     /**
-     * QuadtreeKey is a simple class that represents a key for a quadtree node. It is a 2D vector of uint16_t.
-     * Each element counts the number of cells from the origin as discrete address of a voxel.
+     * QuadtreeKey is a simple class that represents a key for a quadtree node. It is a 2D vector of
+     * uint16_t. Each element counts the number of cells from the origin as a discrete address of a
+     * voxel.
      */
     class QuadtreeKey {
     public:
@@ -32,7 +34,8 @@ namespace erl::geometry {
         struct KeyHash {
             [[nodiscard]] std::size_t
             operator()(const QuadtreeKey& key) const {
-                return static_cast<std::size_t>(key.m_k_[0]) << 16 | static_cast<std::size_t>(key.m_k_[1]);
+                return static_cast<std::size_t>(key.m_k_[0]) << 16 |
+                       static_cast<std::size_t>(key.m_k_[1]);
             }
         };
 
@@ -97,7 +100,8 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         operator<=(const QuadtreeKey& other) const {
-            return m_k_[0] < other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] <= other.m_k_[1]);
+            return m_k_[0] < other.m_k_[0] ||
+                   (m_k_[0] == other.m_k_[0] && m_k_[1] <= other.m_k_[1]);
         }
 
         [[nodiscard]] bool
@@ -107,7 +111,8 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         operator>=(const QuadtreeKey& other) const {
-            return m_k_[0] > other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] >= other.m_k_[1]);
+            return m_k_[0] > other.m_k_[0] ||
+                   (m_k_[0] == other.m_k_[0] && m_k_[1] >= other.m_k_[1]);
         }
 
         [[nodiscard]] explicit
@@ -121,20 +126,29 @@ namespace erl::geometry {
         }
 
         /**
-         * Compute the key of a child node from the key of its parent node and the index of the child node.
+         * Compute the key of a child node from the key of its parent node and the index of the
+         * child node.
          * @param pos index of child node (0..3)
          * @param center_offset_key
          * @param parent_key
          * @param child_key
          */
         static void
-        ComputeChildKey(const uint32_t pos, const KeyType center_offset_key, const QuadtreeKey& parent_key, QuadtreeKey& child_key) {
-            child_key.m_k_[0] = parent_key.m_k_[0] + (pos & 1 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key.m_k_[1] = parent_key.m_k_[1] + (pos & 2 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+        ComputeChildKey(
+            const uint32_t pos,
+            const KeyType center_offset_key,
+            const QuadtreeKey& parent_key,
+            QuadtreeKey& child_key) {
+            child_key.m_k_[0] =
+                parent_key.m_k_[0] +
+                (pos & 1 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[1] =
+                parent_key.m_k_[1] +
+                (pos & 2 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
         }
 
         /**
-         * Compute child index (0..3) from key at given level.
+         * Compute child index (0..3) from the key at a given level.
          * @param key
          * @param level level=0 means the leaf level
          * @return
@@ -149,7 +163,11 @@ namespace erl::geometry {
         }
 
         static bool
-        KeyInAabb(const QuadtreeKey& key, const KeyType center_offset_key, const QuadtreeKey& aabb_min_key, const QuadtreeKey& aabb_max_key) {
+        KeyInAabb(
+            const QuadtreeKey& key,
+            const KeyType center_offset_key,
+            const QuadtreeKey& aabb_min_key,
+            const QuadtreeKey& aabb_max_key) {
             return aabb_min_key[0] <= key[0] + center_offset_key &&  //
                    aabb_min_key[1] <= key[1] + center_offset_key &&  //
                    aabb_max_key[0] >= key[0] - center_offset_key &&  //
@@ -158,7 +176,8 @@ namespace erl::geometry {
     };
 
     /**
-     * Data structure to efficiently compute the nodes to update from a scan insertion using a hash set.
+     * Data structure to efficiently compute the nodes to update from a scan insertion using a hash
+     * set.
      */
     using QuadtreeKeySet = absl::flat_hash_set<QuadtreeKey>;
     using QuadtreeKeyVectorMap = absl::flat_hash_map<QuadtreeKey, std::vector<long>>;

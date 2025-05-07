@@ -16,7 +16,7 @@ namespace erl::geometry {
         using VectorX = Eigen::VectorX<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
 
-        struct Setting : common::Yamlable<Setting> {
+        struct Setting : public common::Yamlable<Setting> {
 
             // default setting is from: https://velodynelidar.com/wp-content/uploads/2019/12/63-9229_Rev-K_Puck-_Datasheet_Web.pdf
 

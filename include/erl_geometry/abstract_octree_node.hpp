@@ -2,16 +2,14 @@
 
 #include "erl_common/factory_pattern.hpp"
 #include "erl_common/logging.hpp"
-#include "erl_common/string_utils.hpp"
-#include "erl_common/tracy.hpp"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 
 namespace erl::geometry {
     /**
-     * AbstractOctreeNode is a base class for all octree node implementations. It provides a common interface for file I/O and children management.
+     * AbstractOctreeNode is a base class for all octree node implementations. It provides a common
+     * interface for file I/O and children management.
      */
     class AbstractOctreeNode {
     protected:
@@ -25,17 +23,17 @@ namespace erl::geometry {
 
         // rules of five: https://www.youtube.com/watch?v=juAZDfsaMvY
         // except for user-defined constructor,
-        // always define: destructor, copy constructor, copy assignment, move constructor, move assignment
+        // always define: destructor, copy constructor, copy assignment, move constructor, move
+        // assignment
 
         AbstractOctreeNode() = delete;
 
-        explicit AbstractOctreeNode(const uint32_t depth, const int child_index = -1)
-            : m_depth_(depth),
-              m_child_index_(child_index) {}
+        explicit AbstractOctreeNode(uint32_t depth, int child_index = -1);
 
         /**
-         * copy constructor, deep copy. If you want to do shallow copy, please wrap it in a smart pointer. AbstractOctreeNode uses raw pointers internally and
-         * is responsible for memory management. So, shallow copy is impossible, which will lead to double free.
+         * Copy constructor, deep copy. If you want to do a shallow copy, please wrap it in a smart
+         * pointer. AbstractOctreeNode uses raw pointers internally and is responsible for memory
+         * management. So, shallow copy is impossible, which will lead to double free.
          * @param other
          */
         AbstractOctreeNode(const AbstractOctreeNode &other);
@@ -45,59 +43,37 @@ namespace erl::geometry {
         operator=(const AbstractOctreeNode &other);
 
         // move constructor
-        AbstractOctreeNode(AbstractOctreeNode &&other) noexcept
-            : m_depth_(other.m_depth_),
-              m_child_index_(other.m_child_index_),
-              m_children_(other.m_children_),
-              m_num_children_(other.m_num_children_) {
-            other.m_depth_ = 0;
-            other.m_child_index_ = -1;
-            other.m_children_ = nullptr;
-            other.m_num_children_ = 0;
-        }
+        AbstractOctreeNode(AbstractOctreeNode &&other) noexcept;
 
         // move assignment
         AbstractOctreeNode &
-        operator=(AbstractOctreeNode &&other) noexcept {
-            if (this == &other) { return *this; }
-            m_depth_ = other.m_depth_;
-            m_child_index_ = other.m_child_index_;
-            m_children_ = other.m_children_;
-            m_num_children_ = other.m_num_children_;
-            other.m_depth_ = 0;
-            other.m_child_index_ = -1;
-            other.m_children_ = nullptr;
-            other.m_num_children_ = 0;
-            return *this;
-        }
+        operator=(AbstractOctreeNode &&other) noexcept;
 
         // destructor
         virtual ~AbstractOctreeNode() { this->DeleteChildrenPtr(); }
 
         //-- factory pattern
         [[nodiscard]] std::string
-        GetNodeType() const {
-            return demangle(typeid(*this).name());
-        }
+        GetNodeType() const;
 
         /**
          * Implemented by derived classes to create a new node of the same type.
-         * @return a new node of the same type of node.
+         * @return a new node of the same type.
          */
         [[nodiscard]] virtual AbstractOctreeNode *
         Create(uint32_t depth, int child_index) const = 0;
 
         static std::shared_ptr<AbstractOctreeNode>
-        CreateNode(const std::string &node_type, const uint32_t depth, const int child_index) {
-            return Factory::GetInstance().Create(node_type, depth, child_index);
-        }
+        CreateNode(const std::string &node_type, uint32_t depth, int child_index);
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractOctreeNode, Derived>, bool>
         Register(std::string node_type = "") {
-            return Factory::GetInstance().Register<Derived>(node_type, [](uint32_t depth, int child_index) {
-                return std::make_shared<Derived>(depth, child_index);
-            });
+            return Factory::GetInstance().Register<Derived>(
+                node_type,
+                [](uint32_t depth, int child_index) {
+                    return std::make_shared<Derived>(depth, child_index);
+                });
         }
 
         /**
@@ -139,12 +115,7 @@ namespace erl::geometry {
         //-- children
 
         void
-        AllocateChildrenPtr() {
-            if (m_children_ != nullptr) { return; }
-            m_children_ = new AbstractOctreeNode *[8];
-            ERL_TRACY_RECORD_ALLOC(m_children_, 8 * sizeof(AbstractOctreeNode *));
-            for (int i = 0; i < 8; ++i) { m_children_[i] = nullptr; }
-        }
+        AllocateChildrenPtr();
 
         void
         DeleteChildrenPtr();
@@ -160,43 +131,31 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] bool
-        HasChild(const uint32_t index) const {
-            if (m_children_ == nullptr) { return false; }
-            ERL_DEBUG_ASSERT(index < 8, "Index must be in [0, 7], but got %u.", index);
-            return m_children_[index] != nullptr;
-        }
+        HasChild(uint32_t index) const;
 
         [[nodiscard]] AbstractOctreeNode *
-        CreateChild(const uint32_t child_index) {
-            ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
-            ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u already exists.", child_index);
-            AbstractOctreeNode *child = this->Create(m_depth_ + 1, static_cast<int>(child_index));
-            m_children_[child_index] = child;
-            m_num_children_++;
-            return child;
-        }
+        CreateChild(uint32_t child_index);
 
         void
-        RemoveChild(const uint32_t child_index) {
-            ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
-            ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "Child %u does not exist.", child_index);
-            delete m_children_[child_index];
-            ERL_TRACY_RECORD_FREE(m_children_[child_index]);
-            m_children_[child_index] = nullptr;
-            m_num_children_--;
-        }
+        RemoveChild(uint32_t child_index);
 
         template<typename Derived>
         Derived *
         GetChild(const uint32_t child_index) {
-            ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
+            ERL_DEBUG_ASSERT(
+                child_index < 8,
+                "Child index must be in [0, 7], but got %u.",
+                child_index);
             return static_cast<Derived *>(m_children_[child_index]);
         }
 
         template<typename Derived>
         [[nodiscard]] const Derived *
         GetChild(const uint32_t child_index) const {
-            ERL_DEBUG_ASSERT(child_index < 8, "Child index must be in [0, 7], but got %u.", child_index);
+            ERL_DEBUG_ASSERT(
+                child_index < 8,
+                "Child index must be in [0, 7], but got %u.",
+                child_index);
             return static_cast<const Derived *>(m_children_[child_index]);
         }
 
@@ -206,27 +165,9 @@ namespace erl::geometry {
         }
 
         virtual void
-        Prune() {
-            ERL_DEBUG_ASSERT(m_num_children_ == 8, "Prune() can only be called when all children are present.");
-            for (int i = 0; i < 8; ++i) {
-                delete m_children_[i];
-                ERL_TRACY_RECORD_FREE(m_children_[i]);
-                m_children_[i] = nullptr;
-            }
-            m_num_children_ = 0;
-        }
+        Prune();
 
         virtual void
-        Expand() {
-            ERL_DEBUG_ASSERT(m_num_children_ == 0, "Expand() can only be called when no children are present.");
-            if (m_children_ == nullptr) {
-                m_children_ = new AbstractOctreeNode *[8];
-                ERL_TRACY_RECORD_ALLOC(m_children_, sizeof(AbstractOctreeNode *) * 8);
-            }
-            for (int i = 0; i < 8; ++i) { m_children_[i] = this->Create(m_depth_ + 1, i); }
-            m_num_children_ = 8;
-        }
+        Expand();
     };
-
-    // #define ERL_REGISTER_OCTREE_NODE(Derived) inline const volatile bool kRegistered##Derived = erl::geometry::AbstractOctreeNode::Register<Derived>()
 }  // namespace erl::geometry

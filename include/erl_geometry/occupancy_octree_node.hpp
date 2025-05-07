@@ -12,7 +12,10 @@ namespace erl::geometry {
         float m_log_odds_ = 0;
 
     public:
-        explicit OccupancyOctreeNode(const uint32_t depth = 0, const int child_index = -1, const float log_odds = 0)
+        explicit OccupancyOctreeNode(
+            const uint32_t depth = 0,
+            const int child_index = -1,
+            const float log_odds = 0)
             : AbstractOctreeNode(depth, child_index),
               m_log_odds_(log_odds) {}
 
@@ -35,14 +38,12 @@ namespace erl::geometry {
         [[nodiscard]] AbstractOctreeNode *
         Create(const uint32_t depth, const int child_index) const override {
             const auto node = new OccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
-            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyOctreeNode));
             return node;
         }
 
         [[nodiscard]] AbstractOctreeNode *
         Clone() const override {
             const auto node = new OccupancyOctreeNode(*this);
-            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyOctreeNode));
             return node;
         }
 
@@ -64,7 +65,9 @@ namespace erl::geometry {
         [[nodiscard]] bool
         AllowMerge(const AbstractOctreeNode *other) const override {
             ERL_DEBUG_ASSERT(other != nullptr, "other node is nullptr.");
-            ERL_DEBUG_ASSERT(dynamic_cast<const OccupancyOctreeNode *>(other) != nullptr, "other node is not OccupancyOctreeNode.");
+            ERL_DEBUG_ASSERT(
+                dynamic_cast<const OccupancyOctreeNode *>(other) != nullptr,
+                "other node is not OccupancyOctreeNode.");
             const auto *other_node = reinterpret_cast<const OccupancyOctreeNode *>(other);
             if (m_num_children_ > 0 || other_node->m_num_children_ > 0) { return false; }
             return m_log_odds_ == other_node->m_log_odds_;
@@ -78,12 +81,10 @@ namespace erl::geometry {
 
         void
         Expand() override {
-            if (m_children_ == nullptr) {
-                m_children_ = new AbstractOctreeNode *[8];
-                ERL_TRACY_RECORD_ALLOC(m_children_, sizeof(AbstractOctreeNode *) * 8);
-            }
+            if (m_children_ == nullptr) { m_children_ = new AbstractOctreeNode *[8]; }
             for (int i = 0; i < 8; ++i) {
-                AbstractOctreeNode *child = this->Create(m_depth_ + 1, i);  // make sure child type is correct if this class is inherited
+                // make sure the child type is correct if this class is inherited
+                AbstractOctreeNode *child = this->Create(m_depth_ + 1, i);
                 m_children_[i] = child;
                 reinterpret_cast<OccupancyOctreeNode *>(child)->m_log_odds_ = m_log_odds_;
             }
@@ -133,7 +134,8 @@ namespace erl::geometry {
 
             if (m_num_children_ > 0) {
                 for (int i = 0; i < 8; ++i) {
-                    const auto *child = reinterpret_cast<OccupancyOctreeNode *>(m_children_[i]);  // dynamic_cast causes high overhead
+                    const auto *child = reinterpret_cast<OccupancyOctreeNode *>(
+                        m_children_[i]);  // dynamic_cast causes high overhead
                     if (child == nullptr) { continue; }
                     const float l = child->GetLogOdds();
                     if (l > max) { max = l; }

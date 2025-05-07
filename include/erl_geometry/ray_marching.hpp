@@ -7,7 +7,8 @@
 namespace erl::geometry {
 
     /**
-     * Compute the distance from the origin to the surface along the direction using signed distance field.
+     * Compute the distance from the origin to the surface along the direction using the signed
+     * distance field.
      * @param sdf Signed distance field.
      * @param origin Origin of the ray.
      * @param direction Direction of the ray.
@@ -35,7 +36,10 @@ namespace erl::geometry {
             distance += sdf_value;
             num_marching_steps++;
 
-            if (std::abs(sdf_value) < threshold || (max_distance > 0 && std::abs(distance) > max_distance)) { break; }
+            if (std::abs(sdf_value) < threshold ||
+                (max_distance > 0 && std::abs(distance) > max_distance)) {
+                break;
+            }
         }
 
         return distance;

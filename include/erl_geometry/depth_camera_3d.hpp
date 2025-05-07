@@ -25,7 +25,9 @@ namespace erl::geometry {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
-        DepthCamera3D(std::shared_ptr<Setting> setting, const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
+        DepthCamera3D(
+            std::shared_ptr<Setting> setting,
+            const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
             : RangeSensor3D<Dtype>(o3d_scene),
               m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
@@ -48,7 +50,9 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] std::tuple<Matrix3, Vector3>
-        GetOpticalPose(const Eigen::Ref<const Matrix3> &orientation, const Eigen::Ref<const Vector3> &translation) const override {
+        GetOpticalPose(
+            const Eigen::Ref<const Matrix3> &orientation,
+            const Eigen::Ref<const Vector3> &translation) const override {
             return CameraBase3D<Dtype>::ComputeOpticalPose(orientation, translation);
         }
     };

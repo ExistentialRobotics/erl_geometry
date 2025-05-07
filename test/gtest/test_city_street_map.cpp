@@ -12,6 +12,7 @@ TEST(CityStreetMap, LoadMap) {
 TEST(CityStreetMap, LoadScenes) {
     GTEST_PREPARE_OUTPUT_DIR();
 
-    const std::vector scenes = erl::geometry::CityStreetMap::LoadScenes(gtest_src_dir / "Berlin_0_1024.map.scen");
+    const std::vector scenes =
+        erl::geometry::CityStreetMap::LoadScenes(gtest_src_dir / "Berlin_0_1024.map.scen");
     ERL_INFO("{} scenes loaded", scenes.size());
 }

@@ -1,8 +1,9 @@
 #pragma once
 
+#include "libmorton/morton.h"
+
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include <libmorton/morton.h>
 
 #include <cstdint>
 #include <vector>
@@ -10,8 +11,9 @@
 namespace erl::geometry {
 
     /**
-     * OctreeKey is a simple class that represents a key for an octree node. It is a 3D vector of uint16_t.
-     * Each element counts the number of cells from the origin as discrete address of a voxel.
+     * OctreeKey is a simple class that represents a key for an octree node. It is a 3D vector of
+     * uint16_t. Each element counts the number of cells from the origin as a discrete address of a
+     * voxel.
      */
     class OctreeKey {
     public:
@@ -32,7 +34,9 @@ namespace erl::geometry {
         struct [[maybe_unused]] KeyHash {
             [[nodiscard]] std::size_t
             operator()(const OctreeKey& key) const {
-                return (static_cast<std::size_t>(key.m_k_[0]) << 32) | (static_cast<std::size_t>(key.m_k_[1]) << 16) | static_cast<std::size_t>(key.m_k_[2]);
+                return (static_cast<std::size_t>(key.m_k_[0]) << 32) |
+                       (static_cast<std::size_t>(key.m_k_[1]) << 16) |
+                       static_cast<std::size_t>(key.m_k_[2]);
             }
         };
 
@@ -62,7 +66,10 @@ namespace erl::geometry {
         }
 
         OctreeKey(OctreeKey&& other) noexcept
-            : m_k_{std::exchange(other.m_k_[0], 0), std::exchange(other.m_k_[1], 0), std::exchange(other.m_k_[2], 0)} {}
+            : m_k_{
+                  std::exchange(other.m_k_[0], 0),
+                  std::exchange(other.m_k_[1], 0),
+                  std::exchange(other.m_k_[2], 0)} {}
 
         OctreeKey&
         operator=(OctreeKey&& other) noexcept {
@@ -95,35 +102,40 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         operator<(const OctreeKey& other) const {
-            return m_k_[0] < other.m_k_[0] ||                                //
-                   (m_k_[0] == other.m_k_[0] && (m_k_[1] < other.m_k_[1] ||  //
-                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] < other.m_k_[2])));
+            return m_k_[0] < other.m_k_[0] ||  //
+                   (m_k_[0] == other.m_k_[0] &&
+                    (m_k_[1] < other.m_k_[1] ||  //
+                     (m_k_[1] == other.m_k_[1] && m_k_[2] < other.m_k_[2])));
         }
 
         [[nodiscard]] bool
         operator<=(const OctreeKey& other) const {
-            return m_k_[0] < other.m_k_[0] ||                                //
-                   (m_k_[0] == other.m_k_[0] && (m_k_[1] < other.m_k_[1] ||  //
-                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] <= other.m_k_[2])));
+            return m_k_[0] < other.m_k_[0] ||  //
+                   (m_k_[0] == other.m_k_[0] &&
+                    (m_k_[1] < other.m_k_[1] ||  //
+                     (m_k_[1] == other.m_k_[1] && m_k_[2] <= other.m_k_[2])));
         }
 
         [[nodiscard]] bool
         operator>(const OctreeKey& other) const {
-            return m_k_[0] > other.m_k_[0] ||                                //
-                   (m_k_[0] == other.m_k_[0] && (m_k_[1] > other.m_k_[1] ||  //
-                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] > other.m_k_[2])));
+            return m_k_[0] > other.m_k_[0] ||  //
+                   (m_k_[0] == other.m_k_[0] &&
+                    (m_k_[1] > other.m_k_[1] ||  //
+                     (m_k_[1] == other.m_k_[1] && m_k_[2] > other.m_k_[2])));
         }
 
         [[nodiscard]] bool
         operator>=(const OctreeKey& other) const {
-            return m_k_[0] > other.m_k_[0] ||                                //
-                   (m_k_[0] == other.m_k_[0] && (m_k_[1] > other.m_k_[1] ||  //
-                                                 (m_k_[1] == other.m_k_[1] && m_k_[2] >= other.m_k_[2])));
+            return m_k_[0] > other.m_k_[0] ||  //
+                   (m_k_[0] == other.m_k_[0] &&
+                    (m_k_[1] > other.m_k_[1] ||  //
+                     (m_k_[1] == other.m_k_[1] && m_k_[2] >= other.m_k_[2])));
         }
 
         [[nodiscard]] explicit
         operator std::string() const {
-            return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]) + "," + std::to_string(m_k_[2]);
+            return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]) + "," +
+                   std::to_string(m_k_[2]);
         }
 
         [[nodiscard]] uint64_t
@@ -132,21 +144,32 @@ namespace erl::geometry {
         }
 
         /**
-         * Compute the key of a child node from the key of its parent node and the index of the child node.
+         * Compute the key of a child node from the key of its parent node and the index of the
+         * child node.
          * @param pos index of child node (0..7)
          * @param center_offset_key
          * @param parent_key
          * @param child_key
          */
         static void
-        ComputeChildKey(const uint32_t pos, const KeyType center_offset_key, const OctreeKey& parent_key, OctreeKey& child_key) {
-            child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key.m_k_[2] = parent_key.m_k_[2] + ((pos & 4) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+        ComputeChildKey(
+            const uint32_t pos,
+            const KeyType center_offset_key,
+            const OctreeKey& parent_key,
+            OctreeKey& child_key) {
+            child_key.m_k_[0] =
+                parent_key.m_k_[0] +
+                ((pos & 1) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[1] =
+                parent_key.m_k_[1] +
+                ((pos & 2) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            child_key.m_k_[2] =
+                parent_key.m_k_[2] +
+                ((pos & 4) ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
         }
 
         /**
-         * Compute child index (0..7) from key at given level.
+         * Compute child index (0..7) from a key at a given level.
          * @param key
          * @param level level=0 means the leaf level
          * @return
@@ -162,7 +185,11 @@ namespace erl::geometry {
         }
 
         static bool
-        KeyInAabb(const OctreeKey& key, const KeyType center_offset_key, const OctreeKey& aabb_min_key, const OctreeKey& aabb_max_key) {
+        KeyInAabb(
+            const OctreeKey& key,
+            const KeyType center_offset_key,
+            const OctreeKey& aabb_min_key,
+            const OctreeKey& aabb_max_key) {
             return (aabb_min_key.m_k_[0] <= (key.m_k_[0] + center_offset_key)) &&  //
                    (aabb_min_key.m_k_[1] <= (key.m_k_[1] + center_offset_key)) &&  //
                    (aabb_min_key.m_k_[2] <= (key.m_k_[2] + center_offset_key)) &&  //
@@ -173,7 +200,8 @@ namespace erl::geometry {
     };
 
     /**
-     * Data structure to efficiently compute the nodes to update from a scan insertion using a hash set.
+     * Data structure to efficiently compute the nodes to update from a scan insertion using a hash
+     * set.
      */
     using OctreeKeySet = absl::flat_hash_set<OctreeKey>;
     using OctreeKeyVectorMap = absl::flat_hash_map<OctreeKey, std::vector<long>>;

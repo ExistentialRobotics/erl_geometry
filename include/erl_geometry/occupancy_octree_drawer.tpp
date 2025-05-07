@@ -3,7 +3,9 @@
 namespace erl::geometry {
 
     template<typename OccupancyOctreeType>
-    OccupancyOctreeDrawer<OccupancyOctreeType>::OccupancyOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyOctreeType> octree)
+    OccupancyOctreeDrawer<OccupancyOctreeType>::OccupancyOctreeDrawer(
+        std::shared_ptr<Setting> setting,
+        std::shared_ptr<const OccupancyOctreeType> octree)
         : AbstractOctreeDrawer(std::static_pointer_cast<AbstractOctreeDrawer::Setting>(setting)),
           m_setting_(std::move(setting)),
           m_octree_(std::move(octree)) {
@@ -18,7 +20,8 @@ namespace erl::geometry {
 
     template<typename OccupancyOctreeType>
     void
-    OccupancyOctreeDrawer<OccupancyOctreeType>::SetOctree(std::shared_ptr<const OccupancyOctreeType> octree) {
+    OccupancyOctreeDrawer<OccupancyOctreeType>::SetOctree(
+        std::shared_ptr<const OccupancyOctreeType> octree) {
         m_octree_ = std::move(octree);
     }
 
@@ -36,12 +39,20 @@ namespace erl::geometry {
 
     template<typename OccupancyOctreeType>
     void
-    OccupancyOctreeDrawer<OccupancyOctreeType>::DrawTree(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const {
+    OccupancyOctreeDrawer<OccupancyOctreeType>::DrawTree(
+        std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const {
         if (geometries.empty()) { geometries = GetBlankGeometries(); }
-        ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
-        const std::shared_ptr<open3d::geometry::VoxelGrid> boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+        ERL_ASSERTM(
+            geometries.size() >= 2,
+            "geometries should be empty or contain at least 2 elements: triangle mesh and line "
+            "set.");
+
+        const std::shared_ptr<open3d::geometry::VoxelGrid> boxes =
+            std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+
         ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
-        const std::shared_ptr<open3d::geometry::LineSet> node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
+        const std::shared_ptr<open3d::geometry::LineSet> node_border =
+            std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
         ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
 
         if (m_octree_ == nullptr) {
@@ -74,10 +85,8 @@ namespace erl::geometry {
             const double z = it.GetZ();
             bool occupied = m_octree_->IsNodeOccupied(*it);
 
-            if (!it->HasAnyChild() && occupied && m_setting_->draw_node_boxes) {  // occupied leaf node
-                // auto box = open3d::geometry::TriangleMesh::CreateBox(node_size, node_size, node_size);  // min is (0, 0, 0)
-                // box->Translate(Eigen::Vector3d(x - half_size, y - half_size, z - half_size));           // move to (x, y, z)
-                // *boxes += *box;
+            if (!it->HasAnyChild() && occupied &&
+                m_setting_->draw_node_boxes) {  // occupied leaf node
                 Eigen::Vector3i voxel_index(
                     std::floor((x - boxes->origin_[0]) / boxes->voxel_size_),   // x
                     std::floor((y - boxes->origin_[1]) / boxes->voxel_size_),   // y
@@ -115,21 +124,29 @@ namespace erl::geometry {
             }
             if (m_draw_tree_) { m_draw_tree_(this, geometries, it); }
         }
-        // boxes->PaintUniformColor(m_setting_->occupied_color);
         node_border->PaintUniformColor(m_setting_->border_color);
     }
 
     template<typename OccupancyOctreeType>
     void
-    OccupancyOctreeDrawer<OccupancyOctreeType>::DrawLeaves(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const {
+    OccupancyOctreeDrawer<OccupancyOctreeType>::DrawLeaves(
+        std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const {
         if (geometries.empty()) { geometries = GetBlankGeometries(); }
-        ERL_ASSERTM(geometries.size() >= 2, "geometries should be empty or contain at least 2 elements: triangle mesh and line set.");
-        const std::shared_ptr<open3d::geometry::VoxelGrid> boxes = std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+        ERL_ASSERTM(
+            geometries.size() >= 2,
+            "geometries should be empty or contain at least 2 elements: triangle mesh and line "
+            "set.");
+
+        const std::shared_ptr<open3d::geometry::VoxelGrid> boxes =
+            std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
+
         ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
-        const std::shared_ptr<open3d::geometry::LineSet> node_border = std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
+        const std::shared_ptr<open3d::geometry::LineSet> node_border =
+            std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
         ERL_ASSERTM(node_border, "the second element of geometries should be a line set.");
 
-        std::shared_ptr<const OccupancyOctreeType> octree = std::static_pointer_cast<const OccupancyOctreeType>(m_octree_);
+        std::shared_ptr<const OccupancyOctreeType> octree =
+            std::static_pointer_cast<const OccupancyOctreeType>(m_octree_);
         if (octree == nullptr) {
             ERL_WARN("octree is not an occupancy octree.");
             return;

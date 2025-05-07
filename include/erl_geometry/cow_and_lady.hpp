@@ -51,9 +51,11 @@ namespace erl::geometry {
 
         /**
          *
-         * @param directory directory containing the Cow and Lady dataset.
-         * @param use_icp_poses if true, use ICP to refine the registration results. Note that this may not improve the results.
-         * @note To generate the two folders, pcd and color, run the script: erl_geometry/scripts/rosbag_extract_cow_and_lady.py
+         * @param directory Directory containing the Cow and Lady dataset.
+         * @param use_icp_poses If true, use ICP to refine the registration results. Note that this
+         * may not improve the results.
+         * @note To generate the two folders, pcd and color, run the script:
+         * erl_geometry/scripts/rosbag_extract_cow_and_lady.py
          */
         explicit CowAndLady(std::filesystem::path directory, bool use_icp_poses = false);
 
@@ -81,7 +83,8 @@ namespace erl::geometry {
         operator[](long index) const;
 
         /**
-         * Use ICP to refine the registration results. Results are saved in the same directory as the input data as "poses_icp.dat".
+         * Use ICP to refine the registration results. Results are saved in the same directory as
+         * the input data as "poses_icp.dat".
          */
         void
         GenerateIcpResults() const;

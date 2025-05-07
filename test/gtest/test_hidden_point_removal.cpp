@@ -16,11 +16,16 @@ struct OctreeNode : public erl::geometry::OccupancyOctreeNode {
     std::size_t geometry_id = -1;
     std::size_t vertex_id = -1;
 
-    explicit OctreeNode(const uint32_t depth = 0, const int child_index = -1, const float log_odds = 0)
+    explicit OctreeNode(
+        const uint32_t depth = 0,
+        const int child_index = -1,
+        const float log_odds = 0)
         : OccupancyOctreeNode(depth, child_index, log_odds) {}
 };
 
-class Octree : public erl::geometry::OccupancyOctreeBase<OctreeNode, erl::geometry::OccupancyOctreeBaseSetting> {
+class Octree
+    : public erl::geometry::
+          OccupancyOctreeBase<double, OctreeNode, erl::geometry::OccupancyOctreeBaseSetting> {
 
 public:
     using Super = OccupancyOctreeBase;
@@ -41,10 +46,7 @@ protected:
     }
 };
 
-ERL_REGISTER_OCTREE_NODE(OctreeNode);
-ERL_REGISTER_OCTREE(Octree);
-
-TEST(ERL_GEOMETRY, HiddenPointRemoval) {
+TEST(HiddenPointRemoval, Basic) {
 
     std::filesystem::path gtest_dir = __FILE__;
     gtest_dir = gtest_dir.parent_path();
@@ -102,7 +104,8 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
         auto visible_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
 
         open3d::t::geometry::RaycastingScene scene;
-        auto bunny_id = scene.AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*bunny_mesh));
+        auto bunny_id =
+            scene.AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*bunny_mesh));
 
         auto octree_setting = std::make_shared<Octree::Setting>();
         octree_setting->resolution = 0.001;
@@ -126,24 +129,32 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                         point_cloud->points_.begin(),
                         point_cloud->points_.end(),
                         0.0,
-                        [&](const double acc, const Eigen::Vector3d &point) { return std::max(acc, (point - camera_position).norm()); });
+                        [&](const double acc, const Eigen::Vector3d &point) {
+                            return std::max(acc, (point - camera_position).norm());
+                        });
                     radius *= radius_scale;
-                    std::cout << "point cloud center: " << point_cloud->GetCenter().transpose() << std::endl;
+                    std::cout << "point cloud center: "  //
+                              << point_cloud->GetCenter().transpose() << std::endl;
                     std::cout << "camera position: " << camera_position.transpose() << std::endl;
                     std::cout << "radius: " << radius << std::endl;
                     std::shared_ptr<open3d::geometry::TriangleMesh> mesh;
                     std::vector<std::size_t> visible_point_indices;
-                    std::tie(mesh, visible_point_indices) = point_cloud->HiddenPointRemoval(camera_position, radius);
+                    std::tie(mesh, visible_point_indices) =
+                        point_cloud->HiddenPointRemoval(camera_position, radius);
                     visible_mesh->vertices_ = mesh->vertices_;
                     visible_mesh->triangles_ = mesh->triangles_;
                     rays->points_.resize(1 + mesh->vertices_.size());
                     rays->lines_.resize(mesh->vertices_.size());
                     rays->points_[0] = camera_position;
-                    std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
+                    std::fill(
+                        bunny_mesh->vertex_colors_.begin(),
+                        bunny_mesh->vertex_colors_.end(),
+                        default_mesh_color);  // reset the color
                     for (long i = 0; i < static_cast<long>(mesh->vertices_.size()); ++i) {
                         rays->points_[i + 1] = mesh->vertices_[i];
                         rays->lines_[i] = Eigen::Vector2i(0, i + 1);
-                        bunny_mesh->vertex_colors_[visible_point_indices[i]] = Eigen::Vector3d(1, 0, 0);
+                        bunny_mesh->vertex_colors_[visible_point_indices[i]] =
+                            Eigen::Vector3d(1, 0, 0);
                     }
                     rays->colors_.resize(rays->lines_.size(), Eigen::Vector3d(0, 0, 1));
                     break;
@@ -151,16 +162,25 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                 case Mode::kErlHiddenPointRemoval: {
                     // compute visible points
                     std::vector<long> visible_point_indices;
-                    erl::geometry::HiddenPointRemoval(points, camera_position, radius_scale, visible_point_indices, true);
+                    erl::geometry::HiddenPointRemoval<double>(
+                        points,
+                        camera_position,
+                        radius_scale,
+                        visible_point_indices,
+                        true);
                     // update rays, visible_mesh
                     rays->points_.resize(1 + visible_point_indices.size());
                     rays->lines_.resize(visible_point_indices.size());
                     rays->points_[0] = camera_position;
-                    std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
+                    std::fill(
+                        bunny_mesh->vertex_colors_.begin(),
+                        bunny_mesh->vertex_colors_.end(),
+                        default_mesh_color);  // reset the color
                     for (long i = 0; i < static_cast<long>(visible_point_indices.size()); ++i) {
                         rays->points_[i + 1] = points.col(visible_point_indices[i]);
                         rays->lines_[i] = Eigen::Vector2i(0, i + 1);
-                        bunny_mesh->vertex_colors_[visible_point_indices[i]] = Eigen::Vector3d(1, 0, 0);
+                        bunny_mesh->vertex_colors_[visible_point_indices[i]] =
+                            Eigen::Vector3d(1, 0, 0);
                     }
                     rays->colors_.resize(rays->lines_.size(), Eigen::Vector3d(0, 0, 1));
                     break;
@@ -184,12 +204,20 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                         query_rays_data[ii + 5] = static_cast<float>(dir[2]);
                     }
                     auto num_rays = static_cast<long>(bunny_mesh->triangles_.size());
-                    open3d::core::Tensor query_rays(query_rays_data, {num_rays, 6}, open3d::core::Dtype::Float32);
-                    auto result = scene.CastRays(query_rays, static_cast<int>(std::thread::hardware_concurrency()));
+                    open3d::core::Tensor query_rays(
+                        query_rays_data,
+                        {num_rays, 6},
+                        open3d::core::Dtype::Float32);
+                    auto result = scene.CastRays(
+                        query_rays,
+                        static_cast<int>(std::thread::hardware_concurrency()));
                     auto ts_hit = result["t_hit"].ToFlatVector<float>();
                     auto geometry_ids = result["geometry_ids"].ToFlatVector<uint32_t>();
                     auto primitive_ids = result["primitive_ids"].ToFlatVector<uint32_t>();
-                    std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
+                    std::fill(
+                        bunny_mesh->vertex_colors_.begin(),
+                        bunny_mesh->vertex_colors_.end(),
+                        default_mesh_color);  // reset the color
                     auto invalid_id = open3d::t::geometry::RaycastingScene::INVALID_ID();
                     rays->points_.resize(1 + num_rays);
                     rays->lines_.resize(num_rays);
@@ -211,7 +239,10 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                     break;
                 }
                 case Mode::kOctomapRaytracing: {
-                    std::fill(bunny_mesh->vertex_colors_.begin(), bunny_mesh->vertex_colors_.end(), default_mesh_color);  // reset the color
+                    std::fill(
+                        bunny_mesh->vertex_colors_.begin(),
+                        bunny_mesh->vertex_colors_.end(),
+                        default_mesh_color);  // reset the color
                     std::vector<Eigen::Vector3d> ends(bunny_mesh->vertices_.size());
                     std::vector<int> hits(bunny_mesh->vertices_.size(), -1);
 #pragma omp parallel for default(none) shared(bunny_mesh, octree, ends, camera_position, hits)
@@ -230,9 +261,11 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
                                 ends[i][0],
                                 ends[i][1],
                                 ends[i][2])) {
-                            erl::geometry::OctreeKey key = octree.CoordToKey(ends[i][0], ends[i][1], ends[i][2]);
+                            erl::geometry::OctreeKey key =
+                                octree.CoordToKey(ends[i][0], ends[i][1], ends[i][2]);
                             if (auto node = octree.Search(key); node->geometry_id == 0) {
-                                bunny_mesh->vertex_colors_[node->vertex_id] = Eigen::Vector3d(1, 0, 0);
+                                bunny_mesh->vertex_colors_[node->vertex_id] =
+                                    Eigen::Vector3d(1, 0, 0);
                                 hits[i] = static_cast<int>(node->vertex_id);
                             }
                         }
@@ -346,8 +379,15 @@ TEST(ERL_GEOMETRY, HiddenPointRemoval) {
             return true;
         };
 
-        std::vector<std::shared_ptr<const open3d::geometry::Geometry>> geometries = {camera_mesh, bunny_mesh};
+        std::vector<std::shared_ptr<const open3d::geometry::Geometry>> geometries = {
+            camera_mesh,
+            bunny_mesh};
         if (show_rays) { geometries.push_back(rays); }
-        open3d::visualization::DrawGeometriesWithKeyCallbacks(geometries, key_to_callback, "test hidden point removal", 1920, 1080);
+        open3d::visualization::DrawGeometriesWithKeyCallbacks(
+            geometries,
+            key_to_callback,
+            "test hidden point removal",
+            1920,
+            1080);
     } catch (const std::exception &e) { std::cerr << e.what() << std::endl; }
 }

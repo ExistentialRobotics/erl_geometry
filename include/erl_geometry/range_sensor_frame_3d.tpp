@@ -1,5 +1,8 @@
 #pragma once
 
+#include "erl_common/angle_utils.hpp"
+#include "erl_common/random.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_geometry/hidden_point_removal.hpp"
 
 namespace erl::geometry {
@@ -7,33 +10,37 @@ namespace erl::geometry {
     YAML::Node
     RangeSensorFrame3D<Dtype>::Setting::YamlConvertImpl::encode(const Setting &setting) {
         YAML::Node node;
-        node["row_margin"] = setting.row_margin;
-        node["col_margin"] = setting.col_margin;
-        node["valid_range_min"] = setting.valid_range_min;
-        node["valid_range_max"] = setting.valid_range_max;
-        node["discontinuity_factor"] = setting.discontinuity_factor;
-        node["rolling_diff_discount"] = setting.rolling_diff_discount;
-        node["min_partition_size"] = setting.min_partition_size;
+        ERL_YAML_SAVE_ATTR(node, setting, row_margin);
+        ERL_YAML_SAVE_ATTR(node, setting, col_margin);
+        ERL_YAML_SAVE_ATTR(node, setting, valid_range_min);
+        ERL_YAML_SAVE_ATTR(node, setting, valid_range_max);
         return node;
     }
 
     template<typename Dtype>
     bool
-    RangeSensorFrame3D<Dtype>::Setting::YamlConvertImpl::decode(const YAML::Node &node, Setting &setting) {
+    RangeSensorFrame3D<Dtype>::Setting::YamlConvertImpl::decode(
+        const YAML::Node &node,
+        Setting &setting) {
         if (!node.IsMap()) { return false; }
-        setting.row_margin = node["row_margin"].as<long>();
-        setting.col_margin = node["col_margin"].as<long>();
-        setting.valid_range_min = node["valid_range_min"].as<Dtype>();
-        setting.valid_range_max = node["valid_range_max"].as<Dtype>();
-        setting.discontinuity_factor = node["discontinuity_factor"].as<Dtype>();
-        setting.rolling_diff_discount = node["rolling_diff_discount"].as<Dtype>();
-        setting.min_partition_size = node["min_partition_size"].as<int>();
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, row_margin, long);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, col_margin, long);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_min, Dtype);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
         return true;
     }
 
     template<typename Dtype>
+    RangeSensorFrame3D<Dtype>::RangeSensorFrame3D(std::shared_ptr<Setting> setting)
+        : m_setting_(std::move(setting)) {
+        ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr when creating RangeSensorFrame3D.");
+    }
+
+    template<typename Dtype>
     std::shared_ptr<RangeSensorFrame3D<Dtype>>
-    RangeSensorFrame3D<Dtype>::Create(const ::std::string &type, const ::std::shared_ptr<Setting> &setting) {
+    RangeSensorFrame3D<Dtype>::Create(
+        const std::string &type,
+        const std::shared_ptr<Setting> &setting) {
         return Factory::GetInstance().Create(type, setting);
     }
 
@@ -46,12 +53,17 @@ namespace erl::geometry {
             [](const std::shared_ptr<Setting> &setting) -> std::shared_ptr<RangeSensorFrame3D> {
                 const std::string derived_frame_type = type_name<Derived>();
                 if (setting == nullptr) {
-                    ERL_WARN("setting is nullptr before creating a derived RangeSensorFrame3D of type {}.", derived_frame_type);
+                    ERL_WARN(
+                        "setting is nullptr before creating a derived RangeSensorFrame3D of type "
+                        "{}.",
+                        derived_frame_type);
                     return nullptr;
                 }
                 auto frame_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
                 if (frame_setting == nullptr) {
-                    ERL_WARN("Failed to cast setting for derived RangeSensorFrame3D of type {}.", derived_frame_type);
+                    ERL_WARN(
+                        "Failed to cast setting for derived RangeSensorFrame3D of type {}.",
+                        derived_frame_type);
                     return nullptr;
                 }
                 return std::make_shared<Derived>(frame_setting);
@@ -74,7 +86,8 @@ namespace erl::geometry {
             const long cols = m_end_pts_world_.cols();
             for (long col = 0; col < cols; ++col) {
                 for (long row = 0; row < rows; ++row) {
-                    if (const Dtype d = (m_end_pts_world_(row, col) - position_world).squaredNorm(); d < distance) {
+                    if (const Dtype d = (m_end_pts_world_(row, col) - position_world).squaredNorm();
+                        d < distance) {
                         end_point_row_index = row;
                         end_point_col_index = col;
                         distance = d;
@@ -85,7 +98,10 @@ namespace erl::geometry {
             return;
         }
 
-        if (!m_kd_tree_->Ready()) { std::const_pointer_cast<KdTree>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_.data()->data(), m_end_pts_world_.size()); }
+        if (!m_kd_tree_->Ready()) {
+            std::const_pointer_cast<KdTree>(m_kd_tree_)
+                ->SetDataMatrix(m_end_pts_world_.data()->data(), m_end_pts_world_.size());
+        }
         long end_point_index = -1;
         distance = std::numeric_limits<Dtype>::infinity();
         m_kd_tree_->Nearest(position_world, end_point_index, distance);
@@ -105,7 +121,8 @@ namespace erl::geometry {
         Matrix3X &directions_world,
         VectorX &distances) const {
 
-        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
+        const std::vector<long> ray_indices =
+            common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(ray_indices.size());
         const long n_samples = n_rays * num_samples_per_ray;
         positions_world.resize(3, n_samples);
@@ -116,12 +133,13 @@ namespace erl::geometry {
         for (const long &ray_idx: ray_indices) {
             const auto [azimuth_idx, elevation_idx] = m_hit_ray_indices_[ray_idx];
             Dtype range = m_ranges_(azimuth_idx, elevation_idx);
-            Dtype range_step = (range + max_in_obstacle_dist) / static_cast<Dtype>(num_samples_per_ray);
+            Dtype range_step =
+                (range + max_in_obstacle_dist) / static_cast<Dtype>(num_samples_per_ray);
             const Vector3 &dir_world = m_dirs_world_(azimuth_idx, elevation_idx);
 
-            positions_world.col(index) << m_translation_;  // operator<< is at least 2x faster than operator= for Eigen matrix
-            directions_world.col(index) << dir_world;      // operator<< is almost the same fast as element-wise assignment
-            distances[index++] = range;                    // for vector, element-wise assignment is faster than operator<<
+            positions_world.col(index) << m_translation_;
+            directions_world.col(index) << dir_world;
+            distances[index++] = range;
 
             Vector3 shift = range_step * dir_world;
             for (long i = 1; i < num_samples_per_ray; ++i) {
@@ -143,14 +161,18 @@ namespace erl::geometry {
         Matrix3X &directions_world,
         VectorX &distances) const {
 
-        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
+        const std::vector<long> ray_indices =
+            common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(ray_indices.size());
         long n_samples = 0;
         std::vector<std::pair<std::pair<long, long>, long>> n_samples_per_ray;
         n_samples_per_ray.reserve(n_rays);
         for (const long &ray_idx: ray_indices) {
             const auto [azimuth_idx, elevation_idx] = m_hit_ray_indices_[ray_idx];
-            auto n = static_cast<long>(std::floor((m_ranges_(azimuth_idx, elevation_idx) + max_in_obstacle_dist) / range_step)) + 1;
+            auto n =
+                static_cast<long>(std::floor(
+                    (m_ranges_(azimuth_idx, elevation_idx) + max_in_obstacle_dist) / range_step)) +
+                1;
             n_samples_per_ray.emplace_back(std::make_pair(azimuth_idx, elevation_idx), n);
             n_samples += n;
         }
@@ -169,7 +191,8 @@ namespace erl::geometry {
             distances[sample_idx++] = range;
 
             Vector3 shift = range_step * dir_world;
-            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_of_ray; ++sample_idx_of_ray) {
+            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_of_ray;
+                 ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(sample_idx) << positions_world.col(sample_idx - 1) + shift;
                 directions_world.col(sample_idx) << dir_world;
@@ -187,7 +210,8 @@ namespace erl::geometry {
         Matrix3X &positions_world,
         Matrix3X &directions_world,
         VectorX &distances) const {
-        std::vector<long> hit_ray_indices = common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
+        const std::vector<long> hit_ray_indices =
+            common::GenerateShuffledIndices<long>(GetNumHitRays(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(hit_ray_indices.size());
         const long n_samples = n_rays * num_samples_per_ray;
         positions_world.resize(3, n_samples);
@@ -201,7 +225,9 @@ namespace erl::geometry {
             const Vector3 &dir_world = m_dirs_world_(azimuth_idx, elevation_idx);
             for (long i = 0; i < num_samples_per_ray; ++i) {
                 const Dtype offset = uniform(common::g_random_engine);
-                positions_world.col(sample_idx) << m_translation_ + (m_ranges_(azimuth_idx, elevation_idx) + offset) * dir_world;
+                positions_world.col(sample_idx)
+                    << m_translation_ +
+                           (m_ranges_(azimuth_idx, elevation_idx) + offset) * dir_world;
                 directions_world.col(sample_idx) << dir_world;
                 distances[sample_idx++] = -offset;
             }
@@ -259,7 +285,8 @@ namespace erl::geometry {
                 if (num_samples_to_copy == 0) { continue; }
                 positions_world.block(0, copied_samples, 3, num_samples_to_copy) << positions;
                 directions_world.block(0, copied_samples, 3, num_samples_to_copy) << directions;
-                distances.segment(copied_samples, num_samples_to_copy) << distances_buffers[thread_idx];
+                distances.segment(copied_samples, num_samples_to_copy)
+                    << distances_buffers[thread_idx];
                 copied_samples += num_samples_to_copy;
             }
         } else {
@@ -293,11 +320,13 @@ namespace erl::geometry {
         std::iota(selected_hit_ray_indices.begin(), selected_hit_ray_indices.end(), 0);
         num_hit_points = std::min(num_hit_points, GetNumHitRays());
         if (num_hit_points < static_cast<long>(selected_hit_ray_indices.size())) {
-            std::shuffle(selected_hit_ray_indices.begin(), selected_hit_ray_indices.end(), common::g_random_engine);
+            std::shuffle(
+                selected_hit_ray_indices.begin(),
+                selected_hit_ray_indices.end(),
+                common::g_random_engine);
             selected_hit_ray_indices.resize(num_hit_points);
         }
 
-        // TODO: rewrite parallelism with OpenMP, example: OccupancyOctreeBase::ComputeUpdateForPointCloud, which lets OpenMP handle batch processing
         if (parallel) {
             const uint32_t num_threads = std::thread::hardware_concurrency();
             const long num_positions_per_thread = num_hit_points / num_threads;
@@ -338,7 +367,8 @@ namespace erl::geometry {
                 if (num_samples_to_copy == 0) { continue; }
                 positions_world.block(0, copied_samples, 3, num_samples_to_copy) << positions;
                 directions_world.block(0, copied_samples, 3, num_samples_to_copy) << directions;
-                distances.segment(copied_samples, num_samples_to_copy) << distances_buffers[thread_idx];
+                distances.segment(copied_samples, num_samples_to_copy)
+                    << distances_buffers[thread_idx];
                 copied_samples += num_samples_to_copy;
             }
         } else {
@@ -362,10 +392,17 @@ namespace erl::geometry {
         VectorX &distances,
         std::vector<long> &visible_hit_point_indices) const {
         ERL_ASSERTM(!std::isinf(m_max_valid_range_), "max valid range is not set.");
-        const Dtype radius = (m_max_valid_range_ + (position_world - m_translation_).norm()) * 10.0;
+        Dtype radius = (m_max_valid_range_ + (position_world - m_translation_).norm()) * 10.0f;
         visible_hit_point_indices.clear();
-        HiddenPointRemoval(m_hit_points_world_, position_world, radius, visible_hit_point_indices, true, false);
-        if (const auto num_visible_hit_points = static_cast<long>(visible_hit_point_indices.size()); directions_world.cols() < num_visible_hit_points) {
+        HiddenPointRemoval(
+            m_hit_points_world_,
+            position_world,
+            radius,
+            visible_hit_point_indices,
+            true,
+            false);
+        if (const auto num_visible_hit_points = static_cast<long>(visible_hit_point_indices.size());
+            directions_world.cols() < num_visible_hit_points) {
             directions_world.resize(3, num_visible_hit_points);
             distances.resize(num_visible_hit_points);
         }
@@ -385,7 +422,10 @@ namespace erl::geometry {
     bool
     RangeSensorFrame3D<Dtype>::operator==(const RangeSensorFrame3D &other) const {
         if (m_setting_ == nullptr && other.m_setting_ != nullptr) { return false; }
-        if (m_setting_ != nullptr && (other.m_setting_ == nullptr || *m_setting_ != *other.m_setting_)) { return false; }
+        if (m_setting_ != nullptr &&
+            (other.m_setting_ == nullptr || *m_setting_ != *other.m_setting_)) {
+            return false;
+        }
         if (m_rotation_ != other.m_rotation_) { return false; }
         if (m_translation_ != other.m_translation_) { return false; }
         if (m_frame_coords_ != other.m_frame_coords_) { return false; }
@@ -395,8 +435,8 @@ namespace erl::geometry {
         if (m_end_pts_frame_ != other.m_end_pts_frame_) { return false; }
         if (m_end_pts_world_ != other.m_end_pts_world_) { return false; }
         if (m_mask_hit_ != other.m_mask_hit_) { return false; }
-        if (m_mask_continuous_ != other.m_mask_continuous_) { return false; }
         if (m_hit_ray_indices_ != other.m_hit_ray_indices_) { return false; }
+        if (m_hit_points_frame_ != other.m_hit_points_frame_) { return false; }
         if (m_hit_points_world_ != other.m_hit_points_world_) { return false; }
         if (m_max_valid_range_ != other.m_max_valid_range_) { return false; }
         return true;
@@ -404,285 +444,252 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    RangeSensorFrame3D<Dtype>::Write(const std::string &filename) const {
-        ERL_INFO("Writing RangeSensorFrame3D to file: {}", filename);
-        std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
-        std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return false;
-        }
-
-        const bool success = Write(file);
-        file.close();
-        return success;
-    }
-
-    template<typename Dtype>
-    bool
     RangeSensorFrame3D<Dtype>::Write(std::ostream &s) const {
-        s << kFileHeader << std::endl  //
-          << "# (feel free to add / change comments, but leave the first line as it is!)" << std::endl
-          << "setting" << std::endl;
-        // write setting
-        if (!m_setting_->Write(s)) {
-            ERL_WARN("Failed to write setting.");
-            return false;
-        }
-        // write data
-        s << "rotation" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_rotation_)) {
-            ERL_WARN("Failed to write rotation.");
-            return false;
-        }
-        s << "translation" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_translation_)) {
-            ERL_WARN("Failed to write translation.");
-            return false;
-        }
-        s << "frame_coords" << std::endl;
-        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_frame_coords_)) {
-            ERL_WARN("Failed to write frame_coords.");
-            return false;
-        }
-        s << "ranges" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_ranges_)) {
-            ERL_WARN("Failed to write ranges.");
-            return false;
-        }
-        s << "dirs_frame" << std::endl;
-        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_dirs_frame_)) {
-            ERL_WARN("Failed to write dirs_frame.");
-            return false;
-        }
-        s << "dirs_world" << std::endl;
-        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_dirs_world_)) {
-            ERL_WARN("Failed to write dirs_world.");
-            return false;
-        }
-        s << "end_pts_frame" << std::endl;
-        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_end_pts_frame_)) {
-            ERL_WARN("Failed to write end_pts_frame.");
-            return false;
-        }
-        s << "end_pts_world" << std::endl;
-        if (!common::SaveEigenMatrixOfEigenMatricesToBinaryStream(s, m_end_pts_world_)) {
-            ERL_WARN("Failed to write end_pts_world.");
-            return false;
-        }
-        s << "mask_hit" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_hit_)) {
-            ERL_WARN("Failed to write mask_hit.");
-            return false;
-        }
-        s << "mask_continuous" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_continuous_)) {
-            ERL_WARN("Failed to write mask_continuous.");
-            return false;
-        }
-        s << "hit_ray_indices " << m_hit_ray_indices_.size() << std::endl;
-        for (const auto &[row, col]: m_hit_ray_indices_) { s << row << " " << col << std::endl; }
-        s << "hit_points_world" << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_hit_points_world_)) {
-            ERL_WARN("Failed to write hit_points_world.");
-            return false;
-        }
-        s << "max_valid_range" << std::endl;
-        s.write(reinterpret_cast<const char *>(&m_max_valid_range_), sizeof(Dtype));
-        s << "end_of_RangeSensorFrame3D" << std::endl;
-        return s.good();
-    }
-
-    template<typename Dtype>
-    bool
-    RangeSensorFrame3D<Dtype>::Read(const std::string &filename) {
-        ERL_INFO("Reading RangeSensorFrame3D from file: {}", std::filesystem::absolute(filename));
-        std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename.c_str());
-            return false;
-        }
-
-        const bool success = Read(file);
-        file.close();
-        return success;
+        static const common::TokenWriteFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
+            {
+                "setting",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return self->m_setting_->Write(stream) && stream.good();
+                },
+            },
+            {
+                "rotation",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_rotation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "translation",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_translation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "frame_coords",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_frame_coords_) &&
+                           stream.good();
+                },
+            },
+            {
+                "ranges",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_ranges_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_frame",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_dirs_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_world",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_dirs_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_frame",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_end_pts_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_world",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_end_pts_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "mask_hit",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_mask_hit_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_ray_indices",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    stream << self->m_hit_ray_indices_.size() << '\n';
+                    for (const auto &[row, col]: self->m_hit_ray_indices_) {
+                        stream << row << " " << col << '\n';
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                "hit_points_frame",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_hit_points_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_points_world",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_hit_points_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "max_valid_range",
+                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                    stream.write(
+                        reinterpret_cast<const char *>(&self->m_max_valid_range_),
+                        sizeof(Dtype));
+                    return stream.good();
+                },
+            },
+        };
+        return common::WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
     RangeSensorFrame3D<Dtype>::Read(std::istream &s) {
-        if (!s.good()) {
-            ERL_WARN("Input stream is not ready for reading");
-            return false;
-        }
-
-        // check if the first line is valid
-        std::string line;
-        std::getline(s, line);
-        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
-            ERL_WARN("Header does not start with \"{}\"", kFileHeader.c_str());
-            return false;
-        }
-
-        auto skip_line = [&s]() {
-            char c;
-            do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
-        };
-
-        static const char *tokens[] = {
-            "setting",
-            "rotation",
-            "translation",
-            "frame_coords",
-            "ranges",
-            "dirs_frame",
-            "dirs_world",
-            "end_pts_frame",
-            "end_pts_world",
-            "mask_hit",
-            "mask_continuous",
-            "hit_ray_indices",
-            "hit_points_world",
-            "max_valid_range",
-            "end_of_RangeSensorFrame3D",
-        };
-
-        // read data
-        std::string token;
-        int token_idx = 0;
-        while (s.good()) {
-            s >> token;
-            if (token.compare(0, 1, "#") == 0) {
-                skip_line();  // comment line, skip forward until end of line
-                continue;
-            }
-            // non-comment line
-            if (token != tokens[token_idx]) {
-                ERL_WARN("Expected token {}, got {}.", tokens[token_idx], token);  // check token
-                return false;
-            }
-            // reading state machine
-            switch (token_idx) {
-                case 0: {  // setting
-                    skip_line();
-                    if (!m_setting_->Read(s)) {
-                        ERL_WARN("Failed to read setting.");
-                        return false;
-                    }
-                    break;
-                }
-                case 1: {  // rotation
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_rotation_)) {
-                        ERL_WARN("Failed to read rotation.");
-                        return false;
-                    }
-                    break;
-                }
-                case 2: {  // translation
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_translation_)) {
-                        ERL_WARN("Failed to read translation.");
-                        return false;
-                    }
-                    break;
-                }
-                case 3: {  // frame_coords
-                    skip_line();
-                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_frame_coords_)) {
-                        ERL_WARN("Failed to read frame_coords.");
-                        return false;
-                    }
-                    break;
-                }
-                case 4: {  // ranges
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_ranges_)) {
-                        ERL_WARN("Failed to read ranges.");
-                        return false;
-                    }
-                    break;
-                }
-                case 5: {  // dirs_frame
-                    skip_line();
-                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_dirs_frame_)) {
-                        ERL_WARN("Failed to read dirs_frame.");
-                        return false;
-                    }
-                    break;
-                }
-                case 6: {  // dirs_world
-                    skip_line();
-                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_dirs_world_)) {
-                        ERL_WARN("Failed to read dirs_world.");
-                        return false;
-                    }
-                    break;
-                }
-                case 7: {  // end_pts_frame
-                    skip_line();
-                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_end_pts_frame_)) {
-                        ERL_WARN("Failed to read end_pts_frame.");
-                        return false;
-                    }
-                    break;
-                }
-                case 8: {  // end_pts_world
-                    skip_line();
-                    if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, m_end_pts_world_)) {
-                        ERL_WARN("Failed to read end_pts_world.");
-                        return false;
-                    }
-                    break;
-                }
-                case 9: {  // mask_hit
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_hit_)) {
-                        ERL_WARN("Failed to read mask_hit.");
-                        return false;
-                    }
-                    break;
-                }
-                case 10: {  // mask_continuous
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_continuous_)) {
-                        ERL_WARN("Failed to read mask_continuous.");
-                        return false;
-                    }
-                    break;
-                }
-                case 11: {  // hit_ray_indices
+        static const common::TokenReadFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
+            {
+                "setting",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return self->m_setting_->Read(stream) && stream.good();
+                },
+            },
+            {
+                "rotation",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_rotation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "translation",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_translation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "frame_coords",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_frame_coords_) &&
+                           stream.good();
+                },
+            },
+            {
+                "ranges",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_ranges_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_frame",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_dirs_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_world",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_dirs_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_frame",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_end_pts_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_world",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_end_pts_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "mask_hit",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_mask_hit_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_ray_indices",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
                     long num_hit_ray_indices;
-                    s >> num_hit_ray_indices;
-                    m_hit_ray_indices_.resize(num_hit_ray_indices);
-                    for (long i = 0; i < num_hit_ray_indices; ++i) { s >> m_hit_ray_indices_[i].first >> m_hit_ray_indices_[i].second; }
-                    break;
-                }
-                case 12: {  // hit_points_world
-                    skip_line();
-                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_hit_points_world_)) {
-                        ERL_WARN("Failed to read hit_points_world.");
-                        return false;
+                    stream >> num_hit_ray_indices;
+                    self->m_hit_ray_indices_.resize(num_hit_ray_indices);
+                    for (long i = 0; i < num_hit_ray_indices; ++i) {
+                        stream                                    //
+                            >> self->m_hit_ray_indices_[i].first  //
+                            >> self->m_hit_ray_indices_[i].second;
                     }
-                    break;
-                }
-                case 13: {  // max_valid_range
-                    skip_line();
-                    s.read(reinterpret_cast<char *>(&m_max_valid_range_), sizeof(Dtype));
-                    break;
-                }
-                case 14: {  // end of RangeSensorFrame3D
-                    skip_line();
-                    return true;
-                }
-                default: {  // should not reach here
-                    ERL_FATAL("Internal error, should not reach here.");
-                }
-            }
-            ++token_idx;
-        }
-        ERL_WARN("Failed to read RangeSensorFrame3D. Truncated file?");
-        return false;  // should not reach here
+                    return stream.good();
+                },
+            },
+            {
+                "hit_points_frame",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_hit_points_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_points_world",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_hit_points_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "max_valid_range",
+                [](RangeSensorFrame3D *self, std::istream &stream) {
+                    stream.read(reinterpret_cast<char *>(&self->m_max_valid_range_), sizeof(Dtype));
+                    return stream.good();
+                },
+            },
+        };
+        return common::ReadTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
@@ -700,9 +707,12 @@ namespace erl::geometry {
         ERL_ASSERTM(num_hit_rays > 0, "no hit points. cannot sample in region.");
 
         std::uniform_int_distribution<long> uniform_int_dist(0, num_hit_rays - 1);
-        std::uniform_real_distribution<Dtype> uniform_real_dist(0.1, 0.8);  // avoid getting too close to either the sensor or the hit point
+        // avoid getting too close to either the sensor or the hit point
+        std::uniform_real_distribution<Dtype> uniform_real_dist(0.1f, 0.8f);
 
-        const long max_num_samples = num_positions * num_hit_rays * (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
+        const long max_num_samples =
+            num_positions * num_hit_rays *
+            (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
         Matrix3X &positions_samples = *positions_world_ptr;
         Matrix3X &directions_samples = *directions_world_ptr;
         VectorX &distances_samples = *distances_ptr;
@@ -712,7 +722,9 @@ namespace erl::geometry {
 
         std::vector<long> visible_hit_point_indices;
         std::mt19937 random_engine(seed);
-        std::uniform_real_distribution<Dtype> uniform_ns(-max_in_obstacle_dist, max_in_obstacle_dist);
+        std::uniform_real_distribution<Dtype> uniform_ns(
+            -max_in_obstacle_dist,
+            max_in_obstacle_dist);
 
         long sample_cnt = 0;
         for (long position_idx = 0; position_idx < num_positions; ++position_idx) {
@@ -722,10 +734,17 @@ namespace erl::geometry {
             r *= m_ranges_(hit_azimuth_index, hit_elevation_index);
 
             // synthesize a lidar scan
-            Vector3 position_scan = m_translation_ + r * m_dirs_world_(hit_azimuth_index, hit_elevation_index);
-            const Dtype radius = (m_max_valid_range_ + (position_scan - m_translation_).norm()) * 10.0;
+            Vector3 position_scan =
+                m_translation_ + r * m_dirs_world_(hit_azimuth_index, hit_elevation_index);
+            Dtype radius = (m_max_valid_range_ + (position_scan - m_translation_).norm()) * 10.0f;
             visible_hit_point_indices.clear();
-            HiddenPointRemoval<Dtype>(m_hit_points_world_, position_scan, radius, visible_hit_point_indices, true, false);
+            HiddenPointRemoval<Dtype>(
+                m_hit_points_world_,
+                position_scan,
+                radius,
+                visible_hit_point_indices,
+                true,
+                false);
 
             if (static_cast<long>(visible_hit_point_indices.size()) == 0) {
                 position_idx--;  // retry
@@ -749,11 +768,13 @@ namespace erl::geometry {
                 positions_samples.col(sample_cnt) << position_scan;
                 directions_samples.col(sample_cnt) << dir;
                 distances_samples[sample_cnt++] = range;
-                Dtype range_step = (range + max_in_obstacle_dist) / static_cast<Dtype>(num_along_ray_samples_per_ray);
+                Dtype range_step = (range + max_in_obstacle_dist) /
+                                   static_cast<Dtype>(num_along_ray_samples_per_ray);
                 Vector3 shift = range_step * dir;
                 for (long i = 1; i < num_along_ray_samples_per_ray; ++i) {
                     range -= range_step;
-                    positions_samples.col(sample_cnt) << positions_samples.col(sample_cnt - 1) + shift;
+                    positions_samples.col(sample_cnt)
+                        << positions_samples.col(sample_cnt - 1) + shift;
                     directions_samples.col(sample_cnt) << dir;
                     distances_samples[sample_cnt++] = range;
                 }
@@ -782,59 +803,78 @@ namespace erl::geometry {
         Matrix3X &positions_samples = *positions_world_ptr;
         Matrix3X &directions_samples = *directions_world_ptr;
         VectorX &distances_samples = *distances_ptr;
-        long max_num_samples = num_azimuth_segments * num_samples_per_azimuth_segment * (hit_point_index_end - hit_point_index_start);
+        long max_num_samples = num_azimuth_segments * num_samples_per_azimuth_segment *
+                               (hit_point_index_end - hit_point_index_start);
         positions_samples.resize(3, max_num_samples);
         directions_samples.resize(3, max_num_samples);
         distances_samples.resize(max_num_samples);
         long sample_idx = 0;
         std::mt19937 random_engine(seed);
-        std::uniform_real_distribution<Dtype> uniform_range_ratio(0.1, 0.9);
+        std::uniform_real_distribution<Dtype> uniform_range_ratio(0.1f, 0.9f);
 
         struct RayInfo {
-            Dtype ray_azimuth = 0.0;
-            Dtype ray_elevation = 0.0;
-            Dtype end_point_elevation = 0.0;
-            Dtype range = 0.0;
+            Dtype ray_azimuth = 0.0f;
+            Dtype ray_elevation = 0.0f;
+            Dtype end_point_elevation = 0.0f;
+            Dtype range = 0.0f;
             Vector3 dir_world = {};
         };
 
-        for (const long *hit_point_index_ptr = hit_point_index_start; hit_point_index_ptr < hit_point_index_end; ++hit_point_index_ptr) {
+        constexpr auto kPI = static_cast<Dtype>(M_PI);
+
+        for (const long *hit_point_index_ptr = hit_point_index_start;
+             hit_point_index_ptr < hit_point_index_end;
+             ++hit_point_index_ptr) {
             // make the hit point the origin, and the viewing direction along the -z axis
-            const auto [hit_azimuth_index, hit_elevation_index] = m_hit_ray_indices_[*hit_point_index_ptr];
+            const auto [hit_azimuth_index, hit_elevation_index] =
+                m_hit_ray_indices_[*hit_point_index_ptr];
             const Dtype &hit_range = m_ranges_(hit_azimuth_index, hit_elevation_index);
             const Vector3 &viewing_dir = m_dirs_world_(hit_azimuth_index, hit_elevation_index);
-            Vector3 axis = -viewing_dir.cross(Vector3(0.0, 0.0, 1.0)).normalized();
-            Dtype angle = std::acos(-viewing_dir.dot(Vector3(0.0, 0.0, 1.0)));
+            Vector3 axis = -viewing_dir.cross(Vector3(0.0f, 0.0f, 1.0f)).normalized();
+            Dtype angle = std::acos(-viewing_dir.dot(Vector3(0.0f, 0.0f, 1.0f)));
             Matrix3 rotation = Eigen::AngleAxis<Dtype>(angle, axis).matrix();
-            Dtype azimuth_resolution = 2.0 * M_PI / static_cast<Dtype>(num_azimuth_segments);
+            Dtype azimuth_resolution = 2.0f * kPI / static_cast<Dtype>(num_azimuth_segments);
 
-            // 1. transform the rays to the hit point's frame, and partition the rays into azimuth segments
+            // 1. transform the rays to the hit point's frame and partition the rays into azimuth
+            // segments
             absl::flat_hash_map<long, std::vector<RayInfo>> azimuth_rays;
-            // 2. remove hit rays behind the viewing position, compute spherical coordinates, and partition the points into azimuth segments
+            // 2. remove hit rays behind the viewing position, compute spherical coordinates, and
+            // partition the points into azimuth segments
             std::vector<std::pair<Dtype, Dtype>> spherical_coords;  // azimuth, elevation
             spherical_coords.reserve(num_hit_rays);
             // 3. calculate max end_point_elevation in each azimuth segment
-            VectorX max_elevations = VectorX::Constant(num_azimuth_segments, -M_PI_2);
+            VectorX max_elevations = VectorX::Constant(num_azimuth_segments, -kPI * 0.5f);
             for (long j = 0; j < m_ranges_.cols(); ++j) {
                 for (long i = 0; i < m_ranges_.rows(); ++i) {
-                    if (i == hit_azimuth_index && j == hit_elevation_index) { continue; }  // skip the hit point
-                    if (std::isinf(m_ranges_(i, j))) { continue; }                         // skip rays that hit nothing
+                    if (i == hit_azimuth_index && j == hit_elevation_index) { continue; }
+                    if (std::isinf(m_ranges_(i, j))) { continue; }  // skip rays that hit nothing
                     if (!m_mask_hit_(i, j)) { continue; }
-                    if (m_dirs_world_(i, j).dot(viewing_dir) <= 0.0) { continue; }  // behind the viewing position
+
+                    // behind the viewing position
+                    if (m_dirs_world_(i, j).dot(viewing_dir) <= 0.0f) { continue; }
 
                     RayInfo ray_info;
                     ray_info.range = m_ranges_(i, j);
                     ray_info.dir_world << m_dirs_world_(i, j);
                     // 1.
                     Vector3 direction = rotation * ray_info.dir_world;
-                    common::DirectionToAzimuthElevation<Dtype>(direction, ray_info.ray_azimuth, ray_info.ray_elevation);
-                    auto azimuth_index = static_cast<long>((ray_info.ray_azimuth + M_PI) / azimuth_resolution) % num_azimuth_segments;
+                    common::DirectionToAzimuthElevation<Dtype>(
+                        direction,
+                        ray_info.ray_azimuth,
+                        ray_info.ray_elevation);
+                    auto azimuth_index =
+                        static_cast<long>((ray_info.ray_azimuth + kPI) / azimuth_resolution) %
+                        num_azimuth_segments;
                     // 2.
-                    Vector3 point = rotation * (m_end_pts_world_(i, j) - m_hit_points_world_[*hit_point_index_ptr]);
+                    Vector3 point = rotation * (m_end_pts_world_(i, j) -
+                                                m_hit_points_world_[*hit_point_index_ptr]);
                     ray_info.end_point_elevation = std::asin(point.z() / point.norm());
-                    spherical_coords.emplace_back(ray_info.ray_azimuth, ray_info.end_point_elevation);
+                    spherical_coords.emplace_back(
+                        ray_info.ray_azimuth,
+                        ray_info.end_point_elevation);
                     // 3.
-                    if (Dtype &max_elevation = max_elevations[azimuth_index]; ray_info.end_point_elevation > max_elevation) {
+                    if (Dtype &max_elevation = max_elevations[azimuth_index];
+                        ray_info.end_point_elevation > max_elevation) {
                         max_elevation = ray_info.end_point_elevation;
                     }
                     azimuth_rays[azimuth_index].emplace_back(std::move(ray_info));
@@ -846,12 +886,15 @@ namespace erl::geometry {
                 Dtype &max_elevation = max_elevations[azimuth_index];
                 Dtype cos_max_elevation = std::cos(max_elevation) * hit_range;
                 std::uniform_int_distribution<std::size_t> uniform_ray_index(0, rays.size() - 1);
-                for (long cnt_samples = 0; cnt_samples < num_samples_per_azimuth_segment; ++cnt_samples) {
+                for (long cnt_samples = 0; cnt_samples < num_samples_per_azimuth_segment;
+                     ++cnt_samples) {
                     std::size_t ray_index = uniform_ray_index(random_engine);
-                    auto &[ray_azimuth, ray_elevation, end_point_elevation, range, dir_world] = rays[ray_index];
+                    auto &[ray_azimuth, ray_elevation, end_point_elevation, range, dir_world] =
+                        rays[ray_index];
                     Dtype r = uniform_range_ratio(random_engine);
                     Dtype elevation_diff = max_elevation - ray_elevation;
-                    Dtype max_range = std::min(range, cos_max_elevation / std::sin(elevation_diff));  // calculate max sampling range along the ray
+                    // calculate max sampling range along the ray
+                    Dtype max_range = std::min(range, cos_max_elevation / std::sin(elevation_diff));
                     Vector3 position = m_translation_ + r * max_range * dir_world;
                     Vector3 direction = m_hit_points_world_[*hit_point_index_ptr] - position;
                     Dtype distance = direction.norm();

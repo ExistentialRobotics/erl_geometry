@@ -6,10 +6,9 @@
 #include <open3d/visualization/utility/DrawGeometry.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 
-TEST(ERL_GEOMETRY, ConvexHull) {
-
-    std::filesystem::path gtest_dir = __FILE__;
-    std::filesystem::path ply_path = gtest_dir.parent_path() / "bunny.ply";
+TEST(ConvexHull, Bunny) {
+    std::filesystem::path ply_path = ERL_GEOMETRY_ROOT_DIR;
+    ply_path /= "data/bunny.ply";
     std::cout << "ply_path: " << ply_path << std::endl;
 
     try {
@@ -30,24 +29,38 @@ TEST(ERL_GEOMETRY, ConvexHull) {
         point_cloud->NormalizeNormals();
 
         Eigen::Matrix3Xd points(3, point_cloud->points_.size());
-        for (std::size_t i = 0; i < point_cloud->points_.size(); ++i) { points.col(static_cast<long>(i)) = point_cloud->points_[i]; }
+        for (std::size_t i = 0; i < point_cloud->points_.size(); ++i) {
+            points.col(static_cast<long>(i)) = point_cloud->points_[i];
+        }
         Eigen::Matrix3Xl mesh_triangles;
         Eigen::Matrix3Xd mesh_vertices;
         std::vector<long> hull_pt_map;
-        erl::geometry::ConvexHull<Eigen::Matrix3Xd>(points, points.cols(), mesh_vertices, mesh_triangles, hull_pt_map);
+        erl::geometry::ConvexHull<Eigen::Matrix3Xd>(
+            points,
+            points.cols(),
+            mesh_vertices,
+            mesh_triangles,
+            hull_pt_map);
 
         std::vector<Eigen::Vector3d> hull_vertices;
         hull_vertices.reserve(mesh_vertices.cols());
-        for (long i = 0; i < mesh_vertices.cols(); ++i) { hull_vertices.emplace_back(mesh_vertices.col(i)); }
+        for (long i = 0; i < mesh_vertices.cols(); ++i) {
+            hull_vertices.emplace_back(mesh_vertices.col(i));
+        }
         std::vector<Eigen::Vector3i> hull_triangles;
         hull_triangles.reserve(mesh_triangles.cols());
-        for (long i = 0; i < mesh_triangles.cols(); ++i) { hull_triangles.emplace_back(mesh_triangles.col(i).cast<int>()); }
-        auto hull_mesh = std::make_shared<open3d::geometry::TriangleMesh>(hull_vertices, hull_triangles);
+        for (long i = 0; i < mesh_triangles.cols(); ++i) {
+            hull_triangles.emplace_back(mesh_triangles.col(i).cast<int>());
+        }
+        auto hull_mesh =
+            std::make_shared<open3d::geometry::TriangleMesh>(hull_vertices, hull_triangles);
 
         erl::geometry::ConvexHull<Eigen::Matrix3Xd>(points, points.cols(), hull_pt_map);
         auto hull_point_cloud = std::make_shared<open3d::geometry::PointCloud>();
         hull_point_cloud->points_.reserve(hull_pt_map.size());
-        for (auto &i: hull_pt_map) { hull_point_cloud->points_.emplace_back(point_cloud->points_[i]); }
+        for (auto &i: hull_pt_map) {
+            hull_point_cloud->points_.emplace_back(point_cloud->points_[i]);
+        }
 
         // // computed by Open3D
         // auto bunny_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
@@ -108,7 +121,10 @@ TEST(ERL_GEOMETRY, ConvexHull) {
             return true;
         };
 
-        open3d::visualization::DrawGeometriesWithKeyCallbacks({point_cloud, hull_mesh, hull_point_cloud}, key_to_callback, "test convex hull");
+        open3d::visualization::DrawGeometriesWithKeyCallbacks(
+            {point_cloud, hull_mesh, hull_point_cloud},
+            key_to_callback,
+            "test convex hull");
 
     } catch (std::exception &e) { std::cout << e.what() << std::endl; }
 }

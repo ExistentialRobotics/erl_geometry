@@ -42,7 +42,9 @@ namespace erl::geometry {
          * @param translation The translation of the camera.
          */
         [[nodiscard]] static std::tuple<Matrix3, Vector3>
-        ComputeOpticalPose(const Eigen::Ref<const Matrix3> &orientation, const Eigen::Ref<const Vector3> &translation) {
+        ComputeOpticalPose(
+            const Eigen::Ref<const Matrix3> &orientation,
+            const Eigen::Ref<const Vector3> &translation) {
             // extrinsic = oTc @ cTw
             // cTw = wTc.inverse(), wTc = [orientation, translation; 0, 1]
             // optical_pose: wTo = wTc @ cTo
@@ -51,14 +53,18 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] static std::tuple<Matrix3, Vector3>
-        ComputeCameraPose(const Eigen::Ref<const Matrix3> &orientation, const Eigen::Ref<const Vector3> &translation) {
+        ComputeCameraPose(
+            const Eigen::Ref<const Matrix3> &orientation,
+            const Eigen::Ref<const Vector3> &translation) {
             // camera_pose: wTc = wTo @ oTc
             Matrix3 r = orientation * oTc.template topLeftCorner<3, 3>();
             return {std::move(r), translation};
         }
 
         [[nodiscard]] static Matrix4
-        ComputeExtrinsic(const Eigen::Ref<const Matrix3> &camera_orientation, const Eigen::Ref<const Vector3> &camera_translation) {
+        ComputeExtrinsic(
+            const Eigen::Ref<const Matrix3> &camera_orientation,
+            const Eigen::Ref<const Vector3> &camera_translation) {
             // extrinsic = oTc @ cTw
             // cTw = wTc.inverse(), wTc = [orientation, translation; 0, 1]
             Matrix4 extrinsic = Matrix4::Identity();
@@ -69,10 +75,24 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] static Eigen::MatrixX<Vector3>
-        ComputeRayDirectionsInFrame(long image_height, long image_width, Dtype camera_fx, Dtype camera_fy, Dtype camera_cx, Dtype camera_cy) {
+        ComputeRayDirectionsInFrame(
+            long image_height,
+            long image_width,
+            Dtype camera_fx,
+            Dtype camera_fy,
+            Dtype camera_cx,
+            Dtype camera_cy) {
             Eigen::MatrixX<Vector3> directions(image_height, image_width);
 
-#pragma omp parallel for default(none) shared(image_height, image_width, camera_fx, camera_fy, camera_cx, camera_cy, directions, Eigen::Dynamic)
+#pragma omp parallel for default(none) \
+    shared(image_height,               \
+               image_width,            \
+               camera_fx,              \
+               camera_fy,              \
+               camera_cx,              \
+               camera_cy,              \
+               directions,             \
+               Eigen::Dynamic)
             for (int u = 0; u < image_width; ++u) {
                 const Dtype xu = -(static_cast<Dtype>(u) - camera_cx) / camera_fx;
                 for (int v = 0; v < image_height; ++v) {

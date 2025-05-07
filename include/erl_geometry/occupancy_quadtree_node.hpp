@@ -3,8 +3,6 @@
 #include "abstract_quadtree_node.hpp"
 #include "logodd.hpp"
 
-#include "erl_common/tracy.hpp"
-
 #include <cstdint>
 
 namespace erl::geometry {
@@ -14,7 +12,10 @@ namespace erl::geometry {
         float m_log_odds_ = 0;
 
     public:
-        explicit OccupancyQuadtreeNode(const uint32_t depth = 0, const int child_index = -1, const float log_odds = 0)
+        explicit OccupancyQuadtreeNode(
+            const uint32_t depth = 0,
+            const int child_index = -1,
+            const float log_odds = 0)
             : AbstractQuadtreeNode(depth, child_index),
               m_log_odds_(log_odds) {}
 
@@ -37,14 +38,12 @@ namespace erl::geometry {
         [[nodiscard]] AbstractQuadtreeNode *
         Create(const uint32_t depth, const int child_index) const override {
             auto node = new OccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
-            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyQuadtreeNode));
             return node;
         }
 
         [[nodiscard]] AbstractQuadtreeNode *
         Clone() const override {
             auto node = new OccupancyQuadtreeNode(*this);
-            ERL_TRACY_RECORD_ALLOC(node, sizeof(OccupancyQuadtreeNode));
             return node;
         }
 
@@ -79,12 +78,11 @@ namespace erl::geometry {
 
         void
         Expand() override {
-            if (m_children_ == nullptr) {
-                m_children_ = new AbstractQuadtreeNode *[4];
-                ERL_TRACY_RECORD_ALLOC(m_children_, sizeof(AbstractQuadtreeNode *) * 4);
-            }
+            if (m_children_ == nullptr) { m_children_ = new AbstractQuadtreeNode *[4]; }
             for (int i = 0; i < 4; ++i) {
-                AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, i);  // make sure child type is correct if this class is inherited
+                // call the virtual method `Create` to make sure the child type is correct if this
+                // class is inherited
+                AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, i);
                 m_children_[i] = child;
                 reinterpret_cast<OccupancyQuadtreeNode *>(child)->m_log_odds_ = m_log_odds_;
             }
@@ -134,7 +132,8 @@ namespace erl::geometry {
 
             if (m_num_children_ > 0) {
                 for (int i = 0; i < 4; ++i) {
-                    const auto *child = reinterpret_cast<OccupancyQuadtreeNode *>(m_children_[i]);  // dynamic_cast causes high overhead
+                    const auto *child = reinterpret_cast<OccupancyQuadtreeNode *>(
+                        m_children_[i]);  // dynamic_cast causes high overhead
                     if (child == nullptr) { continue; }
                     if (const float l = child->GetLogOdds(); l > max) { max = l; }
                 }

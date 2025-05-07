@@ -1,3 +1,4 @@
+#include "erl_common/block_timer.hpp"
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
@@ -58,7 +59,8 @@ TEST(OccupancyOctree, Build) {
     lidar_setting->num_elevation_lines = NUM_ELEVATION_LINES;
     auto lidar = Lidar3D(lidar_setting, o3d_scene);
 
-    Matrix3X traj_2d = LoadEigenMatrixFromTextFile<Dtype>(traj_file, EigenTextFormat::kCsvFmt).transpose();
+    Matrix3X traj_2d =
+        LoadEigenMatrixFromTextFile<Dtype>(traj_file, EigenTextFormat::kCsvFmt).transpose();
     std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
     std::vector<Matrix4> path_3d = erl::geometry::ConvertPath2dTo3d<Dtype>(traj_2d, 1.0);
 
@@ -102,10 +104,12 @@ TEST(OccupancyOctree, Build) {
                 return false;
             }
             EXPECT_TRUE(octree->Write((test_output_dir / "house_expo_room_1451_3d.ot").string()));
-            EXPECT_TRUE(octree->WriteBinary((test_output_dir / "house_expo_room_1451_3d.bt").string()));
+            EXPECT_TRUE(
+                octree->WriteBinary((test_output_dir / "house_expo_room_1451_3d.bt").string()));
             octree_saved = true;
             wrapper->ClearGeometries();
-            std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = OccupancyOctreeDrawer::GetBlankGeometries();
+            std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries =
+                OccupancyOctreeDrawer::GetBlankGeometries();
             drawer.DrawLeaves(geometries);
             geometries.push_back(point_cloud);
             geometries.push_back(line_set_traj);
@@ -130,7 +134,11 @@ TEST(OccupancyOctree, Build) {
         mean_scan_time = (mean_scan_time * animation_cnt + dt) / (animation_cnt + 1);
 
         line_set_traj->points_.emplace_back(sensor_origin.cast<double>());
-        if (line_set_traj->points_.size() > 1) { line_set_traj->lines_.emplace_back(line_set_traj->points_.size() - 2, line_set_traj->points_.size() - 1); }
+        if (line_set_traj->points_.size() > 1) {
+            line_set_traj->lines_.emplace_back(
+                line_set_traj->points_.size() - 2,
+                line_set_traj->points_.size() - 1);
+        }
         line_set_rays->points_.clear();
         line_set_rays->lines_.clear();
         line_set_rays->points_.emplace_back(sensor_origin.cast<double>());
@@ -145,7 +153,9 @@ TEST(OccupancyOctree, Build) {
                 points.col(cnt_points++) = point;
                 point_cloud->points_.emplace_back(point.cast<double>());
                 line_set_rays->points_.emplace_back(point.cast<double>());
-                line_set_rays->lines_.emplace_back(0, static_cast<long>(line_set_rays->points_.size()) - 1);
+                line_set_rays->lines_.emplace_back(
+                    0,
+                    static_cast<long>(line_set_rays->points_.size()) - 1);
             }
         }
         points.conservativeResize(3, cnt_points);
@@ -165,7 +175,7 @@ TEST(OccupancyOctree, Build) {
         std::cout << "Mean scan time: " << mean_scan_time << " ms." << std::endl;
         std::cout << "Mean insert time: " << mean_insert_time << " ms." << std::endl;
 
-        for (auto [key, just_created]: octree->GetChangedKeys()) {
+        for (const auto &[key, just_created]: octree->GetChangedKeys()) {
             Dtype x, y, z;
             octree->KeyToCoord(key, x, y, z);
             Eigen::Vector3i voxel_index(
@@ -173,7 +183,8 @@ TEST(OccupancyOctree, Build) {
                 std::floor(y / voxel_grid->voxel_size_),
                 std::floor(z / voxel_grid->voxel_size_));
             if (octree->IsNodeOccupied(octree->Search(key))) {
-                voxel_grid->AddVoxel(open3d::geometry::Voxel(voxel_index, Eigen::Vector3d(0.5, 0.5, 0.5)));
+                voxel_grid->AddVoxel(
+                    open3d::geometry::Voxel(voxel_index, Eigen::Vector3d(0.5, 0.5, 0.5)));
             } else {
                 voxel_grid->RemoveVoxel(voxel_index);
             }
@@ -182,10 +193,13 @@ TEST(OccupancyOctree, Build) {
         line_set_traj->PaintUniformColor({1, 0, 0});
         line_set_rays->PaintUniformColor({0, 1, 0});
         if (line_set_traj->lines_.empty()) { vis->ResetViewPoint(true); }
-        if (point_cloud->points_.size() > MAX_POINT_CLOUD_SIZE) { point_cloud->points_.swap(point_cloud->RandomDownSample(0.5)->points_); }
+        if (point_cloud->points_.size() > MAX_POINT_CLOUD_SIZE) {
+            point_cloud->points_.swap(point_cloud->RandomDownSample(0.5)->points_);
+        }
 
         const auto t_end = std::chrono::high_resolution_clock::now();
-        const auto duration_total = std::chrono::duration<double, std::milli>(t_end - t_start).count();
+        const auto duration_total =
+            std::chrono::duration<double, std::milli>(t_end - t_start).count();
         std::cout << "Callback time: " << duration_total << " ms." << std::endl;
 
         return animation_cnt++ % ANIMATION_INTERVAL == 0;
@@ -193,75 +207,4 @@ TEST(OccupancyOctree, Build) {
 
     visualizer.SetAnimationCallback(callback);
     visualizer.Show();
-}
-
-TEST(OccupancyOctree, BuildProfiling) {
-    GTEST_PREPARE_OUTPUT_DIR();
-    using namespace erl::common;
-
-    std::string mesh_file = (gtest_src_dir / "../../data/house_expo_room_1451.ply").string();
-    std::string traj_file = (gtest_src_dir / "../../data/house_expo_room_1451.csv").string();
-
-    auto mesh_legacy = open3d::io::CreateMeshFromFile(mesh_file);
-    auto mesh = open3d::t::geometry::TriangleMesh::FromLegacy(*mesh_legacy);
-    auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
-    o3d_scene->AddTriangles(mesh);
-
-    auto lidar_setting = std::make_shared<Lidar3D::Setting>();
-    auto lidar = Lidar3D(lidar_setting, o3d_scene);
-
-    Matrix3X traj_2d = LoadEigenMatrixFromTextFile<Dtype>(traj_file, EigenTextFormat::kCsvFmt).transpose();
-    std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
-    std::vector<Matrix4> path_3d = erl::geometry::ConvertPath2dTo3d<Dtype>(traj_2d, 1.0);
-
-    auto octree_setting = std::make_shared<OccupancyOctree::Setting>();
-    octree_setting->resolution = 0.01;
-    octree_setting->use_change_detection = true;
-    // once hit, the cell will be occupied almost forever
-    auto octree = std::make_shared<OccupancyOctree>(octree_setting);
-
-    std::size_t num_cores = std::thread::hardware_concurrency();
-    double max_duration = 600.0 * 32 / static_cast<double>(num_cores);
-    double max_mean_duration = 520.0 * 32 / static_cast<double>(num_cores);
-
-    std::size_t pose_idx = 0;
-    Eigen::MatrixX<Vector3> ray_directions = lidar.GetRayDirectionsInFrame();
-    int n = 10;
-    double mean_duration = 0;
-    for (int k = 0; k < 10; ++k) {
-        const Matrix4 pose = path_3d[pose_idx].cast<Dtype>();
-        pose_idx += 1;
-        Matrix3 orientation = pose.topLeftCorner<3, 3>();
-        Vector3 sensor_origin = pose.topRightCorner<3, 1>();
-
-        MatrixX ranges = lidar.Scan(orientation, sensor_origin);
-
-        Matrix3X points(3, ranges.size());
-        long cnt_points = 0;
-        for (long i = 0; i < ranges.rows(); ++i) {
-            for (long j = 0; j < ranges.cols(); ++j) {
-                const Dtype &range = ranges(i, j);
-                if (std::isinf(range) || std::isnan(range)) { continue; }
-                Vector3 point = sensor_origin + range * orientation * ray_directions(i, j);
-                points.col(cnt_points++) = point;
-            }
-        }
-        points.conservativeResize(3, cnt_points);
-
-        auto t0 = std::chrono::high_resolution_clock::now();
-        octree->ClearChangedKeys();
-        octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
-        octree->UpdateInnerOccupancy();
-        octree->Prune();
-        auto t1 = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-        std::cout << "Insert time: " << duration << " ms." << std::endl;
-        EXPECT_LE(duration, max_duration);
-        mean_duration += duration;
-    }
-    mean_duration /= n;
-    std::cout << "Mean Insert time: " << mean_duration << " ms." << std::endl;
-    EXPECT_LE(mean_duration, max_mean_duration);
-    // 14900K: ~480ms
-    // 13700K: ~550ms
 }

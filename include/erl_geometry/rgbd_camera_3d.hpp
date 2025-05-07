@@ -5,7 +5,6 @@
 
 #include "erl_common/opencv.hpp"
 
-#include <open3d/geometry/TriangleMesh.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 
 #include <memory>
@@ -28,7 +27,13 @@ namespace erl::geometry {
             : m_setting_(std::move(setting)),
               m_visualizer_(std::make_shared<open3d::visualization::Visualizer>()) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
-            m_visualizer_->CreateVisualizerWindow("RGBD", static_cast<int>(m_setting_->image_width), static_cast<int>(m_setting_->image_height), 50, 50, false);
+            m_visualizer_->CreateVisualizerWindow(
+                "RGBD",
+                static_cast<int>(m_setting_->image_width),
+                static_cast<int>(m_setting_->image_height),
+                50,
+                50,
+                false);
             m_visualizer_->GetRenderOption().mesh_show_back_face_ = true;
         }
 
@@ -46,7 +51,9 @@ namespace erl::geometry {
          * @param translation The translation of the camera.
          */
         [[nodiscard]] std::pair<cv::Mat, cv::Mat>
-        Scan(const Eigen::Ref<const Matrix3> &orientation, const Eigen::Ref<const Vector3> &translation) const;
+        Scan(
+            const Eigen::Ref<const Matrix3> &orientation,
+            const Eigen::Ref<const Vector3> &translation) const;
 
         [[nodiscard]] Eigen::MatrixX<Vector3>
         GetRayDirectionsInFrame() const {

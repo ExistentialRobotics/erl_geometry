@@ -1,210 +1,268 @@
 #pragma once
 
 #include "erl_common/logging.hpp"
-#include "erl_geometry/abstract_quadtree.hpp"
-
-#include <filesystem>
-#include <fstream>
+#include "erl_common/serialization.hpp"
 
 namespace erl::geometry {
 
-    // template<typename Dtype>
-    // std::shared_ptr<AbstractQuadtree>
-    // AbstractQuadtree::CreateTree(const std::string &tree_id, const std::shared_ptr<NdTreeSetting> &setting) {
-    //     const auto it = s_class_id_mapping_.find(tree_id);
-    //     if (it == s_class_id_mapping_.end()) {
-    //         ERL_WARN("Unknown Quadtree type: {}. Here are the registered Quadtree types:", tree_id);
-    //         for (const auto &pair: s_class_id_mapping_) { ERL_WARN("  - {}", pair.first); }
-    //         return nullptr;
-    //     }
-    //
-    //     return it->second(setting);
-    // }
-
     template<typename Dtype>
-    bool
-    AbstractQuadtree<Dtype>::Write(const std::string &filename) const {
-        const auto path = std::filesystem::absolute(filename);
-        ERL_INFO("Writing quadtree to file: {}", path);
-        std::filesystem::create_directories(path.parent_path());
-        std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return false;
-        }
-
-        (void) Write(file);
-        file.close();
-        ERL_INFO("Successfully wrote Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
-        return true;
+    AbstractQuadtree<Dtype>::AbstractQuadtree(std::shared_ptr<NdTreeSetting> setting)
+        : m_setting_(std::move(setting)) {
+        ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
     }
 
     template<typename Dtype>
-    std::ostream &
+    std::string
+    AbstractQuadtree<Dtype>::GetTreeType() const {
+        return demangle(typeid(*this).name());
+    }
+
+    template<typename Dtype>
+    std::shared_ptr<AbstractQuadtree<Dtype>>
+    AbstractQuadtree<Dtype>::CreateTree(
+        const std::string &tree_id,
+        const std::shared_ptr<NdTreeSetting> &setting) {
+        return Factory::GetInstance().Create(tree_id, setting);
+    }
+
+    template<typename Dtype>
+    template<typename Derived>
+    std::enable_if_t<std::is_base_of_v<AbstractQuadtree<Dtype>, Derived>, bool>
+    AbstractQuadtree<Dtype>::Register(const std::string &tree_type) {
+        return Factory::GetInstance().template Register<Derived>(
+            tree_type,
+            [](const std::shared_ptr<NdTreeSetting> &setting) {
+                auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
+                if (setting == nullptr) {
+                    tree_setting = std::make_shared<typename Derived::Setting>();
+                }
+                ERL_ASSERTM(tree_setting != nullptr, "setting is nullptr.");
+                return std::make_shared<Derived>(tree_setting);
+            });
+    }
+
+    template<typename Dtype>
+    template<typename T>
+    std::shared_ptr<T>
+    AbstractQuadtree<Dtype>::GetSetting() const {
+        return std::reinterpret_pointer_cast<T>(m_setting_);
+    }
+
+    template<typename Dtype>
+    bool
+    AbstractQuadtree<Dtype>::ReadSetting(std::istream &s) const {
+        std::streamsize len;
+        s.read(reinterpret_cast<char *>(&len), sizeof(std::size_t));
+        std::string yaml_str(len, '\0');
+        s.read(yaml_str.data(), len);
+        return m_setting_->FromYamlString(yaml_str);
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::WriteSetting(std::ostream &s) const {
+        const std::string yaml_str = m_setting_->AsYamlString();
+        const auto len = static_cast<std::streamsize>(yaml_str.size());
+        s.write(reinterpret_cast<const char *>(&len), sizeof(std::size_t));
+        s.write(yaml_str.data(), len);
+        s << '\n';  // add newline to separate from data
+    }
+
+    template<typename Dtype>
+    bool
+    AbstractQuadtree<Dtype>::operator!=(const AbstractQuadtree &other) const {
+        return !(*this == other);
+    }
+
+    template<typename Dtype>
+    uint32_t
+    AbstractQuadtree<Dtype>::GetTreeDepth() const {
+        return m_setting_->tree_depth;
+    }
+
+    template<typename Dtype>
+    Dtype
+    AbstractQuadtree<Dtype>::GetResolution() const {
+        return static_cast<Dtype>(m_setting_->resolution);
+    }
+
+    template<typename Dtype>
+    typename AbstractQuadtree<Dtype>::Vector2
+    AbstractQuadtree<Dtype>::GetMetricMin() {
+        Vector2 min;
+        GetMetricMin(min.x(), min.y());
+        return min;
+    }
+
+    template<typename Dtype>
+    typename AbstractQuadtree<Dtype>::Vector2
+    AbstractQuadtree<Dtype>::GetMetricMin() const {
+        Vector2 min;
+        GetMetricMin(min.x(), min.y());
+        return min;
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricMin(Vector2 &min) {
+        GetMetricMin(min.x(), min.y());
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricMin(Vector2 &min) const {
+        GetMetricMin(min.x(), min.y());
+    }
+
+    template<typename Dtype>
+    typename AbstractQuadtree<Dtype>::Vector2
+    AbstractQuadtree<Dtype>::GetMetricMax() {
+        Vector2 max;
+        GetMetricMax(max.x(), max.y());
+        return max;
+    }
+
+    template<typename Dtype>
+    typename AbstractQuadtree<Dtype>::Vector2
+    AbstractQuadtree<Dtype>::GetMetricMax() const {
+        Vector2 max;
+        GetMetricMax(max.x(), max.y());
+        return max;
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricMax(Vector2 &max) {
+        GetMetricMax(max.x(), max.y());
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricMax(Vector2 &max) const {
+        GetMetricMax(max.x(), max.y());
+    }
+
+    template<typename Dtype>
+    Aabb<Dtype, 2>
+    AbstractQuadtree<Dtype>::GetMetricAabb() {
+        Vector2 min, max;
+        GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+        return {std::move(min), std::move(max)};
+    }
+
+    template<typename Dtype>
+    Aabb<Dtype, 2>
+    AbstractQuadtree<Dtype>::GetMetricAabb() const {
+        Vector2 min, max;
+        GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+        return {std::move(min), std::move(max)};
+    }
+
+    template<typename Dtype>
+    std::pair<typename AbstractQuadtree<Dtype>::Vector2, typename AbstractQuadtree<Dtype>::Vector2>
+    AbstractQuadtree<Dtype>::GetMetricMinMax() {
+        Vector2 min, max;
+        GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+        return {std::move(min), std::move(max)};
+    }
+
+    template<typename Dtype>
+    std::pair<typename AbstractQuadtree<Dtype>::Vector2, typename AbstractQuadtree<Dtype>::Vector2>
+    AbstractQuadtree<Dtype>::GetMetricMinMax() const {
+        Vector2 min, max;
+        GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+        return {std::move(min), std::move(max)};
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricMinMax(Vector2 &min, Vector2 &max) {
+        GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricMinMax(Vector2 &min, Vector2 &max) const {
+        GetMetricMinMax(min.x(), min.y(), max.x(), max.y());
+    }
+
+    template<typename Dtype>
+    typename AbstractQuadtree<Dtype>::Vector2
+    AbstractQuadtree<Dtype>::GetMetricSize() {
+        Vector2 size;
+        GetMetricSize(size.x(), size.y());
+        return size;
+    }
+
+    template<typename Dtype>
+    typename AbstractQuadtree<Dtype>::Vector2
+    AbstractQuadtree<Dtype>::GetMetricSize() const {
+        Vector2 size;
+        GetMetricSize(size.x(), size.y());
+        return size;
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricSize(Vector2 &size) {
+        GetMetricSize(size.x(), size.y());
+    }
+
+    template<typename Dtype>
+    void
+    AbstractQuadtree<Dtype>::GetMetricSize(Vector2 &size) const {
+        GetMetricSize(size.x(), size.y());
+    }
+
+    template<typename Dtype>
+    bool
     AbstractQuadtree<Dtype>::Write(std::ostream &s) const {
-        // write header
-        s << kFileHeader << std::endl
-          << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
-          << "id " << this->GetTreeType() << std::endl
-          << "size " << this->GetSize() << std::endl
-          << "setting" << std::endl;
-        this->WriteSetting(s);
-        s << "data" << std::endl;
-        // write the actual tree data
-        return this->WriteData(s);
+        static const common::TokenWriteFunctionPairs<AbstractQuadtree> token_function_pairs = {
+            {
+                "setting",
+                [](const AbstractQuadtree *self, std::ostream &stream) {
+                    self->WriteSetting(stream);
+                    return stream.good();
+                },
+            },
+            {
+                "data",
+                [](const AbstractQuadtree *self, std::ostream &stream) {
+                    const std::size_t size = self->GetSize();
+                    stream << size << '\n';
+                    if (size > 0) { return self->WriteData(stream).good(); }
+                    return stream.good();
+                },
+            },
+        };
+        return common::WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
-    std::shared_ptr<AbstractQuadtree<Dtype>>
-    AbstractQuadtree<Dtype>::Read(const std::string &filename) {
-        ERL_INFO("Reading octree from file: {}", std::filesystem::absolute(filename));
-        std::ifstream file(filename, std::ios_base::in | std::ios_base::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return nullptr;
-        }
-
-        auto tree = Read(file);
-        file.close();
-        return tree;
-    }
-
-    template<typename Dtype>
-    std::shared_ptr<AbstractQuadtree<Dtype>>
+    bool
     AbstractQuadtree<Dtype>::Read(std::istream &s) {
-        if (!s.good()) {
-            ERL_WARN("Input stream is not ready for reading");
-            return nullptr;
-        }
-
-        // check if the first line is valid
-        std::string line;
-        std::getline(s, line);
-        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {
-            ERL_WARN("First line of Quadtree file header does not start with \"{}\"", kFileHeader);
-            return nullptr;
-        }
-
-        std::string tree_id;
-        uint32_t size;
-        if (!ReadHeader(s, tree_id, size)) { return nullptr; }
-
-        ERL_DEBUG("Reading Quadtree of type {}, size {}", tree_id, size);
-        auto tree = CreateTree(tree_id, nullptr);
-        if (!tree) { return nullptr; }
-        if (!tree->ReadSetting(s)) {
-            ERL_WARN("Failed to read setting");
-            return nullptr;
-        }
-        tree->ApplySetting();
-
-        std::getline(s, line);  // check if the next line is "data"
-        if (line.compare(0, 4, "data") != 0) {
-            ERL_WARN("Error reading Quadtree, expected 'data' section");
-            return nullptr;
-        }
-
-        // read the actual tree data
-        if (size > 0) { tree->ReadData(s); }
-        ERL_INFO("Done ({} nodes).", tree->GetSize());
-        return tree;
-    }
-
-    template<typename Dtype>
-    bool
-    AbstractQuadtree<Dtype>::LoadData(const std::string &filename) {
-        ERL_INFO("Loading data from file: {}", std::filesystem::absolute(filename));
-        std::ifstream s(filename, std::ios_base::in | std::ios_base::binary);
-        if (!s.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return false;
-        }
-        const bool success = LoadData(s);
-        s.close();
-        return success;
-    }
-
-    template<typename Dtype>
-    bool
-    AbstractQuadtree<Dtype>::LoadData(std::istream &s) {
-        if (!s.good()) {
-            ERL_WARN("Input stream is not ready for reading");
-            return false;
-        }
-
-        std::string line;
-        std::getline(s, line);
-        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
-            ERL_WARN("First line of Octree file header does not start with \"{}\"", kFileHeader.c_str());
-            return false;
-        }
-
-        std::string tree_id;
-        uint32_t size;
-        if (!ReadHeader(s, tree_id, size)) { return false; }
-
-        if (tree_id != GetTreeType()) {
-            ERL_WARN("Error reading Quadtree header, ID does not match: {} != {}", tree_id.c_str(), GetTreeType().c_str());
-            return false;
-        }
-        Clear();
-        if (!ReadSetting(s)) {
-            ERL_WARN("Failed to read setting");
-            return false;
-        }
-        ApplySetting();
-
-        std::getline(s, line);  // check if the next line is "data"
-        if (line.compare(0, 4, "data") != 0) {
-            ERL_WARN("Expected 'data' keyword, got: {}", line.c_str());
-            return false;
-        }
-        if (size > 0) { this->ReadData(s); }
-        ERL_DEBUG("Done ({} nodes).", this->GetSize());
-        return GetSize() == size;
-    }
-
-    template<typename Dtype>
-    bool
-    AbstractQuadtree<Dtype>::ReadHeader(std::istream &s, std::string &tree_id, uint32_t &size) {
-        // initialize output variables
-        tree_id = "";
-        size = 0;
-        // read header
-        std::string token;
-        bool header_read = false;
-        while (s.good() && !header_read) {
-            s >> token;
-            if (token == "setting") {  // reach the setting section
-                header_read = true;    // header read successfully
-                // skip forward until end of line
-                char c;
-                do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
-            } else if (token.compare(0, 1, "#") == 0) {
-                // comment line, skip forward until end of line
-                char c;
-                do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
-            } else if (token == "id") {
-                s >> tree_id;
-            } else if (token == "size") {
-                s >> size;
-            } else {
-                ERL_WARN("Unknown keyword in Quadtree header, skipping: {}", token.c_str());
-                char c;
-                do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
-            }
-        }
-
-        if (!header_read) {
-            ERL_WARN("Error reading Quadtree header");
-            return false;
-        }
-
-        if (tree_id.empty()) {
-            ERL_WARN("Error reading Quadtree header, ID not set");
-            return false;
-        }
-
-        return true;
+        static const common::TokenReadFunctionPairs<AbstractQuadtree> token_function_pairs = {
+            {
+                "setting",
+                [](AbstractQuadtree *self, std::istream &stream) {
+                    self->Clear();  // clear the tree before reading the setting
+                    if (!self->ReadSetting(stream)) { return false; }
+                    self->ApplySetting();
+                    return stream.good();
+                },
+            },
+            {
+                "data",
+                [](AbstractQuadtree *self, std::istream &stream) {
+                    std::size_t size;
+                    stream >> size;
+                    common::SkipLine(stream);
+                    if (size > 0) { return self->ReadData(stream).good(); }
+                    ERL_DEBUG("Load {} nodes", size);
+                    return stream.good();
+                },
+            },
+        };
+        return common::ReadTokens(s, this, token_function_pairs);
     }
 }  // namespace erl::geometry

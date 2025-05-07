@@ -4,9 +4,16 @@ namespace erl::geometry {
 
     template<typename Dtype>
     int
-    WindingNumber(const Eigen::Ref<const Eigen::Vector2<Dtype>> &p, const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &vertices) {
+    WindingNumber(
+        const Eigen::Ref<const Eigen::Vector2<Dtype>> &p,
+        const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &vertices) {
 
-        auto is_left = [](const Dtype &x, const Dtype &y, const Dtype &x_1, const Dtype &y_1, const Dtype &x_2, const Dtype &y_2) {
+        auto is_left = [](const Dtype &x,
+                          const Dtype &y,
+                          const Dtype &x_1,
+                          const Dtype &y_1,
+                          const Dtype &x_2,
+                          const Dtype &y_2) {
             // suppose vertex1.y() < vertex2.y()
             return ((x_2 - x_1) * (y - y_1) - (x - x_1) * (y_2 - y_1)) > 0.;
         };

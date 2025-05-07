@@ -10,7 +10,8 @@
 
 namespace erl::geometry {
 
-    struct OccupancyOctreeDrawerSetting : common::Yamlable<OccupancyOctreeDrawerSetting, AbstractOctreeDrawer::Setting> {
+    struct OccupancyOctreeDrawerSetting
+        : common::Yamlable<OccupancyOctreeDrawerSetting, AbstractOctreeDrawer::Setting> {
         bool occupied_only = false;
         Eigen::Vector3d occupied_color = {0.67, 0.33, 0.0};  // brown
         bool draw_node_boxes = true;
@@ -45,7 +46,9 @@ namespace erl::geometry {
         DrawLeafCallback m_draw_leaf_ = {};
 
     public:
-        explicit OccupancyOctreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const OccupancyOctreeType> octree = nullptr);
+        explicit OccupancyOctreeDrawer(
+            std::shared_ptr<Setting> setting,
+            std::shared_ptr<const OccupancyOctreeType> octree = nullptr);
 
         using AbstractOctreeDrawer::DrawLeaves;
         using AbstractOctreeDrawer::DrawTree;
@@ -63,14 +66,17 @@ namespace erl::geometry {
         SetDrawLeafCallback(DrawLeafCallback draw_leaf);
 
         void
-        DrawTree(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override;
+        DrawTree(
+            std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override;
 
         void
-        DrawLeaves(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override;
+        DrawLeaves(
+            std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const override;
     };
 }  // namespace erl::geometry
 
 #include "occupancy_octree_drawer.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::OccupancyOctreeDrawerSetting> : erl::geometry::OccupancyOctreeDrawerSetting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::OccupancyOctreeDrawerSetting>
+    : erl::geometry::OccupancyOctreeDrawerSetting::YamlConvertImpl {};

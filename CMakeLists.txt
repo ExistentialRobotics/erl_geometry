@@ -29,12 +29,9 @@ erl_find_package(
         COMMANDS APPLE "try `brew install abseil`"
         COMMANDS UBUNTU_LINUX "try `sudo apt install libabseil-dev`"
         COMMANDS ARCH_LINUX "try `sudo pacman -S abseil-cpp`")
-
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
-    get_target_property(absl::flat_hash_map_location absl::flat_hash_map LOCATION)
-    get_target_property(absl::flat_hash_set_location absl::flat_hash_set LOCATION)
-    list(APPEND absl_LIBRARIES ${absl_flat_hash_map_location} ${absl_flat_hash_set_location})
-endif ()
+get_target_property(absl_flat_hash_map_location absl::flat_hash_map LOCATION)
+get_target_property(absl_flat_hash_set_location absl::flat_hash_set LOCATION)
+list(APPEND absl_LIBRARIES ${absl_flat_hash_map_location} ${absl_flat_hash_set_location})
 
 erl_find_package(
         PACKAGE Open3D
@@ -65,10 +62,14 @@ if (ERL_BUILD_TEST_${PROJECT_NAME})
     set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
     erl_find_package(
             PACKAGE CGAL
-            REQUIRED COMPONENTS Core
+            COMPONENTS Core
             COMMANDS UBUNTU_LINUX "try `sudo apt-get install libcgal-dev`"
             COMMANDS ARCH_LINUX "try `sudo pacman -S cgal`"
     )
+    if (NOT CGAL_FOUND)
+        list(APPEND ignore_tests test_convex_hull_3d_impls.cpp)  # CGAL is not found, ignore the test
+        message(WARNING "CGAL not found, ignoring test_convex_hull_3d_impls")
+    endif ()
 endif ()
 
 erl_setup_ros()
@@ -82,17 +83,18 @@ erl_catkin_package(
 # BUILD
 #######################################################################################################################
 
-########################
-# define the libraries #
-########################
 set(LIBMORTON_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/libmorton)
 if (EXISTS "${LIBMORTON_DIR}/CMakeLists.txt")
     message(STATUS "libmorton found in ${LIBMORTON_DIR}")
 else ()
     message(FATAL_ERROR "libmorton not found, run `git submodule update --init --recursive`")
 endif ()
-set(BUILD_TESTING OFF)
 add_subdirectory(${LIBMORTON_DIR})  # libmorton is a header-only library
+
+########################
+# define the libraries #
+########################
+
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -137,7 +139,13 @@ erl_install(
 # TEST
 #######################################################################################################################
 erl_add_tests(
-        LIBRARIES ${PROJECT_NAME} CGAL::CGAL octomap
+        test_convex_hull_3d_impls_LIBRARIES CGAL::CGAL
+        test_occupancy_octree_impls_LIBRARIES octomap
+        LIBRARIES ${PROJECT_NAME}
+        EXCLUDE_FROM_ALL test_depth_frame_3d_basic  # interactive test
+        test_convex_hull # interactive test
+        test_convex_hull_3d_impls # interactive test
+        IGNORE_FILES ${ignore_tests}
 )
 
 #######################################################################################################################

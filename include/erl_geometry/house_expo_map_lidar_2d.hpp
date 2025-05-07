@@ -39,6 +39,11 @@ namespace erl::geometry {
             return m_map_.GetMeterSpace()->GetSurface()->vertices.rowwise().maxCoeff();
         }
 
+        /**
+         *
+         * @param index frame index.
+         * @return a tuple of rotation, translation, angles, and ranges.
+         */
         [[nodiscard]] std::tuple<Eigen::Matrix2d, Eigen::Vector2d, Eigen::VectorXd, Eigen::VectorXd>
         operator[](long index) const;
     };

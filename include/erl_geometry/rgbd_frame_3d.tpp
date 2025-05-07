@@ -20,7 +20,10 @@ namespace erl::geometry {
 
     template<typename Dtype>
     void
-    RgbdFrame3D<Dtype>::ConvertToPointCloud(const bool in_world_frame, std::vector<Vector3> &points, std::vector<Vector3> &colors) const {
+    RgbdFrame3D<Dtype>::ConvertToPointCloud(
+        const bool in_world_frame,
+        std::vector<Vector3> &points,
+        std::vector<Vector3> &colors) const {
         points.resize(Super::m_hit_ray_indices_.size());
         colors.resize(Super::m_hit_ray_indices_.size());
         for (std::size_t k = 0; k < Super::m_hit_ray_indices_.size(); ++k) {
@@ -31,9 +34,9 @@ namespace erl::geometry {
                 points[k] = Super::m_hit_points_frame_[k];
             }
             const auto &color = m_rgb_.at<cv::Vec3b>(static_cast<int>(i), static_cast<int>(j));
-            colors[k][0] = static_cast<Dtype>(color[0]) / 255.0;
-            colors[k][1] = static_cast<Dtype>(color[1]) / 255.0;
-            colors[k][2] = static_cast<Dtype>(color[2]) / 255.0;
+            colors[k][0] = static_cast<Dtype>(color[0]) / 255.0f;
+            colors[k][1] = static_cast<Dtype>(color[1]) / 255.0f;
+            colors[k][2] = static_cast<Dtype>(color[2]) / 255.0f;
         }
     }
 }  // namespace erl::geometry

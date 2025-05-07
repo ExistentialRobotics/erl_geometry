@@ -3,40 +3,37 @@
 #include "kdtree_eigen_adaptor.hpp"
 #include "marching_square.hpp"
 #include "surface_2d.hpp"
-#include "winding_number.hpp"
 
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
     class Space2D {
-        // using KdTree = KdTreeEigenAdaptor<double, 2>;
-        using KdTree = nanoflann::KDTreeEigenMatrixAdaptor<Eigen::Matrix2Xd, 2, nanoflann::metric_L2_Simple, false>;  // false: column-major, #rows = dim
+        using KdTree = nanoflann::KDTreeEigenMatrixAdaptor<
+            Eigen::Matrix2Xd,
+            2,
+            nanoflann::metric_L2_Simple,
+            false /*column-major, #rows=dim*/>;
 
         std::shared_ptr<Surface2D> m_surface_;
         std::unique_ptr<KdTree> m_kdtree_;
 
     public:
         enum class SignMethod {
-            kPointNormal = 0,  // this works well when points and normals are dense enough
-            kLineNormal = 1,   // this requires lower density than kPointNormal, but may gives wrong result if the data is too sparse
-            kPolygon = 2       // this works perfectly when m_surface_.outsideFlagsAvailable() returns true
+            // this works well when points and normals are dense enough
+            kPointNormal = 0,
+            // this requires lower density than kPointNormal but may give a wrong result if the
+            // data is too sparse
+            kLineNormal = 1,
+            // this works perfectly when m_surface_.outsideFlagsAvailable() returns true
+            kPolygon = 2
         };
 
         static const char *
-        GetSignMethodName(const SignMethod &type) {
-            static const char *names[3] = {"kPointNormal", "kLineNormal", "kPolygon"};
-            return names[static_cast<int>(type)];
-        }
+        GetSignMethodName(const SignMethod &type);
 
         static SignMethod
-        GetSignMethodFromName(const std::string &type_name) {
-            if (type_name == "kPointNormal") { return SignMethod::kPointNormal; }
-            if (type_name == "kLineNormal") { return SignMethod::kLineNormal; }
-            if (type_name == "kPolygon") { return SignMethod::kPolygon; }
-
-            throw std::runtime_error("Unknown sign method: " + type_name);
-        }
+        GetSignMethodFromName(const std::string &type_name);
 
         Space2D(
             const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &ordered_object_vertices,
@@ -65,21 +62,26 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] Space2D
-        AddObstacles(const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &obstacle_vertices, double delta, bool parallel) const;
+        AddObstacles(
+            const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &obstacle_vertices,
+            double delta,
+            bool parallel) const;
 
         /**
-         * @brief Generate a map image of which the left-bottom is (xmin, ymin), the right-top is (xmax, ymax), the x axis is to the right, and the y axis is
-         * to the top.
+         * @brief Generate a map image of which the left-bottom is (xmin, ymin), the right-top is
+         * (xmax, ymax), the x-axis is to the right, and the y-axis is to the top.
          * @param grid_map_info
          * @param anti_aliased
          * @return
          */
         [[nodiscard]] Eigen::MatrixX8U
-        GenerateMapImage(const common::GridMapInfo2Dd &grid_map_info, bool anti_aliased = false) const;
+        GenerateMapImage(const common::GridMapInfo2Dd &grid_map_info, bool anti_aliased = false)
+            const;
 
         /**
-         * @brief Compute the signed distance field of the space as an image of which the left-bottom is (xmin, ymin), the right-top is (xmax, ymax), the
-         * x axis is to the right, and the y axis is to the top.
+         * @brief Compute the signed distance field of the space as an image of which the
+         * left-bottom is (xmin, ymin), the right-top is (xmax, ymax), the x-axis is to the right,
+         * and the y-axis is to the top.
          * @param grid_map_info
          * @param sign_method
          * @param use_kdtree
@@ -103,21 +105,32 @@ namespace erl::geometry {
         [[nodiscard]] double
         ComputeSdfWithKdtree(const Eigen::Vector2d &q, SignMethod sign_method) const;
         [[nodiscard]] double
-        ComputeSdfGreedily(const Eigen::Ref<const Eigen::Vector2d> &q, SignMethod sign_method) const;
-
-        [[nodiscard]] Eigen::MatrixX<Eigen::VectorXd>
-        ComputeDdf(const common::GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false) const;
-
-        [[nodiscard]] Eigen::VectorXd
-        ComputeDdf(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false)
+        ComputeSdfGreedily(const Eigen::Ref<const Eigen::Vector2d> &q, SignMethod sign_method)
             const;
 
         [[nodiscard]] Eigen::MatrixX<Eigen::VectorXd>
-        ComputeSddfV1(const common::GridMapInfo2Dd &grid_map_info, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false) const;
+        ComputeDdf(
+            const common::GridMapInfo2Dd &grid_map_info,
+            const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
+            bool parallel = false) const;
 
         [[nodiscard]] Eigen::VectorXd
-        ComputeSddfV1(const Eigen::Ref<const Eigen::Matrix2Xd> &query_points, const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions, bool parallel = false)
-            const;
+        ComputeDdf(
+            const Eigen::Ref<const Eigen::Matrix2Xd> &query_points,
+            const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
+            bool parallel = false) const;
+
+        [[nodiscard]] Eigen::MatrixX<Eigen::VectorXd>
+        ComputeSddfV1(
+            const common::GridMapInfo2Dd &grid_map_info,
+            const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
+            bool parallel = false) const;
+
+        [[nodiscard]] Eigen::VectorXd
+        ComputeSddfV1(
+            const Eigen::Ref<const Eigen::Matrix2Xd> &query_points,
+            const Eigen::Ref<const Eigen::Matrix2Xd> &query_directions,
+            bool parallel = false) const;
 
         [[nodiscard]] Eigen::MatrixX<Eigen::VectorXd>
         ComputeSddfV2(
@@ -135,47 +148,32 @@ namespace erl::geometry {
 
     private:
         [[nodiscard]] bool
-        IsNegativeSdf(SignMethod sign_method, const Eigen::Ref<const Eigen::Vector2d> &q, const int vertex_0_idx, const int vertex_1_idx) const {
-            switch (sign_method) {
-                case SignMethod::kPointNormal:
-                    return IsNegativeSdfByPointNormal(q, vertex_0_idx);
-                case SignMethod::kLineNormal:
-                    return IsNegativeSdfBySegmentNormal(q, vertex_0_idx, vertex_1_idx);
-                case SignMethod::kPolygon:
-                    ERL_ASSERTM(
-                        m_surface_->OutsideFlagsAvailable(),
-                        "outside flags of the polygons are not available. SignMethod::kPolygon cannot be used currently.");
-                    return IsNegativeSdfByPolygon(q, vertex_0_idx);
-            }
-
-            throw std::runtime_error("Unknown sign method: " + std::to_string(static_cast<int>(sign_method)));
-        }
+        IsNegativeSdf(
+            SignMethod sign_method,
+            const Eigen::Ref<const Eigen::Vector2d> &q,
+            int vertex_0_idx,
+            int vertex_1_idx) const;
 
         [[nodiscard]] bool
-        IsNegativeSdfByPointNormal(const Eigen::Ref<const Eigen::Vector2d> &q, const int vertex_0_idx) const {
-            return m_surface_->normals.col(vertex_0_idx).dot(q - m_surface_->vertices.col(vertex_0_idx)) < 0.;
-        }
+        IsNegativeSdfByPointNormal(const Eigen::Ref<const Eigen::Vector2d> &q, int vertex_0_idx)
+            const;
 
         [[nodiscard]] bool
-        IsNegativeSdfBySegmentNormal(const Eigen::Ref<const Eigen::Vector2d> &q, const int vertex_0_idx, const int vertex_1_idx) const {
-            Eigen::Vector2d line_vec = m_surface_->vertices.col(vertex_1_idx) - m_surface_->vertices.col(vertex_0_idx);
-            line_vec.normalize();
-            const Eigen::Vector2d normal = m_surface_->normals.col(vertex_0_idx) - line_vec * m_surface_->normals.col(vertex_0_idx).dot(line_vec);
-            return normal.dot(q - m_surface_->vertices.col(vertex_0_idx)) < 0.;
-        }
+        IsNegativeSdfBySegmentNormal(
+            const Eigen::Ref<const Eigen::Vector2d> &q,
+            int vertex_0_idx,
+            int vertex_1_idx) const;
 
         [[nodiscard]] bool
-        IsNegativeSdfByPolygon(const Eigen::Ref<const Eigen::Vector2d> &q, const int vertex_0_idx) const {
-            const auto &idx_object = m_surface_->vertices_to_objects(vertex_0_idx);
-            const bool wn = WindingNumber<double>(q, m_surface_->GetObjectVertices(idx_object));
-            return wn == m_surface_->outside_flags[idx_object];
-        }
+        IsNegativeSdfByPolygon(const Eigen::Ref<const Eigen::Vector2d> &q, int vertex_0_idx) const;
 
         void
         ComputeNormals(double delta, bool use_kdtree = false, bool parallel = false) const;
 
         void
-        ComputeOutsideFlags(const Eigen::Ref<const Eigen::MatrixXd> &map_image, double free_threshold) const;  // by winding number
+        ComputeOutsideFlags(
+            const Eigen::Ref<const Eigen::MatrixXd> &map_image,
+            double free_threshold) const;  // by winding number
 
         void
         ComputeOutsideFlags() const;  // by surface normals
@@ -185,13 +183,8 @@ namespace erl::geometry {
 template<>
 struct YAML::convert<erl::geometry::Space2D::SignMethod> {
     static Node
-    encode(const erl::geometry::Space2D::SignMethod &rhs) {
-        return Node(erl::geometry::Space2D::GetSignMethodName(rhs));
-    }
+    encode(const erl::geometry::Space2D::SignMethod &method);
 
     static bool
-    decode(const Node &node, erl::geometry::Space2D::SignMethod &rhs) {
-        rhs = erl::geometry::Space2D::GetSignMethodFromName(node.as<std::string>());
-        return true;
-    }
+    decode(const Node &node, erl::geometry::Space2D::SignMethod &method);
 };  // namespace YAML

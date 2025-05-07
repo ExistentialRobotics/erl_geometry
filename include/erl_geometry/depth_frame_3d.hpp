@@ -18,7 +18,7 @@ namespace erl::geometry {
         using Vector3 = Eigen::Vector3<Dtype>;
         using Vector2 = Eigen::Vector2<Dtype>;
 
-        struct Setting : common::Yamlable<Setting, typename Super::Setting> {
+        struct Setting : public common::Yamlable<Setting, typename Super::Setting> {
             CameraIntrinsic<Dtype> camera_intrinsic = {};
 
             struct YamlConvertImpl {
@@ -30,14 +30,8 @@ namespace erl::geometry {
             };
         };
 
-        // inline static const volatile bool kSettingRegistered = common::YamlableBase::Register<Setting>();
-
     private:
-        inline static const std::string kFileHeader = fmt::format("# erl::geometry::DepthFrame3D<{}>", type_name<Dtype>());
-
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        std::vector<DepthFramePartition3D> m_partitions_ = {};
-        bool m_partitioned_ = false;
 
     public:
         explicit DepthFrame3D(std::shared_ptr<Setting> setting);
@@ -53,9 +47,6 @@ namespace erl::geometry {
 
         [[nodiscard]] long
         GetImageWidth() const;
-
-        [[nodiscard]] bool
-        IsPartitioned() const;
 
         [[nodiscard]] bool
         PointIsInFrame(const Vector3 &xyz_frame) const override;
@@ -74,10 +65,12 @@ namespace erl::geometry {
          * @param rotation orientation of the optical frame in the world frame.
          * @param translation translation of the optical frame in the world frame.
          * @param depth depth measurements (not depth image) in the camera frame.
-         * @param partition_rays whether to partition the rays.
          */
         void
-        UpdateRanges(const Eigen::Ref<const Matrix3> &rotation, const Eigen::Ref<const Vector3> &translation, MatrixX depth, bool partition_rays) override;
+        UpdateRanges(
+            const Eigen::Ref<const Matrix3> &rotation,
+            const Eigen::Ref<const Vector3> &translation,
+            MatrixX depth) override;
 
         void
         UpdateRanges(
@@ -87,33 +80,25 @@ namespace erl::geometry {
             double depth_scale,
             bool partition_rays = false);
 
-        [[nodiscard]] const std::vector<DepthFramePartition3D> &
-        GetPartitions() const;
-
         [[nodiscard]] bool
         operator==(const Super &other) const override;
 
-        [[nodiscard]] bool
-        Write(const std::string &filename) const override;
+        // [[nodiscard]] bool
+        // Write(const std::string &filename) const override;
 
         [[nodiscard]] bool
         Write(std::ostream &s) const override;
 
-        [[nodiscard]] bool
-        Read(const std::string &filename) override;
+        // [[nodiscard]] bool
+        // Read(const std::string &filename) override;
 
         [[nodiscard]] bool
         Read(std::istream &s) override;
 
     protected:
         void
-        PartitionRays();
-
-        void
         UpdateFrameCoords();
     };
-
-    class DepthFramePartition3D {};
 
     using DepthFrame3Dd = DepthFrame3D<double>;
     using DepthFrame3Df = DepthFrame3D<float>;
@@ -123,7 +108,9 @@ namespace erl::geometry {
 #include "depth_frame_3d.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::DepthFrame3D<double>::Setting> : erl::geometry::DepthFrame3D<double>::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::DepthFrame3D<double>::Setting>
+    : erl::geometry::DepthFrame3D<double>::Setting::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::DepthFrame3D<float>::Setting> : erl::geometry::DepthFrame3D<float>::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::DepthFrame3D<float>::Setting>
+    : erl::geometry::DepthFrame3D<float>::Setting::YamlConvertImpl {};

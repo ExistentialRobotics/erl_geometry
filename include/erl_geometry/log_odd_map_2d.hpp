@@ -4,7 +4,6 @@
 
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/grid_map_info.hpp"
-#include "erl_common/logging.hpp"
 #include "erl_common/opencv.hpp"
 #include "erl_common/yaml.hpp"
 
@@ -39,8 +38,11 @@ namespace erl::geometry {
             Dtype min_log_odd = -8;
             Dtype threshold_occupied = 0.7;
             Dtype threshold_free = 0.3;
-            bool use_cross_kernel = true;        // otherwise, use rect kernel. For 3x3, ellipse and cross are the same
-            int num_iters_for_cleaned_mask = 4;  // number of iterations of dilate and erode to generate cleaned mask
+            // If true, use cross kernel. Otherwise, use rect kernel. For 3x3, ellipse and cross are
+            // the same.
+            bool use_cross_kernel = true;
+            // number of iterations of dilation and erosion to generate cleaned mask
+            int num_iters_for_cleaned_mask = 4;
             bool filter_obstacles_in_cleaned_mask = false;
 
             struct YamlConvertImpl {
@@ -86,28 +88,41 @@ namespace erl::geometry {
         Eigen::Matrix2X<Dtype> m_shape_vertices_ = {};
 
     public:
-        LogOddMap2D(std::shared_ptr<Setting> setting, std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info);
+        LogOddMap2D(
+            std::shared_ptr<Setting> setting,
+            std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info);
 
         LogOddMap2D(
             std::shared_ptr<Setting> setting,
             std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info,
             const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &shape_metric_vertices);
 
+        /**
+         *
+         * @param position Sensor position in world frame, the unit is meters.
+         * @param theta Sensor orientation in world frame, the unit is radian.
+         * @param angles_body Sensor angles in the body frame, the unit is radian.
+         * @param ranges Range measurements, the unit is meters.
+         */
         void
         Update(
-            const Eigen::Ref<const Vector2> &position,     // assumed in world frame, unit is meters
-            Dtype theta,                                   // assumed in world frame, unit is radian
-            const Eigen::Ref<const VectorX> &angles_body,  // assumed in body frame, unit is radian
+            const Eigen::Ref<const Vector2> &position,
+            Dtype theta,
+            const Eigen::Ref<const VectorX> &angles_body,
             const Eigen::Ref<const VectorX> &ranges);
 
         /**
-         * @brief Load external possibility map where -1 means unexplored, 0 ~ 100 means occupancy possibility, i.e. 0 means free, 100 means occupied.
+         * @brief Load the external possibility map where -1 means unexplored, 0 ~ 100 means
+         * occupancy possibility, i.e., 0 means free, 100 means occupied.
          * @param position
          * @param theta
          * @param possibility_map
          */
         void
-        LoadExternalPossibilityMap(const Eigen::Ref<const Vector2> &position, Dtype theta, const Eigen::Ref<const Eigen::MatrixXi> &possibility_map);
+        LoadExternalPossibilityMap(
+            const Eigen::Ref<const Vector2> &position,
+            Dtype theta,
+            const Eigen::Ref<const Eigen::MatrixXi> &possibility_map);
 
         std::shared_ptr<LidarFrameMask>
         ComputeStatisticsOfLidarFrame(
@@ -180,7 +195,8 @@ namespace erl::geometry {
         GetCleanedUnexploredMask() const;
 
         [[nodiscard]] auto
-        GetFrontiers(bool clean_at_first = true, int approx_iters = 4) const -> std::vector<Eigen::Matrix2Xi>;
+        GetFrontiers(bool clean_at_first = true, int approx_iters = 4) const
+            -> std::vector<Eigen::Matrix2Xi>;
 
     private:
         [[nodiscard]] std::shared_ptr<LidarFrameMask>
@@ -222,7 +238,9 @@ namespace erl::geometry {
 #include "log_odd_map_2d.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::LogOddMap2Dd::Setting> : erl::geometry::LogOddMap2Dd::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::LogOddMap2Dd::Setting>
+    : erl::geometry::LogOddMap2Dd::Setting::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::LogOddMap2Df::Setting> : erl::geometry::LogOddMap2Df::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::LogOddMap2Df::Setting>
+    : erl::geometry::LogOddMap2Df::Setting::YamlConvertImpl {};

@@ -12,13 +12,13 @@ namespace erl::geometry {
      */
     class NdTreeSetting : public common::Yamlable<NdTreeSetting> {
     public:
-        double resolution = 0.1;
+        float resolution = 0.1;
         uint32_t tree_depth = 16;
 
         virtual bool
-        operator==(const NdTreeSetting& rhs) const {
-            if (typeid(*this) != typeid(rhs)) { return false; }
-            return resolution == rhs.resolution && tree_depth == rhs.tree_depth;
+        operator==(const NdTreeSetting& other) const {
+            if (typeid(*this) != typeid(other)) { return false; }
+            return resolution == other.resolution && tree_depth == other.tree_depth;
         }
 
         bool
@@ -31,18 +31,8 @@ namespace erl::geometry {
 template<>
 struct YAML::convert<erl::geometry::NdTreeSetting> {
     static Node
-    encode(const erl::geometry::NdTreeSetting& rhs) {
-        Node node;
-        node["resolution"] = rhs.resolution;
-        node["tree_depth"] = rhs.tree_depth;
-        return node;
-    }
+    encode(const erl::geometry::NdTreeSetting& setting);
 
     static bool
-    decode(const Node& node, erl::geometry::NdTreeSetting& rhs) {
-        if (!node.IsMap()) { return false; }
-        rhs.resolution = node["resolution"].as<double>();
-        rhs.tree_depth = node["tree_depth"].as<uint32_t>();
-        return true;
-    }
+    decode(const Node& node, erl::geometry::NdTreeSetting& setting);
 };  // namespace YAML

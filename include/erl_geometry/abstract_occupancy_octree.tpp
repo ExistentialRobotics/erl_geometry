@@ -5,132 +5,75 @@
 namespace erl::geometry {
 
     template<typename Dtype>
-    AbstractOccupancyOctree<Dtype>::AbstractOccupancyOctree(std::shared_ptr<OccupancyNdTreeSetting> setting)
+    AbstractOccupancyOctree<Dtype>::AbstractOccupancyOctree(
+        std::shared_ptr<OccupancyNdTreeSetting> setting)
         : Super(setting),
           m_setting_(std::move(setting)) {}
 
     template<typename Dtype>
     bool
-    AbstractOccupancyOctree<Dtype>::WriteBinary(const std::string &filename) {
-        ERL_DEBUG("Writing Octree to file: {}", std::filesystem::absolute(filename));
-        std::ofstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return false;
+    AbstractOccupancyOctree<Dtype>::WriteBinary(std::ostream &s, const bool prune) {
+        if (prune) {
+            ToMaxLikelihood();
+            this->Prune();
+            s << "# Pruned octree\n";  // add a comment line
         }
-
-        WriteBinary(file);
-        const bool success = file.good();
-        file.close();
-        if (success) {
-            ERL_DEBUG("Successfully wrote Octree of type {}, size {}", Super::GetTreeType(), this->GetSize());
-        } else {
-            ERL_WARN("Failed to write Octree of type {}, size {}", Super::GetTreeType(), this->GetSize());
-        }
-        return success;
-    }
-
-    template<typename Dtype>
-    std::ostream &
-    AbstractOccupancyOctree<Dtype>::WriteBinary(std::ostream &s) {
-        ToMaxLikelihood();
-        this->Prune();
         return const_cast<const AbstractOccupancyOctree *>(this)->WriteBinary(s);
     }
 
     template<typename Dtype>
     bool
-    AbstractOccupancyOctree<Dtype>::WriteBinary(const std::string &filename) const {
-        ERL_DEBUG("Writing Octree to file: {}", std::filesystem::absolute(filename));
-        std::ofstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return false;
-        }
-
-        WriteBinary(file);
-        const bool success = file.good();
-        file.close();
-        if (success) {
-            ERL_DEBUG("Successfully wrote Octree of type {}, size {}", Super::GetTreeType(), this->GetSize());
-        } else {
-            ERL_WARN("Failed to write Octree of type {}, size {}", Super::GetTreeType(), this->GetSize());
-        }
-        return success;
-    }
-
-    template<typename Dtype>
-    std::ostream &
     AbstractOccupancyOctree<Dtype>::WriteBinary(std::ostream &s) const {
-        s << kBinaryFileHeader << std::endl
-          << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
-          << "id " << Super::GetTreeType() << std::endl
-          << "size " << this->GetSize() << std::endl
-          << "setting" << std::endl;
-        Super::WriteSetting(s);
-        s << "data" << std::endl;
-        return WriteBinaryData(s);
-    }
-
-    template<typename Dtype>
-    bool
-    AbstractOccupancyOctree<Dtype>::ReadBinary(const std::string &filename) {
-        ERL_DEBUG("Reading Octree from file: {}", std::filesystem::absolute(filename).c_str());
-        std::ifstream file(filename.c_str(), std::ios::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename.c_str());
-            return false;
-        }
-
-        const bool success = ReadBinary(file);
-        file.close();
-        return success;
+        s << "# Binary file\n";  // add a comment line
+        static const common::TokenWriteFunctionPairs<AbstractOccupancyOctree> token_function_pairs =
+            {
+                {
+                    "setting",
+                    [](const AbstractOccupancyOctree *self, std::ostream &stream) {
+                        self->WriteSetting(stream);
+                        return stream.good();
+                    },
+                },
+                {
+                    "data",
+                    [](const AbstractOccupancyOctree *self, std::ostream &stream) {
+                        const std::size_t size = self->GetSize();
+                        stream << size << '\n';
+                        if (size > 0) { return self->WriteBinaryData(stream) && stream.good(); }
+                        return stream.good();
+                    },
+                },
+            };
+        return common::WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
     AbstractOccupancyOctree<Dtype>::ReadBinary(std::istream &s) {
-        if (!s.good()) {
-            ERL_WARN("Input stream is not ready for reading");
-            return false;
-        }
-
-        // check if the first line is valid
-        std::string line;
-        std::getline(s, line);
-        if (line.compare(0, kBinaryFileHeader.length(), kBinaryFileHeader) != 0) {
-            ERL_WARN("First line of Octree file header does not start with \"{}\"", kBinaryFileHeader.c_str());
-            return false;
-        }
-
-        // read header
-        std::string tree_id;
-        uint32_t size;
-        if (!Super::ReadHeader(s, tree_id, size)) { return false; }
-        if (tree_id != Super::GetTreeType()) {
-            ERL_WARN("Error reading Octree header, ID does not match: {} != {}", tree_id.c_str(), Super::GetTreeType().c_str());
-            return false;
-        }
-
-        // clear and read setting
-        this->Clear();
-        if (!Super::ReadSetting(s)) {
-            ERL_WARN("Failed to read setting");
-            return false;
-        }
-        this->ApplySetting();
-
-        // check if the next line is "data"
-        std::getline(s, line);
-        if (line.compare(0, 4, "data") != 0) {
-            ERL_WARN("Expected 'data' keyword, got: {}", line.c_str());
-            return false;
-        }
-
-        // read binary data
-        if (size > 0) { ReadBinaryData(s); }
-        ERL_DEBUG("Done ({} nodes).", this->GetSize());
-        return this->GetSize() == size;
+        static const common::TokenReadFunctionPairs<AbstractOccupancyOctree> token_function_pairs =
+            {
+                {
+                    "setting",
+                    [](AbstractOccupancyOctree *self, std::istream &stream) {
+                        self->Clear();  // clear the tree before reading the setting
+                        if (!self->ReadSetting(stream)) { return false; }
+                        self->ApplySetting();
+                        return stream.good();
+                    },
+                },
+                {
+                    "data",
+                    [](AbstractOccupancyOctree *self, std::istream &stream) {
+                        std::size_t size;
+                        stream >> size;
+                        common::SkipLine(stream);
+                        if (size > 0) { return self->ReadBinaryData(stream) && stream.good(); }
+                        ERL_DEBUG("Load {} nodes", size);
+                        return size == self->GetSize() && stream.good();
+                    },
+                },
+            };
+        return common::ReadTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
@@ -154,7 +97,18 @@ namespace erl::geometry {
         const bool ignore_unknown,
         const Dtype max_range,
         typename Super::Vector3 &hit_position) {
-        return GetHitOccupiedNode(p.x(), p.y(), p.z(), v.x(), v.y(), v.z(), ignore_unknown, max_range, hit_position.x(), hit_position.y(), hit_position.z());
+        return GetHitOccupiedNode(
+            p.x(),
+            p.y(),
+            p.z(),
+            v.x(),
+            v.y(),
+            v.z(),
+            ignore_unknown,
+            max_range,
+            hit_position.x(),
+            hit_position.y(),
+            hit_position.z());
     }
 
 }  // namespace erl::geometry

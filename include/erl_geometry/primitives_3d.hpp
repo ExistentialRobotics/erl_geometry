@@ -38,7 +38,10 @@ namespace erl::geometry {
 
     class AxisAlignedBox : public Primitive3D, public Aabb3Dd {
     public:
-        AxisAlignedBox(const int id, const Eigen::Vector3d &center, const Eigen::Vector3d &half_sizes)
+        AxisAlignedBox(
+            const int id,
+            const Eigen::Vector3d &center,
+            const Eigen::Vector3d &half_sizes)
             : Primitive3D(),
               Aabb3Dd(center, half_sizes) {
             this->id = id;
@@ -81,7 +84,10 @@ namespace erl::geometry {
         Eigen::Matrix3d m_rotation_;
 
     public:
-        Box(const int id, Eigen::Vector3d center, Eigen::Vector3d half_sizes, Eigen::Matrix3d rotation)
+        Box(const int id,
+            Eigen::Vector3d center,
+            Eigen::Vector3d half_sizes,
+            Eigen::Matrix3d rotation)
             : m_center_(std::move(center)),
               m_half_sizes_(std::move(half_sizes)),
               m_rotation_(std::move(rotation)) {
@@ -96,7 +102,8 @@ namespace erl::geometry {
         [[nodiscard]] bool
         IsInside(const Eigen::Vector3d &point) const override {
             Eigen::Vector3d p = m_rotation_.transpose() * (point - m_center_);
-            return std::abs(p.x()) <= m_half_sizes_.x() && std::abs(p.y()) <= m_half_sizes_.y() && std::abs(p.z()) <= m_half_sizes_.z();
+            return std::abs(p.x()) <= m_half_sizes_.x() && std::abs(p.y()) <= m_half_sizes_.y() &&
+                   std::abs(p.z()) <= m_half_sizes_.z();
         }
 
         [[nodiscard]] const Eigen::Vector3d &
@@ -146,7 +153,11 @@ namespace erl::geometry {
         Eigen::Matrix3d m_scaled_rotation_matrix_;
 
     public:
-        Ellipsoid(const int id, Eigen::Vector3d center, Eigen::Vector3d radius, Eigen::Matrix3d rotation)
+        Ellipsoid(
+            const int id,
+            Eigen::Vector3d center,
+            Eigen::Vector3d radius,
+            Eigen::Matrix3d rotation)
             : m_center_(std::move(center)),
               m_radii_(std::move(radius)),
               m_rotation_(std::move(rotation)) {
@@ -161,7 +172,8 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         IsInside(const Eigen::Vector3d &point) const override {
-            Eigen::Vector3d p = (m_rotation_.transpose() * (point - m_center_)).array() / m_radii_.array();
+            Eigen::Vector3d p =
+                (m_rotation_.transpose() * (point - m_center_)).array() / m_radii_.array();
             return p.squaredNorm() <= 1.0;
         }
 
@@ -213,7 +225,8 @@ namespace erl::geometry {
             const double b = 1.0 / m_radii_[1];
             const double c = 1.0 / m_radii_[2];
             m_scaled_rotation_matrix_ << a, 0, 0, 0, b, 0, 0, 0, c;
-            m_scaled_rotation_matrix_ = m_rotation_ * m_scaled_rotation_matrix_ * m_rotation_.transpose();
+            m_scaled_rotation_matrix_ =
+                m_rotation_ * m_scaled_rotation_matrix_ * m_rotation_.transpose();
         }
     };
 

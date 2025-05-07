@@ -25,7 +25,10 @@ namespace erl::geometry {
             if (!std::filesystem::exists(pose_icp_filename)) {
                 ERL_WARN("ICP poses not found, generating ICP results...");
                 if (m_pcd_gt_->points_.empty()) {
-                    ERL_WARN("Failed to load G.T. point cloud from {}, use_icp_poses will be set to false", m_directory_ / "cow_and_lady_gt.ply");
+                    ERL_WARN(
+                        "Failed to load G.T. point cloud from {}, use_icp_poses will be set to "
+                        "false",
+                        m_directory_ / "cow_and_lady_gt.ply");
                     m_use_icp_poses_ = false;
                 }
                 GenerateIcpResults();
@@ -39,7 +42,15 @@ namespace erl::geometry {
         Frame frame;
         Eigen::MatrixX<Eigen::Vector3f> points;
 
-        if (!LoadData(index, frame.sequence_number, frame.time_stamp, frame.header_time_stamp, frame.rotation, frame.translation, points, frame.color)) {
+        if (!LoadData(
+                index,
+                frame.sequence_number,
+                frame.time_stamp,
+                frame.header_time_stamp,
+                frame.rotation,
+                frame.translation,
+                points,
+                frame.color)) {
             return frame;
         }
 
@@ -58,7 +69,8 @@ namespace erl::geometry {
             }
         }
 
-        const Eigen::MatrixX8U depth_img = ((frame.depth.array() + 1) / (max_depth + 1) * 255.0).cast<uint8_t>();
+        const Eigen::MatrixX8U depth_img =
+            ((frame.depth.array() + 1) / (max_depth + 1) * 255.0).cast<uint8_t>();
         cv::eigen2cv(depth_img, frame.depth_jet);
         cv::cvtColor(frame.depth_jet, frame.depth_jet, cv::COLOR_GRAY2BGR);
         cv::applyColorMap(frame.depth_jet, frame.depth_jet, cv::COLORMAP_JET);
@@ -67,7 +79,9 @@ namespace erl::geometry {
 
     void
     CowAndLady::GenerateIcpResults() const {
-        ERL_WARN("Cow and lady dataset does not remove camera distortion. ICP does not work well sometimes.");
+        ERL_WARN(
+            "Cow and lady dataset does not remove camera distortion. ICP does not work well "
+            "sometimes.");
 
         m_pcd_gt_->EstimateNormals(open3d::geometry::KDTreeSearchParamHybrid(0.05, 30), false);
         m_pcd_gt_->NormalizeNormals();
@@ -87,8 +101,15 @@ namespace erl::geometry {
             Eigen::MatrixX<Eigen::Vector3f> points;
             cv::Mat color;
 
-            if (long sequence_number, time_stamp, header_time_stamp;
-                !LoadData(i, sequence_number, time_stamp, header_time_stamp, rotation, translation, points, color)) {
+            if (long sequence_number, time_stamp, header_time_stamp; !LoadData(
+                    i,
+                    sequence_number,
+                    time_stamp,
+                    header_time_stamp,
+                    rotation,
+                    translation,
+                    points,
+                    color)) {
                 continue;
             }
 
@@ -101,7 +122,8 @@ namespace erl::geometry {
                     const Eigen::Vector3f &point = point_ptr[v];
                     if (point.hasNaN()) { continue; }
                     pcd->points_.emplace_back(point.cast<double>());
-                    const cv::Vec3b &pixel = color.at<cv::Vec3b>(static_cast<int>(v), static_cast<int>(u));
+                    const cv::Vec3b &pixel =
+                        color.at<cv::Vec3b>(static_cast<int>(v), static_cast<int>(u));
                     pcd->colors_.emplace_back(pixel[2] / 255.0, pixel[1] / 255.0, pixel[0] / 255.0);
                 }
             }
@@ -129,14 +151,16 @@ namespace erl::geometry {
 
             // compute error
             const Eigen::Matrix4d pose_diff = pose_icp * pose.inverse();
-            error_data(0, i) = common::RadianToDegree(std::acos((pose_diff(0, 0) + pose_diff(1, 1) + pose_diff(2, 2) - 1) / 2));
+            error_data(0, i) = common::RadianToDegree(
+                std::acos((pose_diff(0, 0) + pose_diff(1, 1) + pose_diff(2, 2) - 1) / 2));
             error_data(1, i) = pose_diff.topRightCorner<3, 1>().norm();
 
             // save results
             pose_icp = pose_icp * sk_Transform_.inverse();  // remove the vicon_T_camera transform
             double *icp_pose_ptr = icp_pose_data.col(i).segment<7>(3).data();
             Eigen::Map<Eigen::Vector3d>(icp_pose_ptr, 3, 1) = pose_icp.topRightCorner<3, 1>();
-            Eigen::Map<Eigen::Vector4d>(icp_pose_ptr + 3, 4, 1) = Eigen::Quaterniond(pose_icp.topLeftCorner<3, 3>()).coeffs();
+            Eigen::Map<Eigen::Vector4d>(icp_pose_ptr + 3, 4, 1) =
+                Eigen::Quaterniond(pose_icp.topLeftCorner<3, 3>()).coeffs();
 
 #pragma omp critical
             { progress_bar->Update(); }
@@ -144,11 +168,19 @@ namespace erl::geometry {
 
         // save results
         std::string pose_icp_filename = m_directory_ / "poses_icp.dat";
-        if (!common::SaveEigenMatrixToBinaryFile(pose_icp_filename, icp_pose_data)) { ERL_WARN("Failed to save ICP results to {}", pose_icp_filename); }
+        if (!common::SaveEigenMatrixToBinaryFile(pose_icp_filename, icp_pose_data)) {
+            ERL_WARN("Failed to save ICP results to {}", pose_icp_filename);
+        }
         pose_icp_filename = m_directory_ / "poses_icp.csv";
-        common::SaveEigenMatrixToTextFile<double>(pose_icp_filename, icp_pose_data.transpose(), common::EigenTextFormat::kCsvFmt);
+        common::SaveEigenMatrixToTextFile<double>(
+            pose_icp_filename,
+            icp_pose_data.transpose(),
+            common::EigenTextFormat::kCsvFmt);
         const std::string error_filename = m_directory_ / "icp_errors.csv";
-        common::SaveEigenMatrixToTextFile<double>(error_filename, error_data.transpose(), common::EigenTextFormat::kCsvFmt);
+        common::SaveEigenMatrixToTextFile<double>(
+            error_filename,
+            error_data.transpose(),
+            common::EigenTextFormat::kCsvFmt);
     }
 
     bool
@@ -174,7 +206,8 @@ namespace erl::geometry {
         translation = rotation * sk_Transform_.topRightCorner<3, 1>() + translation;
         rotation = rotation * sk_Transform_.topLeftCorner<3, 3>();
 
-        const std::string pcd_filename = m_directory_ / "pcd" / fmt::format("{}.pcd", sequence_number);
+        const std::string pcd_filename =
+            m_directory_ / "pcd" / fmt::format("{}.pcd", sequence_number);
         std::ifstream ifs(pcd_filename, std::ios::binary);
         if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(ifs, points)) {
             ERL_WARN("Failed to load point cloud data from {}", pcd_filename);

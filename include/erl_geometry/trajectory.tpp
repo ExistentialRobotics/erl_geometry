@@ -11,7 +11,10 @@ namespace erl::geometry {
         if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<Dtype, 2, Eigen::Dynamic>(filename);
         } else {
-            data = common::LoadEigenMatrixFromTextFile<Dtype, Eigen::Dynamic, 2>(filename, common::EigenTextFormat::kCsvFmt, true);
+            data = common::LoadEigenMatrixFromTextFile<Dtype, Eigen::Dynamic, 2>(
+                filename,
+                common::EigenTextFormat::kCsvFmt,
+                true);
         }
         std::vector<Vector2> trajectory;
         trajectory.reserve(data.cols());
@@ -26,7 +29,10 @@ namespace erl::geometry {
         if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<Dtype, 3, Eigen::Dynamic>(filename);
         } else {
-            data = common::LoadEigenMatrixFromTextFile<Dtype, Eigen::Dynamic, 3>(filename, common::EigenTextFormat::kCsvFmt, true);
+            data = common::LoadEigenMatrixFromTextFile<Dtype, Eigen::Dynamic, 3>(
+                filename,
+                common::EigenTextFormat::kCsvFmt,
+                true);
         }
         std::vector<Vector3> trajectory;
         trajectory.reserve(data.cols());
@@ -41,7 +47,10 @@ namespace erl::geometry {
         if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<Dtype, 3, Eigen::Dynamic>(filename);
         } else {
-            data = common::LoadEigenMatrixFromTextFile<Dtype, Eigen::Dynamic, 3>(filename, common::EigenTextFormat::kCsvFmt, true);
+            data = common::LoadEigenMatrixFromTextFile<Dtype, Eigen::Dynamic, 3>(
+                filename,
+                common::EigenTextFormat::kCsvFmt,
+                true);
         }
         std::vector<std::pair<Matrix2, Vector2>> trajectory;
         trajectory.reserve(data.cols());
@@ -60,13 +69,17 @@ namespace erl::geometry {
         if (binary) {
             data = common::LoadEigenMatrixFromBinaryFile<Dtype, 7, Eigen::Dynamic>(filename);
         } else {
-            data = common::LoadEigenMatrixFromTextFile<Dtype>(filename, common::EigenTextFormat::kCsvFmt, true);
+            data = common::LoadEigenMatrixFromTextFile<Dtype>(
+                filename,
+                common::EigenTextFormat::kCsvFmt,
+                true);
         }
         std::vector<std::pair<Matrix3, Vector3>> trajectory;
         trajectory.reserve(data.cols());
         for (long i = 0; i < data.cols(); ++i) {
             Vector3 translation = data.col(i).template head<3>();
-            Matrix3 rotation = Eigen::Quaternion<Dtype>(data.col(i).template tail<4>()).toRotationMatrix();
+            Matrix3 rotation =
+                Eigen::Quaternion<Dtype>(data.col(i).template tail<4>()).toRotationMatrix();
             trajectory.emplace_back(std::move(rotation), std::move(translation));
         }
         return trajectory;

@@ -5,6 +5,7 @@
 using Dtype = float;
 using AbstractQuadtree = erl::geometry::AbstractQuadtree<Dtype>;
 using OccupancyQuadtree = erl::geometry::OccupancyQuadtree<Dtype>;
+using TreeSerializer = erl::common::Serialization<OccupancyQuadtree>;
 using OccupancyQuadtreeNode = erl::geometry::OccupancyQuadtreeNode;
 using QuadtreeKey = erl::geometry::QuadtreeKey;
 using OccupancyQuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<OccupancyQuadtree>;
@@ -15,20 +16,22 @@ using Matrix2X = Eigen::Matrix2X<Dtype>;
 TEST(OccupancyQuadtree, IO) {
     OccupancyQuadtree tree;
     EXPECT_EQ(tree.GetSize(), 0);
-    EXPECT_TRUE(tree.WriteBinary("empty.bt"));
-    EXPECT_TRUE(tree.Write("empty.ot"));
+    EXPECT_TRUE(TreeSerializer::Write("empty.bt", [&](std::ofstream &s) -> bool {
+        return tree.WriteBinary(s);
+    }));
+    EXPECT_TRUE(TreeSerializer::Write("empty.ot", tree));
 
-    OccupancyQuadtree empty_read_tree;
-    EXPECT_TRUE(empty_read_tree.ReadBinary("empty.bt"));
-    EXPECT_EQ(empty_read_tree.GetSize(), 0);
-    EXPECT_TRUE(tree == empty_read_tree);
+    OccupancyQuadtree read_tree_bt;
+    EXPECT_TRUE(TreeSerializer::Read("empty.bt", [&](std::ifstream &s) -> bool {
+        return read_tree_bt.ReadBinary(s);
+    }));
+    EXPECT_EQ(read_tree_bt.GetSize(), 0);
+    EXPECT_TRUE(tree == read_tree_bt);
 
-    const auto read_tree_abstract = AbstractQuadtree::Read("empty.ot");
-    EXPECT_TRUE(read_tree_abstract != nullptr);
-    const auto occupancy_quadtree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_tree_abstract);
-    EXPECT_TRUE(occupancy_quadtree != nullptr);
-    EXPECT_EQ(occupancy_quadtree->GetSize(), 0);
-    EXPECT_TRUE(tree == *occupancy_quadtree);
+    OccupancyQuadtree read_tree_ot;
+    EXPECT_TRUE(TreeSerializer::Read("empty.ot", read_tree_ot));
+    EXPECT_EQ(read_tree_ot.GetSize(), 0);
+    EXPECT_TRUE(tree == read_tree_ot);
 }
 
 TEST(OccupancyQuadtree, InsertPointCloud) {
@@ -65,18 +68,21 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
     OccupancyQuadtreeDrawer drawer(setting, tree);
     drawer.DrawLeaves("test_insert_point_cloud_by_point_cloud.png");
 
-    EXPECT_TRUE(tree->WriteBinary("circle.bt"));  // pruned, binary tree
-    EXPECT_TRUE(tree->Write("circle.ot"));        // not pruned, log odds tree
+    // pruned, binary tree
+    EXPECT_TRUE(TreeSerializer::Write("circle.bt", [&](std::ofstream &s) -> bool {
+        return tree->WriteBinary(s, true);
+    }));
+    EXPECT_TRUE(TreeSerializer::Write("circle.ot", *tree));
 
-    auto read_tree = std::make_shared<OccupancyQuadtree>();
-    EXPECT_TRUE(read_tree->ReadBinary("circle.bt"));
-    EXPECT_EQ(tree->GetSize(), read_tree->GetSize());
+    auto read_tree_bt = std::make_shared<OccupancyQuadtree>();
+    EXPECT_TRUE(TreeSerializer::Read("circle.bt", [&](std::ifstream &s) -> bool {
+        return read_tree_bt->ReadBinary(s);
+    }));
+    EXPECT_EQ(tree->GetSize(), read_tree_bt->GetSize());
 
-    auto read_abstract_tree = AbstractQuadtree::Read("circle.ot");
-    EXPECT_TRUE(read_abstract_tree != nullptr);
-    auto casted_tree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_abstract_tree);
-    EXPECT_TRUE(casted_tree != nullptr);
-    EXPECT_TRUE(*tree == *casted_tree);
+    auto read_tree_ot = std::make_shared<OccupancyQuadtree>();
+    EXPECT_TRUE(TreeSerializer::Read("circle.ot", *read_tree_ot));
+    EXPECT_EQ(*tree, *read_tree_ot);
 }
 
 TEST(OccupancyQuadtree, InsertRay) {
@@ -103,7 +109,15 @@ TEST(OccupancyQuadtree, InsertRay) {
     Dtype max_range = -1;
     bool lazy_eval = false;
     erl::common::ReportTime<std::chrono::milliseconds>("InsertRay", 1, true, [&] {
-        for (int i = 0; i < points.cols(); ++i) { tree->InsertRay(sensor_origin[0], sensor_origin[1], points(0, i), points(1, i), max_range, lazy_eval); }
+        for (int i = 0; i < points.cols(); ++i) {
+            tree->InsertRay(
+                sensor_origin[0],
+                sensor_origin[1],
+                points(0, i),
+                points(1, i),
+                max_range,
+                lazy_eval);
+        }
     });
 
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
@@ -114,18 +128,20 @@ TEST(OccupancyQuadtree, InsertRay) {
     OccupancyQuadtreeDrawer drawer(setting, tree);
     drawer.DrawLeaves("test_insert_point_cloud_by_ray.png");
 
-    EXPECT_TRUE(tree->WriteBinary("square.bt"));
-    EXPECT_TRUE(tree->Write("square.ot"));
+    EXPECT_TRUE(TreeSerializer::Write("square.bt", [&](std::ofstream &s) -> bool {
+        return tree->WriteBinary(s, true);
+    }));
+    EXPECT_TRUE(TreeSerializer::Write("square.ot", *tree));
 
-    auto read_tree = std::make_shared<OccupancyQuadtree>();
-    EXPECT_TRUE(read_tree->ReadBinary("square.bt"));
-    EXPECT_EQ(tree->GetSize(), read_tree->GetSize());
+    auto read_tree_bt = std::make_shared<OccupancyQuadtree>();
+    EXPECT_TRUE(TreeSerializer::Read("square.bt", [&](std::ifstream &s) -> bool {
+        return read_tree_bt->ReadBinary(s);
+    }));
+    EXPECT_EQ(tree->GetSize(), read_tree_bt->GetSize());
 
-    auto read_abstract_tree = AbstractQuadtree::Read("square.ot");
-    EXPECT_TRUE(read_abstract_tree != nullptr);
-    auto casted_tree = std::dynamic_pointer_cast<OccupancyQuadtree>(read_abstract_tree);
-    EXPECT_TRUE(casted_tree != nullptr);
-    EXPECT_TRUE(*tree == *casted_tree);
+    auto read_tree_ot = std::make_shared<OccupancyQuadtree>();
+    EXPECT_TRUE(TreeSerializer::Read("square.ot", *read_tree_ot));
+    EXPECT_EQ(*tree, *read_tree_ot);
 }
 
 TEST(OccupancyQuadtree, CoordsAndKey) {
@@ -145,12 +161,12 @@ TEST(OccupancyQuadtree, CoordsAndKey) {
 
     tree_setting->resolution = 0.1;
     tree.ApplySetting();
-    key[0] = 32888;  // this is a key but will not appear exactly in the depth 14
+    key[0] = 32888;  // this is a key but will not appear exactly at depth 14
     key[1] = 32760;
-    tree.KeyToCoord(key, 14, x_inv, y_inv);  // get the center of the cell of depth 14
+    tree.KeyToCoord(key, 14, x_inv, y_inv);  // get the center of the cell at depth 14
     EXPECT_FLOAT_EQ(12.2, x_inv);
     EXPECT_FLOAT_EQ(-0.6, y_inv);
-    key = tree.CoordToKey(x_inv, y_inv, 14);  // not the same key
+    key = tree.CoordToKey(x_inv, y_inv, 14);  // different key
     EXPECT_EQ(key[0], 32890);
     EXPECT_EQ(key[1], 32762);
 
@@ -165,12 +181,12 @@ TEST(OccupancyQuadtree, Prune) {
     tree_setting->resolution = resolution;
     auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
 
-    // after pruning, empty tree is still empty
+    // after pruning, the empty tree is still empty
     EXPECT_EQ(tree->GetSize(), 0);
     tree->Prune();
     EXPECT_EQ(tree->GetSize(), 0);
 
-    // single occupied cell should be found
+    // a single occupied cell should be found
     Dtype x = -0.05, y = -0.02;
     QuadtreeKey single_key;
     EXPECT_TRUE(tree->CoordToKeyChecked(x, y, single_key));
@@ -182,8 +198,10 @@ TEST(OccupancyQuadtree, Prune) {
 
     // neighboring nodes should not exist
     QuadtreeKey neighbor_key;
-    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1; ++neighbor_key[1]) {
-        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1; ++neighbor_key[0]) {
+    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1;
+         ++neighbor_key[1]) {
+        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1;
+             ++neighbor_key[0]) {
             if (neighbor_key != single_key) {
                 auto node = tree->Search(neighbor_key);
                 EXPECT_TRUE(node == nullptr);
@@ -197,8 +215,10 @@ TEST(OccupancyQuadtree, Prune) {
 
     // prune should do nothing
     tree->Prune();
-    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1; ++neighbor_key[1]) {
-        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1; ++neighbor_key[0]) {
+    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1;
+         ++neighbor_key[1]) {
+        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1;
+             ++neighbor_key[0]) {
             if (neighbor_key != single_key) {
                 auto node = tree->Search(neighbor_key);
                 EXPECT_TRUE(node == nullptr);
@@ -220,8 +240,10 @@ TEST(OccupancyQuadtree, Prune) {
     diagonal_key[1] = single_key[1] + 1;
     auto diagonal_node = tree->UpdateNode(diagonal_key, occupied, lazy_eval);
     EXPECT_TRUE(diagonal_node);
-    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1; ++neighbor_key[1]) {
-        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1; ++neighbor_key[0]) {
+    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1;
+         ++neighbor_key[1]) {
+        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1;
+             ++neighbor_key[0]) {
             if (neighbor_key == single_key) {
                 auto node = tree->Search(neighbor_key);
                 EXPECT_TRUE(node != nullptr);
@@ -242,8 +264,10 @@ TEST(OccupancyQuadtree, Prune) {
 
     // prune should do nothing
     tree->Prune();
-    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1; ++neighbor_key[1]) {
-        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1; ++neighbor_key[0]) {
+    for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1;
+         ++neighbor_key[1]) {
+        for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1;
+             ++neighbor_key[0]) {
             if (neighbor_key == single_key) {
                 auto node = tree->Search(neighbor_key);
                 EXPECT_TRUE(node != nullptr);
@@ -264,10 +288,13 @@ TEST(OccupancyQuadtree, Prune) {
     // fill the complete quadrant, should auto-prune
     tree->UpdateNode(QuadtreeKey(single_key[0], single_key[1] + 1), occupied, lazy_eval);
     EXPECT_EQ(tree->GetSize(), 19);
-    auto pruned_node = tree->UpdateNode(QuadtreeKey(single_key[0] - 1, single_key[1]), occupied, lazy_eval);  // should trigger auto-pruning
+    auto pruned_node = tree->UpdateNode(
+        QuadtreeKey(single_key[0] - 1, single_key[1]),
+        occupied,
+        lazy_eval);  // should trigger auto-pruning
     EXPECT_EQ(tree->GetSize(), 16);
 
-    // all queries should now end up at same parent node
+    // all queries should now end up at the same parent node
     auto node1 = tree->Search(single_key);
     auto node2 = tree->Search(diagonal_key);
     EXPECT_EQ(node1, node2);
@@ -276,7 +303,11 @@ TEST(OccupancyQuadtree, Prune) {
     // test larger volume pruning
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->UpdateNode(static_cast<Dtype>(i) * resolution + 0.001, static_cast<Dtype>(j) * resolution + 0.001, occupied, lazy_eval);
+            auto node = tree->UpdateNode(
+                static_cast<Dtype>(i) * resolution + 0.001,
+                static_cast<Dtype>(j) * resolution + 0.001,
+                occupied,
+                lazy_eval);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -290,18 +321,22 @@ TEST(OccupancyQuadtree, Prune) {
     // test expansion
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->Search(static_cast<Dtype>(i) * resolution + 0.001, static_cast<Dtype>(j) * resolution + 0.001);
+            auto node = tree->Search(
+                static_cast<Dtype>(i) * resolution + 0.001,
+                static_cast<Dtype>(j) * resolution + 0.001);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
     }
 
-    // update a single cell, should auto-expand
+    // update a single cell, which should auto-expand
     EXPECT_TRUE(tree->CoordToKeyChecked(0.1, 0.1, single_key));
     EXPECT_TRUE(tree->UpdateNode(single_key, occupied, lazy_eval));
     for (int i = 0; i <= 31; ++i) {
         for (int j = 0; j <= 31; ++j) {
-            auto node = tree->Search(static_cast<Dtype>(i) * resolution + 0.001, static_cast<Dtype>(j) * resolution + 0.001);
+            auto node = tree->Search(
+                static_cast<Dtype>(i) * resolution + 0.001,
+                static_cast<Dtype>(j) * resolution + 0.001);
             EXPECT_TRUE(node != nullptr);
             EXPECT_TRUE(tree->IsNodeOccupied(node));
         }
@@ -355,22 +390,19 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size - 1);
 
-    EXPECT_TRUE(tree->Write("prune.ot"));
+    EXPECT_TRUE(TreeSerializer::Write("prune.ot", *tree));
 }
 
 TEST(OccupancyQuadtree, DeleteTree) {
-    const auto abstract_tree = AbstractQuadtree::Read("prune.ot");
-    EXPECT_TRUE(abstract_tree != nullptr);
-    const auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
-    EXPECT_TRUE(tree != nullptr);
-
+    auto tree = std::make_shared<OccupancyQuadtree>();
+    EXPECT_TRUE(TreeSerializer::Read("prune.ot", *tree));
     tree->Clear();
     EXPECT_EQ(tree->GetSize(), 0);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
 }
 
 TEST(OccupancyQuadtree, Iterator) {
-    // iterate over empty tree
+    // iterate over an empty tree
     auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
     tree_setting->resolution = 0.05;
     auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
@@ -389,14 +421,16 @@ TEST(OccupancyQuadtree, Iterator) {
     for (; l_it != l_end; ++l_it) { num_iterated_nodes++; }
     EXPECT_EQ(num_iterated_nodes, 0);
 
-    for (auto lb_it = tree->BeginLeafInAabb(-1., -1., 1., 1.), lb_end = tree->EndLeafInAabb(); lb_it != lb_end; ++lb_it) { num_iterated_nodes++; }
+    for (auto lb_it = tree->BeginLeafInAabb(-1., -1., 1., 1.), lb_end = tree->EndLeafInAabb();
+         lb_it != lb_end;
+         ++lb_it) {
+        num_iterated_nodes++;
+    }
     EXPECT_EQ(num_iterated_nodes, 0);
 
-    // iterate over non-empty tree
-    auto abstract_tree = AbstractQuadtree::Read("circle.ot");
-    EXPECT_TRUE(abstract_tree != nullptr);
-    tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
-    EXPECT_TRUE(tree != nullptr);
+    // iterate over a non-empty tree
+    tree = std::make_shared<OccupancyQuadtree>();
+    EXPECT_TRUE(TreeSerializer::Read("circle.ot", *tree));
     std::size_t num_iterated_leaf_nodes = 0;
     std::size_t num_iterated_occupied_leaf_nodes = 0;
     l_it = tree->BeginLeaf();
@@ -420,17 +454,21 @@ TEST(OccupancyQuadtree, Iterator) {
         }
 
         for (int i = 0; i < 4; ++i) {
-            if (auto child = node->GetChild<OccupancyQuadtreeNode>(i); child != nullptr) { stack.emplace_back(child); }
+            if (auto child = node->GetChild<OccupancyQuadtreeNode>(i); child != nullptr) {
+                stack.emplace_back(child);
+            }
         }
     }
     EXPECT_EQ(num_iterated_occupied_leaf_nodes, occupied_leaf_node_count);
 }
 
 TEST(OccupancyQuadtree, RayCasting) {
-    auto abstract_tree = AbstractQuadtree::Read("circle.ot");
-    EXPECT_TRUE(abstract_tree != nullptr);
-    auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
-    EXPECT_TRUE(tree != nullptr);
+    // auto abstract_tree = AbstractQuadtree::Read("circle.ot");
+    // EXPECT_TRUE(abstract_tree != nullptr);
+    // auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
+    // EXPECT_TRUE(tree != nullptr);
+    auto tree = std::make_shared<OccupancyQuadtree>();
+    EXPECT_TRUE(TreeSerializer::Read("circle.ot", *tree));
 
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->area_min << -4, -4;
@@ -459,7 +497,8 @@ TEST(OccupancyQuadtree, RayCasting) {
         constexpr bool ignore_unknown = false;
         constexpr Dtype max_range = 6;
 
-        if (Dtype ex = 0, ey = 0; tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
+        if (Dtype ex = 0, ey = 0;
+            tree->CastRay(sx, sy, vx, vy, ignore_unknown, max_range, ex, ey)) {
             hit++;
             Dtype dx = ex - sx;
             Dtype dy = ey - sy;
@@ -476,7 +515,11 @@ TEST(OccupancyQuadtree, RayCasting) {
         }
     }
 
-    EXPECT_TRUE(sampled_surface->WriteBinary("circle_sampled.bt"));
+    EXPECT_TRUE(TreeSerializer::Write("circle_sampled.bt", [&](std::ofstream &s) -> bool {
+        return sampled_surface->WriteBinary(s, true);
+    }));
+
+    // EXPECT_TRUE(sampled_surface->WriteBinary("circle_sampled.bt"));
     EXPECT_EQ(hit, n);
     EXPECT_EQ(miss, 0);
     EXPECT_EQ(unknown, 0);

@@ -10,38 +10,52 @@
 namespace erl::geometry {
 
     /**
-     * QuadtreeImpl is a template class that implements generic quadtree functionality. The tree is centered at the origin.
+     * QuadtreeImpl is a template class that implements generic quadtree functionality. The tree is
+     * centered at the origin.
      * @tparam Node
      * @tparam Interface
      */
     template<class Node, class Interface, class InterfaceSetting>
     class QuadtreeImpl : public Interface {
         using Dtype = typename Interface::DataType;
-        static_assert(std::is_base_of_v<AbstractQuadtreeNode, Node>, "Node must be derived from AbstractQuadtreeNode");
-        static_assert(std::is_base_of_v<AbstractQuadtree<Dtype>, Interface>, "Interface must be derived from AbstractQuadtree");
+        static_assert(
+            std::is_base_of_v<AbstractQuadtreeNode, Node>,
+            "Node must be derived from AbstractQuadtreeNode");
+        static_assert(
+            std::is_base_of_v<AbstractQuadtree<Dtype>, Interface>,
+            "Interface must be derived from AbstractQuadtree");
 
         std::shared_ptr<InterfaceSetting> m_setting_ = nullptr;
 
     protected:
-        std::shared_ptr<Node> m_root_ = nullptr;  // root node of the quadtree, nullptr if the quadtree is empty
-        Dtype m_resolution_inv_ = 0;              // inverse of the resolution
-        uint32_t m_tree_key_offset_ = 0;          // offset of the key, = 1 << (tree_depth - 1)
-        std::size_t m_tree_size_ = 0;             // number of nodes in the tree
-        bool m_size_changed_ = false;             // flag indicating if the metric size of the tree has changed
-        Dtype m_metric_max_[2] = {                // max metric coordinate of x and y
-                                  std::numeric_limits<Dtype>::lowest(),
-                                  std::numeric_limits<Dtype>::lowest()};
-        Dtype m_metric_min_[2] = {// min metric coordinate of x and y
-                                  std::numeric_limits<Dtype>::max(),
-                                  std::numeric_limits<Dtype>::max()};
-        std::vector<Dtype> m_size_lookup_table_;  // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
-        std::vector<QuadtreeKeyRay> m_key_rays_;  // data structure for parallel ray casting
+        // root node of the quadtree, nullptr if the quadtree is empty
+        std::shared_ptr<Node> m_root_ = nullptr;
+        // inverse of the resolution
+        Dtype m_resolution_inv_ = 0;
+        // offset of the key, = 1 << (tree_depth - 1)
+        uint32_t m_tree_key_offset_ = 0;
+        // number of nodes in the tree
+        std::size_t m_tree_size_ = 0;
+        // flag indicating if the metric size of the tree has changed
+        bool m_size_changed_ = false;
+        // max metric coordinate of x and y
+        Dtype m_metric_max_[2] = {
+            std::numeric_limits<Dtype>::lowest(),
+            std::numeric_limits<Dtype>::lowest()};
+        // min metric coordinate of x and y
+        Dtype m_metric_min_[2] = {
+            std::numeric_limits<Dtype>::max(),
+            std::numeric_limits<Dtype>::max()};
+        // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
+        std::vector<Dtype> m_size_lookup_table_;
+        // data structure for parallel ray casting
+        std::vector<QuadtreeKeyRay> m_key_rays_;
 
         // taking one dimension, tree_depth = 3 as an example:
-        // depth 0 (level 3): root, key = (           4          ) = 1 << (tree_depth - 1)
-        // depth 1 (level 2): 2 children, (     2,          6    )
-        // depth 2 (level 1): 4 children, (  1,    3,    5,    7 )
-        // depth 3 (level 0): 8 children, (0, 1, 2, 3, 4, 5, 6, 7)
+        // depth 0 (level 3): root, key = `(           4          ) = 1 << (tree_depth - 1)`
+        // depth 1 (level 2): 2 children, `(     2,          6    )`
+        // depth 2 (level 1): 4 children, `(  1,    3,    5,    7 )`
+        // depth 3 (level 0): 8 children, `(0, 1, 2, 3, 4, 5, 6, 7)`
 
     public:
         using NodeType = Node;
@@ -146,7 +160,8 @@ namespace erl::geometry {
         ComputeNumberOfNodes() const;
 
         //-- key / coordinate operations
-        // ref: https://www.tandfonline.com/doi/abs/10.1080/10867651.2002.10487560?journalCode=ujgt19
+        // ref:
+        // https://www.tandfonline.com/doi/abs/10.1080/10867651.2002.10487560?journalCode=ujgt19
         /**
          * Convert 1-dim coordinate to key at depth N.
          * @param coordinate
@@ -190,7 +205,7 @@ namespace erl::geometry {
         CoordToKey(Dtype x, Dtype y, uint32_t depth) const;
 
         /**
-         * Convert 1-dim coordinate to key at depth N with boundary check.
+         * Convert 1-dim coordinate to a key at depth N with the boundary check.
          * @param coordinate
          * @param key
          * @return
@@ -199,7 +214,7 @@ namespace erl::geometry {
         CoordToKeyChecked(Dtype coordinate, QuadtreeKey::KeyType &key) const;
 
         /**
-         * Convert 1-dim coordinate to key at a given depth with boundary check.
+         * Convert 1-dim coordinate to a key at a given depth with the boundary check.
          * @param coordinate
          * @param depth
          * @param key
@@ -212,10 +227,11 @@ namespace erl::geometry {
         CoordToKeyChecked(const Eigen::Ref<const Vector2> &coord, QuadtreeKey &key) const;
 
         [[nodiscard]] bool
-        CoordToKeyChecked(const Eigen::Ref<const Vector2> &coord, uint32_t depth, QuadtreeKey &key) const;
+        CoordToKeyChecked(const Eigen::Ref<const Vector2> &coord, uint32_t depth, QuadtreeKey &key)
+            const;
 
         /**
-         * Convert 2-dim coordinate to key at depth N with boundary check.
+         * Convert 2-dim coordinate to a key at depth N with the boundary check.
          * @param x
          * @param y
          * @param key
@@ -225,7 +241,7 @@ namespace erl::geometry {
         CoordToKeyChecked(Dtype x, Dtype y, QuadtreeKey &key) const;
 
         /**
-         * Convert 2-dim coordinate to key at a given depth with boundary check.
+         * Convert 2-dim coordinate to a key at a given depth with the boundary check.
          * @param x
          * @param y
          * @param depth
@@ -236,7 +252,7 @@ namespace erl::geometry {
         CoordToKeyChecked(Dtype x, Dtype y, uint32_t depth, QuadtreeKey &key) const;
 
         /**
-         * Adjust 1-dim key from the lowest level (max depth) to a given depth.
+         * Adjust a 1-dim key from the lowest level (max depth) to a given depth.
          * @param key the key at the lowest level
          * @param depth the target depth
          * @return
@@ -245,7 +261,7 @@ namespace erl::geometry {
         AdjustKeyToDepth(QuadtreeKey::KeyType key, uint32_t depth) const;
 
         /**
-         * Adjust 2-dim key from the lowest level (max depth) to a given depth.
+         * Adjust a 2-dim key from the lowest level (max depth) to a given depth.
          * @param key the key at the lowest level
          * @param depth the target depth
          * @return
@@ -254,25 +270,33 @@ namespace erl::geometry {
         AdjustKeyToDepth(const QuadtreeKey &key, uint32_t depth) const;
 
         void
-        ComputeCommonAncestorKey(const QuadtreeKey &key1, const QuadtreeKey &key2, QuadtreeKey &ancestor_key, uint32_t &ancestor_depth) const;
+        ComputeCommonAncestorKey(
+            const QuadtreeKey &key1,
+            const QuadtreeKey &key2,
+            QuadtreeKey &ancestor_key,
+            uint32_t &ancestor_depth) const;
 
         /**
-         * Compute the key of the west(left) neighbor of a node.
+         * Compute the key of the west(left) neighbor.
          * @param key
          * @param depth 0 means root
          * @param neighbor_key
          */
         bool
-        ComputeWestNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const;
+        ComputeWestNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key)
+            const;
 
         bool
-        ComputeEastNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const;
+        ComputeEastNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key)
+            const;
 
         bool
-        ComputeNorthNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const;
+        ComputeNorthNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key)
+            const;
 
         bool
-        ComputeSouthNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key) const;
+        ComputeSouthNeighborKey(const QuadtreeKey &key, uint32_t depth, QuadtreeKey &neighbor_key)
+            const;
 
         /**
          * Convert 1-dim key to coordinate.
@@ -283,7 +307,7 @@ namespace erl::geometry {
         KeyToCoord(QuadtreeKey::KeyType key) const;
 
         /**
-         * Convert 1-dim key to coordinate at a given depth.
+         * Convert a 1-dim key to coordinate at a given depth.
          * @param key
          * @param depth
          * @return
@@ -301,7 +325,7 @@ namespace erl::geometry {
         KeyToCoord(const QuadtreeKey &key, Dtype &x, Dtype &y) const;
 
         /**
-         * Convert 2-dim key to coordinate at a given depth.
+         * Convert a 2-dim key to coordinate at a given depth.
          * @param key
          * @param depth
          * @param x
@@ -408,7 +432,8 @@ namespace erl::geometry {
             Terminate();
 
             /**
-             * @brief Get the biggest in-tree axis-aligned bounding box (AABB) that is inside the given AABB.
+             * @brief Get the biggest in-tree axis-aligned bounding box (AABB) that is inside the
+             * given AABB.
              *
              * @param aabb_min_x
              * @param aabb_min_y
@@ -417,7 +442,11 @@ namespace erl::geometry {
              * @return true if such an AABB exists, false otherwise.
              */
             bool
-            GetInTreeAabb(Dtype &aabb_min_x, Dtype &aabb_min_y, Dtype &aabb_max_x, Dtype &aabb_max_y) const;
+            GetInTreeAabb(
+                Dtype &aabb_min_x,
+                Dtype &aabb_min_y,
+                Dtype &aabb_max_x,
+                Dtype &aabb_max_y) const;
         };
 
         class TreeIterator : public IteratorBase {
@@ -445,9 +474,19 @@ namespace erl::geometry {
         public:
             InAabbIteratorBase() = default;
 
-            InAabbIteratorBase(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y, const QuadtreeImpl *tree, uint32_t max_node_depth = 0);
+            InAabbIteratorBase(
+                Dtype aabb_min_x,
+                Dtype aabb_min_y,
+                Dtype aabb_max_x,
+                Dtype aabb_max_y,
+                const QuadtreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
-            InAabbIteratorBase(QuadtreeKey aabb_min_key, QuadtreeKey aabb_max_key, const QuadtreeImpl *tree, uint32_t max_node_depth = 0);
+            InAabbIteratorBase(
+                QuadtreeKey aabb_min_key,
+                QuadtreeKey aabb_max_key,
+                const QuadtreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
         protected:
             void
@@ -458,9 +497,19 @@ namespace erl::geometry {
         public:
             TreeInAabbIterator() = default;
 
-            TreeInAabbIterator(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y, const QuadtreeImpl *tree, uint32_t max_node_depth = 0);
+            TreeInAabbIterator(
+                Dtype aabb_min_x,
+                Dtype aabb_min_y,
+                Dtype aabb_max_x,
+                Dtype aabb_max_y,
+                const QuadtreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
-            TreeInAabbIterator(QuadtreeKey aabb_min_key, QuadtreeKey aabb_max_key, const QuadtreeImpl *tree, uint32_t max_node_depth = 0);
+            TreeInAabbIterator(
+                QuadtreeKey aabb_min_key,
+                QuadtreeKey aabb_max_key,
+                const QuadtreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
             // post-increment
             TreeInAabbIterator
@@ -481,9 +530,19 @@ namespace erl::geometry {
         public:
             LeafInAabbIterator() = default;
 
-            LeafInAabbIterator(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y, const QuadtreeImpl *tree, uint32_t max_leaf_depth = 0);
+            LeafInAabbIterator(
+                Dtype aabb_min_x,
+                Dtype aabb_min_y,
+                Dtype aabb_max_x,
+                Dtype aabb_max_y,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth = 0);
 
-            LeafInAabbIterator(QuadtreeKey aabb_min_key, QuadtreeKey aabb_max_key, const QuadtreeImpl *tree, uint32_t max_leaf_depth = 0);
+            LeafInAabbIterator(
+                QuadtreeKey aabb_min_key,
+                QuadtreeKey aabb_max_key,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth = 0);
 
             // post-increment
             LeafInAabbIterator
@@ -519,7 +578,11 @@ namespace erl::geometry {
         public:
             LeafOfNodeIterator() = default;
 
-            LeafOfNodeIterator(QuadtreeKey key, uint32_t cluster_depth, const QuadtreeImpl *tree, uint32_t max_node_depth = 0);
+            LeafOfNodeIterator(
+                QuadtreeKey key,
+                uint32_t cluster_depth,
+                const QuadtreeImpl *tree,
+                uint32_t max_node_depth = 0);
 
             // post-increment
             LeafOfNodeIterator
@@ -552,7 +615,12 @@ namespace erl::geometry {
              * @param increase
              */
             void
-            Init(QuadtreeKey key, uint32_t key_depth, int changing_dim, int unchanged_dim, bool increase);
+            Init(
+                QuadtreeKey key,
+                uint32_t key_depth,
+                int changing_dim,
+                int unchanged_dim,
+                bool increase);
 
             void
             SingleIncrementOf(int changing_dim);
@@ -566,9 +634,17 @@ namespace erl::geometry {
         public:
             WestLeafNeighborIterator() = default;
 
-            WestLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            WestLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            WestLeafNeighborIterator(const QuadtreeKey &key, uint32_t key_depth, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            WestLeafNeighborIterator(
+                const QuadtreeKey &key,
+                uint32_t key_depth,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             WestLeafNeighborIterator
@@ -590,9 +666,17 @@ namespace erl::geometry {
         public:
             EastLeafNeighborIterator() = default;
 
-            EastLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            EastLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            EastLeafNeighborIterator(const QuadtreeKey &key, uint32_t key_depth, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            EastLeafNeighborIterator(
+                const QuadtreeKey &key,
+                uint32_t key_depth,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             EastLeafNeighborIterator
@@ -614,9 +698,17 @@ namespace erl::geometry {
         public:
             NorthLeafNeighborIterator() = default;
 
-            NorthLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            NorthLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            NorthLeafNeighborIterator(const QuadtreeKey &key, uint32_t key_depth, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            NorthLeafNeighborIterator(
+                const QuadtreeKey &key,
+                uint32_t key_depth,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             NorthLeafNeighborIterator
@@ -638,9 +730,17 @@ namespace erl::geometry {
         public:
             SouthLeafNeighborIterator() = default;
 
-            SouthLeafNeighborIterator(Dtype x, Dtype y, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            SouthLeafNeighborIterator(
+                Dtype x,
+                Dtype y,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
-            SouthLeafNeighborIterator(const QuadtreeKey &key, uint32_t key_depth, const QuadtreeImpl *tree, uint32_t max_leaf_depth);
+            SouthLeafNeighborIterator(
+                const QuadtreeKey &key,
+                uint32_t key_depth,
+                const QuadtreeImpl *tree,
+                uint32_t max_leaf_depth);
 
             // post-increment
             SouthLeafNeighborIterator
@@ -712,7 +812,9 @@ namespace erl::geometry {
             struct StackElementCompare {  // for min-heap
 
                 bool
-                operator()(const typename IteratorBase::StackElement &lhs, const typename IteratorBase::StackElement &rhs) const;
+                operator()(
+                    const typename IteratorBase::StackElement &lhs,
+                    const typename IteratorBase::StackElement &rhs) const;
             };
 
             void
@@ -743,10 +845,18 @@ namespace erl::geometry {
         BeginLeafInAabb(const Aabb<Dtype, 2> &aabb, uint32_t max_depth = 0) const;
 
         [[nodiscard]] LeafInAabbIterator
-        BeginLeafInAabb(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y, uint32_t max_depth = 0) const;
+        BeginLeafInAabb(
+            Dtype aabb_min_x,
+            Dtype aabb_min_y,
+            Dtype aabb_max_x,
+            Dtype aabb_max_y,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] LeafInAabbIterator
-        BeginLeafInAabb(const QuadtreeKey &aabb_min_key, const QuadtreeKey &aabb_max_key, uint32_t max_depth = 0) const;
+        BeginLeafInAabb(
+            const QuadtreeKey &aabb_min_key,
+            const QuadtreeKey &aabb_max_key,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] LeafInAabbIterator
         EndLeafInAabb() const;
@@ -767,10 +877,18 @@ namespace erl::geometry {
         BeginTreeInAabb(const Aabb<Dtype, 2> &aabb, uint32_t max_depth = 0) const;
 
         [[nodiscard]] TreeInAabbIterator
-        BeginTreeInAabb(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y, uint32_t max_depth = 0) const;
+        BeginTreeInAabb(
+            Dtype aabb_min_x,
+            Dtype aabb_min_y,
+            Dtype aabb_max_x,
+            Dtype aabb_max_y,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] TreeInAabbIterator
-        BeginTreeInAabb(const QuadtreeKey &aabb_min_key, const QuadtreeKey &aabb_max_key, uint32_t max_depth = 0) const;
+        BeginTreeInAabb(
+            const QuadtreeKey &aabb_min_key,
+            const QuadtreeKey &aabb_max_key,
+            uint32_t max_depth = 0) const;
 
         [[nodiscard]] TreeInAabbIterator
         EndTreeInAabb() const;
@@ -779,7 +897,10 @@ namespace erl::geometry {
         BeginWestLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] WestLeafNeighborIterator
-        BeginWestLeafNeighbor(const QuadtreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginWestLeafNeighbor(
+            const QuadtreeKey &key,
+            uint32_t key_depth,
+            uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] WestLeafNeighborIterator
         EndWestLeafNeighbor() const;
@@ -788,7 +909,10 @@ namespace erl::geometry {
         BeginEastLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] EastLeafNeighborIterator
-        BeginEastLeafNeighbor(const QuadtreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginEastLeafNeighbor(
+            const QuadtreeKey &key,
+            uint32_t key_depth,
+            uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] EastLeafNeighborIterator
         EndEastLeafNeighbor() const;
@@ -797,7 +921,10 @@ namespace erl::geometry {
         BeginNorthLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] NorthLeafNeighborIterator
-        BeginNorthLeafNeighbor(const QuadtreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginNorthLeafNeighbor(
+            const QuadtreeKey &key,
+            uint32_t key_depth,
+            uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] NorthLeafNeighborIterator
         EndNorthLeafNeighbor() const;
@@ -806,7 +933,10 @@ namespace erl::geometry {
         BeginSouthLeafNeighbor(Dtype x, Dtype y, uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] SouthLeafNeighborIterator
-        BeginSouthLeafNeighbor(const QuadtreeKey &key, uint32_t key_depth, uint32_t max_leaf_depth = 0) const;
+        BeginSouthLeafNeighbor(
+            const QuadtreeKey &key,
+            uint32_t key_depth,
+            uint32_t max_leaf_depth = 0) const;
 
         [[nodiscard]] SouthLeafNeighborIterator
         EndSouthLeafNeighbor() const;
@@ -840,8 +970,9 @@ namespace erl::geometry {
 
         //-- ray tracing
         /**
-         * Trace a ray from origin to end (excluded), returning a QuadtreeKeyRay of all nodes' QuadtreeKey traversed by the ray. For each key, the
-         * corresponding node may not exist. You can use Search() to check if the node exists.
+         * Trace a ray from origin to end (excluded), returning a QuadtreeKeyRay of all nodes'
+         * QuadtreeKey traversed by the ray. For each key, the corresponding node may not exist. You
+         * can use Search() to check if the node exists.
          * @param sx x coordinate of the origin
          * @param sy y coordinate of the origin
          * @param ex x coordinate of the end (excluded)
@@ -853,8 +984,9 @@ namespace erl::geometry {
         ComputeRayKeys(Dtype sx, Dtype sy, Dtype ex, Dtype ey, QuadtreeKeyRay &ray) const;
 
         /**
-         * Trace a ray from origin to end (excluded), returning a list of all nodes' coordinates traversed by the ray. For each coordinate, the
-         * corresponding node may not exist. You can use Search() to check if the node exists.
+         * Trace a ray from origin to end (excluded), returning a list of all nodes' coordinates
+         * traversed by the ray. For each coordinate, the corresponding node may not exist. You can
+         * use Search() to check if the node exists.
          * @param sx x coordinate of the origin
          * @param sy y coordinate of the origin
          * @param ex x coordinate of the end (excluded)
@@ -866,8 +998,8 @@ namespace erl::geometry {
         ComputeRayCoords(Dtype sx, Dtype sy, Dtype ex, Dtype ey, std::vector<Vector2> &ray) const;
 
         /**
-         * Clear KeyRay vector to minimize unneeded memory. This is only useful for the StaticMemberInitializer classes, don't call it for a quadtree that
-         * is actually used.
+         * Clear KeyRay vector to minimize unneeded memory. This is only useful for the
+         * StaticMemberInitializer classes, don't call it for a quadtree that is actually used.
          */
         void
         ClearKeyRays();
@@ -886,7 +1018,8 @@ namespace erl::geometry {
         DeleteNodeChild(Node *node, uint32_t child_idx, const QuadtreeKey &key);
 
         /**
-         * Get a child node of the given node. Before calling this function, make sure node->HasChildrenPtr() or node->HasAnyChild() returns true.
+         * Get a child node of the given node. Before calling this function, make sure
+         * node->HasChildrenPtr() or node->HasAnyChild() returns true.
          * @param node
          * @param child_idx
          * @return
@@ -895,7 +1028,8 @@ namespace erl::geometry {
         GetNodeChild(Node *node, uint32_t child_idx);
 
         /**
-         * Get a child node of the given node. Before calling this function, make sure node->HasChildrenPtr() or node->HasAnyChild() returns true.
+         * Get a child node of the given node. Before calling this function, make sure
+         * node->HasChildrenPtr() or node->HasAnyChild() returns true.
          * @param node
          * @param child_idx
          * @return
@@ -904,8 +1038,9 @@ namespace erl::geometry {
         GetNodeChild(const Node *node, uint32_t child_idx) const;
 
         /**
-         * Check if a node is collapsible. For example, for occupancy quadtree, a node is collapsible if all its children exist, none of them have its own
-         * children, and they all have the same occupancy value.
+         * Check if a node is collapsible. For example, for occupancy quadtree, a node is
+         * collapsible if all its children exist, none of them have its own children, and they all
+         * have the same occupancy value.
          * @param node
          * @return
          */
@@ -913,7 +1048,7 @@ namespace erl::geometry {
         IsNodeCollapsible(const Node *node) const;
 
         /**
-         * Expand a node: all children are created and their data is copied from the parent.
+         * Expand a node: all children are created, and their data is copied from the parent.
          * @param node
          * @return
          */
@@ -932,8 +1067,8 @@ namespace erl::geometry {
          * Delete nodes that contain the given point, at or deeper than the given delete_depth.
          * @param x
          * @param y
-         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >= delete_depth will be deleted. If delete_depth == 0, delete at
-         * the lowest level.
+         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >=
+         * delete_depth will be deleted. If delete_depth == 0, delete at the lowest level.
          * @return
          */
         uint32_t
@@ -942,8 +1077,8 @@ namespace erl::geometry {
         /**
          * Delete nodes that contain the given key, at or deeper than the given delete_depth.
          * @param key
-         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >= delete_depth will be deleted. If delete_depth == 0, delete at
-         * the lowest level.
+         * @param delete_depth delete_depth to start deleting nodes, nodes at delete_depth >=
+         * delete_depth will be deleted. If delete_depth == 0, delete at the lowest level.
          * @return
          */
         void
@@ -952,7 +1087,7 @@ namespace erl::geometry {
     protected:
         /**
          * Callback before deleting a child node.
-         * @param node parent node, may be nullptr if the child is the root node
+         * @param node parent node, which may be nullptr if the child is the root node
          * @param child child node to be deleted
          * @param key key of the child node
          */
@@ -960,8 +1095,9 @@ namespace erl::geometry {
         OnDeleteNodeChild(Node *node, Node *child, const QuadtreeKey &key);
 
         /**
-         * Delete child nodes down to max_depth matching the given key of the given node that is at the given depth.
-         * @param node node at depth, must not be nullptr and it will not be deleted
+         * Delete child nodes down to max_depth matching the given key of the given node that is at
+         * the given depth.
+         * @param node node at depth, which must not be nullptr, and it will not be deleted
          * @param key
          * @param max_depth
          * @return
@@ -987,7 +1123,8 @@ namespace erl::geometry {
         Clear() override;
 
         /**
-         * Lossless compression of the tree: a node will replace all of its children if the node is collapsible.
+         * Lossless compression of the tree: a node will replace all of its children if the node is
+         * collapsible.
          */
         void
         Prune() override;
@@ -1023,7 +1160,7 @@ namespace erl::geometry {
          * Search node given a point.
          * @param x
          * @param y
-         * @param max_depth max depth to search. However, max_depth=0 means searching from root.
+         * @param max_depth Max depth to search. However, max_depth=0 means searching from the root.
          * @return
          */
         [[nodiscard]] const Node *
@@ -1032,7 +1169,8 @@ namespace erl::geometry {
         /**
          * Search node at specified max_depth given a key.
          * @param key
-         * @param max_depth max max_depth to search. However, max_depth=0 means searching from root.
+         * @param max_depth Max max_depth to search. However, max_depth=0 means searching from the
+         * root.
          * @return
          */
         [[nodiscard]] const Node *
@@ -1047,7 +1185,8 @@ namespace erl::geometry {
     protected:
         //-- file IO
         /**
-         * Read all nodes from the input stream (without file header). For general file IO, use AbstractQuadtree::Read.
+         * Read all nodes from the input stream (without the file header). For general file IO, use
+         * AbstractQuadtree::Read.
          */
         std::istream &
         ReadData(std::istream &s) override;

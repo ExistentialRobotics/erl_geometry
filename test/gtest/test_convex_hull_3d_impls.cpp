@@ -21,21 +21,25 @@ RunCgalImpl(const std::vector<Eigen::Vector3d> &points) {
 
     std::vector<Point_3> cgal_points;
     cgal_points.reserve(points.size());
-    std::transform(points.begin(), points.end(), std::back_inserter(cgal_points), [](const Eigen::Vector3d &point) {
-        return Point_3(point[0], point[1], point[2]);
-    });
+    std::transform(
+        points.begin(),
+        points.end(),
+        std::back_inserter(cgal_points),
+        [](const Eigen::Vector3d &point) { return Point_3(point[0], point[1], point[2]); });
     std::vector<std::size_t> extreme_point_indices;
     CGAL::extreme_points_3(
-        CGAL::make_range(boost::counting_iterator<std::size_t>(0), boost::counting_iterator<std::size_t>(cgal_points.size())),
+        CGAL::make_range(
+            boost::counting_iterator<std::size_t>(0),
+            boost::counting_iterator<std::size_t>(cgal_points.size())),
         std::back_inserter(extreme_point_indices),
         CGAL::make_extreme_points_traits_adapter(CGAL::make_property_map(cgal_points)));
     return extreme_point_indices;
 }
 
 std::vector<long>
-RunQhullImpl(const std::vector<Eigen::Vector3d> &points) {
+RunQhullImpl(const Eigen::Matrix3Xd &points) {
     std::vector<long> indices;
-    erl::geometry::ConvexHull<std::vector<Eigen::Vector3d>>(points, points.size(), indices, "Q3 Q5 Q8");
+    erl::geometry::ConvexHull(points.data(), points.cols(), indices, "Q3 Q5 Q8");
     return indices;
 }
 
@@ -47,9 +51,11 @@ RunCgalImplMesh(const std::vector<Eigen::Vector3d> &points) {
 
     std::vector<Point_3> cgal_points;
     cgal_points.reserve(points.size());
-    std::transform(points.begin(), points.end(), std::back_inserter(cgal_points), [](const Eigen::Vector3d &point) {
-        return Point_3(point[0], point[1], point[2]);
-    });
+    std::transform(
+        points.begin(),
+        points.end(),
+        std::back_inserter(cgal_points),
+        [](const Eigen::Vector3d &point) { return Point_3(point[0], point[1], point[2]); });
 
     Mesh mesh;
     CGAL::convex_hull_3(cgal_points.begin(), cgal_points.end(), mesh);
@@ -77,32 +83,51 @@ RunQhullImplMesh(const std::vector<Eigen::Vector3d> &points) {
     Eigen::Matrix3Xd mesh_vertices;
     Eigen::Matrix3Xl mesh_triangles;
     std::vector<long> indices;
-    erl::geometry::ConvexHull<std::vector<Eigen::Vector3d>>(points, points.size(), mesh_vertices, mesh_triangles, indices, "Q3 Q5 Q8");
+    erl::geometry::ConvexHull(
+        points.data()->data(),
+        points.size(),
+        mesh_vertices,
+        mesh_triangles,
+        indices,
+        "Q3 Q5 Q8");
 
     std::vector<Eigen::Vector3d> vertices;
     vertices.reserve(mesh_vertices.cols());
     for (long i = 0; i < mesh_vertices.cols(); ++i) { vertices.emplace_back(mesh_vertices.col(i)); }
     std::vector<Eigen::Vector3i> triangles;
     triangles.reserve(mesh_triangles.cols());
-    for (long i = 0; i < mesh_triangles.cols(); ++i) { triangles.emplace_back(mesh_triangles.col(i).cast<int>()); }
+    for (long i = 0; i < mesh_triangles.cols(); ++i) {
+        triangles.emplace_back(mesh_triangles.col(i).cast<int>());
+    }
     auto o3d_mesh = std::make_shared<open3d::geometry::TriangleMesh>(vertices, triangles);
     return o3d_mesh;
 }
 
-TEST(ERL_GEOMETRY, ConvexHull3DImpls) {
+TEST(ConvexHull, Compare3DImpls) {
     GTEST_PREPARE_OUTPUT_DIR();
-
-    std::filesystem::path mesh_path = __FILE__;
-    mesh_path = mesh_path.parent_path() / "bunny.ply";
+    std::filesystem::path mesh_path = ERL_GEOMETRY_ROOT_DIR;
+    mesh_path /= "data/bunny.ply";
 
     auto o3d_mesh = open3d::io::CreateMeshFromFile(mesh_path.string());
-    std::vector<long> num_points = {static_cast<long>(1E3), static_cast<long>(1E4), static_cast<long>(1E5), static_cast<long>(1E6)};
+    std::vector<long> num_points = {
+        static_cast<long>(1E3),
+        static_cast<long>(1E4),
+        static_cast<long>(1E5),
+        static_cast<long>(1E6)};
     std::vector<std::pair<double, double>> timings;
     for (auto &num_point: num_points) {
         auto point_cloud = o3d_mesh->SamplePointsUniformly(num_point);
         ERL_INFO("num_points: {}", num_point);
-        double t_cgal = erl::common::ReportTime<std::chrono::milliseconds>("CGAL", 5, false, [&] { RunCgalImpl(point_cloud->points_); });
-        double t_qhull = erl::common::ReportTime<std::chrono::milliseconds>("QHull", 5, false, [&] { RunQhullImpl(point_cloud->points_); });
+        double t_cgal = erl::common::ReportTime<std::chrono::milliseconds>("CGAL", 5, false, [&] {
+            RunCgalImpl(point_cloud->points_);
+        });
+        Eigen::Matrix3Xd points(3, point_cloud->points_.size());
+        for (std::size_t i = 0; i < point_cloud->points_.size(); ++i) {
+            points.col(static_cast<long>(i)) = point_cloud->points_[i];
+        }
+        double t_qhull = erl::common::ReportTime<std::chrono::milliseconds>("QHull", 5, false, [&] {
+            RunQhullImpl(points);
+        });
         timings.emplace_back(t_cgal, t_qhull);
     }
     std::cout << "Summary timing (ms):\n"
@@ -112,7 +137,8 @@ TEST(ERL_GEOMETRY, ConvexHull3DImpls) {
         std::cout << std::setfill(' ') << std::setw(10) << num_points[i]      //
                   << std::setfill(' ') << std::setw(10) << timings[i].first   //
                   << std::setfill(' ') << std::setw(10) << timings[i].second  //
-                  << std::setfill(' ') << std::setw(10) << timings[i].first / timings[i].second << std::endl;
+                  << std::setfill(' ') << std::setw(10) << timings[i].first / timings[i].second
+                  << std::endl;
     }
 
     // check visualizations

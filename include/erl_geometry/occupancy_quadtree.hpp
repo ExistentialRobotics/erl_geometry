@@ -6,10 +6,12 @@
 namespace erl::geometry {
 
     template<typename Dtype>
-    class OccupancyQuadtree : public OccupancyQuadtreeBase<Dtype, OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting> {
+    class OccupancyQuadtree
+        : public OccupancyQuadtreeBase<Dtype, OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting> {
     public:
         using Setting = OccupancyQuadtreeBaseSetting;
-        using Super = OccupancyQuadtreeBase<Dtype, OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>;
+        using Super =
+            OccupancyQuadtreeBase<Dtype, OccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>;
 
         explicit OccupancyQuadtree(const std::shared_ptr<OccupancyQuadtreeBaseSetting> &setting)
             : Super(setting) {}
@@ -18,15 +20,19 @@ namespace erl::geometry {
             : OccupancyQuadtree(std::make_shared<Setting>()) {}
 
         explicit OccupancyQuadtree(const std::string &filename)
-            : OccupancyQuadtree() {  // resolution will be set by LoadData
-            ERL_ASSERTM(this->LoadData(filename), "Failed to read OccupancyQuadtree from file: {}", filename);
+            : OccupancyQuadtree() {  // LoadData will set resolution
+            ERL_ASSERTM(
+                this->LoadData(filename),
+                "Failed to read OccupancyQuadtree from file: {}",
+                filename);
         }
 
         /**
          *
          * @param map_info instance of GridMapInfo2D to provide min, max and resolution of the map
-         * @param image_map 1-channel cv::Mat image of the map, where rows is x and cols is y
-         * @param occupied_threshold a pixel is considered occupied if its value is greater than this threshold
+         * @param image_map 1-channel cv::Mat image of the map, where row is x and col is y
+         * @param occupied_threshold a pixel is considered occupied if its value is greater than
+         * this threshold
          * @param padding padding around the map with obstacles
          */
         OccupancyQuadtree(
@@ -34,7 +40,8 @@ namespace erl::geometry {
             const cv::Mat &image_map,
             const double occupied_threshold,
             const int padding = 0)
-            : Super(std::make_shared<Setting>(), map_info, image_map, occupied_threshold, padding) {}
+            : Super(std::make_shared<Setting>(), map_info, image_map, occupied_threshold, padding) {
+        }
 
         OccupancyQuadtree(const OccupancyQuadtree &) = default;
         OccupancyQuadtree &
@@ -48,7 +55,9 @@ namespace erl::geometry {
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) {
-                ERL_DEBUG_ASSERT(setting == nullptr, "setting is not the type for OccupancyQuadtree.");
+                ERL_DEBUG_ASSERT(
+                    setting == nullptr,
+                    "setting is not the type for OccupancyQuadtree.");
                 tree_setting = std::make_shared<Setting>();
             }
             return std::make_shared<OccupancyQuadtree>(std::move(tree_setting));

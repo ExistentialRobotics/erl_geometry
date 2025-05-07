@@ -8,23 +8,20 @@
 namespace erl::geometry {
 
     /**
-     * AbstractOccupancyQuadtree is a base class that implements generic occupancy quadtree functionality.
+     * AbstractOccupancyQuadtree is a base class that implements generic occupancy quadtree
+     * functionality.
      */
     template<typename Dtype>
     class AbstractOccupancyQuadtree : public AbstractQuadtree<Dtype> {
         std::shared_ptr<OccupancyNdTreeSetting> m_setting_ = nullptr;
 
-    protected:
-        // binary file header identifier
-        inline static const std::string sk_BinaryFileHeader_ = "# OccupancyQuadtree binary file";  // cppcheck-suppress unusedStructMember
-
     public:
-        typedef Dtype DataType;
+        using DataType = Dtype;
+        using Super = AbstractQuadtree<Dtype>;
+
         AbstractOccupancyQuadtree() = delete;  // no default constructor
 
-        explicit AbstractOccupancyQuadtree(std::shared_ptr<OccupancyNdTreeSetting> setting)
-            : AbstractQuadtree<Dtype>(setting),
-              m_setting_(std::move(setting)) {}
+        explicit AbstractOccupancyQuadtree(std::shared_ptr<OccupancyNdTreeSetting> setting);
 
         AbstractOccupancyQuadtree(const AbstractOccupancyQuadtree& other) = default;
         AbstractOccupancyQuadtree&
@@ -35,47 +32,30 @@ namespace erl::geometry {
 
         //--IO
         /**
-         * Write the tree as a binary sequence to file. Before writing, the tree is pruned.
-         * @param filename
+         * Write the tree as a binary sequence to stream.
+         * @param s
+         * @param prune If true, the tree is pruned before writing.
          * @return
          */
         bool
-        WriteBinary(const std::string& filename);
-        /**
-         * Write the tree as a binary sequence to stream. Before writing, the tree is pruned.
-         * @param s
-         * @return
-         */
-        std::ostream&
-        WriteBinary(std::ostream& s);
-        /**
-         * Write the tree to a binary file. The tree is not pruned before writing.
-         * @param filename
-         * @return
-         */
-        [[nodiscard]] bool
-        WriteBinary(const std::string& filename) const;
+        WriteBinary(std::ostream& s, bool prune);
+
         /**
          * Write the tree to a binary stream. The tree is not pruned before writing.
          * @param s
          * @return
          */
-        std::ostream&
+        [[nodiscard]] bool
         WriteBinary(std::ostream& s) const;
+
         /**
          * Write the actual tree data to a binary stream.
          * @param s
          * @return
          */
-        virtual std::ostream&
+        virtual bool
         WriteBinaryData(std::ostream& s) const = 0;
-        /**
-         * Read the tree from a binary file.
-         * @param filename
-         * @return
-         */
-        bool
-        ReadBinary(const std::string& filename);
+
         /**
          * Read the tree from a binary stream.
          * @param s
@@ -84,26 +64,35 @@ namespace erl::geometry {
         bool
         ReadBinary(std::istream& s);
 
-    private:
-        virtual std::istream&
+        virtual bool
         ReadBinaryData(std::istream& s) = 0;
 
-    public:
         //-- occupancy queries
         [[nodiscard]] bool
-        IsNodeOccupied(const OccupancyQuadtreeNode* node) const {
-            return node->GetLogOdds() >= m_setting_->log_odd_occ_threshold;
-        }
+        IsNodeOccupied(const OccupancyQuadtreeNode* node) const;
 
         [[nodiscard]] bool
-        IsNodeAtThreshold(const OccupancyQuadtreeNode* node) const {
-            const float log_odds = node->GetLogOdds();
-            return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
-        }
+        IsNodeAtThreshold(const OccupancyQuadtreeNode* node) const;
 
         //-- search
+        const OccupancyQuadtreeNode*
+        GetHitOccupiedNode(
+            const Eigen::Ref<typename Super::Vector2>& p,
+            const Eigen::Ref<typename Super::Vector2>& v,
+            bool ignore_unknown,
+            Dtype max_range,
+            typename Super::Vector2& hit_position);
+
         [[nodiscard]] virtual const OccupancyQuadtreeNode*
-        GetHitOccupiedNode(Dtype px, Dtype py, Dtype vx, Dtype vy, bool ignore_unknown, Dtype max_range, Dtype& ex, Dtype& ey) const = 0;
+        GetHitOccupiedNode(
+            Dtype px,
+            Dtype py,
+            Dtype vx,
+            Dtype vy,
+            bool ignore_unknown,
+            Dtype max_range,
+            Dtype& ex,
+            Dtype& ey) const = 0;
 
         //-- update functions
         virtual void

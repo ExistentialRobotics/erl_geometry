@@ -3,7 +3,9 @@
 namespace erl::geometry {
 
     Eigen::Matrix2Xi
-    Bresenham2D(const Eigen::Ref<const Eigen::Vector2i> &start, const Eigen::Ref<const Eigen::Vector2i> &end) {
+    Bresenham2D(
+        const Eigen::Ref<const Eigen::Vector2i> &start,
+        const Eigen::Ref<const Eigen::Vector2i> &end) {
 
         Eigen::Vector2i delta = (end - start).array().abs();
         const int num_vertices = delta.maxCoeff() + 1;
@@ -84,7 +86,10 @@ namespace erl::geometry {
     }
 
     Eigen::Matrix2Xi
-    Bresenham2D(const Eigen::Ref<const Eigen::Vector2i> &start, const Eigen::Ref<const Eigen::Vector2i> &end, const std::function<bool(int, int)> &stop) {
+    Bresenham2D(
+        const Eigen::Ref<const Eigen::Vector2i> &start,
+        const Eigen::Ref<const Eigen::Vector2i> &end,
+        const std::function<bool(int, int)> &stop) {
 
         const Eigen::Vector2i delta = end - start;
         const int num_vertices = delta.cwiseAbs().maxCoeff() + 1;
@@ -129,11 +134,11 @@ namespace erl::geometry {
 
         if (std::abs(delta.y()) < std::abs(delta.x())) {
             // to avoid swap:
-            // xi    yi    A    B
-            //  1     1    A    B
-            //  1    -1   -A    B
-            // -1     1    A   -B
-            // -1    -1   -A   -B
+            // `xi    yi    A    B`
+            // ` 1     1    A    B`
+            // ` 1    -1   -A    B`
+            // `-1     1    A   -B`
+            // `-1    -1   -A   -B`
             // plot line of slop between (-1, 1)
             const int ka = delta.y() * yi;
             const int kb = -delta.x() * xi;
@@ -193,7 +198,8 @@ namespace erl::geometry {
         Eigen::Matrix2Xi pixels;
         const long num_vertices = polygon_vertices.cols();
         for (int i = 0; i < num_vertices; ++i) {
-            Eigen::Matrix2Xi line = Bresenham2D(polygon_vertices.col(i), polygon_vertices.col((i + 1) % num_vertices));
+            Eigen::Matrix2Xi line =
+                Bresenham2D(polygon_vertices.col(i), polygon_vertices.col((i + 1) % num_vertices));
             pixels.conservativeResize(2, pixels.cols() + line.cols());
             pixels.rightCols(line.cols()) = line;
         }

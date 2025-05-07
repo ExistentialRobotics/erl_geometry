@@ -1,130 +1,112 @@
+#pragma once
+
 #include "erl_geometry/abstract_occupancy_quadtree.hpp"
 
 #include <fstream>
 
 namespace erl::geometry {
 
-    template <typename Dtype>
+    template<typename Dtype>
+    AbstractOccupancyQuadtree<Dtype>::AbstractOccupancyQuadtree(
+        std::shared_ptr<OccupancyNdTreeSetting> setting)
+        : AbstractQuadtree<Dtype>(setting),
+          m_setting_(std::move(setting)) {}
+
+    template<typename Dtype>
     bool
-    AbstractOccupancyQuadtree<Dtype>::WriteBinary(const std::string &filename) {
-        ERL_DEBUG("Writing Quadtree to file: {}", std::filesystem::absolute(filename));
-        std::ofstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return false;
+    AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s, const bool prune) {
+        if (prune) {
+            this->ToMaxLikelihood();
+            this->Prune();
+            s << "# Pruned quadtree\n";  // add a comment line
         }
-
-        WriteBinary(file);
-        const bool success = file.good();
-        file.close();
-        if (success) {
-            ERL_DEBUG("Successfully wrote Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
-        } else {
-            ERL_WARN("Failed to write Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
-        }
-        return success;
-    }
-
-    template <typename Dtype>
-    std::ostream &
-    AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s) {
-        this->ToMaxLikelihood();
-        this->Prune();
         return const_cast<const AbstractOccupancyQuadtree *>(this)->WriteBinary(s);
     }
 
-    template <typename Dtype>
+    template<typename Dtype>
     bool
-    AbstractOccupancyQuadtree<Dtype>::WriteBinary(const std::string &filename) const {
-        ERL_DEBUG("Writing Quadtree to file: {}", std::filesystem::absolute(filename));
-        std::ofstream file(filename, std::ios::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename);
-            return false;
-        }
-
-        WriteBinary(file);
-        const bool success = file.good();
-        file.close();
-        if (success) {
-            ERL_DEBUG("Successfully wrote Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
-        } else {
-            ERL_WARN("Failed to write Quadtree of type {}, size {}", this->GetTreeType(), this->GetSize());
-        }
-        return success;
-    }
-
-    template <typename Dtype>
-    std::ostream &
     AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s) const {
-        s << sk_BinaryFileHeader_ << std::endl
-          << "# (feel free to add / change comments, but leave the first line as it is!)\n#" << std::endl
-          << "id " << this->GetTreeType() << std::endl
-          << "size " << this->GetSize() << std::endl
-          << "setting" << std::endl;
-        this->WriteSetting(s);
-        s << "data" << std::endl;
-        return this->WriteBinaryData(s);
+        s << "# Binary file\n";  // add a comment line
+        static const common::TokenWriteFunctionPairs<AbstractOccupancyQuadtree>
+            token_function_pairs = {
+                {
+                    "setting",
+                    [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
+                        self->WriteSetting(stream);
+                        return stream.good();
+                    },
+                },
+                {
+                    "data",
+                    [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
+                        const std::size_t size = self->GetSize();
+                        stream << size << '\n';
+                        if (size > 0) { return self->WriteBinaryData(stream) && stream.good(); }
+                        return stream.good();
+                    },
+                },
+            };
+        return common::WriteTokens(s, this, token_function_pairs);
     }
 
-    template <typename Dtype>
-    bool
-    AbstractOccupancyQuadtree<Dtype>::ReadBinary(const std::string &filename) {
-        ERL_DEBUG("Reading Quadtree from file: {}", std::filesystem::absolute(filename));
-        std::ifstream file(filename.c_str(), std::ios::binary);
-        if (!file.is_open()) {
-            ERL_WARN("Failed to open file: {}", filename.c_str());
-            return false;
-        }
-
-        const bool success = ReadBinary(file);
-        file.close();
-        return success;
-    }
-
-    template <typename Dtype>
+    template<typename Dtype>
     bool
     AbstractOccupancyQuadtree<Dtype>::ReadBinary(std::istream &s) {
-        if (!s.good()) {
-            ERL_WARN("Input stream is not ready for reading");
-            return false;
-        }
+        static const common::TokenReadFunctionPairs<AbstractOccupancyQuadtree>
+            token_function_pairs = {
+                {
+                    "setting",
+                    [](AbstractOccupancyQuadtree *self, std::istream &stream) {
+                        self->Clear();  // clear the tree before reading the setting
+                        if (!self->ReadSetting(stream)) { return false; }
+                        self->ApplySetting();
+                        return stream.good();
+                    },
+                },
+                {
+                    "data",
+                    [](AbstractOccupancyQuadtree *self, std::istream &stream) {
+                        std::size_t size;
+                        stream >> size;
+                        common::SkipLine(stream);
+                        if (size > 0) { return self->ReadBinaryData(stream) && stream.good(); }
+                        ERL_DEBUG("Load {} nodes", size);
+                        return size == self->GetSize() && stream.good();
+                    },
+                },
+            };
+        return common::ReadTokens(s, this, token_function_pairs);
+    }
 
-        // check if the first line is valid
-        std::string line;
-        std::getline(s, line);
-        if (line.compare(0, sk_BinaryFileHeader_.length(), sk_BinaryFileHeader_) != 0) {
-            ERL_WARN("First line of Quadtree file header does not start with \"{}\"", sk_BinaryFileHeader_);
-            return false;
-        }
+    template<typename Dtype>
+    bool
+    AbstractOccupancyQuadtree<Dtype>::IsNodeOccupied(const OccupancyQuadtreeNode *node) const {
+        return node->GetLogOdds() >= m_setting_->log_odd_occ_threshold;
+    }
 
-        // read header
-        std::string tree_id;
-        uint32_t size;
-        if (!this->ReadHeader(s, tree_id, size)) { return false; }
-        if (tree_id != this->GetTreeType()) {
-            ERL_WARN("Error reading Quadtree header, ID does not match: {} != {}", tree_id, this->GetTreeType());
-            return false;
-        }
+    template<typename Dtype>
+    bool
+    AbstractOccupancyQuadtree<Dtype>::IsNodeAtThreshold(const OccupancyQuadtreeNode *node) const {
+        const float log_odds = node->GetLogOdds();
+        return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
+    }
 
-        // clear and read setting
-        this->Clear();
-        if (!this->ReadSetting(s)) {
-            ERL_WARN("Failed to read setting");
-            return false;
-        }
-        this->ApplySetting();
-
-        // check if the next line is "data"
-        std::getline(s, line);
-        if (line.compare(0, 4, "data") != 0) {
-            ERL_WARN("Expected 'data' keyword, got: {}", line);
-            return false;
-        }
-
-        // read binary data
-        if (size > 0) { this->ReadBinaryData(s); }
-        ERL_DEBUG("Done ({} nodes).", this->GetSize());
-        return this->GetSize() == size;
+    template<typename Dtype>
+    const OccupancyQuadtreeNode *
+    AbstractOccupancyQuadtree<Dtype>::GetHitOccupiedNode(
+        const Eigen::Ref<typename Super::Vector2> &p,
+        const Eigen::Ref<typename Super::Vector2> &v,
+        const bool ignore_unknown,
+        const Dtype max_range,
+        typename Super::Vector2 &hit_position) {
+        return GetHitOccupiedNode(
+            p.x(),
+            p.y(),
+            v.x(),
+            v.y(),
+            ignore_unknown,
+            max_range,
+            hit_position.x(),
+            hit_position.y());
     }
 }  // namespace erl::geometry

@@ -27,7 +27,10 @@ namespace erl::geometry {
             bool partition_rays);
 
         void
-        ConvertToPointCloud(bool in_world_frame, std::vector<Vector3> &points, std::vector<Vector3> &colors) const;
+        ConvertToPointCloud(
+            bool in_world_frame,
+            std::vector<Vector3> &points,
+            std::vector<Vector3> &colors) const;
     };
 
     using RgbdFrame3Dd = RgbdFrame3D<double>;

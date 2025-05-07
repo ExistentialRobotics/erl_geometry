@@ -44,9 +44,15 @@ TEST(ERL_GEOMETRY, Open3dOffScreen) {
     // const Eigen::Vector3d right = -rotation.col(1);
     // const Eigen::Vector3d up = rotation.col(2);
     // const Eigen::Vector3d front = -rotation.col(0);
-    CameraIntrinsic intrinsic;
+    CameraIntrinsicD intrinsic;
 
-    visualizer->CreateVisualizerWindow(test_info->name(), static_cast<int>(intrinsic.image_width), static_cast<int>(intrinsic.image_height), 50, 50, false);
+    visualizer->CreateVisualizerWindow(
+        test_info->name(),
+        static_cast<int>(intrinsic.image_width),
+        static_cast<int>(intrinsic.image_height),
+        50,
+        50,
+        false);
     visualizer->AddGeometry(mesh);
     // auto axis_mesh = CreateAxisMesh(Eigen::Matrix4d::Identity(), 0.1);
     // axis_mesh->Translate(wTo.block<3, 1>(0, 3));
@@ -63,8 +69,16 @@ TEST(ERL_GEOMETRY, Open3dOffScreen) {
     const auto rgb_image = visualizer->CaptureScreenFloatBuffer();
     const auto depth_image = visualizer->CaptureDepthFloatBuffer();  // depth in view space
 
-    cv::Mat rgb_mat(static_cast<int>(intrinsic.image_height), static_cast<int>(intrinsic.image_width), CV_32FC3, rgb_image->data_.data());
-    cv::Mat depth_mat(static_cast<int>(intrinsic.image_height), static_cast<int>(intrinsic.image_width), CV_32FC1, depth_image->data_.data());
+    cv::Mat rgb_mat(
+        static_cast<int>(intrinsic.image_height),
+        static_cast<int>(intrinsic.image_width),
+        CV_32FC3,
+        rgb_image->data_.data());
+    cv::Mat depth_mat(
+        static_cast<int>(intrinsic.image_height),
+        static_cast<int>(intrinsic.image_width),
+        CV_32FC1,
+        depth_image->data_.data());
     rgb_mat.convertTo(rgb_mat, CV_8UC3, 255);
     cv::cvtColor(rgb_mat, rgb_mat, cv::COLOR_RGB2BGR);
     cv::Mat depth_mat_jet;
@@ -81,7 +95,8 @@ TEST(ERL_GEOMETRY, Open3dOffScreen) {
     cv::cv2eigen(depth_mat, depth_eigen);
     Eigen::Matrix4d optical_pose = wTo;
     cv::cvtColor(rgb_mat, rgb_mat, cv::COLOR_BGR2RGB);
-    intrinsic.ConvertRgbdToPointCloud(depth_eigen, rgb_mat, optical_pose, pcd->points_, pcd->colors_);
+    intrinsic
+        .ConvertRgbdToPointCloud(depth_eigen, rgb_mat, optical_pose, pcd->points_, pcd->colors_);
     pcd->PaintUniformColor({1.0, 0.0, 0.0});
     open3d::visualization::DrawGeometries({mesh, pcd});
     // visualizer->Run();

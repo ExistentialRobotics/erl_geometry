@@ -17,16 +17,20 @@ namespace erl::geometry {
     }
 
     GazeboRoom2D::TrainDataLoader::TrainDataLoader(const std::string &path) {
-
+        using namespace common;
         const std::filesystem::path folder(path);
-        const Eigen::Matrix3Xd poses = common::LoadEigenMatrixFromBinaryFile(folder / "poses.dat");                 // (3, N)
-        const Eigen::MatrixXd ranges = common::LoadEigenMatrixFromBinaryFile(folder / "ranges.dat");                // (270, N)
-        const Eigen::VectorXd thetas = common::LoadEigenMatrixFromBinaryFile(folder / "thetas.dat").leftCols<1>();  // (N, )
+        // (3, N)
+        Eigen::Matrix3Xd poses = LoadEigenMatrixFromBinaryFile(folder / "poses.dat");
+        // (270, N)
+        Eigen::MatrixXd ranges = LoadEigenMatrixFromBinaryFile(folder / "ranges.dat");
+        // (N, )
+        Eigen::VectorXd thetas = LoadEigenMatrixFromBinaryFile(folder / "thetas.dat").leftCols<1>();
 
         for (long i = 0; i < poses.cols(); ++i) {
             TrainDataFrame frame;
             frame.rotation = Eigen::Rotation2Dd(poses(2, i)).toRotationMatrix();
-            frame.translation = poses.col(i).head<2>() + frame.rotation * Eigen::Vector2d(kSensorOffsetX, kSensorOffsetY);
+            frame.translation = poses.col(i).head<2>() +
+                                frame.rotation * Eigen::Vector2d(kSensorOffsetX, kSensorOffsetY);
             frame.angles = thetas;
             frame.ranges = ranges.col(i);
             m_data_frames_.emplace_back(std::move(frame));

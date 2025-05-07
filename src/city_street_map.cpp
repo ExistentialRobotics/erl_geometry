@@ -54,7 +54,13 @@ namespace erl::geometry {
                         map.at<uchar>(rows, cols) = kObstacle;
                         break;
                     default:
-                        ERL_ASSERTM(false, "Invalid character {} at ({}, {}) in {}", line[cols], rows, cols, filename);
+                        ERL_ASSERTM(
+                            false,
+                            "Invalid character {} at ({}, {}) in {}",
+                            line[cols],
+                            rows,
+                            cols,
+                            filename);
                 }
             }
             ++rows;

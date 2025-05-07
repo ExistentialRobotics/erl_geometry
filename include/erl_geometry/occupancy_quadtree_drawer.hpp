@@ -8,7 +8,8 @@
 
 namespace erl::geometry {
     template<typename Dtype>
-    struct OccupancyQuadtreeDrawerSetting : common::Yamlable<OccupancyQuadtreeDrawerSetting<Dtype>, AbstractQuadtreeDrawer::Setting> {
+    struct OccupancyQuadtreeDrawerSetting
+        : common::Yamlable<OccupancyQuadtreeDrawerSetting<Dtype>, AbstractQuadtreeDrawer::Setting> {
         Eigen::Vector2<Dtype> area_min = {0.0, 0.0};
         Eigen::Vector2<Dtype> area_max = {1.0, 1.0};
         Dtype resolution = 0.1;
@@ -34,8 +35,10 @@ namespace erl::geometry {
         using Tree = OccupancyQuadtreeType;
         using Dtype = typename Tree::DataType;
         using Setting = OccupancyQuadtreeDrawerSetting<Dtype>;
-        using DrawTreeCallback = std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::TreeIterator&)>;
-        using DrawLeafCallback = std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::LeafIterator&)>;
+        using DrawTreeCallback = std::function<
+            void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::TreeIterator&)>;
+        using DrawLeafCallback = std::function<
+            void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::LeafIterator&)>;
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
@@ -45,7 +48,9 @@ namespace erl::geometry {
         DrawLeafCallback m_draw_leaf_ = {};
 
     public:
-        explicit OccupancyQuadtreeDrawer(std::shared_ptr<Setting> setting, std::shared_ptr<const Tree> quadtree = nullptr);
+        explicit OccupancyQuadtreeDrawer(
+            std::shared_ptr<Setting> setting,
+            std::shared_ptr<const Tree> quadtree = nullptr);
 
         [[nodiscard]] std::shared_ptr<const Setting>
         GetSetting() const;
@@ -62,12 +67,18 @@ namespace erl::geometry {
         /**
          * Compute the pixel coordinates for the given positions.
          * @param positions matrix of positions (2 x N)
-         * @param scaled_position if true, the positions are already scaled by the scaling factor: positions = positions_org * scaling.
+         * @param scaled_position if true, the positions are already scaled by the scaling factor.
+         * e.g., positions = positions_org * scaling.
          * @return matrix of pixel coordinates (2 x N)
          */
         [[nodiscard]] Eigen::Matrix2Xi
-        GetPixelCoordsForPositions(const Eigen::Matrix2X<Dtype>& positions, const bool scaled_position) const {
-            if (scaled_position) { return m_grid_map_info_->MeterToPixelForPoints(positions.array() / m_setting_->scaling); }
+        GetPixelCoordsForPositions(
+            const Eigen::Matrix2X<Dtype>& positions,
+            const bool scaled_position) const {
+            if (scaled_position) {
+                return m_grid_map_info_->MeterToPixelForPoints(
+                    positions.array() / m_setting_->scaling);
+            }
             return m_grid_map_info_->MeterToPixelForPoints(positions);
         }
 
@@ -78,13 +89,18 @@ namespace erl::geometry {
 
         /**
          * Compute the meter coordinates for the given pixel coordinates.
-         * @param pixel_coords matrix of pixel coordinates (2 x N)
-         * @param scaled_position if true, the returned meter coordinates are scaled by the scaling factor: meter_coords = meter_coords_org * scaling.
+         * @param pixel_coords matrix of pixel coordinates (2 x N).
+         * @param scaled_position if true, scale the returned meter coordinates with the scaling
+         * factor. i.e., meter_coords = meter_coords_org * scaling.
          * @return matrix of meter coordinates (2 x N)
          */
         [[nodiscard]] Eigen::Matrix2X<Dtype>
-        GetMeterCoordsForPositions(const Eigen::Matrix2Xi& pixel_coords, const bool scaled_position) const {
-            if (scaled_position) { return m_grid_map_info_->PixelToMeterForPoints(pixel_coords).array() * m_setting_->scaling; }
+        GetMeterCoordsForPositions(const Eigen::Matrix2Xi& pixel_coords, const bool scaled_position)
+            const {
+            if (scaled_position) {
+                return m_grid_map_info_->PixelToMeterForPoints(pixel_coords).array() *
+                       m_setting_->scaling;
+            }
             return m_grid_map_info_->PixelToMeterForPoints(pixel_coords);
         }
 
@@ -94,10 +110,16 @@ namespace erl::geometry {
         }
 
         void
-        SetDrawTreeCallback(std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::TreeIterator&)> draw_tree);
+        SetDrawTreeCallback(
+            std::function<
+                void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::TreeIterator&)>
+                draw_tree);
 
         void
-        SetDrawLeafCallback(std::function<void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::LeafIterator&)> draw_leaf);
+        SetDrawLeafCallback(
+            std::function<
+                void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::LeafIterator&)>
+                draw_leaf);
 
         using AbstractQuadtreeDrawer::DrawLeaves;
         using AbstractQuadtreeDrawer::DrawTree;
@@ -113,7 +135,9 @@ namespace erl::geometry {
 #include "occupancy_quadtree_drawer.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::OccupancyQuadtreeDrawerSettingD> : erl::geometry::OccupancyQuadtreeDrawerSettingD::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::OccupancyQuadtreeDrawerSettingD>
+    : erl::geometry::OccupancyQuadtreeDrawerSettingD::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::OccupancyQuadtreeDrawerSettingF> : erl::geometry::OccupancyQuadtreeDrawerSettingF::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::OccupancyQuadtreeDrawerSettingF>
+    : erl::geometry::OccupancyQuadtreeDrawerSettingF::YamlConvertImpl {};

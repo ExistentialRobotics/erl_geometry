@@ -42,189 +42,55 @@ namespace erl::geometry {
             const Eigen::VectorXb &bidirectional_flags,
             const Eigen::VectorXb &leaf_only_flags,
             const Eigen::VectorXi &min_node_depths,
-            const Eigen::VectorXi &max_node_depths)
-            : m_tree_(tree),
-              m_origins_(std::move(origins)),
-              m_directions_(std::move(directions)) {
-
-            ERL_ASSERTM(m_origins_.cols() == m_directions_.cols(), "Origins and directions must have the same number of rays.");
-            ERL_ASSERTM(m_origins_.cols() > 0, "At least one ray must be provided.");
-
-            m_node_iterators_.resize(m_origins_.cols());
-            m_hit_flags_.resize(m_origins_.cols());
-            m_ever_hit_flags_.resize(m_origins_.cols());
-            m_hit_distances_.resize(m_origins_.cols());
-            m_hit_nodes_.resize(m_origins_.cols());
-            m_hit_positions_.resize(m_origins_.cols());
-#pragma omp parallel for default(none) shared(max_ranges, node_paddings, bidirectional_flags, leaf_only_flags, min_node_depths, max_node_depths)
-            for (int i = 0; i < m_origins_.cols(); ++i) {
-                m_node_iterators_[i] = m_tree_->BeginNodeOnRay(
-                    m_origins_.col(i),
-                    m_directions_.col(i),
-                    max_ranges.size() > 0 ? max_ranges[i] : -1,
-                    node_paddings.size() > 0 ? node_paddings[i] : 0,
-                    bidirectional_flags.size() > 0 ? bidirectional_flags[i] : false,
-                    leaf_only_flags.size() > 0 ? leaf_only_flags[i] : false,
-                    min_node_depths.size() > 0 ? min_node_depths[i] : 0,
-                    max_node_depths.size() > 0 ? max_node_depths[i] : 0);
-                NodeOnRayIterator &itr = m_node_iterators_[i];
-
-                m_hit_flags_[i] = false;
-                while (itr.IsValid()) {
-                    if (m_tree_->IsNodeOccupied(*itr)) {
-                        m_hit_flags_[i] = true;
-                        break;
-                    }
-                    ++itr;
-                }
-                if (m_hit_flags_[i]) {
-                    m_hit_distances_[i] = itr.GetDistance();
-                    m_hit_nodes_[i] = *itr;
-                    m_hit_positions_[i] = m_origins_.col(i) + m_directions_.col(i) * m_hit_distances_[i];
-                }
-                m_ever_hit_flags_[i] |= m_hit_flags_[i];
-            }
-            UpdateFrontier();
-        }
+            const Eigen::VectorXi &max_node_depths);
 
         [[nodiscard]] long
-        GetNumRays() const {
-            return m_origins_.cols();
-        }
+        GetNumRays() const;
 
         [[nodiscard]] const MatrixDX &
-        GetRayOrigins() const {
-            return m_origins_;
-        }
+        GetRayOrigins() const;
 
         [[nodiscard]] const MatrixDX &
-        GetRayDirections() const {
-            return m_directions_;
-        }
+        GetRayDirections() const;
 
         [[nodiscard]] const Eigen::VectorXb &
-        GetHitFlags() const {
-            return m_hit_flags_;
-        }
+        GetHitFlags() const;
 
         [[nodiscard]] const Eigen::VectorXb &
-        GetEverHitFlags() const {
-            return m_ever_hit_flags_;
-        }
+        GetEverHitFlags() const;
 
         [[nodiscard]] const VectorX &
-        GetHitDistances() const {
-            return m_hit_distances_;
-        }
+        GetHitDistances() const;
 
         [[nodiscard]] const std::vector<typename Tree::NodeType *> &
-        GetHitNodes() const {
-            return m_hit_nodes_;
-        }
+        GetHitNodes() const;
 
         [[nodiscard]] const std::vector<VectorD> &
-        GetHitPositions() const {
-            return m_hit_positions_;
-        }
+        GetHitPositions() const;
 
         OccupancyNdTreeBatchRayCaster
         operator++(int) = delete;  // Disable post-increment, i.e. caster++.
 
         OccupancyNdTreeBatchRayCaster &
-        Step(const Eigen::VectorXb &mask) {
-            if (mask.size() == 0) {
-                ++(*this);
-                return *this;
-            }
-
-            ERL_ASSERTM(mask.size() == m_origins_.cols(), "Mask size must match the number of rays.");
-#pragma omp parallel for default(none) shared(mask)
-            for (int i = 0; i < m_origins_.cols(); ++i) {
-                m_hit_flags_[i] = false;
-                if (!mask[i]) { continue; }  // Skip rays that are not in the mask.
-
-                NodeOnRayIterator &itr = m_node_iterators_[i];
-                ++itr;
-
-                while (itr.IsValid()) {
-                    if (m_tree_->IsNodeOccupied(*itr)) {
-                        m_hit_flags_[i] = true;
-                        break;
-                    }
-                    ++itr;
-                }
-                if (m_hit_flags_[i]) {
-                    m_hit_distances_[i] = itr.GetDistance();
-                    m_hit_nodes_[i] = *itr;
-                    m_hit_positions_[i] = m_origins_.col(i) + m_directions_.col(i) * m_hit_distances_[i];
-                }
-                m_ever_hit_flags_[i] |= m_hit_flags_[i];
-            }
-            UpdateFrontier();
-            return *this;
-        }
+        Step(const Eigen::VectorXb &mask);
 
         OccupancyNdTreeBatchRayCaster &
-        operator++() {
-#pragma omp parallel for default(none)
-            for (int i = 0; i < m_origins_.cols(); ++i) {
-                NodeOnRayIterator &itr = m_node_iterators_[i];
-                ++itr;
-
-                m_hit_flags_[i] = false;
-                while (itr.IsValid()) {
-                    if (m_tree_->IsNodeOccupied(*itr)) {
-                        m_hit_flags_[i] = true;
-                        break;
-                    }
-                    ++itr;
-                }
-                if (m_hit_flags_[i]) {
-                    m_hit_distances_[i] = itr.GetDistance();
-                    m_hit_nodes_[i] = *itr;
-                    m_hit_positions_[i] = m_origins_.col(i) + m_directions_.col(i) * m_hit_distances_[i];
-                }
-                m_ever_hit_flags_[i] |= m_hit_flags_[i];
-            }
-            UpdateFrontier();
-            return *this;
-        }
+        operator++();
 
         [[nodiscard]] const std::vector<typename Tree::NodeType *> &
-        GetFrontierNodes() const {
-            return m_frontier_nodes_;
-        }
+        GetFrontierNodes() const;
 
         [[nodiscard]] const std::vector<typename Tree::KeyType> &
-        GetFrontierKeys() const {
-            return m_frontier_keys_;
-        }
+        GetFrontierKeys() const;
 
         [[nodiscard]] const std::vector<std::vector<long>> &
-        GetFrontierRayIndices() const {
-            return m_frontier_ray_indices_;
-        }
+        GetFrontierRayIndices() const;
 
     private:
         void
-        UpdateFrontier() {
-            m_frontier_nodes_.clear();
-            m_frontier_keys_.clear();
-            m_frontier_ray_indices_.clear();
-            absl::flat_hash_map<uint64_t, std::size_t> indices;
-            for (long i = 0; i < m_origins_.cols(); ++i) {
-                if (!m_hit_flags_[i]) { continue; }
-                const auto &key = m_node_iterators_[i].GetIndexKey();
-                const auto &node = m_hit_nodes_[i];
-                if (indices.try_emplace(reinterpret_cast<uint64_t>(node), m_frontier_keys_.size()).second) {
-                    m_frontier_nodes_.push_back(node);
-                    m_frontier_keys_.push_back(key);
-                    m_frontier_ray_indices_.emplace_back();
-                }
-                const std::size_t index = indices[reinterpret_cast<uint64_t>(node)];
-                m_frontier_ray_indices_[index].push_back(i);
-            }
-        }
+        UpdateFrontier();
     };
 
 }  // namespace erl::geometry
+
+#include "occupancy_nd_tree_batch_ray_caster.tpp"

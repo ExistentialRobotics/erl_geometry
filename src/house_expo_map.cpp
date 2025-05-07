@@ -14,7 +14,12 @@ namespace erl::geometry {
         std::cout << "Loading " << m_file_ << "..." << std::flush;
         std::ifstream ifs;
         ifs.open(m_file_);
-        if (!ifs.is_open()) { ERL_ASSERTM("Failed to open {} when current path is {}.", m_file_, std::filesystem::current_path()); }
+        if (!ifs.is_open()) {
+            ERL_ASSERTM(
+                "Failed to open {} when current path is {}.",
+                m_file_,
+                std::filesystem::current_path());
+        }
         nlohmann::json data = nlohmann::json::parse(ifs);
         FromJson(data, *this);
         ifs.close();
@@ -26,7 +31,8 @@ namespace erl::geometry {
         ERL_ASSERTM(wall_thickness >= 0.1, "Wall thickness must be >= 0.1.");
         ERL_INFO("Changing wall thickness to {:f} ...", wall_thickness);
 #if defined(NDEBUG)
-        double free_threshold = (wall_thickness - 0.1) / 2;  // 0.1 is the default thickness of the wall
+        double free_threshold =
+            (wall_thickness - 0.1) / 2;  // 0.1 is the default thickness of the wall
         if (std::abs(free_threshold) < 1.e-6) {
             std::cout << "Done." << std::endl << std::flush;
             return;
@@ -44,7 +50,12 @@ namespace erl::geometry {
         const auto ksize = static_cast<int>(free_threshold / resolution[0]) * 2 + 3;
         cv::erode(map_mat, map_mat, cv::getStructuringElement(cv::MORPH_RECT, {ksize, ksize}));
         cv::cv2eigen(map_mat, map_image);
-        m_meter_space_ = std::make_shared<geometry::Space2D>(Eigen::MatrixXd(map_image.cast<double>()), grid_map_info, 0, true);  // y up, x right
+        // y up, x right
+        m_meter_space_ = std::make_shared<Space2D>(
+            Eigen::MatrixXd(map_image.cast<double>()),
+            grid_map_info,
+            0,
+            true);
         ERL_INFO("Done.");
 #else
         std::cout << "Debug mode, no wall thickness change." << std::endl;
@@ -64,7 +75,9 @@ namespace erl::geometry {
             polygon[0].emplace_back(vertex[0], vertex[1]);
         }
         const long num_lines = surface_2d->GetNumLines();
-        for (long i = 0; i < num_lines; ++i) { wall_line_set.lines_.emplace_back(surface_2d->lines_to_vertices.col(i)); }
+        for (long i = 0; i < num_lines; ++i) {
+            wall_line_set.lines_.emplace_back(surface_2d->lines_to_vertices.col(i));
+        }
 
         // generate wall mesh
         const auto wall_line_set_t = open3d::t::geometry::LineSet::FromLegacy(wall_line_set);
@@ -74,8 +87,10 @@ namespace erl::geometry {
         wall_mesh.ComputeVertexNormals();
 
         // generate ground mesh and ceiling mesh
-        const std::shared_ptr<open3d::geometry::TriangleMesh> ground_mesh = PolygonToMesh(polygon, 0.0, true);
-        const std::shared_ptr<open3d::geometry::TriangleMesh> ceiling_mesh = PolygonToMesh(polygon, room_height, false);
+        const std::shared_ptr<open3d::geometry::TriangleMesh> ground_mesh =
+            PolygonToMesh(polygon, 0.0, true);
+        const std::shared_ptr<open3d::geometry::TriangleMesh> ceiling_mesh =
+            PolygonToMesh(polygon, room_height, false);
         ground_mesh->PaintUniformColor({0.67, 0.33, 0.0});  // brown
         ceiling_mesh->PaintUniformColor({1.0, 1.0, 0.67});  // light yellow
 

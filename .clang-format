@@ -21,47 +21,47 @@ BinPackArguments: false
 BinPackParameters: false
 BreakBeforeBraces: Attach
 BraceWrapping:
-  AfterCaseLabel: false
-  AfterClass: false
-  AfterControlStatement: Never
-  AfterEnum: false
-  AfterFunction: false
-  AfterNamespace: false
-  AfterUnion: false
-  BeforeCatch: false
-  BeforeElse: false
-  IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: true
+    AfterCaseLabel: false
+    AfterClass: false
+    AfterControlStatement: Never
+    AfterEnum: false
+    AfterFunction: false
+    AfterNamespace: false
+    AfterUnion: false
+    BeforeCatch: false
+    BeforeElse: false
+    IndentBraces: false
+    SplitEmptyFunction: false
+    SplitEmptyRecord: true
 BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeColon
 BreakInheritanceList: BeforeColon
-ColumnLimit: 160
+ColumnLimit: 100
 CompactNamespaces: false
 ContinuationIndentWidth: 4
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^<.+(\.h|\.hpp)>'
-    Priority: 3
-    SortPriority: 3
-    CaseSensitive: false
-  - Regex: '^<[a-z_]*(/[a-z_]*)+(\.h|\.hpp)?>'
-    Priority: 3
-    SortPriority: 3
-    CaseSensitive: false
-  - Regex: '^<[a-z_]*>'
-    Priority: 4
-    SortPriority: 4
-    CaseSensitive: false
-  - Regex: '^"[a-z_]*/.*'
-    Priority: 2
-    SortPriority: 2
-    CaseSensitive: false
-  - Regex: '^".*'
-    Priority: 1
-    SortPriority: 1
-    CaseSensitive: false
+    -   Regex: '^<.+(\.h|\.hpp)>'
+        Priority: 3
+        SortPriority: 3
+        CaseSensitive: false
+    -   Regex: '^<[a-z_]*(/[a-z_]*)+(\.h|\.hpp)?>'
+        Priority: 3
+        SortPriority: 3
+        CaseSensitive: false
+    -   Regex: '^<[a-z_]*>'
+        Priority: 4
+        SortPriority: 4
+        CaseSensitive: false
+    -   Regex: '^"[a-z_]*/.*'
+        Priority: 2
+        SortPriority: 2
+        CaseSensitive: false
+    -   Regex: '^".*'
+        Priority: 1
+        SortPriority: 1
+        CaseSensitive: false
 #IncludeIsMainRegex: '([-_](test|unittest))?$'
 #IncludeIsMainSourceRegex: ''
 IndentCaseLabels: true
@@ -90,8 +90,8 @@ SpacesBeforeTrailingComments: 2
 SpacesInAngles: false
 SpacesInCStyleCastParentheses: false
 SpacesInLineCommentPrefix:
-  Minimum: 1
-  Maximum: 1
+    Minimum: 1
+    Maximum: 1
 SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false

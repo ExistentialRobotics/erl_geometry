@@ -2,22 +2,27 @@
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/euler_angle.hpp"
 #include "erl_geometry/occupancy_octree.hpp"
+#include "erl_geometry/occupancy_octree_drawer.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
 
 #include <open3d/geometry/LineSet.h>
 
 using namespace erl::common;
 using namespace erl::geometry;
+using OctreeDrawer = OccupancyOctreeDrawer<OccupancyOctreeD>;
 
 struct UserData {
-    std::shared_ptr<OccupancyOctree::Drawer::Setting> drawer_setting = std::make_shared<OccupancyOctree::Drawer::Setting>();
-    std::shared_ptr<Open3dVisualizerWrapper::Setting> visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
-    std::shared_ptr<OccupancyOctree> octree = nullptr;
-    std::shared_ptr<OccupancyOctree::Drawer> drawer = nullptr;
+    std::shared_ptr<OctreeDrawer::Setting> drawer_setting =
+        std::make_shared<OctreeDrawer::Setting>();
+    std::shared_ptr<Open3dVisualizerWrapper::Setting> visualizer_setting =
+        std::make_shared<Open3dVisualizerWrapper::Setting>();
+    std::shared_ptr<OccupancyOctreeD> octree = nullptr;
+    std::shared_ptr<OctreeDrawer> drawer = nullptr;
     std::shared_ptr<Open3dVisualizerWrapper> visualizer = nullptr;
     std::shared_ptr<open3d::geometry::LineSet> rays = std::make_shared<open3d::geometry::LineSet>();
     std::shared_ptr<open3d::geometry::TriangleMesh> pos_mesh = nullptr;
-    std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries = OccupancyOctree::Drawer::GetBlankGeometries();
+    std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries =
+        OctreeDrawer::GetBlankGeometries();
 
     // cast ray setting
     double azimuth_min = -M_PI;
@@ -33,12 +38,17 @@ struct UserData {
 
     UserData() {
         const double d = (azimuth_max - azimuth_min) / num_azimuth_lines;
-        Eigen::VectorXd azimuth_angles = Eigen::VectorXd::LinSpaced(num_azimuth_lines, azimuth_min, azimuth_max - d);
-        Eigen::VectorXd elevation_angles = Eigen::VectorXd::LinSpaced(num_elevation_lines, elevation_min, elevation_max);
+        Eigen::VectorXd azimuth_angles =
+            Eigen::VectorXd::LinSpaced(num_azimuth_lines, azimuth_min, azimuth_max - d);
+        Eigen::VectorXd elevation_angles =
+            Eigen::VectorXd::LinSpaced(num_elevation_lines, elevation_min, elevation_max);
         ray_directions.resize(3, num_azimuth_lines * num_elevation_lines);
         int idx = 0;
         for (int i = 0; i < num_azimuth_lines; ++i) {
-            for (int j = 0; j < num_elevation_lines; ++j) { ray_directions.col(idx++) << AzimuthElevationToDirection(azimuth_angles[i], elevation_angles[j]); }
+            for (int j = 0; j < num_elevation_lines; ++j) {
+                ray_directions.col(idx++)
+                    << AzimuthElevationToDirection(azimuth_angles[i], elevation_angles[j]);
+            }
         }
         geometries.emplace_back(rays);
         pos_mesh = open3d::geometry::TriangleMesh::CreateSphere(0.1);
@@ -57,7 +67,7 @@ struct UserData {
             drawer_setting->area_max[1],
             drawer_setting->area_max[2]);
         drawer_setting->occupied_only = true;
-        drawer = std::make_shared<OccupancyOctree::Drawer>(drawer_setting);
+        drawer = std::make_shared<OctreeDrawer>(drawer_setting);
         visualizer_setting->x = (drawer_setting->area_min[0] + drawer_setting->area_max[0]) / 2.;
         visualizer_setting->y = (drawer_setting->area_min[1] + drawer_setting->area_max[1]) / 2.;
         visualizer_setting->z = (drawer_setting->area_min[2] + drawer_setting->area_max[2]) / 2.;
@@ -69,7 +79,9 @@ struct UserData {
 static UserData g_user_data;
 
 bool
-VisualizerUpdateCallback(const Open3dVisualizerWrapper *visualizer, open3d::visualization::Visualizer *vis) {
+VisualizerUpdateCallback(
+    const Open3dVisualizerWrapper *visualizer,
+    open3d::visualization::Visualizer *vis) {
     const double px = visualizer->GetSetting()->x;
     const double py = visualizer->GetSetting()->y;
     const double pz = visualizer->GetSetting()->z;
@@ -81,7 +93,8 @@ VisualizerUpdateCallback(const Open3dVisualizerWrapper *visualizer, open3d::visu
     Eigen::Matrix3Xd end_points(3, ray_directions.cols());
     Eigen::VectorXb is_hit(ray_directions.cols());
     const auto t0 = std::chrono::high_resolution_clock::now();
-#pragma omp parallel for default(none) shared(px, py, pz, ray_directions, end_points, is_hit, g_user_data)
+#pragma omp parallel for default(none) \
+    shared(px, py, pz, ray_directions, end_points, is_hit, g_user_data)
     for (long i = 0; i < ray_directions.cols(); ++i) {
         const double &vx = ray_directions(0, i);
         const double &vy = ray_directions(1, i);
@@ -89,7 +102,18 @@ VisualizerUpdateCallback(const Open3dVisualizerWrapper *visualizer, open3d::visu
         double &ex = end_points(0, i);
         double &ey = end_points(1, i);
         double &ez = end_points(2, i);
-        is_hit[i] = g_user_data.octree->CastRay(px, py, pz, vx, vy, vz, g_user_data.ignore_unknown, g_user_data.max_range, ex, ey, ez) != nullptr;
+        is_hit[i] = g_user_data.octree->CastRay(
+                        px,
+                        py,
+                        pz,
+                        vx,
+                        vy,
+                        vz,
+                        g_user_data.ignore_unknown,
+                        g_user_data.max_range,
+                        ex,
+                        ey,
+                        ez) != nullptr;
     }
     const auto t1 = std::chrono::high_resolution_clock::now();
     double duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
@@ -100,7 +124,9 @@ VisualizerUpdateCallback(const Open3dVisualizerWrapper *visualizer, open3d::visu
     for (long i = 0; i < ray_directions.cols(); ++i) {
         if (is_hit[i]) {
             g_user_data.rays->points_.emplace_back(end_points.col(i));
-            g_user_data.rays->lines_.emplace_back(0, static_cast<long>(g_user_data.rays->points_.size()) - 1);
+            g_user_data.rays->lines_.emplace_back(
+                0,
+                static_cast<long>(g_user_data.rays->points_.size()) - 1);
         }
     }
     if (g_user_data.rays->lines_.empty()) { g_user_data.rays->lines_.emplace_back(0, 0); }
@@ -121,7 +147,8 @@ TEST(OccupancyOctree, RayCasting) {
     GTEST_PREPARE_OUTPUT_DIR();
 
     g_user_data.visualizer_setting->window_name = "OccupancyOctree_RayCasting";
-    g_user_data.octree = AbstractOctree::ReadAs<OccupancyOctree>((gtest_src_dir / "../../data/house_expo_room_1451_3d.ot").string());
+    g_user_data.octree = OccupancyOctreeD::ReadAs<OccupancyOctree>(
+        (gtest_src_dir / "../../data/house_expo_room_1451_3d.ot").string());
     g_user_data.ApplySettings();
 
     g_user_data.drawer->DrawLeaves(g_user_data.geometries);

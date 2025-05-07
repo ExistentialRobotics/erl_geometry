@@ -21,14 +21,14 @@ Options g_options;
 TEST(CowAndLady, Load) {
     GTEST_PREPARE_OUTPUT_DIR();
 
-    const auto depth_frame_setting = std::make_shared<erl::geometry::DepthFrame3D::Setting>();
+    const auto depth_frame_setting = std::make_shared<erl::geometry::DepthFrame3Dd::Setting>();
     depth_frame_setting->camera_intrinsic.image_height = erl::geometry::CowAndLady::kImageHeight;
     depth_frame_setting->camera_intrinsic.image_width = erl::geometry::CowAndLady::kImageWidth;
     depth_frame_setting->camera_intrinsic.camera_fx = erl::geometry::CowAndLady::kCameraFx;
     depth_frame_setting->camera_intrinsic.camera_fy = erl::geometry::CowAndLady::kCameraFy;
     depth_frame_setting->camera_intrinsic.camera_cx = erl::geometry::CowAndLady::kCameraCx;
     depth_frame_setting->camera_intrinsic.camera_cy = erl::geometry::CowAndLady::kCameraCy;
-    erl::geometry::DepthFrame3D depth_frame(depth_frame_setting);
+    erl::geometry::DepthFrame3Dd depth_frame(depth_frame_setting);
 
     erl::geometry::CowAndLady cow_and_lady(g_options.directory, g_options.use_icp);
     auto pcd_gt = cow_and_lady.GetGroundTruthPointCloud();
@@ -38,7 +38,8 @@ TEST(CowAndLady, Load) {
     auto pcd = std::make_shared<open3d::geometry::PointCloud>();
 
     long wp_idx = 0;
-    auto callback = [&](erl::geometry::Open3dVisualizerWrapper *wrapper, open3d::visualization::Visualizer *vis) -> bool {
+    auto callback = [&](erl::geometry::Open3dVisualizerWrapper *wrapper,
+                        open3d::visualization::Visualizer *vis) -> bool {
         if (wp_idx >= cow_and_lady.Size()) {
             // compute chamfer distance
             wrapper->SetAnimationCallback(nullptr);
@@ -46,8 +47,16 @@ TEST(CowAndLady, Load) {
             return false;
         }
 
-        auto [sequence_number, time_stamp, header_time_stamp, rotation, translation, depth, color, depth_jet] = cow_and_lady[wp_idx];
-        depth_frame.UpdateRanges(rotation, translation, depth, false);
+        auto
+            [sequence_number,
+             time_stamp,
+             header_time_stamp,
+             rotation,
+             translation,
+             depth,
+             color,
+             depth_jet] = cow_and_lady[wp_idx];
+        depth_frame.UpdateRanges(rotation, translation, depth);
         auto &points = depth_frame.GetHitPointsWorld();
         auto &hit_indices = depth_frame.GetHitRayIndices();
         for (std::size_t i = 0; i < points.size(); i += 100) {
@@ -70,7 +79,8 @@ TEST(CowAndLady, Load) {
         return true;
     };
 
-    const auto visualizer_setting = std::make_shared<erl::geometry::Open3dVisualizerWrapper::Setting>();
+    const auto visualizer_setting =
+        std::make_shared<erl::geometry::Open3dVisualizerWrapper::Setting>();
     visualizer_setting->window_name = test_info->name();
     visualizer_setting->mesh_show_back_face = false;
     erl::geometry::Open3dVisualizerWrapper visualizer(visualizer_setting);

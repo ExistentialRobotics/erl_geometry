@@ -4,25 +4,27 @@ template<typename Dtype>
 YAML::Node
 CameraIntrinsic<Dtype>::YamlConvertImpl::encode(const CameraIntrinsic &intrinsic) {
     YAML::Node node;
-    node["image_height"] = intrinsic.image_height;
-    node["image_width"] = intrinsic.image_width;
-    node["camera_fx"] = intrinsic.camera_fx;
-    node["camera_fy"] = intrinsic.camera_fy;
-    node["camera_cx"] = intrinsic.camera_cx;
-    node["camera_cy"] = intrinsic.camera_cy;
+    ERL_YAML_SAVE_ATTR(node, intrinsic, image_height);
+    ERL_YAML_SAVE_ATTR(node, intrinsic, image_width);
+    ERL_YAML_SAVE_ATTR(node, intrinsic, camera_fx);
+    ERL_YAML_SAVE_ATTR(node, intrinsic, camera_fy);
+    ERL_YAML_SAVE_ATTR(node, intrinsic, camera_cx);
+    ERL_YAML_SAVE_ATTR(node, intrinsic, camera_cy);
     return node;
 }
 
 template<typename Dtype>
 bool
-CameraIntrinsic<Dtype>::YamlConvertImpl::decode(const YAML::Node &node, CameraIntrinsic &intrinsic) {
+CameraIntrinsic<Dtype>::YamlConvertImpl::decode(
+    const YAML::Node &node,
+    CameraIntrinsic &intrinsic) {
     if (!node.IsMap()) { return false; }
-    intrinsic.image_height = node["image_height"].as<long>();
-    intrinsic.image_width = node["image_width"].as<long>();
-    intrinsic.camera_fx = node["camera_fx"].as<Dtype>();
-    intrinsic.camera_fy = node["camera_fy"].as<Dtype>();
-    intrinsic.camera_cx = node["camera_cx"].as<Dtype>();
-    intrinsic.camera_cy = node["camera_cy"].as<Dtype>();
+    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, image_height, long);
+    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, image_width, long);
+    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_fx, Dtype);
+    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_fy, Dtype);
+    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_cx, Dtype);
+    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_cy, Dtype);
     return true;
 }
 
@@ -35,8 +37,8 @@ CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector3> &dirs) co
     // [u, v, 1] = K * [x, y, 1], where K = [fx, 0, cx; 0, fy, cy; 0, 0, 1]
     // x = (u - cx) / fx, y = (v - cy) / fy
 
-    const Dtype fx_inv = 1.0 / camera_fx;
-    const Dtype fy_inv = 1.0 / camera_fy;
+    const Dtype fx_inv = 1.0f / camera_fx;
+    const Dtype fy_inv = 1.0f / camera_fy;
 
 #pragma omp parallel for default(none) shared(fx_inv, fy_inv, dirs, Eigen::Dynamic)
     for (long u = 0; u < image_width; ++u) {
@@ -46,7 +48,7 @@ CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector3> &dirs) co
             // normalized image coordinates
             // v <--> image coordinate y, u <--> image coordinate x
             Vector3 &dir_frame = dirs(v, u);
-            dir_frame << xu, yv, 1.0;
+            dir_frame << xu, yv, 1.0f;
             dir_frame.normalize();
         }
     }
@@ -54,7 +56,9 @@ CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector3> &dirs) co
 
 template<typename Dtype>
 void
-CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector2> &coords, Eigen::MatrixX<Vector3> &dirs) const {
+CameraIntrinsic<Dtype>::ComputeFrameDirections(
+    Eigen::MatrixX<Vector2> &coords,
+    Eigen::MatrixX<Vector3> &dirs) const {
     coords.resize(image_height, image_width);
     dirs.resize(image_height, image_width);
 
@@ -62,8 +66,8 @@ CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector2> &coords, 
     // [u, v, 1] = K * [x, y, 1], where K = [fx, 0, cx; 0, fy, cy; 0, 0, 1]
     // x = (u - cx) / fx, y = (v - cy) / fy
 
-    const Dtype fx_inv = 1.0 / camera_fx;
-    const Dtype fy_inv = 1.0 / camera_fy;
+    const Dtype fx_inv = 1.0f / camera_fx;
+    const Dtype fy_inv = 1.0f / camera_fy;
 
 #pragma omp parallel for default(none) shared(fx_inv, fy_inv, coords, dirs, Eigen::Dynamic)
     for (long u = 0; u < image_width; ++u) {
@@ -74,7 +78,7 @@ CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector2> &coords, 
             // v <--> image coordinate y, u <--> image coordinate x
             coords(v, u) << yv, xu;  // frame coords
             Vector3 &dir_frame = dirs(v, u);
-            dir_frame << xu, yv, 1.0;
+            dir_frame << xu, yv, 1.0f;
             dir_frame.normalize();
         }
     }
@@ -83,13 +87,21 @@ CameraIntrinsic<Dtype>::ComputeFrameDirections(Eigen::MatrixX<Vector2> &coords, 
 template<typename Dtype>
 void
 CameraIntrinsic<Dtype>::ConvertDepthToDistance(const MatrixX &depth, MatrixX &distance) const {
-    ERL_ASSERTM(depth.rows() == image_height, "depth image height ({}) does not match setting ({}).", depth.rows(), image_height);
-    ERL_ASSERTM(depth.cols() == image_width, "depth image width ({}) does not match setting ({}).", depth.cols(), image_width);
+    ERL_ASSERTM(
+        depth.rows() == image_height,
+        "depth image height ({}) does not match setting ({}).",
+        depth.rows(),
+        image_height);
+    ERL_ASSERTM(
+        depth.cols() == image_width,
+        "depth image width ({}) does not match setting ({}).",
+        depth.cols(),
+        image_width);
 
     distance.resize(image_height, image_width);
 
-    const Dtype fx_inv = 1.0 / camera_fx;
-    const Dtype fy_inv = 1.0 / camera_fy;
+    const Dtype fx_inv = 1.0f / camera_fx;
+    const Dtype fy_inv = 1.0f / camera_fy;
 
 #pragma omp parallel for default(none) shared(fx_inv, fy_inv, depth, distance, Eigen::Dynamic)
     for (long u = 0; u < image_width; ++u) {
@@ -98,7 +110,7 @@ CameraIntrinsic<Dtype>::ConvertDepthToDistance(const MatrixX &depth, MatrixX &di
         const Dtype *depth_ptr = depth.col(u).data();
         for (long v = 0; v < image_height; ++v) {
             const Dtype yv = (static_cast<Dtype>(v) - camera_cy) * fy_inv;
-            distance_ptr[v] = depth_ptr[v] * std::sqrt(xu * xu + yv * yv + 1.0);
+            distance_ptr[v] = depth_ptr[v] * std::sqrt(xu * xu + yv * yv + 1.0f);
         }
     }
 }
@@ -106,13 +118,21 @@ CameraIntrinsic<Dtype>::ConvertDepthToDistance(const MatrixX &depth, MatrixX &di
 template<typename Dtype>
 void
 CameraIntrinsic<Dtype>::ConvertDistanceToDepth(const MatrixX &distance, MatrixX &depth) const {
-    ERL_ASSERTM(distance.rows() == image_height, "distance image height ({}) does not match setting ({}).", distance.rows(), image_height);
-    ERL_ASSERTM(distance.cols() == image_width, "distance image width ({}) does not match setting ({}).", distance.cols(), image_width);
+    ERL_ASSERTM(
+        distance.rows() == image_height,
+        "distance image height ({}) does not match setting ({}).",
+        distance.rows(),
+        image_height);
+    ERL_ASSERTM(
+        distance.cols() == image_width,
+        "distance image width ({}) does not match setting ({}).",
+        distance.cols(),
+        image_width);
 
     depth.resize(image_height, image_width);
 
-    const Dtype fx_inv = 1.0 / camera_fx;
-    const Dtype fy_inv = 1.0 / camera_fy;
+    const Dtype fx_inv = 1.0f / camera_fx;
+    const Dtype fy_inv = 1.0f / camera_fy;
 
 #pragma omp parallel for default(none) shared(fx_inv, fy_inv, depth, distance, Eigen::Dynamic)
     for (long u = 0; u < image_width; ++u) {
@@ -121,7 +141,7 @@ CameraIntrinsic<Dtype>::ConvertDistanceToDepth(const MatrixX &distance, MatrixX 
         const Dtype *distance_ptr = distance.col(u).data();
         for (long v = 0; v < image_height; ++v) {
             const Dtype yv = (static_cast<Dtype>(v) - camera_cy) * fy_inv;
-            depth_ptr[v] = distance_ptr[v] / std::sqrt(xu * xu + yv * yv + 1.0);
+            depth_ptr[v] = distance_ptr[v] / std::sqrt(xu * xu + yv * yv + 1.0f);
         }
     }
 }
@@ -134,12 +154,28 @@ CameraIntrinsic<Dtype>::ConvertRgbdToPointCloud(
     const std::optional<Matrix4> &optical_pose,
     std::vector<Vector3> &points,
     std::vector<Vector3> &colors) const {
-    ERL_ASSERTM(depth.rows() == image_height, "depth image height ({}) does not match setting ({}).", depth.rows(), image_height);
-    ERL_ASSERTM(depth.cols() == image_width, "depth image width ({}) does not match setting ({}).", depth.cols(), image_width);
+    ERL_ASSERTM(
+        depth.rows() == image_height,
+        "depth image height ({}) does not match setting ({}).",
+        depth.rows(),
+        image_height);
+    ERL_ASSERTM(
+        depth.cols() == image_width,
+        "depth image width ({}) does not match setting ({}).",
+        depth.cols(),
+        image_width);
 
     if (!rgb.empty()) {
-        ERL_ASSERTM(rgb.rows == image_height, "rgb image height ({}) does not match setting ({}).", rgb.rows, image_height);
-        ERL_ASSERTM(rgb.cols == image_width, "rgb image width ({}) does not match setting ({}).", rgb.cols, image_width);
+        ERL_ASSERTM(
+            rgb.rows == image_height,
+            "rgb image height ({}) does not match setting ({}).",
+            rgb.rows,
+            image_height);
+        ERL_ASSERTM(
+            rgb.cols == image_width,
+            "rgb image width ({}) does not match setting ({}).",
+            rgb.cols,
+            image_width);
         ERL_ASSERTM(rgb.depth() == CV_8U, "rgb image depth ({}) should be CV_8U.", rgb.depth());
         ERL_ASSERTM(rgb.channels() == 3, "rgb image channels ({}) should be 3.", rgb.channels());
         colors.resize(depth.size());
@@ -147,8 +183,8 @@ CameraIntrinsic<Dtype>::ConvertRgbdToPointCloud(
 
     points.resize(depth.size());
 
-    const Dtype fx_inv = 1.0 / camera_fx;
-    const Dtype fy_inv = 1.0 / camera_fy;
+    const Dtype fx_inv = 1.0f / camera_fx;
+    const Dtype fy_inv = 1.0f / camera_fy;
     const bool has_optical_pose = optical_pose.has_value();
     Matrix3 rotation;
     Vector3 translation;
@@ -157,14 +193,24 @@ CameraIntrinsic<Dtype>::ConvertRgbdToPointCloud(
         translation = optical_pose->template topRightCorner<3, 1>();
     }
 
-#pragma omp parallel for default(none) shared(fx_inv, fy_inv, depth, rgb, has_optical_pose, rotation, translation, points, colors, Eigen::Dynamic)
+#pragma omp parallel for default(none) \
+    shared(fx_inv,                     \
+               fy_inv,                 \
+               depth,                  \
+               rgb,                    \
+               has_optical_pose,       \
+               rotation,               \
+               translation,            \
+               points,                 \
+               colors,                 \
+               Eigen::Dynamic)
     for (long u = 0; u < image_width; ++u) {
         const Dtype xu = (static_cast<Dtype>(u) - camera_cx) * fx_inv;
         const Dtype *depth_ptr = depth.col(u).data();
         for (long v = 0, i = u * image_height; v < image_height; ++v, ++i) {
             const Dtype &d = depth_ptr[v];
             Vector3 &point = points[i];
-            if (!std::isfinite(d) || d <= 0) { continue; }  // non-positive or nan depth! Not allowed.
+            if (!std::isfinite(d) || d <= 0) { continue; }  // depth < 0 or is nan! Not allowed.
             const Dtype yv = (static_cast<Dtype>(v) - camera_cy) * fy_inv;
             point[0] = depth_ptr[v] * xu;
             point[1] = depth_ptr[v] * yv;
@@ -173,9 +219,9 @@ CameraIntrinsic<Dtype>::ConvertRgbdToPointCloud(
             if (!rgb.empty()) {
                 const auto &color = rgb.at<cv::Vec3b>(v, u);
                 Vector3 &color_point = colors[i];
-                color_point[0] = static_cast<Dtype>(color[0]) / 255.0;
-                color_point[1] = static_cast<Dtype>(color[1]) / 255.0;
-                color_point[2] = static_cast<Dtype>(color[2]) / 255.0;
+                color_point[0] = static_cast<Dtype>(color[0]) / 255.0f;
+                color_point[1] = static_cast<Dtype>(color[1]) / 255.0f;
+                color_point[2] = static_cast<Dtype>(color[2]) / 255.0f;
             }
         }
     }

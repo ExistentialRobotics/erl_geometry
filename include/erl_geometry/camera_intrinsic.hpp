@@ -6,13 +6,14 @@ namespace erl::geometry {
 
     template<typename Dtype>
     struct CameraIntrinsic : common::Yamlable<CameraIntrinsic<Dtype>> {
-        // defaults are from https://github.com/cvg/nice-slam/blob/master/configs/Replica/replica.yaml
+        // the defaults are from
+        // https://github.com/cvg/nice-slam/blob/master/configs/Replica/replica.yaml
         long image_height = 680;
         long image_width = 1200;
-        Dtype camera_fx = 600.0;
-        Dtype camera_fy = 600.0;
-        Dtype camera_cx = 599.5;
-        Dtype camera_cy = 339.5;
+        Dtype camera_fx = 600.0f;
+        Dtype camera_fy = 600.0f;
+        Dtype camera_cx = 599.5f;
+        Dtype camera_cy = 339.5f;
 
         struct YamlConvertImpl {
             static YAML::Node
@@ -41,13 +42,13 @@ namespace erl::geometry {
 
         std::pair<long, long>
         Resize(Dtype factor) {
-            const long old_image_height = image_height;
-            const long old_image_width = image_width;
+            const auto old_image_height = static_cast<Dtype>(image_height);
+            const auto old_image_width = static_cast<Dtype>(image_width);
             image_height = static_cast<int>(image_height * factor);
             image_width = static_cast<int>(image_width * factor);
-            factor = (static_cast<Dtype>(image_height) / static_cast<Dtype>(old_image_height) +
-                      static_cast<Dtype>(image_width) / static_cast<Dtype>(old_image_width)) /
-                     2.0;
+            factor = (static_cast<Dtype>(image_height) / old_image_height +
+                      static_cast<Dtype>(image_width) / old_image_width) *
+                     0.5f;
             camera_fx *= factor;
             camera_cx *= factor;
             camera_cy *= factor;
@@ -55,13 +56,14 @@ namespace erl::geometry {
         }
 
         void
-        ComputeFrameDirection(const long u, const long v, Dtype &dir_x, Dtype &dir_y, Dtype &dir_z) const {
+        ComputeFrameDirection(const long u, const long v, Dtype &dir_x, Dtype &dir_y, Dtype &dir_z)
+            const {
             dir_x = (static_cast<Dtype>(u) - camera_cx) / camera_fx;
             dir_y = (static_cast<Dtype>(v) - camera_cy) / camera_fy;
-            const Dtype norm = std::sqrt(dir_x * dir_x + dir_y * dir_y + 1.0);
+            const Dtype norm = std::sqrt(dir_x * dir_x + dir_y * dir_y + 1.0f);
             dir_x /= norm;
             dir_y /= norm;
-            dir_z = 1.0 / norm;
+            dir_z = 1.0f / norm;
         }
 
         void
@@ -73,13 +75,15 @@ namespace erl::geometry {
         ComputeFrameDirections(Eigen::MatrixX<Vector3> &dirs) const;
 
         void
-        ComputeFrameDirections(Eigen::MatrixX<Vector2> &coords, Eigen::MatrixX<Vector3> &dirs) const;
+        ComputeFrameDirections(Eigen::MatrixX<Vector2> &coords, Eigen::MatrixX<Vector3> &dirs)
+            const;
 
         void
-        ConvertDepthToDistance(const long u, const long v, const Dtype depth, Dtype &distance) const {
+        ConvertDepthToDistance(const long u, const long v, const Dtype depth, Dtype &distance)
+            const {
             const Dtype xu = (static_cast<Dtype>(u) - camera_cx) / camera_fx;
             const Dtype yv = (static_cast<Dtype>(v) - camera_cy) / camera_fy;
-            distance = depth * std::sqrt(xu * xu + yv * yv + 1.0);
+            distance = depth * std::sqrt(xu * xu + yv * yv + 1.0f);
         }
 
         void
@@ -104,7 +108,9 @@ namespace erl::geometry {
 }  // namespace erl::geometry
 
 template<>
-struct YAML::convert<erl::geometry::CameraIntrinsic<double>> : erl::geometry::CameraIntrinsic<double>::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::CameraIntrinsic<double>>
+    : erl::geometry::CameraIntrinsic<double>::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::CameraIntrinsic<float>> : erl::geometry::CameraIntrinsic<float>::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::CameraIntrinsic<float>>
+    : erl::geometry::CameraIntrinsic<float>::YamlConvertImpl {};

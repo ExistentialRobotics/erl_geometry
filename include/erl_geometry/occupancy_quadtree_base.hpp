@@ -8,7 +8,8 @@
 
 namespace erl::geometry {
 
-    struct OccupancyQuadtreeBaseSetting : public common::Yamlable<OccupancyQuadtreeBaseSetting, OccupancyNdTreeSetting> {
+    struct OccupancyQuadtreeBaseSetting
+        : common::Yamlable<OccupancyQuadtreeBaseSetting, OccupancyNdTreeSetting> {
         bool use_change_detection = false;
         bool use_aabb_limit = false;
         Aabb2Dd aabb = {};
@@ -18,7 +19,8 @@ namespace erl::geometry {
     };
 
     template<typename Dtype, class Node, class Setting>
-    class OccupancyQuadtreeBase : public QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting> {
+    class OccupancyQuadtreeBase
+        : public QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting> {
         static_assert(std::is_base_of_v<OccupancyQuadtreeNode, Node>);
         static_assert(std::is_base_of_v<OccupancyQuadtreeBaseSetting, Setting>);
 
@@ -26,8 +28,10 @@ namespace erl::geometry {
 
     protected:
         QuadtreeKeyBoolMap m_changed_keys_ = {};
-        QuadtreeKeyVectorMap m_discrete_end_point_mapping_ = {};  // buffer used for inserting point cloud to track the end points
-        QuadtreeKeyVectorMap m_end_point_mapping_ = {};           // buffer used for inserting point cloud to track the end points
+        // buffer used for inserting point cloud to track the end points
+        QuadtreeKeyVectorMap m_discrete_end_point_mapping_ = {};
+        // buffer used for inserting point cloud to track the end points
+        QuadtreeKeyVectorMap m_end_point_mapping_ = {};
 
     public:
         typedef Dtype DataType;
@@ -70,13 +74,16 @@ namespace erl::geometry {
 
         //-- insert point cloud
         /**
-         * Insert a point cloud in the world frame. Multiple points may fall into the same voxel that is updated only once, and occupied nodes are preferred
-         * than free ones. This avoids holes and is more efficient than the plain ray insertion of InsertPointCloudRays().
+         * Insert a point cloud in the world frame. Multiple points may fall into the same voxel
+         * updated only once, and occupied nodes are preferred than free ones. This avoids
+         * holes and is more efficient than the plain ray insertion of InsertPointCloudRays().
          * @param points 2xN matrix of points in the world frame
          * @param sensor_origin 2D vector of the sensor origin in the world frame
-         * @param max_range maximum range of the sensor. Points beyond this range are ignored. Non-positive value means no limit.
+         * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
+         * Non-positive value means no limit.
          * @param parallel whether to use parallel computation
-         * @param lazy_eval whether to update the occupancy of the nodes later. If true, the occupancy is not updated until UpdateInnerOccupancy() is called.
+         * @param lazy_eval Whether to update the occupancy of the nodes later. If true, the
+         * occupancy is not updated until UpdateInnerOccupancy() is called.
          * @param discretize
          */
         virtual void
@@ -90,9 +97,11 @@ namespace erl::geometry {
 
         /**
          * Compute keys of the cells to update for a point cloud up to the resolution.
-         * @param points 2xN matrix of points in the world frame, points falling into the same voxel are merged to the first appearance.
+         * @param points 2xN matrix of points in the world frame, points falling into the same voxel
+         * are merged to the first appearance.
          * @param sensor_origin 2D vector of the sensor origin in the world frame
-         * @param max_range maximum range of the sensor. Points beyond this range are ignored. Non-positive value means no limit.
+         * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
+         * Non-positive value means no limit.
          * @param parallel whether to use parallel computation
          * @param free_cells keys of the free cells to update
          * @param occupied_cells keys of the occupied cells to update
@@ -116,14 +125,15 @@ namespace erl::geometry {
             QuadtreeKeyVector& occupied_cells);
 
         /**
-         * Insert a point cloud ray by ray. Some cells may be updated multiple times.Benchmark shows that this is slower and less accurate than
-         * InsertPointCloud.
+         * Insert a point cloud ray by ray. Some cells may be updated multiple times. Benchmark
+         * shows that this is slower and less accurate than InsertPointCloud.
          * @param points 2xN matrix of ray end points in the world frame.
          * @param sensor_origin 2D vector of the sensor origin in the world frame.
-         * @param max_range maximum range of the sensor. Points beyond this range are ignored. Non-positive value means no limit.
+         * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
+         * Non-positive value means no limit.
          * @param parallel whether to use parallel computation
-         * @param lazy_eval whether to update the occupancy of the nodes immediately. If true, the occupancy is not updated until UpdateInnerOccupancy() is
-         * called.
+         * @param lazy_eval Whether to update the occupancy of the nodes immediately. If true, the
+         * occupancy is not updated until UpdateInnerOccupancy() is called.
          */
         virtual void
         InsertPointCloudRays(
@@ -135,14 +145,16 @@ namespace erl::geometry {
 
         //-- insert ray
         /**
-         * Insert a ray from (sx, sy) to (ex, ey) into the tree. The ray is cut at max_range if it is positive.
+         * Insert a ray from (sx, sy) to (ex, ey) into the tree. The ray is cut at max_range if it
+         * is positive.
          * @param sx metric x coordinate of the start point
          * @param sy metric y coordinate of the start point
          * @param ex metric x coordinate of the end point
          * @param ey metric y coordinate of the end point
-         * @param max_range maximum range after which the ray is cut. Non-positive value means no limit.
-         * @param lazy_eval whether to update the occupancy of the nodes immediately. If true, the occupancy is not updated until UpdateInnerOccupancy() is
-         * called.
+         * @param max_range Maximum range after which the ray is cut. Non-positive value means no
+         * limit.
+         * @param lazy_eval Whether to update the occupancy of the nodes immediately. If true, the
+         * occupancy is not updated until UpdateInnerOccupancy() is called.
          * @return
          */
         virtual bool
@@ -186,23 +198,41 @@ namespace erl::geometry {
             std::vector<const Node*>& hit_nodes) const;
 
         const OccupancyQuadtreeNode*
-        GetHitOccupiedNode(Dtype px, Dtype py, Dtype vx, Dtype vy, bool ignore_unknown, Dtype max_range, Dtype& ex, Dtype& ey) const override;
+        GetHitOccupiedNode(
+            Dtype px,
+            Dtype py,
+            Dtype vx,
+            Dtype vy,
+            bool ignore_unknown,
+            Dtype max_range,
+            Dtype& ex,
+            Dtype& ey) const override;
 
         /**
-         * Cast a ray starting from (px, py) along (vx, vy) and get the hit surface point (ex, ey) if the ray hits one.
+         * Cast a ray starting from (px, py) along (vx, vy) and get the hit surface point (ex, ey)
+         * if the ray hits one.
          * @param px metric x coordinate of the start point
          * @param py metric y coordinate of the start point
          * @param vx x component of the ray direction
          * @param vy y component of the ray direction
-         * @param ignore_unknown whether unknown cells are ignored, i.e. treated as free. If false, the ray casting aborts when an unknown cell is hit and
-         * returns false.
-         * @param max_range maximum range after which the ray casting is aborted. Non-positive value means no limit.
+         * @param ignore_unknown Whether unknown cells are ignored, i.e., treated as free. If false,
+         * the ray casting aborts when an unknown cell is hit and returns false.
+         * @param max_range Maximum range after which the ray casting is aborted. Non-positive value
+         * means no limit.
          * @param ex metric x coordinate of the hit leaf cell
          * @param ey metric y coordinate of the hit leaf cell
          * @return node pointer if the ray hits an occupied cell, nullptr otherwise.
          */
         const Node*
-        CastRay(Dtype px, Dtype py, Dtype vx, Dtype vy, bool ignore_unknown, Dtype max_range, Dtype& ex, Dtype& ey) const;
+        CastRay(
+            Dtype px,
+            Dtype py,
+            Dtype vx,
+            Dtype vy,
+            bool ignore_unknown,
+            Dtype max_range,
+            Dtype& ex,
+            Dtype& ey) const;
 
         //-- trace ray
         [[nodiscard]] const QuadtreeKeyBoolMap&
@@ -223,19 +253,21 @@ namespace erl::geometry {
          * @param x
          * @param y
          * @param occupied
-         * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
-         * UpdateInnerOccupancy() after all updates are done.
+         * @param lazy_eval Whether update of inner nodes is omitted and only leaf nodes are
+         * updated. This speeds up the intersection, but you need to call UpdateInnerOccupancy()
+         * after all updates are done.
          * @return
          */
         Node*
         UpdateNode(Dtype x, Dtype y, bool occupied, bool lazy_eval);
 
         /**
-         * Update occupancy measurement of a given node
+         * Update the occupancy measurement of a given node
          * @param key of the node to update
          * @param occupied whether the node is observed occupied or not
-         * @param lazy_eval whether update of inner nodes is omitted and only leaf nodes are updated. This speeds up the intersection, but you need to call
-         * UpdateInnerOccupancy() after all updates are done.
+         * @param lazy_eval Whether update of inner nodes is omitted and only leaf nodes are
+         * updated. This speeds up the intersection, but you need to call UpdateInnerOccupancy()
+         * after all updates are done.
          */
         Node*
         UpdateNode(const QuadtreeKey& key, bool occupied, bool lazy_eval);
@@ -248,7 +280,12 @@ namespace erl::geometry {
 
     private:
         Node*
-        UpdateNodeRecurs(Node* node, bool node_just_created, const QuadtreeKey& key, float log_odds_delta, bool lazy_eval);
+        UpdateNodeRecurs(
+            Node* node,
+            bool node_just_created,
+            const QuadtreeKey& key,
+            float log_odds_delta,
+            bool lazy_eval);
 
     protected:
         void
@@ -272,12 +309,11 @@ namespace erl::geometry {
         void
         ToMaxLikelihood() override;
 
-    protected:
         //--file IO
-        std::istream&
+        bool
         ReadBinaryData(std::istream& s) override;
 
-        std::ostream&
+        bool
         WriteBinaryData(std::ostream& s) const override;
     };
 
@@ -288,21 +324,8 @@ namespace erl::geometry {
 template<>
 struct YAML::convert<erl::geometry::OccupancyQuadtreeBaseSetting> {
     static Node
-    encode(const erl::geometry::OccupancyQuadtreeBaseSetting& rhs) {
-        Node node = convert<erl::geometry::OccupancyNdTreeSetting>::encode(rhs);
-        node["use_change_detection"] = rhs.use_change_detection;
-        node["use_aabb_limit"] = rhs.use_aabb_limit;
-        node["aabb"] = rhs.aabb;
-        return node;
-    }
+    encode(const erl::geometry::OccupancyQuadtreeBaseSetting& setting);
 
     static bool
-    decode(const Node& node, erl::geometry::OccupancyQuadtreeBaseSetting& rhs) {
-        if (!node.IsMap()) { return false; }
-        if (!convert<erl::geometry::OccupancyNdTreeSetting>::decode(node, rhs)) { return false; }
-        rhs.use_change_detection = node["use_change_detection"].as<bool>();
-        rhs.use_aabb_limit = node["use_aabb_limit"].as<bool>();
-        rhs.aabb = node["aabb"].as<erl::geometry::Aabb2Dd>();
-        return true;
-    }
+    decode(const Node& node, erl::geometry::OccupancyQuadtreeBaseSetting& setting);
 };  // namespace YAML

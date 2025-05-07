@@ -32,7 +32,7 @@ struct Options {
 
 Options g_user_data;
 
-TEST(ERL_GEOMETRY, LidarFrame3D) {
+TEST(LidarFrame3D, Basic) {
     using namespace erl::common;
     using namespace erl::geometry;
     std::cout << "ply_file: " << g_user_data.ply_file << std::endl
@@ -54,7 +54,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
             open3d::io::ReadTriangleMesh(g_user_data.ply_file, *room_mesh, options);
             room_mesh->ComputeTriangleNormals();
         }
-        std::shared_ptr<open3d::geometry::TriangleMesh> position_sphere = open3d::geometry::TriangleMesh::CreateSphere(0.1);
+        std::shared_ptr<open3d::geometry::TriangleMesh> position_sphere =
+            open3d::geometry::TriangleMesh::CreateSphere(0.1);
         position_sphere->PaintUniformColor({0.0, 0.0, 1.0});
         auto lidar_rays_line_set = std::make_shared<open3d::geometry::LineSet>();
         auto lidar_point_cloud = std::make_shared<open3d::geometry::PointCloud>();
@@ -81,11 +82,11 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         auto o3d_scene = std::make_shared<open3d::t::geometry::RaycastingScene>();
         o3d_scene->AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*room_mesh));
 
-        auto lidar_3d_setting = std::make_shared<Lidar3D::Setting>();
+        auto lidar_3d_setting = std::make_shared<Lidar3Dd::Setting>();
         lidar_3d_setting->elevation_min = DegreeToRadian(g_user_data.lidar_elevation_min);
         lidar_3d_setting->elevation_max = DegreeToRadian(g_user_data.lidar_elevation_max);
         lidar_3d_setting->num_elevation_lines = g_user_data.lidar_num_elevation_lines;
-        auto lidar_3d = std::make_shared<Lidar3D>(lidar_3d_setting);
+        auto lidar_3d = std::make_shared<Lidar3Dd>(lidar_3d_setting);
         lidar_3d->AddMesh(room_mesh->vertices_, room_mesh->triangles_);
 
         double lidar_roll = 0.0;
@@ -97,9 +98,15 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         if (std::isfinite(g_user_data.init_x)) { lidar_position[0] = g_user_data.init_x; }
         if (std::isfinite(g_user_data.init_y)) { lidar_position[1] = g_user_data.init_y; }
         if (std::isfinite(g_user_data.init_z)) { lidar_position[2] = g_user_data.init_z; }
-        if (std::isfinite(g_user_data.init_roll)) { lidar_roll = DegreeToRadian(g_user_data.init_roll); }
-        if (std::isfinite(g_user_data.init_pitch)) { lidar_pitch = DegreeToRadian(g_user_data.init_pitch); }
-        if (std::isfinite(g_user_data.init_yaw)) { lidar_yaw = DegreeToRadian(g_user_data.init_yaw); }
+        if (std::isfinite(g_user_data.init_roll)) {
+            lidar_roll = DegreeToRadian(g_user_data.init_roll);
+        }
+        if (std::isfinite(g_user_data.init_pitch)) {
+            lidar_pitch = DegreeToRadian(g_user_data.init_pitch);
+        }
+        if (std::isfinite(g_user_data.init_yaw)) {
+            lidar_yaw = DegreeToRadian(g_user_data.init_yaw);
+        }
         position_sphere->Translate(lidar_position);
 
         Eigen::MatrixX<Eigen::Vector3d> lidar_ray_dirs = lidar_3d->GetRayDirectionsInFrame();
@@ -114,11 +121,13 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         bool show_along_ray_samples = false;
         auto update_render = [&](open3d::visualization::Visualizer *vis) {
             auto render_tic = std::chrono::high_resolution_clock::now();
-            if (show_lidar_rays || show_lidar_points || show_surface_samples || show_region_samples_hpr || show_region_samples_vrs || show_along_ray_samples) {
+            if (show_lidar_rays || show_lidar_points || show_surface_samples ||
+                show_region_samples_hpr || show_region_samples_vrs || show_along_ray_samples) {
                 // r-zyx order
-                Eigen::Quaterniond orientation = Eigen::AngleAxisd(lidar_yaw, Eigen::Vector3d::UnitZ()) *    // yaw
-                                                 Eigen::AngleAxisd(lidar_pitch, Eigen::Vector3d::UnitY()) *  // pitch
-                                                 Eigen::AngleAxisd(lidar_roll, Eigen::Vector3d::UnitX());    // roll
+                Eigen::Quaterniond orientation =
+                    Eigen::AngleAxisd(lidar_yaw, Eigen::Vector3d::UnitZ()) *    // yaw
+                    Eigen::AngleAxisd(lidar_pitch, Eigen::Vector3d::UnitY()) *  // pitch
+                    Eigen::AngleAxisd(lidar_roll, Eigen::Vector3d::UnitX());    // roll
                 Eigen::Matrix3d rotation = orientation.matrix();
                 Eigen::MatrixXd ranges = lidar_3d->Scan(rotation, lidar_position);
                 long num_azimuths = ranges.rows();
@@ -157,22 +166,34 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     }
                 }
 
-                auto lidar_frame_3d_setting = std::make_shared<LidarFrame3D::Setting>();
-                auto lidar_frame_3d = std::make_shared<LidarFrame3D>(lidar_frame_3d_setting);
-                if (!surface_samples_ready || !region_samples_hpr_ready || !region_samples_vrs_ready || !along_ray_samples_ready) {
+                auto lidar_frame_3d_setting = std::make_shared<LidarFrame3Dd::Setting>();
+                auto lidar_frame_3d = std::make_shared<LidarFrame3Dd>(lidar_frame_3d_setting);
+                if (!surface_samples_ready || !region_samples_hpr_ready ||
+                    !region_samples_vrs_ready || !along_ray_samples_ready) {
                     auto tic = std::chrono::high_resolution_clock::now();
                     lidar_frame_3d->UpdateRanges(rotation, lidar_position, ranges, false);
                     auto toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "lidar_frame_3d->Update takes " << std::chrono::duration<double, std::milli>(toc - tic).count() << " ms" << std::endl;
+                    std::cout << "lidar_frame_3d->Update takes "
+                              << std::chrono::duration<double, std::milli>(toc - tic).count()
+                              << " ms" << std::endl;
                 }
 
                 if (show_surface_samples && !surface_samples_ready) {
                     Eigen::Matrix3Xd sampled_positions, sampled_directions;
                     Eigen::VectorXd sampled_distances;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    lidar_frame_3d->SampleNearSurface(10, 0.05, 1.0, sampled_positions, sampled_directions, sampled_distances);
+                    lidar_frame_3d->SampleNearSurface(
+                        10,
+                        0.05,
+                        1.0,
+                        sampled_positions,
+                        sampled_directions,
+                        sampled_distances);
                     auto toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleNearSurface: " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms" << std::endl;
+                    std::cout
+                        << "SampleNearSurface: "
+                        << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count()
+                        << " ms" << std::endl;
                     long num_samples = sampled_positions.cols();
                     surface_samples_line_set->Clear();
                     surface_samples_line_set->points_.reserve(num_samples * 2);
@@ -185,7 +206,9 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     surface_samples_end_point_cloud->points_.reserve(num_samples);
                     surface_samples_end_point_cloud->colors_.reserve(num_samples);
                     for (long i = 0; i < num_samples; ++i) {
-                        Eigen::Vector3d end_point = sampled_positions.col(i) + sampled_directions.col(i) * sampled_distances[i];
+                        Eigen::Vector3d end_point =
+                            sampled_positions.col(i) +
+                            sampled_directions.col(i) * sampled_distances[i];
                         surface_samples_line_set->points_.emplace_back(sampled_positions.col(i));
                         surface_samples_line_set->points_.emplace_back(end_point);
                         surface_samples_line_set->lines_.emplace_back(i * 2, i * 2 + 1);
@@ -194,7 +217,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         } else {
                             surface_samples_line_set->colors_.emplace_back(1.0, 0.5, 0.0);
                         }
-                        surface_samples_pos_point_cloud->points_.emplace_back(sampled_positions.col(i));
+                        surface_samples_pos_point_cloud->points_.emplace_back(
+                            sampled_positions.col(i));
                         surface_samples_pos_point_cloud->colors_.emplace_back(0.0, 1.0, 1.0);
                         surface_samples_end_point_cloud->points_.emplace_back(end_point);
                         surface_samples_end_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
@@ -210,8 +234,10 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     long num_along_ray_samples_per_ray = 10;
                     double max_in_obstacle_dist = 0.05;
                     std::cout << "num_samples: " << num_positions << std::endl
-                              << "num_near_surface_samples_per_ray: " << num_near_surface_samples_per_ray << std::endl
-                              << "num_along_ray_samples_per_ray: " << num_along_ray_samples_per_ray << std::endl
+                              << "num_near_surface_samples_per_ray: "
+                              << num_near_surface_samples_per_ray << std::endl
+                              << "num_along_ray_samples_per_ray: " << num_along_ray_samples_per_ray
+                              << std::endl
                               << "max_in_obstacle_dist: " << max_in_obstacle_dist << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
                     lidar_frame_3d->SampleInRegionHpr(
@@ -227,7 +253,9 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     double t = std::chrono::duration<double, std::milli>(toc - tic).count();
                     std::cout << "SampleInRegionHpr: " << t << " ms" << std::endl
                               << "number of samples: " << sampled_positions.cols() << std::endl
-                              << "time per sample: " << t / static_cast<double>(sampled_positions.cols()) << " ms" << std::endl;
+                              << "time per sample: "
+                              << t / static_cast<double>(sampled_positions.cols()) << " ms"
+                              << std::endl;
                     region_samples_hpr_line_set->Clear();
                     region_samples_hpr_line_set->points_.reserve(sampled_positions.cols());
                     region_samples_hpr_line_set->lines_.reserve(sampled_positions.cols());
@@ -239,7 +267,9 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     region_samples_hpr_end_point_cloud->points_.reserve(sampled_positions.cols());
                     region_samples_hpr_end_point_cloud->colors_.reserve(sampled_positions.cols());
                     for (long i = 0; i < sampled_positions.cols(); ++i) {
-                        Eigen::Vector3d end_point = sampled_positions.col(i) + sampled_directions.col(i) * sampled_distances[i];
+                        Eigen::Vector3d end_point =
+                            sampled_positions.col(i) +
+                            sampled_directions.col(i) * sampled_distances[i];
                         region_samples_hpr_line_set->points_.emplace_back(sampled_positions.col(i));
                         region_samples_hpr_line_set->points_.emplace_back(end_point);
                         region_samples_hpr_line_set->lines_.emplace_back(i * 2, i * 2 + 1);
@@ -248,7 +278,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         } else {
                             region_samples_hpr_line_set->colors_.emplace_back(1.0, 1.0, 0.0);
                         }
-                        region_samples_hpr_pos_point_cloud->points_.emplace_back(sampled_positions.col(i));
+                        region_samples_hpr_pos_point_cloud->points_.emplace_back(
+                            sampled_positions.col(i));
                         region_samples_hpr_pos_point_cloud->colors_.emplace_back(0.0, 1.0, 1.0);
                         region_samples_hpr_end_point_cloud->points_.emplace_back(end_point);
                         region_samples_hpr_end_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
@@ -263,7 +294,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     long num_samples_per_azimuth_segment = 100;
                     long num_azimuth_segments = 36;
                     std::cout << "num_hit_points: " << num_hit_points << std::endl
-                              << "num_samples_per_azimuth_segment: " << num_samples_per_azimuth_segment << std::endl
+                              << "num_samples_per_azimuth_segment: "
+                              << num_samples_per_azimuth_segment << std::endl
                               << "num_azimuth_segments: " << num_azimuth_segments << std::endl;
                     auto tic = std::chrono::high_resolution_clock::now();
                     lidar_frame_3d->SampleInRegionVrs(
@@ -278,7 +310,9 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     double t = std::chrono::duration<double, std::milli>(toc - tic).count();
                     std::cout << "SampleInRegionVrs: " << t << " ms" << std::endl
                               << "number of samples: " << sampled_positions.cols() << std::endl
-                              << "time per sample: " << t / static_cast<double>(sampled_positions.cols()) << " ms" << std::endl;
+                              << "time per sample: "
+                              << t / static_cast<double>(sampled_positions.cols()) << " ms"
+                              << std::endl;
                     region_samples_vrs_line_set->Clear();
                     region_samples_vrs_line_set->points_.reserve(sampled_positions.cols());
                     region_samples_vrs_line_set->lines_.reserve(sampled_positions.cols());
@@ -290,7 +324,9 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     region_samples_vrs_end_point_cloud->points_.reserve(sampled_positions.cols());
                     region_samples_vrs_end_point_cloud->colors_.reserve(sampled_positions.cols());
                     for (long i = 0; i < sampled_positions.cols(); ++i) {
-                        Eigen::Vector3d end_point = sampled_positions.col(i) + sampled_directions.col(i) * sampled_distances[i];
+                        Eigen::Vector3d end_point =
+                            sampled_positions.col(i) +
+                            sampled_directions.col(i) * sampled_distances[i];
                         region_samples_vrs_line_set->points_.emplace_back(sampled_positions.col(i));
                         region_samples_vrs_line_set->points_.emplace_back(end_point);
                         region_samples_vrs_line_set->lines_.emplace_back(i * 2, i * 2 + 1);
@@ -299,7 +335,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         } else {
                             region_samples_vrs_line_set->colors_.emplace_back(1.0, 1.0, 0.0);
                         }
-                        region_samples_vrs_pos_point_cloud->points_.emplace_back(sampled_positions.col(i));
+                        region_samples_vrs_pos_point_cloud->points_.emplace_back(
+                            sampled_positions.col(i));
                         region_samples_vrs_pos_point_cloud->colors_.emplace_back(0.0, 1.0, 1.0);
                         region_samples_vrs_end_point_cloud->points_.emplace_back(end_point);
                         region_samples_vrs_end_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
@@ -313,10 +350,18 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     double range_step = 0.2;
                     double max_in_obstacle_dist = 0.05;
                     auto tic = std::chrono::high_resolution_clock::now();
-                    lidar_frame_3d->SampleAlongRays(range_step, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
+                    lidar_frame_3d->SampleAlongRays(
+                        range_step,
+                        max_in_obstacle_dist,
+                        1.0,
+                        sampled_positions,
+                        sampled_directions,
+                        sampled_distances);
                     auto toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleAlongRays (fixed range step): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count() << " ms"
-                              << std::endl;
+                    std::cout
+                        << "SampleAlongRays (fixed range step): "
+                        << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count()
+                        << " ms" << std::endl;
 
                     long num_samples = sampled_positions.cols();
                     long num_hit_rays = lidar_frame_3d->GetNumHitRays();
@@ -334,7 +379,9 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     along_ray_samples_end_point_cloud->colors_.reserve(num_samples);
                     num_samples = sampled_positions.cols();
                     for (long i = 0; i < num_samples; ++i) {
-                        Eigen::Vector3d end_point = sampled_positions.col(i) + sampled_directions.col(i) * sampled_distances[i];
+                        Eigen::Vector3d end_point =
+                            sampled_positions.col(i) +
+                            sampled_directions.col(i) * sampled_distances[i];
                         along_ray_samples_line_set->points_.emplace_back(sampled_positions.col(i));
                         along_ray_samples_line_set->points_.emplace_back(end_point);
                         along_ray_samples_line_set->lines_.emplace_back(i * 2, i * 2 + 1);
@@ -343,30 +390,44 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                         } else {
                             along_ray_samples_line_set->colors_.emplace_back(1.0, 0.0, 1.0);
                         }
-                        along_ray_samples_pos_point_cloud->points_.emplace_back(sampled_positions.col(i));
+                        along_ray_samples_pos_point_cloud->points_.emplace_back(
+                            sampled_positions.col(i));
                         along_ray_samples_pos_point_cloud->colors_.emplace_back(0.0, 1.0, 1.0);
                         along_ray_samples_end_point_cloud->points_.emplace_back(end_point);
                         along_ray_samples_end_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
                     }
 
                     tic = std::chrono::high_resolution_clock::now();
-                    lidar_frame_3d->SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, 1.0, sampled_positions, sampled_directions, sampled_distances);
+                    lidar_frame_3d->SampleAlongRays(
+                        num_samples_per_ray,
+                        max_in_obstacle_dist,
+                        1.0,
+                        sampled_positions,
+                        sampled_directions,
+                        sampled_distances);
                     toc = std::chrono::high_resolution_clock::now();
-                    std::cout << "SampleAlongRays (fixed num samples per ray): " << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count()
-                              << " ms" << std::endl;
+                    std::cout
+                        << "SampleAlongRays (fixed num samples per ray): "
+                        << std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count()
+                        << " ms" << std::endl;
                     long collected_num_samples = num_samples;
                     num_samples = sampled_positions.cols();
                     for (long i = 0; i < num_samples; ++i) {
-                        Eigen::Vector3d end_point = sampled_positions.col(i) + sampled_directions.col(i) * sampled_distances[i];
+                        Eigen::Vector3d end_point =
+                            sampled_positions.col(i) +
+                            sampled_directions.col(i) * sampled_distances[i];
                         along_ray_samples_line_set->points_.emplace_back(sampled_positions.col(i));
                         along_ray_samples_line_set->points_.emplace_back(end_point);
-                        along_ray_samples_line_set->lines_.emplace_back(collected_num_samples + i * 2, collected_num_samples + i * 2 + 1);
+                        along_ray_samples_line_set->lines_.emplace_back(
+                            collected_num_samples + i * 2,
+                            collected_num_samples + i * 2 + 1);
                         if (sampled_distances[i] > 0) {
                             along_ray_samples_line_set->colors_.emplace_back(0.0, 0.5, 1.0);
                         } else {
                             along_ray_samples_line_set->colors_.emplace_back(1.0, 0.0, 1.0);
                         }
-                        along_ray_samples_pos_point_cloud->points_.emplace_back(sampled_positions.col(i));
+                        along_ray_samples_pos_point_cloud->points_.emplace_back(
+                            sampled_positions.col(i));
                         along_ray_samples_pos_point_cloud->colors_.emplace_back(0.0, 1.0, 1.0);
                         along_ray_samples_end_point_cloud->points_.emplace_back(end_point);
                         along_ray_samples_end_point_cloud->colors_.emplace_back(1.0, 0.0, 0.0);
@@ -381,25 +442,41 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
             if (show_surface_samples) {
                 if (show_sample_rays) { vis->UpdateGeometry(surface_samples_line_set); }
                 if (show_sample_positions) { vis->UpdateGeometry(surface_samples_pos_point_cloud); }
-                if (show_sample_end_points) { vis->UpdateGeometry(surface_samples_end_point_cloud); }
+                if (show_sample_end_points) {
+                    vis->UpdateGeometry(surface_samples_end_point_cloud);
+                }
             }
             if (show_region_samples_hpr) {
                 if (show_sample_rays) { vis->UpdateGeometry(region_samples_hpr_line_set); }
-                if (show_sample_positions) { vis->UpdateGeometry(region_samples_hpr_pos_point_cloud); }
-                if (show_sample_end_points) { vis->UpdateGeometry(region_samples_hpr_end_point_cloud); }
+                if (show_sample_positions) {
+                    vis->UpdateGeometry(region_samples_hpr_pos_point_cloud);
+                }
+                if (show_sample_end_points) {
+                    vis->UpdateGeometry(region_samples_hpr_end_point_cloud);
+                }
             }
             if (show_region_samples_vrs) {
                 if (show_sample_rays) { vis->UpdateGeometry(region_samples_vrs_line_set); }
-                if (show_sample_positions) { vis->UpdateGeometry(region_samples_vrs_pos_point_cloud); }
-                if (show_sample_end_points) { vis->UpdateGeometry(region_samples_vrs_end_point_cloud); }
+                if (show_sample_positions) {
+                    vis->UpdateGeometry(region_samples_vrs_pos_point_cloud);
+                }
+                if (show_sample_end_points) {
+                    vis->UpdateGeometry(region_samples_vrs_end_point_cloud);
+                }
             }
             if (show_along_ray_samples) {
                 if (show_sample_rays) { vis->UpdateGeometry(along_ray_samples_line_set); }
-                if (show_sample_positions) { vis->UpdateGeometry(along_ray_samples_pos_point_cloud); }
-                if (show_sample_end_points) { vis->UpdateGeometry(along_ray_samples_end_point_cloud); }
+                if (show_sample_positions) {
+                    vis->UpdateGeometry(along_ray_samples_pos_point_cloud);
+                }
+                if (show_sample_end_points) {
+                    vis->UpdateGeometry(along_ray_samples_end_point_cloud);
+                }
             }
             auto render_toc = std::chrono::high_resolution_clock::now();
-            std::cout << "update_render takes " << std::chrono::duration<double, std::milli>(render_toc - render_tic).count() << " ms" << std::endl;
+            std::cout << "update_render takes "
+                      << std::chrono::duration<double, std::milli>(render_toc - render_tic).count()
+                      << " ms" << std::endl;
         };
         update_render(nullptr);
 
@@ -434,12 +511,18 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
             if (show_surface_samples) {
                 if (show_sample_rays) { vis->RemoveGeometry(surface_samples_line_set); }
                 if (show_sample_positions) { vis->RemoveGeometry(surface_samples_pos_point_cloud); }
-                if (show_sample_end_points) { vis->RemoveGeometry(surface_samples_end_point_cloud); }
+                if (show_sample_end_points) {
+                    vis->RemoveGeometry(surface_samples_end_point_cloud);
+                }
                 std::cout << "surface samples removed." << std::endl;
             } else {
                 if (show_sample_rays) { vis->AddGeometry(surface_samples_line_set, false); }
-                if (show_sample_positions) { vis->AddGeometry(surface_samples_pos_point_cloud, false); }
-                if (show_sample_end_points) { vis->AddGeometry(surface_samples_end_point_cloud, false); }
+                if (show_sample_positions) {
+                    vis->AddGeometry(surface_samples_pos_point_cloud, false);
+                }
+                if (show_sample_end_points) {
+                    vis->AddGeometry(surface_samples_end_point_cloud, false);
+                }
                 std::cout << "surface samples added." << std::endl;
             }
             show_surface_samples = !show_surface_samples;
@@ -449,13 +532,21 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_F4] = [&](open3d::visualization::Visualizer *vis) -> bool {
             if (show_region_samples_hpr) {
                 if (show_sample_rays) { vis->RemoveGeometry(region_samples_hpr_line_set); }
-                if (show_sample_positions) { vis->RemoveGeometry(region_samples_hpr_pos_point_cloud); }
-                if (show_sample_end_points) { vis->RemoveGeometry(region_samples_hpr_end_point_cloud); }
+                if (show_sample_positions) {
+                    vis->RemoveGeometry(region_samples_hpr_pos_point_cloud);
+                }
+                if (show_sample_end_points) {
+                    vis->RemoveGeometry(region_samples_hpr_end_point_cloud);
+                }
                 std::cout << "region samples hpr removed." << std::endl;
             } else {
                 if (show_sample_rays) { vis->AddGeometry(region_samples_hpr_line_set, false); }
-                if (show_sample_positions) { vis->AddGeometry(region_samples_hpr_pos_point_cloud, false); }
-                if (show_sample_end_points) { vis->AddGeometry(region_samples_hpr_end_point_cloud, false); }
+                if (show_sample_positions) {
+                    vis->AddGeometry(region_samples_hpr_pos_point_cloud, false);
+                }
+                if (show_sample_end_points) {
+                    vis->AddGeometry(region_samples_hpr_end_point_cloud, false);
+                }
                 std::cout << "region samples hpr added." << std::endl;
             }
             show_region_samples_hpr = !show_region_samples_hpr;
@@ -465,13 +556,21 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_F5] = [&](open3d::visualization::Visualizer *vis) -> bool {
             if (show_region_samples_vrs) {
                 if (show_sample_rays) { vis->RemoveGeometry(region_samples_vrs_line_set); }
-                if (show_sample_positions) { vis->RemoveGeometry(region_samples_vrs_pos_point_cloud); }
-                if (show_sample_end_points) { vis->RemoveGeometry(region_samples_vrs_end_point_cloud); }
+                if (show_sample_positions) {
+                    vis->RemoveGeometry(region_samples_vrs_pos_point_cloud);
+                }
+                if (show_sample_end_points) {
+                    vis->RemoveGeometry(region_samples_vrs_end_point_cloud);
+                }
                 std::cout << "region samples vrs removed." << std::endl;
             } else {
                 if (show_sample_rays) { vis->AddGeometry(region_samples_vrs_line_set, false); }
-                if (show_sample_positions) { vis->AddGeometry(region_samples_vrs_pos_point_cloud, false); }
-                if (show_sample_end_points) { vis->AddGeometry(region_samples_vrs_end_point_cloud, false); }
+                if (show_sample_positions) {
+                    vis->AddGeometry(region_samples_vrs_pos_point_cloud, false);
+                }
+                if (show_sample_end_points) {
+                    vis->AddGeometry(region_samples_vrs_end_point_cloud, false);
+                }
                 std::cout << "region samples vrs added." << std::endl;
             }
             show_region_samples_vrs = !show_region_samples_vrs;
@@ -481,13 +580,21 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_F6] = [&](open3d::visualization::Visualizer *vis) -> bool {
             if (show_along_ray_samples) {
                 if (show_sample_rays) { vis->RemoveGeometry(along_ray_samples_line_set); }
-                if (show_sample_positions) { vis->RemoveGeometry(along_ray_samples_pos_point_cloud); }
-                if (show_sample_end_points) { vis->RemoveGeometry(along_ray_samples_end_point_cloud); }
+                if (show_sample_positions) {
+                    vis->RemoveGeometry(along_ray_samples_pos_point_cloud);
+                }
+                if (show_sample_end_points) {
+                    vis->RemoveGeometry(along_ray_samples_end_point_cloud);
+                }
                 std::cout << "along ray samples removed." << std::endl;
             } else {
                 if (show_sample_rays) { vis->AddGeometry(along_ray_samples_line_set, false); }
-                if (show_sample_positions) { vis->AddGeometry(along_ray_samples_pos_point_cloud, false); }
-                if (show_sample_end_points) { vis->AddGeometry(along_ray_samples_end_point_cloud, false); }
+                if (show_sample_positions) {
+                    vis->AddGeometry(along_ray_samples_pos_point_cloud, false);
+                }
+                if (show_sample_end_points) {
+                    vis->AddGeometry(along_ray_samples_end_point_cloud, false);
+                }
                 std::cout << "along ray samples added." << std::endl;
             }
             show_along_ray_samples = !show_along_ray_samples;
@@ -503,8 +610,12 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                 std::cout << "sample rays removed." << std::endl;
             } else {
                 if (show_surface_samples) { vis->AddGeometry(surface_samples_line_set, false); }
-                if (show_region_samples_hpr) { vis->AddGeometry(region_samples_hpr_line_set, false); }
-                if (show_region_samples_vrs) { vis->AddGeometry(region_samples_vrs_line_set, false); }
+                if (show_region_samples_hpr) {
+                    vis->AddGeometry(region_samples_hpr_line_set, false);
+                }
+                if (show_region_samples_vrs) {
+                    vis->AddGeometry(region_samples_vrs_line_set, false);
+                }
                 if (show_along_ray_samples) { vis->AddGeometry(along_ray_samples_line_set, false); }
                 std::cout << "sample rays added." << std::endl;
             }
@@ -515,15 +626,29 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_F8] = [&](open3d::visualization::Visualizer *vis) -> bool {
             if (show_sample_positions) {
                 if (show_surface_samples) { vis->RemoveGeometry(surface_samples_pos_point_cloud); }
-                if (show_region_samples_hpr) { vis->RemoveGeometry(region_samples_hpr_pos_point_cloud); }
-                if (show_region_samples_vrs) { vis->RemoveGeometry(region_samples_vrs_pos_point_cloud); }
-                if (show_along_ray_samples) { vis->RemoveGeometry(along_ray_samples_pos_point_cloud); }
+                if (show_region_samples_hpr) {
+                    vis->RemoveGeometry(region_samples_hpr_pos_point_cloud);
+                }
+                if (show_region_samples_vrs) {
+                    vis->RemoveGeometry(region_samples_vrs_pos_point_cloud);
+                }
+                if (show_along_ray_samples) {
+                    vis->RemoveGeometry(along_ray_samples_pos_point_cloud);
+                }
                 std::cout << "sample points removed." << std::endl;
             } else {
-                if (show_surface_samples) { vis->AddGeometry(surface_samples_pos_point_cloud, false); }
-                if (show_region_samples_hpr) { vis->AddGeometry(region_samples_hpr_pos_point_cloud, false); }
-                if (show_region_samples_vrs) { vis->AddGeometry(region_samples_vrs_pos_point_cloud, false); }
-                if (show_along_ray_samples) { vis->AddGeometry(along_ray_samples_pos_point_cloud, false); }
+                if (show_surface_samples) {
+                    vis->AddGeometry(surface_samples_pos_point_cloud, false);
+                }
+                if (show_region_samples_hpr) {
+                    vis->AddGeometry(region_samples_hpr_pos_point_cloud, false);
+                }
+                if (show_region_samples_vrs) {
+                    vis->AddGeometry(region_samples_vrs_pos_point_cloud, false);
+                }
+                if (show_along_ray_samples) {
+                    vis->AddGeometry(along_ray_samples_pos_point_cloud, false);
+                }
                 std::cout << "sample points added." << std::endl;
             }
             show_sample_positions = !show_sample_positions;
@@ -533,15 +658,29 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_F9] = [&](open3d::visualization::Visualizer *vis) -> bool {
             if (show_sample_end_points) {
                 if (show_surface_samples) { vis->RemoveGeometry(surface_samples_end_point_cloud); }
-                if (show_region_samples_hpr) { vis->RemoveGeometry(region_samples_hpr_end_point_cloud); }
-                if (show_region_samples_vrs) { vis->RemoveGeometry(region_samples_vrs_end_point_cloud); }
-                if (show_along_ray_samples) { vis->RemoveGeometry(along_ray_samples_end_point_cloud); }
+                if (show_region_samples_hpr) {
+                    vis->RemoveGeometry(region_samples_hpr_end_point_cloud);
+                }
+                if (show_region_samples_vrs) {
+                    vis->RemoveGeometry(region_samples_vrs_end_point_cloud);
+                }
+                if (show_along_ray_samples) {
+                    vis->RemoveGeometry(along_ray_samples_end_point_cloud);
+                }
                 std::cout << "sample end points removed." << std::endl;
             } else {
-                if (show_surface_samples) { vis->AddGeometry(surface_samples_end_point_cloud, false); }
-                if (show_region_samples_hpr) { vis->AddGeometry(region_samples_hpr_end_point_cloud, false); }
-                if (show_region_samples_vrs) { vis->AddGeometry(region_samples_vrs_end_point_cloud, false); }
-                if (show_along_ray_samples) { vis->AddGeometry(along_ray_samples_end_point_cloud, false); }
+                if (show_surface_samples) {
+                    vis->AddGeometry(surface_samples_end_point_cloud, false);
+                }
+                if (show_region_samples_hpr) {
+                    vis->AddGeometry(region_samples_hpr_end_point_cloud, false);
+                }
+                if (show_region_samples_vrs) {
+                    vis->AddGeometry(region_samples_vrs_end_point_cloud, false);
+                }
+                if (show_along_ray_samples) {
+                    vis->AddGeometry(along_ray_samples_end_point_cloud, false);
+                }
                 std::cout << "sample end points added." << std::endl;
             }
             show_sample_end_points = !show_sample_end_points;
@@ -550,11 +689,20 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         };
         key_to_callback[GLFW_KEY_F10] = [&](open3d::visualization::Visualizer *vis) -> bool {
             auto scene = lidar_3d->GetScene();
-            std::vector<std::pair<std::string, std::shared_ptr<open3d::geometry::LineSet>>> line_sets;
-            if (show_surface_samples) { line_sets.emplace_back("surface_samples", surface_samples_line_set); }
-            if (show_region_samples_hpr) { line_sets.emplace_back("region_samples_hpr", region_samples_hpr_line_set); }
-            if (show_region_samples_vrs) { line_sets.emplace_back("region_samples_vrs", region_samples_vrs_line_set); }
-            if (show_along_ray_samples) { line_sets.emplace_back("along_ray_samples", along_ray_samples_line_set); }
+            std::vector<std::pair<std::string, std::shared_ptr<open3d::geometry::LineSet>>>
+                line_sets;
+            if (show_surface_samples) {
+                line_sets.emplace_back("surface_samples", surface_samples_line_set);
+            }
+            if (show_region_samples_hpr) {
+                line_sets.emplace_back("region_samples_hpr", region_samples_hpr_line_set);
+            }
+            if (show_region_samples_vrs) {
+                line_sets.emplace_back("region_samples_vrs", region_samples_vrs_line_set);
+            }
+            if (show_along_ray_samples) {
+                line_sets.emplace_back("along_ray_samples", along_ray_samples_line_set);
+            }
             for (auto &[sample_name, line_set]: line_sets) {  // verify samples are correct
                 auto num_rays = static_cast<long>(line_set->lines_.size());
                 open3d::core::Tensor rays({num_rays, 6}, open3d::core::Dtype::Float32);
@@ -577,9 +725,11 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                     rays_ptr[base + 4] = static_cast<float>(dir[1]);
                     rays_ptr[base + 5] = static_cast<float>(dir[2]);
                 }
-                std::unordered_map<std::string, open3d::core::Tensor> cast_results = scene->CastRays(rays);
+                std::unordered_map<std::string, open3d::core::Tensor> cast_results =
+                    scene->CastRays(rays);
                 std::vector<float> ranges = cast_results.at("t_hit").ToFlatVector<float>();
-                std::vector<uint32_t> geometry_ids = cast_results.at("geometry_ids").ToFlatVector<uint32_t>();
+                std::vector<uint32_t> geometry_ids =
+                    cast_results.at("geometry_ids").ToFlatVector<uint32_t>();
                 uint32_t invalid_id = open3d::t::geometry::RaycastingScene::INVALID_ID();
                 long cnt_correct_100 = 0;
                 long cnt_correct_50 = 0;
@@ -668,19 +818,30 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
                 if (!error_line_set_050->IsEmpty()) { vis->AddGeometry(error_line_set_050); }
                 if (!error_line_set_100->IsEmpty()) { vis->AddGeometry(error_line_set_100); }
                 vis->UpdateRender();
-                double success_rate_100 = static_cast<double>(cnt_correct_100) / static_cast<double>(num_rays) * 100;
-                double success_rate_50 = static_cast<double>(cnt_correct_50) / static_cast<double>(num_rays) * 100;
-                double success_rate_25 = static_cast<double>(cnt_correct_25) / static_cast<double>(num_rays) * 100;
-                double success_rate_10 = static_cast<double>(cnt_correct_10) / static_cast<double>(num_rays) * 100;
-                double success_rate_5 = static_cast<double>(cnt_correct_5) / static_cast<double>(num_rays) * 100;
-                double success_rate_1 = static_cast<double>(cnt_correct_1) / static_cast<double>(num_rays) * 100;
+                double success_rate_100 =
+                    static_cast<double>(cnt_correct_100) / static_cast<double>(num_rays) * 100;
+                double success_rate_50 =
+                    static_cast<double>(cnt_correct_50) / static_cast<double>(num_rays) * 100;
+                double success_rate_25 =
+                    static_cast<double>(cnt_correct_25) / static_cast<double>(num_rays) * 100;
+                double success_rate_10 =
+                    static_cast<double>(cnt_correct_10) / static_cast<double>(num_rays) * 100;
+                double success_rate_5 =
+                    static_cast<double>(cnt_correct_5) / static_cast<double>(num_rays) * 100;
+                double success_rate_1 =
+                    static_cast<double>(cnt_correct_1) / static_cast<double>(num_rays) * 100;
                 double miss_rate = static_cast<double>(cnt_miss) / static_cast<double>(num_rays);
-                double avg_diff = diff_sum / static_cast<double>(num_rays - cnt_miss - cnt_correct_1);
+                double avg_diff =
+                    diff_sum / static_cast<double>(num_rays - cnt_miss - cnt_correct_1);
                 std::cout << "==========" << std::endl
-                          << sample_name << "     <=1.0     <=0.5    <=0.25     <=0.1    <=0.05    <=0.01" << std::endl
-                          << std::setw(static_cast<int>(sample_name.size())) << "success rate" << std::setw(10) << success_rate_100 << std::setw(10)
-                          << success_rate_50 << std::setw(10) << success_rate_25 << std::setw(10) << success_rate_10 << std::setw(10) << success_rate_5
-                          << std::setw(10) << success_rate_1 << std::endl
+                          << sample_name
+                          << "     <=1.0     <=0.5    <=0.25     <=0.1    <=0.05    <=0.01"
+                          << std::endl
+                          << std::setw(static_cast<int>(sample_name.size())) << "success rate"
+                          << std::setw(10) << success_rate_100 << std::setw(10) << success_rate_50
+                          << std::setw(10) << success_rate_25 << std::setw(10) << success_rate_10
+                          << std::setw(10) << success_rate_5 << std::setw(10) << success_rate_1
+                          << std::endl
                           << "miss rate: " << miss_rate << std::endl
                           << "avg diff(>=0.01): " << avg_diff << std::endl;
             }
@@ -689,7 +850,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_J] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_roll -= angle_step;
             lidar_roll = WrapAnglePi(lidar_roll);
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -699,7 +861,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_L] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_roll += angle_step;
             lidar_roll = WrapAnglePi(lidar_roll);
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -709,7 +872,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_K] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_pitch -= angle_step;
             lidar_pitch = WrapAnglePi(lidar_pitch);
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -719,7 +883,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_I] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_pitch += angle_step;
             lidar_pitch = WrapAnglePi(lidar_pitch);
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -729,7 +894,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_U] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_yaw -= angle_step;
             lidar_yaw = WrapAnglePi(lidar_yaw);
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -739,7 +905,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_O] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_yaw += angle_step;
             lidar_yaw = WrapAnglePi(lidar_yaw);
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -749,7 +916,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_LEFT] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[0] -= translation_step;
             position_sphere->Translate(Eigen::Vector3d(-translation_step, 0.0, 0.0));
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -759,7 +927,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_RIGHT] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[0] += translation_step;
             position_sphere->Translate(Eigen::Vector3d(translation_step, 0.0, 0.0));
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -769,7 +938,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_DOWN] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[1] -= translation_step;
             position_sphere->Translate(Eigen::Vector3d(0.0, -translation_step, 0.0));
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -779,7 +949,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_UP] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[1] += translation_step;
             position_sphere->Translate(Eigen::Vector3d(0.0, translation_step, 0.0));
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -789,7 +960,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_PAGE_DOWN] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[2] -= translation_step;
             position_sphere->Translate(Eigen::Vector3d(0.0, 0.0, -translation_step));
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -799,7 +971,8 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
         key_to_callback[GLFW_KEY_PAGE_UP] = [&](open3d::visualization::Visualizer *vis) -> bool {
             lidar_position[2] += translation_step;
             position_sphere->Translate(Eigen::Vector3d(0.0, 0.0, translation_step));
-            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", " << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
+            std::cout << "xyz: " << lidar_position.transpose() << ", rpy: [" << lidar_roll << ", "
+                      << lidar_pitch << ", " << lidar_yaw << "]" << std::endl;
             update_render(vis);  // notify vis to update
             surface_samples_ready = false;
             region_samples_hpr_ready = false;
@@ -839,30 +1012,49 @@ TEST(ERL_GEOMETRY, LidarFrame3D) {
             return true;
         };
 
-        std::vector<std::shared_ptr<const open3d::geometry::Geometry>> geometries = {room_mesh, position_sphere};
+        std::vector<std::shared_ptr<const open3d::geometry::Geometry>> geometries = {
+            room_mesh,
+            position_sphere};
         if (show_lidar_rays) { geometries.emplace_back(lidar_rays_line_set); }
         if (show_lidar_points) { geometries.emplace_back(lidar_point_cloud); }
         if (show_surface_samples) {
             if (show_sample_rays) { geometries.emplace_back(surface_samples_line_set); }
             if (show_sample_positions) { geometries.emplace_back(surface_samples_pos_point_cloud); }
-            if (show_sample_end_points) { geometries.emplace_back(surface_samples_end_point_cloud); }
+            if (show_sample_end_points) {
+                geometries.emplace_back(surface_samples_end_point_cloud);
+            }
         }
         if (show_region_samples_hpr) {
             if (show_sample_rays) { geometries.emplace_back(region_samples_hpr_line_set); }
-            if (show_sample_positions) { geometries.emplace_back(region_samples_hpr_pos_point_cloud); }
-            if (show_sample_end_points) { geometries.emplace_back(region_samples_hpr_end_point_cloud); }
+            if (show_sample_positions) {
+                geometries.emplace_back(region_samples_hpr_pos_point_cloud);
+            }
+            if (show_sample_end_points) {
+                geometries.emplace_back(region_samples_hpr_end_point_cloud);
+            }
         }
         if (show_region_samples_vrs) {
             if (show_sample_rays) { geometries.emplace_back(region_samples_vrs_line_set); }
-            if (show_sample_positions) { geometries.emplace_back(region_samples_vrs_pos_point_cloud); }
-            if (show_sample_end_points) { geometries.emplace_back(region_samples_vrs_end_point_cloud); }
+            if (show_sample_positions) {
+                geometries.emplace_back(region_samples_vrs_pos_point_cloud);
+            }
+            if (show_sample_end_points) {
+                geometries.emplace_back(region_samples_vrs_end_point_cloud);
+            }
         }
         if (show_along_ray_samples) {
             if (show_sample_rays) { geometries.emplace_back(along_ray_samples_line_set); }
-            if (show_sample_positions) { geometries.emplace_back(along_ray_samples_pos_point_cloud); }
-            if (show_sample_end_points) { geometries.emplace_back(along_ray_samples_end_point_cloud); }
+            if (show_sample_positions) {
+                geometries.emplace_back(along_ray_samples_pos_point_cloud);
+            }
+            if (show_sample_end_points) {
+                geometries.emplace_back(along_ray_samples_end_point_cloud);
+            }
         }
-        open3d::visualization::DrawGeometriesWithKeyCallbacks(geometries, key_to_callback, "test LidarFrame3D");
+        open3d::visualization::DrawGeometriesWithKeyCallbacks(
+            geometries,
+            key_to_callback,
+            "test LidarFrame3D");
 
     } catch (const std::exception &e) { std::cerr << e.what() << std::endl; }
 }
@@ -892,7 +1084,8 @@ main(int argc, char **argv) {
         po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
 
         if (vm.count("help")) {
-            std::cout << "Usage: " << argv[0] << " [options] tree_bt_file" << std::endl << desc << std::endl;
+            std::cout << "Usage: " << argv[0] << " [options] tree_bt_file" << std::endl
+                      << desc << std::endl;
             return 0;
         }
         po::notify(vm);
