@@ -8,21 +8,32 @@
 
 namespace erl::geometry {
     template<typename Dtype>
-    class PyObjectOccupancyQuadtree : public OccupancyQuadtreeBase<Dtype, PyObjectOccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting> {
+    class PyObjectOccupancyQuadtree : public OccupancyQuadtreeBase<
+                                          Dtype,
+                                          PyObjectOccupancyQuadtreeNode,
+                                          OccupancyQuadtreeBaseSetting> {
     public:
         using Setting = OccupancyQuadtreeBaseSetting;
-        using Super = OccupancyQuadtreeBase<Dtype, PyObjectOccupancyQuadtreeNode, OccupancyQuadtreeBaseSetting>;
+        using Super = OccupancyQuadtreeBase<
+            Dtype,
+            PyObjectOccupancyQuadtreeNode,
+            OccupancyQuadtreeBaseSetting>;
         using Drawer = OccupancyQuadtreeDrawer<PyObjectOccupancyQuadtree>;
 
-        explicit PyObjectOccupancyQuadtree(const std::shared_ptr<OccupancyQuadtreeBaseSetting> &setting)
+        explicit PyObjectOccupancyQuadtree(
+            const std::shared_ptr<OccupancyQuadtreeBaseSetting> &setting)
             : Super(setting) {}
 
         PyObjectOccupancyQuadtree()
             : PyObjectOccupancyQuadtree(std::make_shared<OccupancyQuadtreeBaseSetting>()) {}
 
         explicit PyObjectOccupancyQuadtree(const std::string &filename)
-            : PyObjectOccupancyQuadtree() {  // resolution will be set by LoadData
-            ERL_ASSERTM(this->LoadData(filename), "Failed to read {} from file: {}", type_name<PyObjectOccupancyQuadtree>(), filename);
+            : PyObjectOccupancyQuadtree() {
+            ERL_ASSERTM(
+                common::Serialization<PyObjectOccupancyQuadtree>::Read(filename, *this),
+                "Failed to read {} from file: {}",
+                type_name<PyObjectOccupancyQuadtree>(),
+                filename);
         }
 
         PyObjectOccupancyQuadtree(const PyObjectOccupancyQuadtree &other) = default;
@@ -37,7 +48,10 @@ namespace erl::geometry {
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) {
-                ERL_DEBUG_ASSERT(setting == nullptr, "setting is not the type for {}.", type_name<PyObjectOccupancyQuadtree>());
+                ERL_DEBUG_ASSERT(
+                    setting == nullptr,
+                    "setting is not the type for {}.",
+                    type_name<PyObjectOccupancyQuadtree>());
                 tree_setting = std::make_shared<Setting>();
             }
             return std::make_shared<PyObjectOccupancyQuadtree>(tree_setting);

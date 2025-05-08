@@ -20,9 +20,9 @@ namespace erl::geometry {
             : OccupancyQuadtree(std::make_shared<Setting>()) {}
 
         explicit OccupancyQuadtree(const std::string &filename)
-            : OccupancyQuadtree() {  // LoadData will set resolution
+            : OccupancyQuadtree() {
             ERL_ASSERTM(
-                this->LoadData(filename),
+                common::Serialization<OccupancyQuadtree>::Read(filename, *this),
                 "Failed to read OccupancyQuadtree from file: {}",
                 filename);
         }

@@ -10,12 +10,16 @@ BindAbstractQuadtreeImpl(const py::module& m, const char* name) {
     py::class_<T, std::shared_ptr<T>> tree(m, name);
     tree.def("apply_setting", &T::ApplySetting, "apply the latest setting to the tree")
         .def(
-            "write_raw",
-            [](const T& self, const std::string& filename) -> bool { return self.Write(filename); },
+            "write",
+            [](const T& self, const std::string& filename) -> bool {
+                return erl::common::Serialization<T>::Write(filename, self);
+            },
             py::arg("filename"))
         .def(
-            "read_raw",
-            [](T& self, const std::string& filename) -> bool { return self.LoadData(filename); },
+            "read",
+            [](T& self, const std::string& filename) -> bool {
+                return erl::common::Serialization<T>::Read(filename, self);
+            },
             py::arg("filename"))
         .def("search_node", &T::SearchNode, py::arg("x"), py::arg("y"), py::arg("max_depth"));
     py::class_<typename T::QuadtreeNodeIterator>(tree, "QuadtreeNodeIterator")

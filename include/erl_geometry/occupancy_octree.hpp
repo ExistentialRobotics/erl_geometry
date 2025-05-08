@@ -19,9 +19,9 @@ namespace erl::geometry {
             : OccupancyOctree(std::make_shared<OccupancyOctreeBaseSetting>()) {}
 
         explicit OccupancyOctree(const std::string &filename)
-            : OccupancyOctree() {  // LoadData will set resolution
+            : OccupancyOctree() {
             ERL_ASSERTM(
-                this->LoadData(filename),
+                common::Serialization<OccupancyOctree>::Read(filename, *this),
                 "Failed to read OccupancyOctree from file: {}",
                 filename);
         }

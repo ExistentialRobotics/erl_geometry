@@ -23,8 +23,7 @@ namespace erl::geometry {
             const Eigen::Ref<const Matrix3> &rotation,
             const Eigen::Ref<const Vector3> &translation,
             const MatrixX &depth,
-            const cv::Mat &rgb,
-            bool partition_rays);
+            const cv::Mat &rgb);
 
         void
         ConvertToPointCloud(

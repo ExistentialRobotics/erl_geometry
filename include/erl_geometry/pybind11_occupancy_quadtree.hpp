@@ -89,16 +89,9 @@ BindOccupancyQuadtree(
             }),
             py::arg("setting"))
         .def(
-            py::init<>([](const std::string& filename, const bool use_derived_constructor) {
-                if (use_derived_constructor) { return std::make_shared<Quadtree>(filename); }
-                if (std::shared_ptr<Quadtree> quadtree =
-                        Quadtree::template ReadAs<Quadtree>(filename)) {
-                    return quadtree;
-                }
-                throw std::runtime_error("Failed to read Quadtree from " + filename);
-            }),
-            py::arg("filename"),
-            py::arg("use_derived_constructor"))
+            py::init<>(
+                [](const std::string& filename) { return std::make_shared<Quadtree>(filename); }),
+            py::arg("filename"))
         .def_property_readonly("tree_type", &Quadtree::GetTreeType)
         .def_property_readonly(
             "setting",

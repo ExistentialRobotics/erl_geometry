@@ -77,8 +77,7 @@ namespace erl::geometry {
             const Eigen::Ref<const Matrix3> &rotation,
             const Eigen::Ref<const Vector3> &translation,
             const std::string &depth_file,
-            double depth_scale,
-            bool partition_rays = false);
+            double depth_scale);
 
         [[nodiscard]] bool
         operator==(const Super &other) const override;

@@ -11,14 +11,19 @@ BindAbstractOccupancyOctreeImpl(const py::module &m, const char *name) {
         .def(
             "write_binary",
             [](T &self, const std::string &filename, const bool prune_at_first) -> bool {
-                if (prune_at_first) { return self.WriteBinary(filename); }
-                return const_cast<const T &>(self).WriteBinary(filename);
+                return erl::common::Serialization<T>::Write(filename, [&](std::ostream &s) -> bool {
+                    return self.WriteBinary(s, prune_at_first);
+                });
             },
             py::arg("filename"),
             py::arg("prune_at_first"))
         .def(
             "read_binary",
-            [](T &self, const std::string &filename) -> bool { return self.ReadBinary(filename); },
+            [](T &self, const std::string &filename) -> bool {
+                return erl::common::Serialization<T>::Read(filename, [&](std::istream &s) -> bool {
+                    return self.ReadBinary(s);
+                });
+            },
             py::arg("filename"))
         .def("is_node_occupied", &T::IsNodeOccupied, py::arg("node"))
         .def("is_node_at_threshold", &T::IsNodeAtThreshold, py::arg("node"))
@@ -34,7 +39,18 @@ BindAbstractOccupancyOctreeImpl(const py::module &m, const char *name) {
                const bool ignore_unknown,
                const Dtype max_range) {
                 Dtype ex, ey, ez;
-                auto *node = self.GetHitOccupiedNode(px, py, pz, vx, vy, vz, ignore_unknown, max_range, ex, ey, ez);
+                auto *node = self.GetHitOccupiedNode(
+                    px,
+                    py,
+                    pz,
+                    vx,
+                    vy,
+                    vz,
+                    ignore_unknown,
+                    max_range,
+                    ex,
+                    ey,
+                    ez);
                 py::dict result;
                 if (node == nullptr) { return result; }
                 result["node"] = node;

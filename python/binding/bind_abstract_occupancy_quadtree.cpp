@@ -11,22 +11,34 @@ BindAbstractOccupancyQuadtreeImpl(const py::module& m, const char* name) {
         .def(
             "write_binary",
             [](T& self, const std::string& filename, const bool prune_at_first) -> bool {
-                if (prune_at_first) { return self.WriteBinary(filename); }
-                return const_cast<const T&>(self).WriteBinary(filename);
+                return erl::common::Serialization<T>::Write(filename, [&](std::ostream& s) -> bool {
+                    return self.WriteBinary(s, prune_at_first);
+                });
             },
             py::arg("filename"),
             py::arg("prune_at_first"))
         .def(
             "read_binary",
-            [](T& self, const std::string& filename) -> bool { return self.ReadBinary(filename); },
+            [](T& self, const std::string& filename) -> bool {
+                return erl::common::Serialization<T>::Read(filename, [&](std::istream& s) -> bool {
+                    return self.ReadBinary(s);
+                });
+            },
             py::arg("filename"))
         .def("is_node_occupied", &T::IsNodeOccupied, py::arg("node"))
         .def("is_node_at_threshold", &T::IsNodeAtThreshold, py::arg("node"))
         .def(
             "get_hit_occupied_node",
-            [](const T& self, const Dtype px, const Dtype py, const Dtype vx, const Dtype vy, const bool ignore_unknown, const Dtype max_range) {
+            [](const T& self,
+               const Dtype px,
+               const Dtype py,
+               const Dtype vx,
+               const Dtype vy,
+               const bool ignore_unknown,
+               const Dtype max_range) {
                 Dtype ex, ey;
-                auto* node = self.GetHitOccupiedNode(px, py, vx, vy, ignore_unknown, max_range, ex, ey);
+                auto* node =
+                    self.GetHitOccupiedNode(px, py, vx, vy, ignore_unknown, max_range, ex, ey);
                 py::dict result;
                 if (node == nullptr) { return result; }
                 result["node"] = node;

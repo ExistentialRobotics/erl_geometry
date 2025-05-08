@@ -13,59 +13,13 @@ erl_project_setup(
         ${PROJECT_NAME}
         ERL_PACKAGES erl_common erl_covariance)
 
-erl_find_package(
-        PACKAGE Qhull
-        REQUIRED
-        COMMANDS UBUNTU_LINUX "try `sudo apt-get install libqhull-dev`"
-        COMMANDS ARCH_LINUX "try `sudo pacman -S qhull`")
-get_target_property(Qhull_INCLUDE_DIRS Qhull::qhullcpp INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(qhull_r_location Qhull::qhull_r LOCATION)
-get_target_property(qhullcpp_location Qhull::qhullcpp LOCATION)
-list(APPEND Qhull_LIBRARIES ${qhull_r_location} ${qhullcpp_location})
-
-erl_find_package(
-        PACKAGE absl
-        REQUIRED
-        COMMANDS APPLE "try `brew install abseil`"
-        COMMANDS UBUNTU_LINUX "try `sudo apt install libabseil-dev`"
-        COMMANDS ARCH_LINUX "try `sudo pacman -S abseil-cpp`")
-get_target_property(absl_flat_hash_map_location absl::flat_hash_map LOCATION)
-get_target_property(absl_flat_hash_set_location absl::flat_hash_set LOCATION)
-list(APPEND absl_LIBRARIES ${absl_flat_hash_map_location} ${absl_flat_hash_set_location})
-
-erl_find_package(
-        PACKAGE Open3D
-        REQUIRED
-        COMMANDS GENERAL "visit http://www.open3d.org/"
-        COMMANDS ARCH_LINUX "try `paru -S open3d`"
-)
-get_target_property(Open3D_LIBRARIES Open3D::Open3D LOCATION)
+erl_config_qhull()
+erl_config_absl()
+erl_config_open3d()
 
 if (ERL_BUILD_TEST_${PROJECT_NAME})
-
-    add_library(octomap SHARED
-            test/gtest/octomap/src/math/Pose6D.cpp
-            test/gtest/octomap/src/math/Quaternion.cpp
-            test/gtest/octomap/src/math/Vector3.cpp
-            test/gtest/octomap/src/AbstractOccupancyOcTree.cpp
-            test/gtest/octomap/src/AbstractOcTree.cpp
-            test/gtest/octomap/src/ColorOcTree.cpp
-            test/gtest/octomap/src/CountingOcTree.cpp
-            test/gtest/octomap/src/OcTree.cpp
-            test/gtest/octomap/src/OcTreeNode.cpp
-            test/gtest/octomap/src/OcTreeStamped.cpp
-            test/gtest/octomap/src/Pointcloud.cpp
-            test/gtest/octomap/src/ScanGraph.cpp
-    )
-    target_include_directories(octomap PUBLIC test/gtest/octomap/include)
-
-    set(CGAL_DO_NOT_WARN_ABOUT_CMAKE_BUILD_TYPE TRUE)
-    erl_find_package(
-            PACKAGE CGAL
-            COMPONENTS Core
-            COMMANDS UBUNTU_LINUX "try `sudo apt-get install libcgal-dev`"
-            COMMANDS ARCH_LINUX "try `sudo pacman -S cgal`"
-    )
+    add_subdirectory(deps/octomap)  # test_occupancy_octree_impls depends on octomap
+    erl_config_cgal()
     if (NOT CGAL_FOUND)
         list(APPEND ignore_tests test_convex_hull_3d_impls.cpp)  # CGAL is not found, ignore the test
         message(WARNING "CGAL not found, ignoring test_convex_hull_3d_impls")
@@ -79,17 +33,9 @@ erl_catkin_package(
         CATKIN_DEPENDS ${${PROJECT_NAME}_CATKIN_DEPENDS}
         DEPENDS ${${PROJECT_NAME}_DEPENDS})   # non-catkin dependencies are collected via erl_find_package
 
-#######################################################################################################################
+####################################################################################################
 # BUILD
-#######################################################################################################################
-
-set(LIBMORTON_DIR ${CMAKE_CURRENT_LIST_DIR}/deps/libmorton)
-if (EXISTS "${LIBMORTON_DIR}/CMakeLists.txt")
-    message(STATUS "libmorton found in ${LIBMORTON_DIR}")
-else ()
-    message(FATAL_ERROR "libmorton not found, run `git submodule update --init --recursive`")
-endif ()
-add_subdirectory(${LIBMORTON_DIR})  # libmorton is a header-only library
+####################################################################################################
 
 ########################
 # define the libraries #
@@ -109,7 +55,6 @@ else ()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif ()
 target_link_libraries(${PROJECT_NAME}
-        PUBLIC libmorton
         PUBLIC nanoflann::nanoflann
         PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
         PUBLIC absl::flat_hash_map absl::flat_hash_set
@@ -128,16 +73,16 @@ erl_add_python_package(
         PYTHON_PKG_DIR ${${PROJECT_NAME}_PYTHON_DIR}/${PROJECT_NAME}
         DEPENDS_PYTHON_PKGS ${${PROJECT_NAME}_ERL_PACKAGES})
 
-#######################################################################################################################
+####################################################################################################
 # INSTALL
-#######################################################################################################################
+####################################################################################################
 erl_install(
-        LIBRARIES ${PROJECT_NAME} libmorton
+        LIBRARIES ${PROJECT_NAME}
         PYBIND_MODULES py${PROJECT_NAME})
 
-#######################################################################################################################
+####################################################################################################
 # TEST
-#######################################################################################################################
+####################################################################################################
 erl_add_tests(
         test_convex_hull_3d_impls_LIBRARIES CGAL::CGAL
         test_occupancy_octree_impls_LIBRARIES octomap
@@ -148,7 +93,7 @@ erl_add_tests(
         IGNORE_FILES ${ignore_tests}
 )
 
-#######################################################################################################################
+####################################################################################################
 # export variables
-#######################################################################################################################
+####################################################################################################
 erl_mark_project_found(${PROJECT_NAME})

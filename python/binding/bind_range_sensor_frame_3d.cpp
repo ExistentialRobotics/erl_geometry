@@ -13,14 +13,13 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
     using Matrix3X = Eigen::Matrix3X<Dtype>;
 
     py::class_<T, std::shared_ptr<T>> range_sensor_frame(m, name);
-    py::class_<typename T::Setting, YamlableBase, std::shared_ptr<typename T::Setting>>(range_sensor_frame, "Setting")
+    py::class_<typename T::Setting, YamlableBase, std::shared_ptr<typename T::Setting>>(
+        range_sensor_frame,
+        "Setting")
         .def_readwrite("row_margin", &T::Setting::row_margin)
         .def_readwrite("col_margin", &T::Setting::col_margin)
         .def_readwrite("valid_range_min", &T::Setting::valid_range_min)
-        .def_readwrite("valid_range_max", &T::Setting::valid_range_max)
-        .def_readwrite("discontinuity_factor", &T::Setting::discontinuity_factor)
-        .def_readwrite("rolling_diff_discount", &T::Setting::rolling_diff_discount)
-        .def_readwrite("min_partition_size", &T::Setting::min_partition_size);
+        .def_readwrite("valid_range_max", &T::Setting::valid_range_max);
     range_sensor_frame.def_property_readonly("num_rays", &T::GetNumRays)
         .def_property_readonly("num_hit_rays", &T::GetNumHitRays)
         .def_property_readonly("rotation_matrix", &T::GetRotationMatrix)
@@ -37,13 +36,15 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
         .def_property_readonly(
             "ray_directions_in_frame",
             [](const T &self) -> py::array_t<Dtype> {
-                const Eigen::MatrixX<Vector3> &ray_directions_in_frame = self.GetRayDirectionsInFrame();
+                const Eigen::MatrixX<Vector3> &ray_directions_in_frame =
+                    self.GetRayDirectionsInFrame();
                 return py::cast_to_array(ray_directions_in_frame);
             })
         .def_property_readonly(
             "ray_directions_in_world",
             [](const T &self) -> py::array_t<Dtype> {
-                const Eigen::MatrixX<Vector3> &ray_directions_in_world = self.GetRayDirectionsInWorld();
+                const Eigen::MatrixX<Vector3> &ray_directions_in_world =
+                    self.GetRayDirectionsInWorld();
                 return py::cast_to_array(ray_directions_in_world);
             })
         .def_property_readonly(
@@ -60,7 +61,9 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
             })
         .def_property_readonly("hit_ray_indices", &T::GetHitRayIndices)
         .def_property_readonly("hit_points_world", &T::GetHitPointsWorld)
-        .def_property_readonly("max_valid_range", [](const T &self) { return self.GetMaxValidRange(); })
+        .def_property_readonly(
+            "max_valid_range",
+            [](const T &self) { return self.GetMaxValidRange(); })
         .def_property_readonly("hit_mask", [](const T &self) { return self.GetHitMask(); })
         .def_property_readonly("is_valid", [](const T &self) { return self.IsValid(); })
         .def("point_is_in_frame", &T::PointIsInFrame, py::arg("xyz_frame"))
@@ -72,11 +75,18 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
         .def("pos_frame_to_world", &T::PosFrameToWorld, py::arg("pos_frame"))
         .def(
             "compute_closest_end_point",
-            [](T &self, const Eigen::Ref<const Vector3> &position_world, const bool brute_force) -> py::dict {
+            [](T &self,
+               const Eigen::Ref<const Vector3> &position_world,
+               const bool brute_force) -> py::dict {
                 long row_index = -1;
                 long col_index = -1;
                 Dtype distance = 0.0;
-                self.ComputeClosestEndPoint(position_world, row_index, col_index, distance, brute_force);
+                self.ComputeClosestEndPoint(
+                    position_world,
+                    row_index,
+                    col_index,
+                    distance,
+                    brute_force);
                 py::dict out;
                 out["row_index"] = row_index;
                 out["col_index"] = col_index;
@@ -87,11 +97,20 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
             py::arg("brute_force") = false)
         .def(
             "sample_along_rays",
-            [](const T &self, const long num_samples_per_ray, const Dtype max_in_obstacle_dist, const Dtype sampled_rays_ratio) -> py::dict {
+            [](const T &self,
+               const long num_samples_per_ray,
+               const Dtype max_in_obstacle_dist,
+               const Dtype sampled_rays_ratio) -> py::dict {
                 Matrix3X positions_world;
                 Matrix3X directions_world;
                 VectorX distances;
-                self.SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, sampled_rays_ratio, positions_world, directions_world, distances);
+                self.SampleAlongRays(
+                    num_samples_per_ray,
+                    max_in_obstacle_dist,
+                    sampled_rays_ratio,
+                    positions_world,
+                    directions_world,
+                    distances);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -103,11 +122,20 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
-            [](const T &self, const Dtype range_step, const Dtype max_in_obstacle_dist, const Dtype sampled_rays_ratio) -> py::dict {
+            [](const T &self,
+               const Dtype range_step,
+               const Dtype max_in_obstacle_dist,
+               const Dtype sampled_rays_ratio) -> py::dict {
                 Matrix3X positions_world;
                 Matrix3X directions_world;
                 VectorX distances;
-                self.SampleAlongRays(range_step, max_in_obstacle_dist, sampled_rays_ratio, positions_world, directions_world, distances);
+                self.SampleAlongRays(
+                    range_step,
+                    max_in_obstacle_dist,
+                    sampled_rays_ratio,
+                    positions_world,
+                    directions_world,
+                    distances);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -119,11 +147,20 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
-            [](const T &self, const long num_samples_per_ray, const Dtype max_offset, const Dtype sampled_rays_ratio) -> py::dict {
+            [](const T &self,
+               const long num_samples_per_ray,
+               const Dtype max_offset,
+               const Dtype sampled_rays_ratio) -> py::dict {
                 Matrix3X positions_world;
                 Matrix3X directions_world;
                 VectorX distances;
-                self.SampleNearSurface(num_samples_per_ray, max_offset, sampled_rays_ratio, positions_world, directions_world, distances);
+                self.SampleNearSurface(
+                    num_samples_per_ray,
+                    max_offset,
+                    sampled_rays_ratio,
+                    positions_world,
+                    directions_world,
+                    distances);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -166,8 +203,11 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
             py::arg("parallel"))
         .def(
             "sample_in_region_vrs",
-            [](const T &self, const long num_hit_points, const long num_samples_per_azimuth_segment, const long num_azimuth_segments, const bool parallel)
-                -> py::dict {
+            [](const T &self,
+               const long num_hit_points,
+               const long num_samples_per_azimuth_segment,
+               const long num_azimuth_segments,
+               const bool parallel) -> py::dict {
                 Matrix3X positions_world;
                 Matrix3X directions_world;
                 VectorX distances;
@@ -196,7 +236,11 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
                 Matrix3X directions_world;
                 VectorX distances;
                 std::vector<long> visible_hit_point_indices;
-                self.ComputeRaysAt(position_world, directions_world, distances, visible_hit_point_indices);
+                self.ComputeRaysAt(
+                    position_world,
+                    directions_world,
+                    distances,
+                    visible_hit_point_indices);
                 py::dict out;
                 out["directions_world"] = directions_world;
                 out["distances"] = distances;

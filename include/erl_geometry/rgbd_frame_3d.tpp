@@ -12,9 +12,8 @@ namespace erl::geometry {
         const Eigen::Ref<const Matrix3> &rotation,
         const Eigen::Ref<const Vector3> &translation,
         const MatrixX &depth,
-        const cv::Mat &rgb,
-        const bool partition_rays) {
-        Super::UpdateRanges(rotation, translation, depth, partition_rays);
+        const cv::Mat &rgb) {
+        Super::UpdateRanges(rotation, translation, depth);
         rgb.convertTo(m_rgb_, CV_8UC3);
     }
 

@@ -9,7 +9,10 @@
 namespace erl::geometry {
 
     template<typename Dtype>
-    class PyObjectOccupancyOctree : public OccupancyOctreeBase<Dtype, PyObjectOccupancyOctreeNode, OccupancyOctreeBaseSetting> {
+    class PyObjectOccupancyOctree : public OccupancyOctreeBase<
+                                        Dtype,
+                                        PyObjectOccupancyOctreeNode,
+                                        OccupancyOctreeBaseSetting> {
     public:
         using Setting = OccupancyOctreeBaseSetting;
         using Super = OccupancyOctreeBase<Dtype, PyObjectOccupancyOctreeNode, Setting>;
@@ -22,8 +25,12 @@ namespace erl::geometry {
             : PyObjectOccupancyOctree(std::make_shared<OccupancyOctreeBaseSetting>()) {}
 
         explicit PyObjectOccupancyOctree(const std::string &filename)
-            : PyObjectOccupancyOctree() {  // resolution will be set by LoadData
-            ERL_ASSERTM(this->LoadData(filename), "Failed to read {} from file: {}", type_name<PyObjectOccupancyOctree>(), filename);
+            : PyObjectOccupancyOctree() {
+            ERL_ASSERTM(
+                common::Serialization<PyObjectOccupancyOctree>::Read(filename, *this),
+                "Failed to read {} from file: {}",
+                type_name<PyObjectOccupancyOctree>(),
+                filename);
         }
 
         PyObjectOccupancyOctree(const PyObjectOccupancyOctree &other) = default;
@@ -38,7 +45,10 @@ namespace erl::geometry {
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
             auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) {
-                ERL_DEBUG_ASSERT(setting == nullptr, "setting is not the type for {}.", type_name<PyObjectOccupancyOctree>());
+                ERL_DEBUG_ASSERT(
+                    setting == nullptr,
+                    "setting is not the type for {}.",
+                    type_name<PyObjectOccupancyOctree>());
                 tree_setting = std::make_shared<Setting>();
             }
             return std::make_shared<PyObjectOccupancyOctree>(tree_setting);

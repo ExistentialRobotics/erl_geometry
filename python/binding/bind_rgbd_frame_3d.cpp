@@ -10,7 +10,13 @@ BindRgbdFrame3DImpl(const py::module &m, const char *name) {
 
     py::class_<T, DepthFrame3D<Dtype>, std::shared_ptr<T>>(m, name)
         .def(py::init<std::shared_ptr<typename T::Setting>>(), py::arg("setting").none(false))
-        .def("update_rgbd", &T::UpdateRgbd, py::arg("rotation"), py::arg("translation"), py::arg("depth"), py::arg("rgb"), py::arg("partition_rays") = false)
+        .def(
+            "update_rgbd",
+            &T::UpdateRgbd,
+            py::arg("rotation"),
+            py::arg("translation"),
+            py::arg("depth"),
+            py::arg("rgb"))
         .def(
             "convert_to_point_cloud",
             [](const T &self, const bool in_world_frame) {

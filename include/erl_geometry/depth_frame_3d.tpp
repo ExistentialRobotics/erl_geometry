@@ -171,15 +171,13 @@ namespace erl::geometry {
         const Eigen::Ref<const Matrix3> &rotation,
         const Eigen::Ref<const Vector3> &translation,
         const std::string &depth_file,
-        const double depth_scale,
-        const bool partition_rays) {
+        const double depth_scale) {
         cv::Mat depth_img = cv::imread(depth_file, cv::IMREAD_UNCHANGED);
-        depth_img.convertTo(
-            depth_img,
-            sizeof(Dtype) == 4 ? CV_32FC1 : CV_64FC1);  // convert to float or double
+        // convert to float or double
+        depth_img.convertTo(depth_img, sizeof(Dtype) == 4 ? CV_32FC1 : CV_64FC1);
         MatrixX depth;
         cv::cv2eigen(depth_img, depth);
-        UpdateRanges(rotation, translation, DepthImageToDepth(depth, depth_scale), partition_rays);
+        UpdateRanges(rotation, translation, DepthImageToDepth(depth, depth_scale));
     }
 
     template<typename Dtype>

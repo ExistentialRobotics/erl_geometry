@@ -88,15 +88,9 @@ BindOccupancyOctree(
             }),
             py::arg("setting"))
         .def(
-            py::init<>([](const std::string &filename, const bool use_derived_constructor) {
-                if (use_derived_constructor) { return std::make_shared<Octree>(filename); }
-                if (std::shared_ptr<Octree> octree = Octree::template ReadAs<Octree>(filename)) {
-                    return octree;
-                }
-                throw std::runtime_error("Failed to read octree from " + filename);
-            }),
-            py::arg("filename"),
-            py::arg("use_derived_constructor"))
+            py::init<>(
+                [](const std::string &filename) { return std::make_shared<Octree>(filename); }),
+            py::arg("filename"))
         .def_property_readonly("tree_type", &Octree::GetTreeType)
         .def_property_readonly("setting", &Octree::template GetSetting<typename Octree::Setting>)
         .def(
