@@ -283,6 +283,7 @@ namespace erl::geometry {
         UpdateNodeRecurs(
             Node* node,
             bool node_just_created,
+            bool node_from_expansion,
             const QuadtreeKey& key,
             float log_odds_delta,
             bool lazy_eval);

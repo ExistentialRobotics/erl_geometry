@@ -37,39 +37,55 @@ Draw(UserData *data) {
     double vx = std::cos(data->angle);
     double vy = std::sin(data->angle);
     double max_range = 10;
-    int ex1 = 0, ey1 = 0, ex2 = 0, ey2 = 0;
+    // int ex1 = 0, ey1 = 0, ex2 = 0, ey2 = 0;
+    double d_forward = std::numeric_limits<double>::min();
+    double d_backward = std::numeric_limits<double>::max();
     for (auto it = data->tree->BeginNodeOnRay(
                   x,
                   y,
                   vx,
                   vy,
                   max_range,
+                  /*node_padding*/ 0.0,
                   data->bidirectional,
                   /*leaf_only*/ true),
               end = data->tree->EndNodeOnRay();
          it != end;
          ++it) {
         if (data->occupied_only && !data->tree->IsNodeOccupied(*it)) { continue; }
-        double node_x = it.GetX();
-        double node_y = it.GetY();
-        double half_size = it.GetNodeSize() / 2.;
-        Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(
-            Eigen::Vector2d(node_x - half_size, node_y - half_size));
-        Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(
-            Eigen::Vector2d(node_x + half_size, node_y + half_size));
-        cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {0, 0, 255, 255}, cv::FILLED);
-        if (it.GetDistance() > 0) {
-            ex1 = (max[0] + min[0]) / 2;
-            ey1 = (max[1] + min[1]) / 2;
-        } else {
-            ex2 = (max[0] + min[0]) / 2;
-            ey2 = (max[1] + min[1]) / 2;
+        if (!it->HasAnyChild()) {
+            double node_x = it.GetX();
+            double node_y = it.GetY();
+            double half_size = it.GetNodeSize() / 2.;
+            Eigen::Vector2d min_meter(node_x - half_size, node_y - half_size);
+            Eigen::Vector2d max_meter(node_x + half_size, node_y + half_size);
+            Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(min_meter);
+            Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(max_meter);
+            cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {0, 0, 255, 255}, cv::FILLED);
         }
-        // std::cout << "x: " << node_x << ", y: " << node_y << ", dist: " << it.GetDistance() << ",
-        // size: " << it.GetNodeSize() << std::endl;
+        double d = it.GetDistance();
+        d_forward = std::max(d, d_forward);
+        d_backward = std::min(d, d_backward);
     }
-    cv::line(img, {data->mouse_x, data->mouse_y}, {ex1, ey1}, {0, 255, 0, 255}, 2);
-    cv::line(img, {data->mouse_x, data->mouse_y}, {ex2, ey2}, {255, 0, 0, 255}, 2);
+    cv::line(
+        img,
+        {data->mouse_x, data->mouse_y},
+        {
+            grid_map_info->MeterToGridForValue(x + d_forward * vx, 0),
+            grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(y + d_forward * vy, 1),
+        },
+        {0, 255, 0, 255},
+        2);
+    cv::line(
+        img,
+        {data->mouse_x, data->mouse_y},
+        {
+            grid_map_info->MeterToGridForValue(x + d_backward * vx, 0),
+            grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(y + d_backward * vy, 1),
+        },
+        {255, 0, 0, 255},
+        2);
+
     auto t1 = std::chrono::high_resolution_clock::now();
     std::cout << "Time: " << std::chrono::duration<double, std::micro>(t1 - t0).count() << " us."
               << std::endl;
@@ -101,10 +117,10 @@ MouseCallback(
     }
 }
 
-static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
+static std::filesystem::path data_dir = fmt::format("{}/data", ERL_GEOMETRY_ROOT_DIR);
 
 struct Options {
-    std::string tree_bt_file = (g_test_data_dir / "house_expo_room_1451_2d.bt").string();
+    std::string tree_bt_file = (data_dir / "house_expo_room_1451_2d_double.bt").string();
     double resolution = 0.01;
     int padding = 10;
     bool occupied_only = false;
@@ -119,7 +135,9 @@ TEST(OccupancyQuadtree, IterateLeafOnRay) {
     auto tree_setting = std::make_shared<OccupancyQuadtreeD::Setting>();
     tree_setting->resolution = 0.1;
     data.tree = std::make_shared<OccupancyQuadtreeD>(tree_setting);
-    ERL_ASSERTM(data.tree->ReadBinary(g_options.tree_bt_file), "Fail to load the tree.");
+    ASSERT_TRUE(Serialization<OccupancyQuadtreeD>::Read(
+        g_options.tree_bt_file,
+        [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     setting->resolution = g_options.resolution;
     setting->padding = g_options.padding;
@@ -136,11 +154,11 @@ TEST(OccupancyQuadtree, IterateLeafOnRay) {
         const auto key = cv::waitKey(0);
         if (key == 27) { break; }
         if (key == 'a') {
-            data.angle += DegreeToRadian(1);
+            data.angle += DegreeToRadian(1.0f);
         } else if (key == 'd') {
-            data.angle -= DegreeToRadian(1);
+            data.angle -= DegreeToRadian(1.0f);
         }
-        data.angle = WrapAnglePi(data.angle);
+        data.angle = WrapAnglePi<double>(data.angle);
         Draw(&data);
         std::cout << "Angle: " << RadianToDegree(data.angle) << "\n";
     }

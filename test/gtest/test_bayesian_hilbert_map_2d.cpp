@@ -119,7 +119,8 @@ VisualizeResult(
     const Eigen::Matrix2X<Dtype> &gradient_surf) {
 
     const long img_size = grid_map.Shape(0);
-    Eigen::MatrixX<Dtype> eigen_img = prob_occupied.reshaped(img_size, img_size);
+    using MatrixX = Eigen::MatrixX<Dtype>;
+    MatrixX eigen_img = Eigen::Map<const MatrixX>(prob_occupied.data(), img_size, img_size);
     cv::Mat img_prob_occupied, img_prob_occupied_rgb;
     cv::eigen2cv(eigen_img, img_prob_occupied);
     cv::normalize(img_prob_occupied, img_prob_occupied, 0, 255, cv::NORM_MINMAX);
@@ -127,7 +128,7 @@ VisualizeResult(
     cv::applyColorMap(img_prob_occupied, img_prob_occupied_rgb, cv::COLORMAP_JET);
 
     Eigen::VectorX<Dtype> gradient_norm = gradient_grid.colwise().norm();
-    eigen_img = gradient_norm.reshaped(img_size, img_size);
+    eigen_img = Eigen::Map<MatrixX>(gradient_norm.data(), img_size, img_size);
     cv::Mat img_gradient_norm, img_gradient_norm_rgb;
     cv::eigen2cv(eigen_img, img_gradient_norm);
     cv::normalize(img_gradient_norm, img_gradient_norm, 0, 255, cv::NORM_MINMAX);

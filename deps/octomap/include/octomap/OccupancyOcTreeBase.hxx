@@ -180,7 +180,7 @@ namespace octomap {
 
 #ifdef _OPENMP
         omp_set_num_threads(this->keyrays.size());
-#pragma omp parallel for schedule(guided)
+#pragma omp parallel for //schedule(guided)
 #endif
         for (int i = 0; i < (int) scan.size(); ++i) {
             const point3d& p = scan[i];

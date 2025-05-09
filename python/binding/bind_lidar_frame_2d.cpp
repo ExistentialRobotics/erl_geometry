@@ -20,7 +20,9 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
         .def_property_readonly("index_end", &Partition::GetIndexEnd)
         .def("angle_in_partition", &Partition::AngleInPartition, py::arg("angle_world"));
 
-    py::class_<typename Frame::Setting, YamlableBase, std::shared_ptr<typename Frame::Setting>>(lidar_frame_2d, "Setting")
+    py::class_<typename Frame::Setting, YamlableBase, std::shared_ptr<typename Frame::Setting>>(
+        lidar_frame_2d,
+        "Setting")
         .def(py::init<>())
         .def_readwrite("valid_range_min", &Frame::Setting::valid_range_min)
         .def_readwrite("valid_range_max", &Frame::Setting::valid_range_max)
@@ -38,7 +40,12 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
         .def("dir_frame_to_world", &Frame::DirFrameToWorld, py::arg("dir_frame"))
         .def("pos_world_to_frame", &Frame::PosWorldToFrame, py::arg("xy_world"))
         .def("pos_frame_to_world", &Frame::PosFrameToWorld, py::arg("xy_frame"))
-        .def("update_ranges", &Frame::UpdateRanges, py::arg("rotation"), py::arg("translation"), py::arg("ranges"), py::arg("partition_rays") = false)
+        .def(
+            "update_ranges",
+            &Frame::UpdateRanges,
+            py::arg("rotation"),
+            py::arg("translation"),
+            py::arg("ranges"))
         .def_property_readonly("setting", &Frame::GetSetting)
         .def_property_readonly("num_rays", &Frame::GetNumRays)
         .def_property_readonly("num_hit_rays", &Frame::GetNumHitRays)
@@ -73,11 +80,20 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
             py::arg("position"))
         .def(
             "sample_along_rays",
-            [](const Frame &self, const long num_samples_per_ray, const Dtype max_in_obstacle_dist, const Dtype sampled_rays_ratio) {
+            [](const Frame &self,
+               const long num_samples_per_ray,
+               const Dtype max_in_obstacle_dist,
+               const Dtype sampled_rays_ratio) {
                 Matrix2X positions_world;
                 Matrix2X directions_world;
                 VectorX distances;
-                self.SampleAlongRays(num_samples_per_ray, max_in_obstacle_dist, sampled_rays_ratio, positions_world, directions_world, distances);
+                self.SampleAlongRays(
+                    num_samples_per_ray,
+                    max_in_obstacle_dist,
+                    sampled_rays_ratio,
+                    positions_world,
+                    directions_world,
+                    distances);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -89,11 +105,20 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_along_rays",
-            [](const Frame &self, const Dtype range_step, const Dtype max_in_obstacle_dist, const Dtype sampled_rays_ratio) {
+            [](const Frame &self,
+               const Dtype range_step,
+               const Dtype max_in_obstacle_dist,
+               const Dtype sampled_rays_ratio) {
                 Matrix2X positions_world;
                 Matrix2X directions_world;
                 VectorX distances;
-                self.SampleAlongRays(range_step, max_in_obstacle_dist, sampled_rays_ratio, positions_world, directions_world, distances);
+                self.SampleAlongRays(
+                    range_step,
+                    max_in_obstacle_dist,
+                    sampled_rays_ratio,
+                    positions_world,
+                    directions_world,
+                    distances);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -105,11 +130,20 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
             py::arg("sampled_rays_ratio"))
         .def(
             "sample_near_surface",
-            [](const Frame &self, const long num_samples_per_ray, const Dtype max_offset, const Dtype sampled_rays_ratio) {
+            [](const Frame &self,
+               const long num_samples_per_ray,
+               const Dtype max_offset,
+               const Dtype sampled_rays_ratio) {
                 Matrix2X positions_world;
                 Matrix2X directions_world;
                 VectorX distances;
-                self.SampleNearSurface(num_samples_per_ray, max_offset, sampled_rays_ratio, positions_world, directions_world, distances);
+                self.SampleNearSurface(
+                    num_samples_per_ray,
+                    max_offset,
+                    sampled_rays_ratio,
+                    positions_world,
+                    directions_world,
+                    distances);
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -153,7 +187,11 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
                 Matrix2X directions_world;
                 VectorX distances;
                 std::vector<long> visible_hit_point_indices;
-                self.ComputeRaysAt(position_world, directions_world, distances, visible_hit_point_indices);
+                self.ComputeRaysAt(
+                    position_world,
+                    directions_world,
+                    distances,
+                    visible_hit_point_indices);
                 py::dict out;
                 out["directions_world"] = directions_world;
                 out["distances"] = distances;

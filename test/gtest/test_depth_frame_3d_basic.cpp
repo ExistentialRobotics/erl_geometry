@@ -107,9 +107,9 @@ TEST(DepthFrame3D, Basic) {
                               << std::chrono::duration<double, std::milli>(toc - tic).count()
                               << " ms" << std::endl;
                 }
-                long num_azimuths = depth_frame_3d->GetImageWidth();
-                long num_elevations = depth_frame_3d->GetImageHeight();
-                long max_num_valid_rays = num_azimuths * num_elevations;
+                long img_width = depth_frame_3d->GetImageWidth();
+                long img_height = depth_frame_3d->GetImageHeight();
+                long max_num_valid_rays = img_width * img_height;
 
                 if (show_depth_rays) {
                     depth_rays_line_set->Clear();
@@ -126,13 +126,12 @@ TEST(DepthFrame3D, Basic) {
                 const Eigen::MatrixX<Eigen::Vector3d> &end_points_in_world =
                     depth_frame_3d->GetEndPointsInWorld();
                 const Eigen::MatrixXb &hit_mask = depth_frame_3d->GetHitMask();
-                for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
-                    long ray_idx_base = azimuth_idx * num_elevations;
-                    for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
-                        long ray_idx = ray_idx_base + elevation_idx;
-                        if (!hit_mask(azimuth_idx, elevation_idx)) { continue; }
-                        const Eigen::Vector3d &end_pt =
-                            end_points_in_world(azimuth_idx, elevation_idx);
+                for (long col_idx = 0; col_idx < img_width; ++col_idx) {
+                    long ray_idx_base = col_idx * img_height;
+                    for (long row_idx = 0; row_idx < img_height; ++row_idx) {
+                        long ray_idx = ray_idx_base + row_idx;
+                        if (!hit_mask(row_idx, col_idx)) { continue; }
+                        const Eigen::Vector3d &end_pt = end_points_in_world(row_idx, col_idx);
                         if (show_depth_rays) {
                             depth_rays_line_set->points_.push_back(end_pt);
                             depth_rays_line_set->lines_.emplace_back(0, ray_idx + 1);

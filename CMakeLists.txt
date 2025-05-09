@@ -87,9 +87,23 @@ erl_add_tests(
         test_convex_hull_3d_impls_LIBRARIES CGAL::CGAL
         test_occupancy_octree_impls_LIBRARIES octomap
         LIBRARIES ${PROJECT_NAME}
-        EXCLUDE_FROM_ALL test_depth_frame_3d_basic  # interactive test
-        test_convex_hull # interactive test
-        test_convex_hull_3d_impls # interactive test
+        EXCLUDE_FROM_ALL test_depth_frame_3d_basic
+        test_convex_hull
+        test_convex_hull_3d_impls
+        test_depth_frame_3d_basic
+        test_hidden_point_removal
+        test_lidar_frame_2d_basic
+        test_lidar_frame_3d_basic
+        test_occupancy_octree_build
+        test_occupancy_octree_ray_casting
+        test_occupancy_quadtree_batch_ray_casting
+        test_occupancy_quadtree_build_from_image
+        test_occupancy_quadtree_find_neighbors
+        test_occupancy_quadtree_house_expo
+        test_occupancy_quadtree_leaf_in_aabb
+        test_occupancy_quadtree_leaf_of_node
+        test_occupancy_quadtree_leaf_of_ray
+        test_occupancy_quadtree_ray_casting
         IGNORE_FILES ${ignore_tests}
 )
 

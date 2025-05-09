@@ -147,8 +147,11 @@ TEST(OccupancyOctree, RayCasting) {
     GTEST_PREPARE_OUTPUT_DIR();
 
     g_user_data.visualizer_setting->window_name = "OccupancyOctree_RayCasting";
-    g_user_data.octree = OccupancyOctreeD::ReadAs<OccupancyOctree>(
-        (gtest_src_dir / "../../data/house_expo_room_1451_3d.ot").string());
+    std::filesystem::path file = ERL_GEOMETRY_ROOT_DIR;
+    file /= "data";
+    file /= "house_expo_room_1451_3d_double.ot";
+    g_user_data.octree = std::make_shared<OccupancyOctreeD>();
+    ASSERT_TRUE(Serialization<OccupancyOctreeD>::Read(file, *g_user_data.octree));
     g_user_data.ApplySettings();
 
     g_user_data.drawer->DrawLeaves(g_user_data.geometries);

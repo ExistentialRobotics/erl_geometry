@@ -82,9 +82,8 @@ namespace erl::geometry {
     }
 
     bool
-    AbstractQuadtreeNode::operator==(
-        const AbstractQuadtreeNode &other) const {  // NOLINT(*-no-recursion)
-        // we don't do polymorphic check because it is expensive to do so here.
+    AbstractQuadtreeNode::operator==(const AbstractQuadtreeNode &other) const {
+        // We don't do polymorphic check because it is expensive to do so here.
         // The tree should do polymorphic check: if two trees are the same type, their nodes should
         // be the same type. Unless we hack it by assigning nodes of a wrong type to the tree, which
         // is not supposed to happen.

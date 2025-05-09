@@ -24,7 +24,7 @@
 #define MAX_POINT_CLOUD_SIZE 1000000
 #define STRIDE               1
 
-using Dtype = float;
+using Dtype = double;
 using Lidar3D = erl::geometry::Lidar3D<Dtype>;
 using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
 using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
@@ -103,9 +103,12 @@ TEST(OccupancyOctree, Build) {
                 ERL_WARN_ONCE("callback is still called after octree is saved.");
                 return false;
             }
-            EXPECT_TRUE(octree->Write((test_output_dir / "house_expo_room_1451_3d.ot").string()));
-            EXPECT_TRUE(
-                octree->WriteBinary((test_output_dir / "house_expo_room_1451_3d.bt").string()));
+            EXPECT_TRUE(Serialization<OccupancyOctree>::Write(
+                test_output_dir / "house_expo_room_1451_3d.ot",
+                *octree));
+            EXPECT_TRUE(Serialization<OccupancyOctree>::Write(
+                test_output_dir / "house_expo_room_1451_3d.bt",
+                [&](std::ostream &s) -> bool { return octree->WriteBinary(s); }));
             octree_saved = true;
             wrapper->ClearGeometries();
             std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries =

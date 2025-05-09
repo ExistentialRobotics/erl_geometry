@@ -42,14 +42,16 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         QuadtreeKey key;
         if (!data->tree->CoordToKeyChecked(x, y, key)) { return; }
         unsigned int key_depth = 0;
-        if (auto node = data->tree->Search(key, key_depth); node == nullptr) { return; }
-        // draw selected node
+        auto node = data->tree->Search(key, key_depth);
+        if (node == nullptr) { return; }
+        // draw the selected node
+        key_depth = node->GetDepth();
         data->tree->KeyToCoord(key, key_depth, x, y);
-        double half_size = data->tree->GetNodeSize(key_depth) / 2.;
-        Eigen::Vector2i min =
-            grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(x - half_size, y - half_size));
-        Eigen::Vector2i max =
-            grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(x + half_size, y + half_size));
+        double half_size = data->tree->GetNodeSize(key_depth) / 2.0;
+        Eigen::Vector2d min_meter(x - half_size, y - half_size);
+        Eigen::Vector2d max_meter(x + half_size, y + half_size);
+        Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(min_meter);
+        Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(max_meter);
         cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {255, 0, 0, 100}, cv::FILLED);
         // draw neighbors on west
         {
@@ -143,7 +145,12 @@ TEST(OccupancyQuadtree, FindNeighbors) {
     UserData data;
     data.tree_setting->resolution = 0.1;
     data.tree = std::make_shared<OccupancyQuadtreeD>(data.tree_setting);
-    EXPECT_TRUE(data.tree->ReadBinary("square.bt"));
+    std::filesystem::path file = ERL_GEOMETRY_ROOT_DIR;
+    file /= "data";
+    file /= "square.bt";
+    EXPECT_TRUE(Serialization<OccupancyQuadtreeD>::Read(file, [&](std::istream &s) -> bool {
+        return data.tree->ReadBinary(s);
+    }));
 
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;

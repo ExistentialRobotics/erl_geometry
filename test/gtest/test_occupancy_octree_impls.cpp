@@ -9,13 +9,18 @@
 
 #include <filesystem>
 
-static std::filesystem::path g_test_data_dir = std::filesystem::path(__FILE__).parent_path();
+static std::filesystem::path g_test_data_dir =
+    std::filesystem::path(ERL_GEOMETRY_ROOT_DIR) / "data";
 
 struct Options {
     std::string mesh_file = (g_test_data_dir / "house_expo_room_1451.ply").string();
     std::string traj_file = (g_test_data_dir / "house_expo_room_1451.csv").string();
     std::shared_ptr<erl::geometry::OccupancyOctreeD::Setting> octree_setting =
-        std::make_shared<erl::geometry::OccupancyOctreeD::Setting>();
+        [] {
+            auto setting = std::make_shared<erl::geometry::OccupancyOctreeD::Setting>();
+            setting->resolution = 0.01;
+            return setting;
+        }();
 };
 
 static Options g_options;
@@ -38,10 +43,10 @@ TEST(OccupancyOctree, ErlImpl) {
             .transpose();
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d<double>(traj_2d, 1.0);
 
-    g_options.octree_setting->resolution = 0.01;
     const auto erl_octree = std::make_shared<OccupancyOctreeD>(g_options.octree_setting);
 
     double dt_erl = 0;
+    double dt_erl_discrete = 0;
     std::size_t pose_idx = 0;
     while (pose_idx < 4) {
         Eigen::Matrix4d &pose = path_3d[pose_idx++];
@@ -72,11 +77,20 @@ TEST(OccupancyOctree, ErlImpl) {
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL insert time: " << duration << " ms." << std::endl;
         dt_erl += duration;
+
+        t0 = std::chrono::high_resolution_clock::now();
+        erl_octree->InsertPointCloud(points, sensor_origin, -1, false, false, true);
+        t1 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "ERL discrete insert time: " << duration << " ms." << std::endl;
+        dt_erl_discrete += duration;
     }
     dt_erl /= static_cast<double>(pose_idx);
-    std::cout << "===================" << std::endl  //
-              << "Average insert time" << std::endl  //
-              << "ERL:     " << dt_erl << " ms." << std::endl;
+    dt_erl_discrete /= static_cast<double>(pose_idx);
+    std::cout << "===================\n"  //
+              << "Average insert time\n"  //
+              << "ERL:          " << dt_erl << " ms.\n"
+              << "ERL discrete: " << dt_erl_discrete << " ms." << std::endl;
 }
 
 TEST(OccupancyOctree, ErlComputeUpdate) {
@@ -97,10 +111,11 @@ TEST(OccupancyOctree, ErlComputeUpdate) {
             .transpose();
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d<double>(traj_2d, 1.0);
 
-    g_options.octree_setting->resolution = 0.01;
     const auto erl_octree = std::make_shared<OccupancyOctreeD>(g_options.octree_setting);
 
     double dt_erl = 0;
+    double dt_erl_parallel = 0;
+    double dt_erl_parallel_discrete = 0;
     std::size_t pose_idx = 0;
     while (pose_idx < 4) {
         Eigen::Matrix4d &pose = path_3d[pose_idx++];
@@ -138,11 +153,41 @@ TEST(OccupancyOctree, ErlComputeUpdate) {
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL compute update time: " << duration << " ms." << std::endl;
         dt_erl += duration;
+
+        t0 = std::chrono::high_resolution_clock::now();
+        erl_octree->ComputeUpdateForPointCloud(
+            points,
+            sensor_origin,
+            -1,
+            true,
+            free_cells,
+            occupied_cells);
+        t1 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "ERL parallel compute update time: " << duration << " ms." << std::endl;
+        dt_erl_parallel += duration;
+
+        t0 = std::chrono::high_resolution_clock::now();
+        erl_octree->ComputeDiscreteUpdateForPointCloud(
+            points,
+            sensor_origin,
+            -1,
+            true,
+            free_cells,
+            occupied_cells);
+        t1 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "ERL parallel compute update time: " << duration << " ms." << std::endl;
+        dt_erl_parallel_discrete += duration;
     }
     dt_erl /= static_cast<double>(pose_idx);
-    std::cout << "===================" << std::endl  //
-              << "Average time" << std::endl         //
-              << "ERL:     " << dt_erl << " ms." << std::endl;
+    dt_erl_parallel /= static_cast<double>(pose_idx);
+    dt_erl_parallel_discrete /= static_cast<double>(pose_idx);
+    std::cout << "===================\n"  //
+              << "Average time\n"         //
+              << "ERL:                   " << dt_erl << " ms.\n"
+              << "ERL parallel:          " << dt_erl_parallel << " ms.\n"
+              << "ERL parallel discrete: " << dt_erl_parallel_discrete << " ms." << std::endl;
 }
 
 TEST(OccupancyOctree, OctomapImpl) {
@@ -164,11 +209,11 @@ TEST(OccupancyOctree, OctomapImpl) {
     std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d<double>(traj_2d, 1.0);
 
-    g_options.octree_setting->resolution = 0.01;
     const auto octomap_octree =
         std::make_shared<octomap::OcTree>(g_options.octree_setting->resolution);
 
     double dt_octomap = 0;
+    double dt_octomap_discrete = 0;
     std::size_t pose_idx = 0;
     while (pose_idx < 4) {
         Eigen::Matrix4d &pose = path_3d[pose_idx++];
@@ -208,11 +253,28 @@ TEST(OccupancyOctree, OctomapImpl) {
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "Octomap insert time: " << duration << " ms." << std::endl;
         dt_octomap += duration;
+
+        t0 = std::chrono::high_resolution_clock::now();
+        octomap_octree->insertPointCloud(
+            scan,
+            octomath::Vector3(
+                static_cast<float>(sensor_origin[0]),
+                static_cast<float>(sensor_origin[1]),
+                static_cast<float>(sensor_origin[2])),
+            -1,
+            false,
+            true);
+        t1 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "Octomap discrete insert time: " << duration << " ms." << std::endl;
+        dt_octomap_discrete += duration;
     }
     dt_octomap /= static_cast<double>(pose_idx);
-    std::cout << "===================" << std::endl  //
-              << "Average insert time" << std::endl  //
-              << "Octomap: " << dt_octomap << " ms." << std::endl;
+    dt_octomap_discrete /= static_cast<double>(pose_idx);
+    std::cout << "===================\n"  //
+              << "Average insert time\n"  //
+              << "Octomap:          " << dt_octomap << " ms.\n"
+              << "Octomap discrete: " << dt_octomap_discrete << " ms." << std::endl;
 }
 
 TEST(OccupancyOctree, Octomap_ComputeUpdate) {
@@ -231,12 +293,12 @@ TEST(OccupancyOctree, Octomap_ComputeUpdate) {
     Eigen::MatrixXd traj_2d =
         LoadEigenMatrixFromTextFile<double>(g_options.traj_file, EigenTextFormat::kCsvFmt)
             .transpose();
-    std::cout << traj_2d.rows() << " " << traj_2d.cols() << std::endl;
     std::vector<Eigen::Matrix4d> path_3d = ConvertPath2dTo3d<double>(traj_2d, 1.0);
 
     auto octomap_octree = std::make_shared<octomap::OcTree>(g_options.octree_setting->resolution);
 
     double dt_octomap = 0;
+    double dt_octomap_discrete = 0;
     std::size_t pose_idx = 0;
     while (pose_idx < 4) {
         Eigen::Matrix4d &pose = path_3d[pose_idx++];
@@ -271,11 +333,21 @@ TEST(OccupancyOctree, Octomap_ComputeUpdate) {
         octomap_octree->computeUpdate(scan, octo_sensor_origin, free_cells, occupied_cells, -1);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-        std::cout << "Octomap insert time: " << duration << " ms." << std::endl;
+        std::cout << "Octomap time: " << duration << " ms." << std::endl;
         dt_octomap += duration;
+
+        t0 = std::chrono::high_resolution_clock::now();
+        octomap_octree
+            ->computeDiscreteUpdate(scan, octo_sensor_origin, free_cells, occupied_cells, -1);
+        t1 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "Octomap discrete time: " << duration << " ms." << std::endl;
+        dt_octomap_discrete += duration;
     }
     dt_octomap /= static_cast<double>(pose_idx);
-    std::cout << "===================" << std::endl  //
-              << "Average insert time" << std::endl  //
-              << "Octomap: " << dt_octomap << " ms." << std::endl;
+    dt_octomap_discrete /= static_cast<double>(pose_idx);
+    std::cout << "===================\n"  //
+              << "Average time\n"         //
+              << "Octomap: " << dt_octomap << " ms.\n"
+              << "Octomap discrete: " << dt_octomap_discrete << " ms." << std::endl;
 }

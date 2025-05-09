@@ -7,8 +7,8 @@
 TEST(HouseExpoMap, ExtrudeTo3D) {
     using namespace erl::geometry;
 
-    std::filesystem::path path = __FILE__;
-    path = path.parent_path() / "house_expo_room_1451.json";
+    std::filesystem::path path = ERL_GEOMETRY_ROOT_DIR;
+    path /= "data/house_expo_room_1451.json";
     const HouseExpoMap house_expo_map(path.string().c_str());
     const std::shared_ptr<open3d::geometry::TriangleMesh> mesh = house_expo_map.ExtrudeTo3D(3);
     constexpr bool write_ascii = false;

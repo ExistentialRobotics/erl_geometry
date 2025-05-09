@@ -71,6 +71,146 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
+    long
+    RangeSensorFrame3D<Dtype>::GetNumRays() const {
+        return m_ranges_.size();
+    }
+
+    template<typename Dtype>
+    long
+    RangeSensorFrame3D<Dtype>::GetNumHitRays() const {
+        return static_cast<long>(m_hit_ray_indices_.size());
+    }
+
+    template<typename Dtype>
+    const typename RangeSensorFrame3D<Dtype>::Matrix3 &
+    RangeSensorFrame3D<Dtype>::GetRotationMatrix() const {
+        return m_rotation_;
+    }
+
+    template<typename Dtype>
+    const typename RangeSensorFrame3D<Dtype>::Vector3 &
+    RangeSensorFrame3D<Dtype>::GetTranslationVector() const {
+        return m_translation_;
+    }
+
+    template<typename Dtype>
+    typename RangeSensorFrame3D<Dtype>::Matrix4
+    RangeSensorFrame3D<Dtype>::GetPoseMatrix() const {
+        Eigen::Transform<Dtype, 3, Eigen::Isometry> pose;
+        pose.linear() = m_rotation_;
+        pose.translation() = m_translation_;
+        return pose.matrix();
+    }
+
+    template<typename Dtype>
+    const Eigen::MatrixX<typename RangeSensorFrame3D<Dtype>::Vector2> &
+    RangeSensorFrame3D<Dtype>::GetFrameCoords() const {
+        return m_frame_coords_;
+    }
+
+    template<typename Dtype>
+    bool
+    RangeSensorFrame3D<Dtype>::CoordsIsInFrame(const Vector2 &frame_coords) const {
+        const Vector2 &top_left = m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
+        const Vector2 &bottom_right = m_frame_coords_(  //
+            m_frame_coords_.rows() - m_setting_->row_margin - 1,
+            m_frame_coords_.cols() - m_setting_->col_margin - 1);
+        return frame_coords[0] >= top_left[0] && frame_coords[0] <= bottom_right[0] &&  //
+               frame_coords[1] >= top_left[1] && frame_coords[1] <= bottom_right[1];
+    }
+
+    template<typename Dtype>
+    typename RangeSensorFrame3D<Dtype>::Vector3
+    RangeSensorFrame3D<Dtype>::DirWorldToFrame(const Vector3 &dir_world) const {
+        return m_rotation_.transpose() * dir_world;
+    }
+
+    template<typename Dtype>
+    typename RangeSensorFrame3D<Dtype>::Vector3
+    RangeSensorFrame3D<Dtype>::DirFrameToWorld(const Vector3 &dir_frame) const {
+        return m_rotation_ * dir_frame;
+    }
+
+    template<typename Dtype>
+    typename RangeSensorFrame3D<Dtype>::Vector3
+    RangeSensorFrame3D<Dtype>::PosWorldToFrame(const Vector3 &pos_world) const {
+        return m_rotation_.transpose() * (pos_world - m_translation_);
+    }
+
+    template<typename Dtype>
+    typename RangeSensorFrame3D<Dtype>::Vector3
+    RangeSensorFrame3D<Dtype>::PosFrameToWorld(const Vector3 &pos_frame) const {
+        return m_rotation_ * pos_frame + m_translation_;
+    }
+
+    template<typename Dtype>
+    const typename RangeSensorFrame3D<Dtype>::MatrixX &
+    RangeSensorFrame3D<Dtype>::GetRanges() const {
+        return m_ranges_;
+    }
+
+    template<typename Dtype>
+    const Eigen::MatrixX<typename RangeSensorFrame3D<Dtype>::Vector3> &
+    RangeSensorFrame3D<Dtype>::GetRayDirectionsInFrame() const {
+        return m_dirs_frame_;
+    }
+
+    template<typename Dtype>
+    const Eigen::MatrixX<typename RangeSensorFrame3D<Dtype>::Vector3> &
+    RangeSensorFrame3D<Dtype>::GetRayDirectionsInWorld() const {
+        return m_dirs_world_;
+    }
+
+    template<typename Dtype>
+    const Eigen::MatrixX<typename RangeSensorFrame3D<Dtype>::Vector3> &
+    RangeSensorFrame3D<Dtype>::GetEndPointsInFrame() const {
+        return m_end_pts_frame_;
+    }
+
+    template<typename Dtype>
+    const Eigen::MatrixX<typename RangeSensorFrame3D<Dtype>::Vector3> &
+    RangeSensorFrame3D<Dtype>::GetEndPointsInWorld() const {
+        return m_end_pts_world_;
+    }
+
+    template<typename Dtype>
+    const std::vector<std::pair<long, long>> &
+    RangeSensorFrame3D<Dtype>::GetHitRayIndices() const {
+        return m_hit_ray_indices_;
+    }
+
+    template<typename Dtype>
+    const std::vector<typename RangeSensorFrame3D<Dtype>::Vector3> &
+    RangeSensorFrame3D<Dtype>::GetHitPointsFrame() const {
+        return m_hit_points_frame_;
+    }
+
+    template<typename Dtype>
+    const std::vector<typename RangeSensorFrame3D<Dtype>::Vector3> &
+    RangeSensorFrame3D<Dtype>::GetHitPointsWorld() const {
+        return m_hit_points_world_;
+    }
+
+    template<typename Dtype>
+    Dtype
+    RangeSensorFrame3D<Dtype>::GetMaxValidRange() const {
+        return m_max_valid_range_;
+    }
+
+    template<typename Dtype>
+    const Eigen::MatrixXb &
+    RangeSensorFrame3D<Dtype>::GetHitMask() const {
+        return m_mask_hit_;
+    }
+
+    template<typename Dtype>
+    bool
+    RangeSensorFrame3D<Dtype>::IsValid() const {
+        return m_max_valid_range_ > 0.0;
+    }
+
+    template<typename Dtype>
     void
     RangeSensorFrame3D<Dtype>::ComputeClosestEndPoint(
         const Eigen::Ref<const Vector3> &position_world,
@@ -440,6 +580,12 @@ namespace erl::geometry {
         if (m_hit_points_world_ != other.m_hit_points_world_) { return false; }
         if (m_max_valid_range_ != other.m_max_valid_range_) { return false; }
         return true;
+    }
+
+    template<typename Dtype>
+    bool
+    RangeSensorFrame3D<Dtype>::operator!=(const RangeSensorFrame3D &other) const {
+        return !(*this == other);
     }
 
     template<typename Dtype>

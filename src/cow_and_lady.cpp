@@ -42,7 +42,7 @@ namespace erl::geometry {
         Frame frame;
         Eigen::MatrixX<Eigen::Vector3f> points;
 
-        if (!LoadData(
+        if (frame.valid = LoadData(
                 index,
                 frame.sequence_number,
                 frame.time_stamp,
@@ -50,7 +50,8 @@ namespace erl::geometry {
                 frame.rotation,
                 frame.translation,
                 points,
-                frame.color)) {
+                frame.color);
+            !frame.valid) {
             return frame;
         }
 
@@ -208,6 +209,10 @@ namespace erl::geometry {
 
         const std::string pcd_filename =
             m_directory_ / "pcd" / fmt::format("{}.pcd", sequence_number);
+        if (!std::filesystem::exists(pcd_filename)) {
+            ERL_WARN("{} does not exist", pcd_filename);
+            return false;
+        }
         std::ifstream ifs(pcd_filename, std::ios::binary);
         if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(ifs, points)) {
             ERL_WARN("Failed to load point cloud data from {}", pcd_filename);
@@ -215,7 +220,13 @@ namespace erl::geometry {
         }
         ifs.close();
 
-        color = cv::imread(m_directory_ / "color" / fmt::format("{}.png", sequence_number));
+        const std::string color_filename =
+            m_directory_ / "color" / fmt::format("{}.png", sequence_number);
+        if (!std::filesystem::exists(color_filename)) {
+            ERL_WARN("{} does not exist", color_filename);
+            return false;
+        }
+        color = cv::imread(color_filename);
         return true;
     }
 

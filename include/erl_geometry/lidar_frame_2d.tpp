@@ -1,6 +1,7 @@
 #pragma once
 
 #include "erl_common/logging.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_geometry/intersection.hpp"
 #include "erl_geometry/winding_number.hpp"
 
@@ -10,34 +11,39 @@ namespace erl::geometry {
     YAML::Node
     LidarFrame2D<Dtype>::Setting::YamlConvertImpl::encode(const Setting &setting) {
         YAML::Node node;
-        node["valid_range_min"] = setting.valid_range_min;
-        node["valid_range_max"] = setting.valid_range_max;
-        node["angle_min"] = setting.angle_min;
-        node["angle_max"] = setting.angle_max;
-        node["num_rays"] = setting.num_rays;
-        node["discontinuity_factor"] = setting.discontinuity_factor;
-        node["rolling_diff_discount"] = setting.rolling_diff_discount;
-        node["min_partition_size"] = setting.min_partition_size;
+        ERL_YAML_SAVE_ATTR(node, setting, valid_range_min);
+        ERL_YAML_SAVE_ATTR(node, setting, valid_range_max);
+        ERL_YAML_SAVE_ATTR(node, setting, angle_min);
+        ERL_YAML_SAVE_ATTR(node, setting, angle_max);
+        ERL_YAML_SAVE_ATTR(node, setting, num_rays);
+        ERL_YAML_SAVE_ATTR(node, setting, discontinuity_factor);
+        ERL_YAML_SAVE_ATTR(node, setting, rolling_diff_discount);
+        ERL_YAML_SAVE_ATTR(node, setting, min_partition_size);
         return node;
     }
 
     template<typename Dtype>
     bool
-    LidarFrame2D<Dtype>::Setting::YamlConvertImpl::decode(const YAML::Node &node, Setting &setting) {
+    LidarFrame2D<Dtype>::Setting::YamlConvertImpl::decode(
+        const YAML::Node &node,
+        Setting &setting) {
         if (!node.IsMap()) { return false; }
-        setting.valid_range_min = node["valid_range_min"].as<Dtype>();
-        setting.valid_range_max = node["valid_range_max"].as<Dtype>();
-        setting.angle_min = node["angle_min"].as<Dtype>();
-        setting.angle_max = node["angle_max"].as<Dtype>();
-        setting.num_rays = node["num_rays"].as<long>();
-        setting.discontinuity_factor = node["discontinuity_factor"].as<Dtype>();
-        setting.rolling_diff_discount = node["rolling_diff_discount"].as<Dtype>();
-        setting.min_partition_size = node["min_partition_size"].as<int>();
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_min, Dtype);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, angle_min, Dtype);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, angle_max, Dtype);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, num_rays, long);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, discontinuity_factor, Dtype);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, rolling_diff_discount, Dtype);
+        ERL_YAML_LOAD_ATTR_TYPE(node, setting, min_partition_size, int);
         return true;
     }
 
     template<typename Dtype>
-    LidarFrame2D<Dtype>::Partition::Partition(LidarFrame2D *frame, const long index_begin, const long index_end)
+    LidarFrame2D<Dtype>::Partition::Partition(
+        LidarFrame2D *frame,
+        const long index_begin,
+        const long index_end)
         : m_frame_(frame),
           m_index_begin_(index_begin),
           m_index_end_(index_end) {
@@ -62,7 +68,8 @@ namespace erl::geometry {
     bool
     LidarFrame2D<Dtype>::Partition::AngleInPartition(const Dtype angle_world) const {
         const Dtype angle_frame = common::WrapAnglePi(angle_world - m_frame_->m_rotation_angle_);
-        return (angle_frame >= m_frame_->m_angles_frame_[m_index_begin_]) && (angle_frame <= m_frame_->m_angles_frame_[m_index_end_]);
+        return (angle_frame >= m_frame_->m_angles_frame_[m_index_begin_]) &&
+               (angle_frame <= m_frame_->m_angles_frame_[m_index_end_]);
     }
 
     template<typename Dtype>
@@ -70,16 +77,20 @@ namespace erl::geometry {
         : m_setting_(std::move(setting)) {
         ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
 
-        m_angles_frame_ = VectorX::LinSpaced(m_setting_->num_rays, m_setting_->angle_min, m_setting_->angle_max);
+        m_angles_frame_ =
+            VectorX::LinSpaced(m_setting_->num_rays, m_setting_->angle_min, m_setting_->angle_max);
         m_dirs_frame_.clear();
         m_dirs_frame_.reserve(m_setting_->num_rays);
-        for (long i = 0; i < m_setting_->num_rays; ++i) { m_dirs_frame_.emplace_back(std::cos(m_angles_frame_[i]), std::sin(m_angles_frame_[i])); }
+        for (long i = 0; i < m_setting_->num_rays; ++i) {
+            m_dirs_frame_.emplace_back(std::cos(m_angles_frame_[i]), std::sin(m_angles_frame_[i]));
+        }
     }
 
     template<typename Dtype>
     bool
     LidarFrame2D<Dtype>::AngleIsInFrame(const Dtype angle_frame) const {
-        return angle_frame >= m_angles_frame_[0] && angle_frame <= m_angles_frame_[m_angles_frame_.size() - 1];
+        return angle_frame >= m_angles_frame_[0] &&
+               angle_frame <= m_angles_frame_[m_angles_frame_.size() - 1];
     }
 
     template<typename Dtype>
@@ -119,8 +130,7 @@ namespace erl::geometry {
     LidarFrame2D<Dtype>::UpdateRanges(
         const Eigen::Ref<const Matrix2> &rotation,
         const Eigen::Ref<const Vector2> &translation,
-        VectorX ranges,
-        const bool partition_rays) {
+        VectorX ranges) {
 
         m_rotation_ = rotation;
         m_rotation_angle_ = Eigen::Rotation2D<Dtype>(m_rotation_).angle();
@@ -165,21 +175,22 @@ namespace erl::geometry {
             m_end_pts_world_[i] << m_rotation_ * end_pt_frame + m_translation_;
 
             // max valid range
-            if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) { continue; }
+            if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) {
+                continue;
+            }
             m_mask_hit_[i] = true;
         }
 
         m_max_valid_range_ = 0.0;
         for (long i = 0; i < n; ++i) {
             if (!m_mask_hit_[i]) { continue; }
-            if (const Dtype &range = m_ranges_[i]; range > m_max_valid_range_) { m_max_valid_range_ = range; }
+            if (const Dtype &range = m_ranges_[i]; range > m_max_valid_range_) {
+                m_max_valid_range_ = range;
+            }
             m_hit_ray_indices_.emplace_back(i);
             m_hit_points_frame_.emplace_back(m_end_pts_frame_[i]);
             m_hit_points_world_.emplace_back(m_end_pts_world_[i]);
         }
-
-        if (!partition_rays) { return; }  // do not partition rays
-        PartitionRays();
     }
 
     template<typename Dtype>
@@ -329,7 +340,8 @@ namespace erl::geometry {
             end_point_index = -1;
             distance = std::numeric_limits<Dtype>::infinity();
             for (std::size_t i = 0; i < m_end_pts_world_.size(); ++i) {
-                if (const Dtype d = (m_end_pts_world_[i] - position_world).squaredNorm(); d < distance) {
+                if (const Dtype d = (m_end_pts_world_[i] - position_world).squaredNorm();
+                    d < distance) {
                     end_point_index = static_cast<long>(i);
                     distance = d;
                 }
@@ -339,7 +351,10 @@ namespace erl::geometry {
         }
 
         if (!m_kd_tree_->Ready()) {
-            std::const_pointer_cast<KdTree>(m_kd_tree_)->SetDataMatrix(m_end_pts_world_[0].data(), static_cast<long>(m_end_pts_world_.size()));
+            std::const_pointer_cast<KdTree>(m_kd_tree_)
+                ->SetDataMatrix(
+                    m_end_pts_world_[0].data(),
+                    static_cast<long>(m_end_pts_world_.size()));
         }
         end_point_index = -1;
         distance = std::numeric_limits<Dtype>::infinity();
@@ -357,7 +372,8 @@ namespace erl::geometry {
         Matrix2X &directions_world,
         VectorX &distances) const {
 
-        std::vector<long> hit_ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
+        std::vector<long> hit_ray_indices =
+            common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(hit_ray_indices.size());
         const long n_samples = n_rays * n_samples_per_ray;
         positions_world.resize(2, n_samples);
@@ -368,7 +384,8 @@ namespace erl::geometry {
         for (const long &hit_ray_idx: hit_ray_indices) {
             const long ray_idx = m_hit_ray_indices_[hit_ray_idx];
             Dtype range = m_ranges_[ray_idx];
-            Dtype range_step = (range + max_in_obstacle_dist) / static_cast<Dtype>(n_samples_per_ray);
+            Dtype range_step =
+                (range + max_in_obstacle_dist) / static_cast<Dtype>(n_samples_per_ray);
             const Vector2 &dir_world = m_dirs_world_[ray_idx];
 
             positions_world.col(index) << m_translation_;
@@ -376,7 +393,8 @@ namespace erl::geometry {
             distances[index++] = range;
 
             Vector2 shift = range_step * dir_world;
-            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_per_ray; ++sample_idx_of_ray) {
+            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_per_ray;
+                 ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(index) << positions_world.col(index - 1) + shift;
                 directions_world.col(index) << dir_world;
@@ -395,14 +413,17 @@ namespace erl::geometry {
         Matrix2X &directions_world,
         VectorX &distances) const {
 
-        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
+        std::vector<long> ray_indices =
+            common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(ray_indices.size());
         long num_samples = 0;
         std::vector<std::pair<long, long>> n_samples_per_ray;
         n_samples_per_ray.reserve(n_rays);
         for (const long &idx: ray_indices) {
             auto ray_idx = m_hit_ray_indices_[idx];
-            auto n = static_cast<long>(std::floor((m_ranges_[ray_idx] + max_in_obstacle_dist) / range_step)) + 1;
+            auto n = static_cast<long>(
+                         std::floor((m_ranges_[ray_idx] + max_in_obstacle_dist) / range_step)) +
+                     1;
             n_samples_per_ray.emplace_back(ray_idx, n);
             num_samples += n;
         }
@@ -419,7 +440,8 @@ namespace erl::geometry {
             distances[sample_idx++] = range;
 
             Vector2 shift = range_step * dir_world;
-            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_of_ray; ++sample_idx_of_ray) {
+            for (long sample_idx_of_ray = 1; sample_idx_of_ray < n_samples_of_ray;
+                 ++sample_idx_of_ray) {
                 range -= range_step;
                 positions_world.col(sample_idx) << positions_world.col(sample_idx - 1) + shift;
                 directions_world.col(sample_idx) << dir_world;
@@ -437,7 +459,8 @@ namespace erl::geometry {
         Matrix2X &positions_world,
         Matrix2X &directions_world,
         VectorX &distances) const {
-        std::vector<long> ray_indices = common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
+        std::vector<long> ray_indices =
+            common::GenerateShuffledIndices<long>(m_hit_ray_indices_.size(), sampled_rays_ratio);
         const auto n_rays = static_cast<long>(ray_indices.size());
         const long n_samples = num_samples_per_ray * n_rays;
         positions_world.resize(2, n_samples);
@@ -471,12 +494,17 @@ namespace erl::geometry {
         VectorX &distances) const {
         ERL_ASSERTM(num_positions > 0, "num_positions ({}) must be positive.", num_positions);
 
-        std::uniform_int_distribution<long> uniform_int_dist(0, static_cast<long>(m_hit_points_world_.size() - 1));
+        std::uniform_int_distribution<long> uniform_int_dist(
+            0,
+            static_cast<long>(m_hit_points_world_.size() - 1));
         std::uniform_real_distribution<Dtype> uniform_real_dist(0.1, 0.8);
-        std::uniform_real_distribution<Dtype> uniform_ns(-max_in_obstacle_dist, max_in_obstacle_dist);
+        std::uniform_real_distribution<Dtype> uniform_ns(
+            -max_in_obstacle_dist,
+            max_in_obstacle_dist);
 
-        const long max_num_samples = num_positions * static_cast<long>(m_hit_ray_indices_.size())  //
-                                     * (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
+        const long max_num_samples =
+            num_positions * static_cast<long>(m_hit_ray_indices_.size())  //
+            * (num_along_ray_samples_per_ray + num_near_surface_samples_per_ray);
         positions_world.resize(2, max_num_samples);
         directions_world.resize(2, max_num_samples);
         distances.resize(max_num_samples);
@@ -517,7 +545,8 @@ namespace erl::geometry {
                 positions_world.col(sample_cnt) << position_scan;
                 directions_world.col(sample_cnt) << dir;
                 distances[sample_cnt++] = range;
-                Dtype range_step = (range + max_in_obstacle_dist) / static_cast<Dtype>(num_along_ray_samples_per_ray);
+                Dtype range_step = (range + max_in_obstacle_dist) /
+                                   static_cast<Dtype>(num_along_ray_samples_per_ray);
                 Vector2 shift = range_step * dir;
                 for (long i = 1; i < num_along_ray_samples_per_ray; ++i) {
                     range -= range_step;
@@ -544,7 +573,8 @@ namespace erl::geometry {
         visible_hit_point_indices.clear();
         const auto max_num_rays = static_cast<long>(m_end_pts_world_.size());
         Matrix2X area_vertices(2, max_num_rays + 1);
-        area_vertices.block(0, 0, 2, max_num_rays) << Eigen::Map<const Matrix2X>(m_end_pts_world_.data()->data(), 2, max_num_rays);
+        area_vertices.block(0, 0, 2, max_num_rays)
+            << Eigen::Map<const Matrix2X>(m_end_pts_world_.data()->data(), 2, max_num_rays);
         area_vertices.col(max_num_rays) << m_translation_;
         if (WindingNumber<Dtype>(position_world, area_vertices) <= 0) { return; }  // not inside
 
@@ -558,15 +588,37 @@ namespace erl::geometry {
             vec /= min_dist;
             Dtype lam, dist;
             bool intersected;
-            ComputeIntersectionBetweenRayAndLine2D<Dtype>(position_world, vec, m_translation_, m_end_pts_world_[0], lam, dist, intersected);
-            if (intersected && lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
-            ComputeIntersectionBetweenRayAndLine2D<Dtype>(position_world, vec, m_end_pts_world_[max_num_rays - 1], m_translation_, lam, dist, intersected);
-            if (intersected && lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) { continue; }  // invalid ray
+            ComputeIntersectionBetweenRayAndLine2D<Dtype>(
+                position_world,
+                vec,
+                m_translation_,
+                m_end_pts_world_[0],
+                lam,
+                dist,
+                intersected);
+            if (intersected && lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) {
+                continue;  // invalid ray
+            }
+            ComputeIntersectionBetweenRayAndLine2D<Dtype>(
+                position_world,
+                vec,
+                m_end_pts_world_[max_num_rays - 1],
+                m_translation_,
+                lam,
+                dist,
+                intersected);
+            if (intersected && lam >= 0 && lam <= 1 && dist > 0 && dist < min_dist) {
+                continue;  // invalid ray
+            }
 
             long arg_min = ray_idx;
             for (long ray_idx2 = 1; ray_idx2 < max_num_rays; ++ray_idx2) {
-                if (ray_idx2 == ray_idx || ray_idx2 == ray_idx + 1) { continue; }        // skip neighboring edges
-                if (!m_mask_hit_[ray_idx2 - 1] || !m_mask_hit_[ray_idx2]) { continue; }  // the vertex is not a hit
+                if (ray_idx2 == ray_idx || ray_idx2 == ray_idx + 1) {
+                    continue;  // skip neighboring edges
+                }
+                if (!m_mask_hit_[ray_idx2 - 1] || !m_mask_hit_[ray_idx2]) {
+                    continue;  // the vertex is not a hit
+                }
                 ComputeIntersectionBetweenRayAndLine2D<Dtype>(
                     position_world,
                     vec,
@@ -575,7 +627,9 @@ namespace erl::geometry {
                     lam,
                     dist,
                     intersected);
-                if (!intersected || lam < 0 || lam > 1) { continue; }  // the intersection is not on the segment
+                if (!intersected || lam < 0 || lam > 1) {
+                    continue;  // the intersection is not on the segment
+                }
                 if (dist > 0 && dist < min_dist) {
                     min_dist = dist;
                     arg_min = ray_idx2;
@@ -595,7 +649,10 @@ namespace erl::geometry {
     bool
     LidarFrame2D<Dtype>::operator==(const LidarFrame2D &other) const {
         if (m_setting_ == nullptr && other.m_setting_ != nullptr) { return false; }
-        if (m_setting_ != nullptr && (other.m_setting_ == nullptr || *m_setting_ != *other.m_setting_)) { return false; }
+        if (m_setting_ != nullptr &&
+            (other.m_setting_ == nullptr || *m_setting_ != *other.m_setting_)) {
+            return false;
+        }
         if (m_rotation_ != other.m_rotation_) { return false; }
         if (m_rotation_angle_ != other.m_rotation_angle_) { return false; }
         if (m_translation_ != other.m_translation_) { return false; }
@@ -609,6 +666,7 @@ namespace erl::geometry {
         if (m_mask_hit_ != other.m_mask_hit_) { return false; }
         if (m_mask_continuous_ != other.m_mask_continuous_) { return false; }
         if (m_hit_ray_indices_ != other.m_hit_ray_indices_) { return false; }
+        if (m_hit_points_frame_ != other.m_hit_points_frame_) { return false; }
         if (m_hit_points_world_ != other.m_hit_points_world_) { return false; }
         if (m_max_valid_range_ != other.m_max_valid_range_) { return false; }
         if (m_partitioned_ != other.m_partitioned_) { return false; }
@@ -616,7 +674,10 @@ namespace erl::geometry {
         for (std::size_t i = 0; i < m_partitions_.size(); ++i) {
             const auto &partition = m_partitions_[i];
             const auto &other_partition = other.m_partitions_[i];
-            if (partition.m_index_begin_ != other_partition.m_index_begin_ || partition.m_index_end_ != other_partition.m_index_end_) { return false; }
+            if (partition.m_index_begin_ != other_partition.m_index_begin_ ||
+                partition.m_index_end_ != other_partition.m_index_end_) {
+                return false;
+            }
         }
         return true;
     }
@@ -627,330 +688,339 @@ namespace erl::geometry {
         return !(*this == other);
     }
 
-    // template<typename Dtype>
-    // bool
-    // LidarFrame2D<Dtype>::Write(const std::string &filename) const {
-    //     ERL_INFO("Writing LidarFrame2D to file: {}", filename);
-    //     std::filesystem::create_directories(std::filesystem::path(filename).parent_path());
-    //     std::ofstream file(filename, std::ios_base::out | std::ios_base::binary);
-    //     if (!file.is_open()) {
-    //         ERL_WARN("Failed to open file: {}", filename);
-    //         return false;
-    //     }
-    //
-    //     const bool success = Write(file);
-    //     file.close();
-    //     return success;
-    // }
-
     template<typename Dtype>
     bool
     LidarFrame2D<Dtype>::Write(std::ostream &s) const {
-        s << kFileHeader << std::endl  //
-          << "# (feel free to add / change comments, but leave the first line as it is!)" << std::endl
-          << "setting" << std::endl;
-        // write setting
-        if (!m_setting_->Write(s)) {
-            ERL_WARN("Failed to write setting.");
-            return false;
-        }
-        // write data
-        s << "rotation" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_rotation_)) {
-            ERL_WARN("Failed to write rotation.");
-            return false;
-        }
-        s << "rotation_angle" << std::endl;
-        s.write(reinterpret_cast<const char *>(&m_rotation_angle_), sizeof(Dtype));
-        s << "translation" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_translation_)) {
-            ERL_WARN("Failed to write translation.");
-            return false;
-        }
-        s << "angles_frame" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_angles_frame_)) {
-            ERL_WARN("Failed to write angles_frame.");
-            return false;
-        }
-        s << "angles_world" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_angles_world_)) {
-            ERL_WARN("Failed to write angles_world.");
-            return false;
-        }
-        s << "ranges" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_ranges_)) {
-            ERL_WARN("Failed to write ranges.");
-            return false;
-        }
-        s << "dirs_frame " << m_dirs_frame_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_dirs_frame_)) {
-            ERL_WARN("Failed to write dirs_frame.");
-            return false;
-        }
-        s << "dirs_world " << m_dirs_world_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_dirs_world_)) {
-            ERL_WARN("Failed to write dirs_world.");
-            return false;
-        }
-        s << "end_pts_frame " << m_end_pts_frame_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_end_pts_frame_)) {
-            ERL_WARN("Failed to write end_pts_frame.");
-            return false;
-        }
-        s << "end_pts_world " << m_end_pts_world_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_end_pts_world_)) {
-            ERL_WARN("Failed to write end_pts_world.");
-            return false;
-        }
-        s << "mask_hit" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_hit_)) {
-            ERL_WARN("Failed to write mask_hit.");
-            return false;
-        }
-        s << "mask_continuous" << std::endl;
-        if (!common::SaveEigenMatrixToBinaryStream(s, m_mask_continuous_)) {
-            ERL_WARN("Failed to write mask_continuous.");
-            return false;
-        }
-        s << "hit_ray_indices " << m_hit_ray_indices_.size() << std::endl;
-        s.write(reinterpret_cast<const char *>(m_hit_ray_indices_.data()), static_cast<std::streamsize>(m_hit_ray_indices_.size() * sizeof(long)));
-        s << "hit_points_world " << m_hit_points_world_.size() << std::endl;
-        if (!common::SaveVectorOfEigenMatricesToBinaryStream(s, m_hit_points_world_)) {
-            ERL_WARN("Failed to write hit_points_world.");
-            return false;
-        }
-        s << "max_valid_range" << std::endl;
-        s.write(reinterpret_cast<const char *>(&m_max_valid_range_), sizeof(Dtype));
-        s << "partitioned " << m_partitioned_ << std::endl;
-        s << "partitions " << m_partitions_.size() << std::endl;
-        for (const auto &partition: m_partitions_) { s << partition.m_index_begin_ << " " << partition.m_index_end_ << std::endl; }
-        s << "end_of_LidarFrame2D" << std::endl;
-        return s.good();
+        static const common::TokenWriteFunctionPairs<LidarFrame2D> token_function_pairs = {
+            {
+                "setting",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return self->m_setting_->Write(stream) && stream.good();
+                },
+            },
+            {
+                "rotation",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_rotation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "rotation_angle",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    stream.write(
+                        reinterpret_cast<const char *>(&self->m_rotation_angle_),
+                        sizeof(Dtype));
+                    return stream.good();
+                },
+            },
+            {
+                "translation",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_translation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "angles_frame",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_angles_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "angles_world",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_angles_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "ranges",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_ranges_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_frame",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_dirs_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_world",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_dirs_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_frame",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_end_pts_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_world",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_end_pts_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "mask_hit",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_mask_hit_) &&
+                           stream.good();
+                },
+            },
+            {
+                "mask_continuous",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveEigenMatrixToBinaryStream(
+                               stream,
+                               self->m_mask_continuous_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_ray_indices",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    const std::size_t n_rays = self->m_hit_ray_indices_.size();
+                    stream.write(reinterpret_cast<const char *>(&n_rays), sizeof(std::size_t));
+                    stream.write(
+                        reinterpret_cast<const char *>(self->m_hit_ray_indices_.data()),
+                        static_cast<std::streamsize>(n_rays * sizeof(long)));
+                    ERL_INFO("Write {} hit rays.", n_rays);
+                    return stream.good();
+                },
+            },
+            {
+                "hit_points_frame",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_hit_points_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_points_world",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                               stream,
+                               self->m_hit_points_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "max_valid_range",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    stream.write(
+                        reinterpret_cast<const char *>(&self->m_max_valid_range_),
+                        sizeof(Dtype));
+                    return stream.good();
+                },
+            },
+            {
+                "partitioned",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    stream.write(
+                        reinterpret_cast<const char *>(&self->m_partitioned_),
+                        sizeof(bool));
+                    return stream.good();
+                },
+            },
+            {
+                "partitions",
+                [](const LidarFrame2D *self, std::ostream &stream) {
+                    stream << self->m_partitions_.size();
+                    for (const auto &partition: self->m_partitions_) {
+                        stream << ' ' << partition.m_index_begin_ << ' ' << partition.m_index_end_;
+                    }
+                    return stream.good();
+                },
+            },
+        };
+        return common::WriteTokens(s, this, token_function_pairs);
     }
-
-    // template<typename Dtype>
-    // bool
-    // LidarFrame2D<Dtype>::Read(const std::string &filename) {
-    //     ERL_INFO("Reading LidarFrame2D from file: {}", std::filesystem::absolute(filename));
-    //     std::ifstream file(filename.c_str(), std::ios_base::in | std::ios_base::binary);
-    //     if (!file.is_open()) {
-    //         ERL_WARN("Failed to open file: {}", filename.c_str());
-    //         return false;
-    //     }
-    //
-    //     const bool success = Read(file);
-    //     file.close();
-    //     return success;
-    // }
 
     template<typename Dtype>
     bool
     LidarFrame2D<Dtype>::Read(std::istream &s) {
-        if (!s.good()) {
-            ERL_WARN("Input stream is not ready for reading");
-            return false;
-        }
-
-        // check if the first line is valid
-        std::string line;
-        std::getline(s, line);
-        if (line.compare(0, kFileHeader.length(), kFileHeader) != 0) {  // check if the first line is valid
-            ERL_WARN("Header does not start with \"{}\"", kFileHeader.c_str());
-            return false;
-        }
-
-        auto skip_line = [&s]() {
-            char c;
-            do { c = static_cast<char>(s.get()); } while (s.good() && c != '\n');
-        };
-
-        static const char *tokens[] = {
-            "setting",
-            "rotation",
-            "rotation_angle",
-            "translation",
-            "angles_frame",
-            "angles_world",
-            "ranges",
-            "dirs_frame",
-            "dirs_world",
-            "end_pts_frame",
-            "end_pts_world",
-            "mask_hit",
-            "mask_continuous",
-            "hit_ray_indices",
-            "hit_points_world",
-            "max_valid_range",
-            "partitioned",
-            "partitions",
-            "end_of_LidarFrame2D"};
-
-        // read data
-        std::string token;
-        int token_idx = 0;
-        while (s.good()) {
-            s >> token;
-            if (token.compare(0, 1, "#") == 0) {
-                skip_line();  // comment line, skip forward until end of line
-                continue;
-            }
-            // non-comment line
-            if (token != tokens[token_idx]) {
-                ERL_WARN("Expected token {}, got {}.", tokens[token_idx], token);  // check token
-                return false;
-            }
-            // reading state machine
-            switch (token_idx) {
-                case 0: {  // setting
-                    skip_line();
-                    if (!m_setting_->Read(s)) {
-                        ERL_WARN("Failed to read setting.");
-                        return false;
-                    }
-                    break;
-                }
-                case 1: {  // rotation
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_rotation_)) {
-                        ERL_WARN("Failed to read rotation.");
-                        return false;
-                    }
-                    break;
-                }
-                case 2: {  // rotation_angle
-                    skip_line();
-                    s.read(reinterpret_cast<char *>(&m_rotation_angle_), sizeof(Dtype));
-                    break;
-                }
-                case 3: {  // translation
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_translation_)) {
-                        ERL_WARN("Failed to read translation.");
-                        return false;
-                    }
-                    break;
-                }
-                case 4: {  // angles_frame
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_angles_frame_)) {
-                        ERL_WARN("Failed to read angles_frame.");
-                        return false;
-                    }
-                    break;
-                }
-                case 5: {  // angles_world
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_angles_world_)) {
-                        ERL_WARN("Failed to read angles_world.");
-                        return false;
-                    }
-                    break;
-                }
-                case 6: {  // ranges
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_ranges_)) {
-                        ERL_WARN("Failed to read ranges.");
-                        return false;
-                    }
-                    break;
-                }
-                case 7: {  // dirs_frame
-                    skip_line();
-                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_dirs_frame_)) {
-                        ERL_WARN("Failed to read dirs_frame.");
-                        return false;
-                    }
-                    break;
-                }
-                case 8: {  // dirs_world
-                    skip_line();
-                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_dirs_world_)) {
-                        ERL_WARN("Failed to read dirs_world.");
-                        return false;
-                    }
-                    break;
-                }
-                case 9: {  // end_pts_frame
-                    skip_line();
-                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_end_pts_frame_)) {
-                        ERL_WARN("Failed to read end_pts_frame.");
-                        return false;
-                    }
-                    break;
-                }
-                case 10: {  // end_pts_world
-                    skip_line();
-                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_end_pts_world_)) {
-                        ERL_WARN("Failed to read end_pts_world.");
-                        return false;
-                    }
-                    break;
-                }
-                case 11: {  // mask_hit
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_hit_)) {
-                        ERL_WARN("Failed to read mask_hit.");
-                        return false;
-                    }
-                    break;
-                }
-                case 12: {  // mask_continuous
-                    skip_line();
-                    if (!common::LoadEigenMatrixFromBinaryStream(s, m_mask_continuous_)) {
-                        ERL_WARN("Failed to read mask_continuous.");
-                        return false;
-                    }
-                    break;
-                }
-                case 13: {  // hit_ray_indices
+        static const common::TokenReadFunctionPairs<LidarFrame2D> token_function_pairs = {
+            {
+                "setting",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return self->m_setting_->Read(stream) && stream.good();
+                },
+            },
+            {
+                "rotation",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_rotation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "rotation_angle",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    stream.read(reinterpret_cast<char *>(&self->m_rotation_angle_), sizeof(Dtype));
+                    return stream.good();
+                },
+            },
+            {
+                "translation",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_translation_) &&
+                           stream.good();
+                },
+            },
+            {
+                "angles_frame",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_angles_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "angles_world",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_angles_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "ranges",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_ranges_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_frame",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_dirs_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "dirs_world",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_dirs_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_frame",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_end_pts_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "end_pts_world",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_end_pts_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "mask_hit",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_mask_hit_) &&
+                           stream.good();
+                },
+            },
+            {
+                "mask_continuous",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadEigenMatrixFromBinaryStream(
+                               stream,
+                               self->m_mask_continuous_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_ray_indices",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    std::size_t n;
+                    stream.read(reinterpret_cast<char *>(&n), sizeof(std::size_t));
+                    self->m_hit_ray_indices_.resize(n);
+                    stream.read(
+                        reinterpret_cast<char *>(self->m_hit_ray_indices_.data()),
+                        static_cast<std::streamsize>(n * sizeof(long)));
+                    ERL_INFO("Read {} hit rays.", n);
+                    return stream.good();
+                },
+            },
+            {
+                "hit_points_frame",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_hit_points_frame_) &&
+                           stream.good();
+                },
+            },
+            {
+                "hit_points_world",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                               stream,
+                               self->m_hit_points_world_) &&
+                           stream.good();
+                },
+            },
+            {
+                "max_valid_range",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    stream.read(reinterpret_cast<char *>(&self->m_max_valid_range_), sizeof(Dtype));
+                    return stream.good();
+                },
+            },
+            {
+                "partitioned",
+                [](LidarFrame2D *self, std::istream &stream) {
+                    stream.read(reinterpret_cast<char *>(&self->m_partitioned_), sizeof(bool));
+                    return stream.good();
+                },
+            },
+            {
+                "partitions",
+                [](LidarFrame2D *self, std::istream &stream) {
                     long n;
-                    s >> n;
-                    m_hit_ray_indices_.resize(n);
-                    skip_line();
-                    s.read(reinterpret_cast<char *>(m_hit_ray_indices_.data()), static_cast<std::streamsize>(n * sizeof(long)));
-                    break;
-                }
-                case 14: {  // hit_points_world
-                    skip_line();
-                    if (!common::LoadVectorOfEigenMatricesFromBinaryStream(s, m_hit_points_world_)) {
-                        ERL_WARN("Failed to read hit_points_world.");
-                        return false;
-                    }
-                    break;
-                }
-                case 15: {  // max_valid_range
-                    skip_line();
-                    s.read(reinterpret_cast<char *>(&m_max_valid_range_), sizeof(Dtype));
-                    break;
-                }
-                case 16: {  // partitioned
-                    s >> m_partitioned_;
-                    break;
-                }
-                case 17: {  // partitions
-                    long n;
-                    s >> n;
-                    m_partitions_.clear();
-                    m_partitions_.reserve(n);
+                    stream >> n;
+                    self->m_partitions_.reserve(n);
                     for (long i = 0; i < n; ++i) {
                         long index_begin, index_end;
-                        s >> index_begin >> index_end;
-                        m_partitions_.emplace_back(this, index_begin, index_end);
+                        stream >> index_begin >> index_end;
+                        self->m_partitions_.emplace_back(self, index_begin, index_end);
                     }
-                    break;
-                }
-                case 18: {  // end of LidarFrame2D
-                    skip_line();
-                    return true;
-                }
-                default: {  // should not reach here
-                    ERL_FATAL("Internal error, should not reach here.");
-                }
-            }
-            ++token_idx;
-        }
-        ERL_WARN("Failed to read LidarFrame2D. Truncated file?");
-        return false;  // should not reach here
+                    return stream.good();
+                },
+            },
+        };
+        return common::ReadTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
@@ -969,8 +1039,11 @@ namespace erl::geometry {
             const Dtype range = m_ranges_[i];
             if (i == 0 || !m_mask_hit_[i]) { continue; }
 
-            const Dtype range_diff = std::abs((range - m_ranges_[i - 1]) / (angle - m_angles_frame_[i - 1]));  // range difference per angle
-            if (range_diff > m_setting_->discontinuity_factor * rolling_range_diff) { m_mask_continuous_[i - 1] = false; }
+            const Dtype range_diff =  // range difference per angle
+                std::abs((range - m_ranges_[i - 1]) / (angle - m_angles_frame_[i - 1]));
+            if (range_diff > m_setting_->discontinuity_factor * rolling_range_diff) {
+                m_mask_continuous_[i - 1] = false;
+            }
             if (rolling_range_diff == 0.0) { rolling_range_diff = range_diff; }
             rolling_range_diff = gamma1 * rolling_range_diff + gamma2 * range_diff;
         }
@@ -980,7 +1053,8 @@ namespace erl::geometry {
             const long m = i - j + 1;
             if (!m_mask_hit_[i]) {
                 if (m >= m_setting_->min_partition_size) {
-                    m_partitions_.emplace_back(this, j, i - 1);  // do not include i-th ray, which does not hit anything
+                    // do not include i-th ray, which does not hit anything
+                    m_partitions_.emplace_back(this, j, i - 1);
                 }
                 j = i + 1;  // maybe the next ray hit something
                 continue;

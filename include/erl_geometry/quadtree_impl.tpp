@@ -107,12 +107,16 @@ namespace erl::geometry {
         m_size_changed_ = true;
 
         // do it on the main thread only
-#pragma omp parallel default(none) shared(m_key_rays_)
+#pragma omp parallel default(none)
 #pragma omp critical
         {
             if (omp_get_thread_num() == 0) {
                 m_key_rays_.resize(omp_get_num_threads());
+                m_key_sets_.resize(omp_get_num_threads());
+                m_key_vectors_.resize(omp_get_num_threads());
                 for (auto &key_ray: m_key_rays_) { key_ray.reserve(100000); }
+                for (auto &key_set: m_key_sets_) { key_set.reserve(100000); }
+                for (auto &key_vector: m_key_vectors_) { key_vector.reserve(100000); }
             }
         }
     }
@@ -1242,7 +1246,7 @@ namespace erl::geometry {
         s.node = nullptr;
         while (s.node == nullptr && key_changing_dim < m_max_key_changing_dim_) {
             s.node = this->m_tree_->Search(m_neighbor_key_);
-            const uint32_t node_depth = s.node->GetDepth();
+            const uint32_t node_depth = s.node == nullptr ? -1 : s.node->GetDepth();
             if (s.node == nullptr || node_depth > this->m_max_node_depth_) {
                 s.node = nullptr;
                 ++key_changing_dim;
@@ -1999,24 +2003,21 @@ namespace erl::geometry {
 
         // compute t_max and t_delta
         const auto resolution = static_cast<Dtype>(m_setting_->resolution);
+        const Dtype half_r = resolution * 0.5;
         Dtype t_max[2];
         Dtype t_delta[2];
         if (step[0] == 0) {
             t_max[0] = std::numeric_limits<Dtype>::infinity();
             t_delta[0] = std::numeric_limits<Dtype>::infinity();
         } else {
-            t_max[0] =
-                (KeyToCoord(key_start[0]) + static_cast<Dtype>(step[0]) * 0.5 * resolution - sx) /
-                dx;
+            t_max[0] = (KeyToCoord(key_start[0]) + static_cast<Dtype>(step[0]) * half_r - sx) / dx;
             t_delta[0] = resolution / std::abs(dx);
         }
         if (step[1] == 0) {
             t_max[1] = std::numeric_limits<Dtype>::infinity();
             t_delta[1] = std::numeric_limits<Dtype>::infinity();
         } else {
-            t_max[1] =
-                (KeyToCoord(key_start[1]) + static_cast<Dtype>(step[1]) * 0.5 * resolution - sy) /
-                dy;
+            t_max[1] = (KeyToCoord(key_start[1]) + static_cast<Dtype>(step[1]) * half_r - sy) / dy;
             t_delta[1] = resolution / std::abs(dy);
         }
 
@@ -2386,6 +2387,46 @@ namespace erl::geometry {
             }
         }
         return node;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    std::vector<const Node *>
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::SearchNodes(
+        const QuadtreeKey &key,
+        uint32_t max_depth) const {
+        auto &tree_depth = m_setting_->tree_depth;
+        ERL_DEBUG_ASSERT(
+            max_depth <= tree_depth,
+            "Depth must be in [0, %u], but got %u.",
+            tree_depth,
+            max_depth);
+
+        if (m_root_ == nullptr) { return {}; }
+        if (max_depth == 0) { max_depth = tree_depth; }
+
+        // generate the appropriate key for the given depth
+        QuadtreeKey key_at_depth = key;
+        if (max_depth != tree_depth) {
+            key_at_depth = this->AdjustKeyToDepth(key_at_depth, max_depth);
+        }
+
+        // search
+        const Node *node = m_root_.get();
+        std::vector<const Node *> nodes;
+        nodes.reserve(max_depth + 1);
+        nodes.push_back(node);
+        const int min_level = tree_depth - max_depth;
+        // follow nodes down to the requested level (for level = 0, it is the leaf level)
+        for (int level = tree_depth - 1; level >= min_level; --level) {
+            if (const uint32_t child_index = QuadtreeKey::ComputeChildIndex(key_at_depth, level);
+                node->HasChild(child_index)) {
+                node = this->GetNodeChild(node, child_index);
+                nodes.push_back(node);
+            } else {
+                return nodes;  // we expect a child but did not get it. let's return earlier.
+            }
+        }
+        return nodes;
     }
 
     template<class Node, class Interface, class InterfaceSetting>

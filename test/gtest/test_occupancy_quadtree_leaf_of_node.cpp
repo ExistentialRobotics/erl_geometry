@@ -93,9 +93,12 @@ TEST(OccupancyQuadtree, IterateLeafOfNode) {
     UserData data;
     data.tree_setting->resolution = 0.1;
     data.tree = std::make_shared<OccupancyQuadtreeD>(data.tree_setting);
-    ERL_ASSERTM(data.tree->ReadBinary("house_expo_room_1451_2d.bt"), "Fail to load the tree.");
+    std::filesystem::path data_dir = ERL_GEOMETRY_ROOT_DIR;
+    data_dir /= "data";
+    ASSERT_TRUE(Serialization<OccupancyQuadtreeD>::Read(
+        data_dir /= "house_expo_room_1451_2d_double.bt",
+        [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
-    setting->resolution = 0.0025;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);

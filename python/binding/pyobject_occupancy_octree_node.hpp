@@ -34,12 +34,14 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractOctreeNode *
         Create(const uint32_t depth, const int child_index) const override {
+            CheckRuntimeType<PyObjectOccupancyOctreeNode>(this, /*debug_only*/ true);
             const auto node = new PyObjectOccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
             return node;
         }
 
         [[nodiscard]] AbstractOctreeNode *
         Clone() const override {
+            CheckRuntimeType<PyObjectOccupancyOctreeNode>(this, /*debug_only*/ true);
             const auto node = new PyObjectOccupancyOctreeNode(*this);
             return node;
         }

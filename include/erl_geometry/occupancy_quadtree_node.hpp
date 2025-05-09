@@ -3,6 +3,8 @@
 #include "abstract_quadtree_node.hpp"
 #include "logodd.hpp"
 
+#include "erl_common/template_helper.hpp"
+
 #include <cstdint>
 
 namespace erl::geometry {
@@ -37,13 +39,14 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractQuadtreeNode *
         Create(const uint32_t depth, const int child_index) const override {
-            auto node = new OccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
+            CheckRuntimeType<OccupancyQuadtreeNode>(this, /*debug_only*/ true);
+            const auto node = new OccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
             return node;
         }
 
         [[nodiscard]] AbstractQuadtreeNode *
         Clone() const override {
-            auto node = new OccupancyQuadtreeNode(*this);
+            const auto node = new OccupancyQuadtreeNode(*this);
             return node;
         }
 

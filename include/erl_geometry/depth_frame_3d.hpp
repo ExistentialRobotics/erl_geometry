@@ -82,14 +82,8 @@ namespace erl::geometry {
         [[nodiscard]] bool
         operator==(const Super &other) const override;
 
-        // [[nodiscard]] bool
-        // Write(const std::string &filename) const override;
-
         [[nodiscard]] bool
         Write(std::ostream &s) const override;
-
-        // [[nodiscard]] bool
-        // Read(const std::string &filename) override;
 
         [[nodiscard]] bool
         Read(std::istream &s) override;

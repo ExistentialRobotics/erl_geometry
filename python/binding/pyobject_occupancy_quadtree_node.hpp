@@ -34,12 +34,14 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractQuadtreeNode *
         Create(const uint32_t depth, const int child_index) const override {
+            CheckRuntimeType<PyObjectOccupancyQuadtreeNode>(this, /*debug_only*/ true);
             const auto node = new PyObjectOccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
             return node;
         }
 
         [[nodiscard]] AbstractQuadtreeNode *
         Clone() const override {
+            CheckRuntimeType<PyObjectOccupancyQuadtreeNode>(this, /*debug_only*/ true);
             const auto node = new PyObjectOccupancyQuadtreeNode(*this);
             return node;
         }

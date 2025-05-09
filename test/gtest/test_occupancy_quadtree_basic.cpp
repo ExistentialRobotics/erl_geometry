@@ -2,7 +2,7 @@
 #include "erl_geometry/occupancy_quadtree.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
-using Dtype = float;
+using Dtype = double;
 using AbstractQuadtree = erl::geometry::AbstractQuadtree<Dtype>;
 using OccupancyQuadtree = erl::geometry::OccupancyQuadtree<Dtype>;
 using TreeSerializer = erl::common::Serialization<OccupancyQuadtree>;
@@ -94,7 +94,7 @@ TEST(OccupancyQuadtree, InsertRay) {
 
     long n = 180;
     Eigen::Matrix2Xd points(2, 4 * n);
-    Dtype d = std::sqrt(2);
+    Dtype d = std::sqrt(2.0f);
     Eigen::VectorXd a = Eigen::VectorXd::LinSpaced(n, -d, d);
     points.row(0).segment(0, n) = a;
     points.row(1).segment(0, n).setConstant(d);
@@ -176,9 +176,9 @@ TEST(OccupancyQuadtree, CoordsAndKey) {
 }
 
 TEST(OccupancyQuadtree, Prune) {
-    Dtype resolution = 0.01;
+    Dtype resolution = 0.01f;
     auto tree_setting = std::make_shared<OccupancyQuadtree::Setting>();
-    tree_setting->resolution = resolution;
+    tree_setting->resolution = static_cast<float>(resolution);
     auto tree = std::make_shared<OccupancyQuadtree>(tree_setting);
 
     // after pruning, the empty tree is still empty
@@ -187,7 +187,7 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->GetSize(), 0);
 
     // a single occupied cell should be found
-    Dtype x = -0.05, y = -0.02;
+    Dtype x = -0.04f, y = -0.02f;
     QuadtreeKey single_key;
     EXPECT_TRUE(tree->CoordToKeyChecked(x, y, single_key));
     bool occupied = true;
@@ -195,6 +195,7 @@ TEST(OccupancyQuadtree, Prune) {
     auto single_node = tree->UpdateNode(single_key, occupied, lazy_eval);
     EXPECT_TRUE(single_node != nullptr);
     EXPECT_EQ(single_node, tree->Search(single_key));
+    EXPECT_EQ(single_node->GetChildIndex(), 0);  // make share it is the first child.
 
     // neighboring nodes should not exist
     QuadtreeKey neighbor_key;
@@ -236,10 +237,11 @@ TEST(OccupancyQuadtree, Prune) {
 
     // create diagonal neighbor in same parent node
     QuadtreeKey diagonal_key;
-    diagonal_key[0] = single_key[0] - 1;
+    diagonal_key[0] = single_key[0] + 1;
     diagonal_key[1] = single_key[1] + 1;
     auto diagonal_node = tree->UpdateNode(diagonal_key, occupied, lazy_eval);
     EXPECT_TRUE(diagonal_node);
+    EXPECT_EQ(diagonal_node->GetChildIndex(), 3);
     for (neighbor_key[1] = single_key[1] - 1; neighbor_key[1] <= single_key[1] + 1;
          ++neighbor_key[1]) {
         for (neighbor_key[0] = single_key[0] - 1; neighbor_key[0] <= single_key[0] + 1;
@@ -289,7 +291,7 @@ TEST(OccupancyQuadtree, Prune) {
     tree->UpdateNode(QuadtreeKey(single_key[0], single_key[1] + 1), occupied, lazy_eval);
     EXPECT_EQ(tree->GetSize(), 19);
     auto pruned_node = tree->UpdateNode(
-        QuadtreeKey(single_key[0] - 1, single_key[1]),
+        QuadtreeKey(single_key[0] + 1, single_key[1]),
         occupied,
         lazy_eval);  // should trigger auto-pruning
     EXPECT_EQ(tree->GetSize(), 16);
@@ -348,6 +350,7 @@ TEST(OccupancyQuadtree, Prune) {
     std::size_t init_size = tree->GetSize();
     auto new_node = tree->UpdateNode(-2., -2., occupied, lazy_eval);
     EXPECT_TRUE(new_node != nullptr);
+    EXPECT_EQ(new_node->GetChildIndex(), 3);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size + 8);
 
@@ -357,16 +360,20 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
     // only one child exists
-    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(0) != nullptr);
-    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(1) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(2) == nullptr);
-    EXPECT_TRUE(parent_node->GetChild<OccupancyQuadtreeNode>(3) == nullptr);
+    EXPECT_EQ(parent_node->GetNumChildren(), 1);
+    int cnt_children = 0;
+    for (int i = 0; i < 4; ++i) {
+        if (parent_node->GetChild<OccupancyQuadtreeNode>(i) == nullptr) { continue; }
+        ++cnt_children;
+    }
+    EXPECT_EQ(cnt_children, 1);
+    EXPECT_EQ(parent_node->GetChild<OccupancyQuadtreeNode>(new_node->GetChildIndex()), new_node);
 
     // add another new node
     init_size = tree->GetSize();
-    auto new_node_2 = tree->CreateNodeChild(parent_node, 3);
+    auto new_node_2 = tree->CreateNodeChild(parent_node, 1);
     EXPECT_TRUE(new_node_2 != nullptr);
-    EXPECT_EQ(parent_node->GetChild<OccupancyQuadtreeNode>(3), new_node_2);
+    EXPECT_EQ(parent_node->GetChild<OccupancyQuadtreeNode>(1), new_node_2);
     new_node_2->SetLogOdds(0.123);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     tree->Prune();
@@ -374,7 +381,7 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->GetSize(), init_size + 1);
 
     // delete them
-    tree->DeleteNodeChild(parent_node, 0, tree->CoordToKey(-2, -2, 0));
+    tree->DeleteNodeChild(parent_node, 1, tree->CoordToKey(-2, -2, 0));
     tree->DeleteNodeChild(parent_node, 3, tree->CoordToKey(-2, -2, 0));
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size - 1);

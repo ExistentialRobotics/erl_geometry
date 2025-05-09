@@ -21,6 +21,16 @@ struct OctreeNode : public erl::geometry::OccupancyOctreeNode {
         const int child_index = -1,
         const float log_odds = 0)
         : OccupancyOctreeNode(depth, child_index, log_odds) {}
+
+    [[nodiscard]] AbstractOctreeNode *
+    Create(const uint32_t depth, const int child_index) const override {
+        return new OctreeNode(depth, child_index, /*log_odds*/ 0);
+    }
+
+    [[nodiscard]] AbstractOctreeNode *
+    Clone() const override {
+        return new OctreeNode(*this);
+    }
 };
 
 class Octree
@@ -47,10 +57,8 @@ protected:
 };
 
 TEST(HiddenPointRemoval, Basic) {
-
-    std::filesystem::path gtest_dir = __FILE__;
-    gtest_dir = gtest_dir.parent_path();
-    std::filesystem::path ply_path = gtest_dir / "bunny.ply";
+    std::filesystem::path ply_path = ERL_GEOMETRY_ROOT_DIR;
+    ply_path /= "data/bunny.ply";
     std::cout << "ply_path: " << ply_path << std::endl;
 
     enum class Mode {
@@ -108,7 +116,7 @@ TEST(HiddenPointRemoval, Basic) {
             scene.AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*bunny_mesh));
 
         auto octree_setting = std::make_shared<Octree::Setting>();
-        octree_setting->resolution = 0.001;
+        octree_setting->resolution = 0.02f;
         Octree octree(octree_setting);
         for (std::size_t i = 0; i < bunny_mesh->vertices_.size(); ++i) {
             Eigen::Vector3d &vertex = bunny_mesh->vertices_[i];

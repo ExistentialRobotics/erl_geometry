@@ -180,19 +180,17 @@ namespace erl::geometry {
     bool
     LidarFrame3D<Dtype>::Write(std::ostream &s) const {
         if (!Super::Write(s)) {
-            ERL_WARN("Failed to write parent class RangeSensorFrame3D.");
+            ERL_WARN("Failed to write parent class {}.", type_name<Super>());
             return false;
         }
-        static const std::vector<
-            std::pair<const char *, std::function<bool(const LidarFrame3D *, std::ostream &)>>>
-            token_function_pairs = {
-                {
-                    "setting",
-                    [](const LidarFrame3D *self, std::ostream &stream) {
-                        return self->m_setting_->Write(stream) && stream.good();
-                    },
+        static const common::TokenWriteFunctionPairs<LidarFrame3D> token_function_pairs = {
+            {
+                "setting",
+                [](const LidarFrame3D *self, std::ostream &stream) {
+                    return self->m_setting_->Write(stream) && stream.good();
                 },
-            };
+            },
+        };
         return common::WriteTokens(s, this, token_function_pairs);
     }
 
@@ -200,19 +198,17 @@ namespace erl::geometry {
     bool
     LidarFrame3D<Dtype>::Read(std::istream &s) {
         if (!Super::Read(s)) {
-            ERL_WARN("Failed to read parent class RangeSensorFrame3D.");
+            ERL_WARN("Failed to read parent class {}.", type_name<Super>());
             return false;
         }
-        static const std::vector<
-            std::pair<const char *, std::function<bool(LidarFrame3D *, std::istream &)>>>
-            token_function_pairs = {
-                {
-                    "setting",
-                    [](LidarFrame3D *self, std::istream &stream) {
-                        return self->m_setting_->Read(stream) && stream.good();
-                    },
+        static const common::TokenReadFunctionPairs<LidarFrame3D> token_function_pairs = {
+            {
+                "setting",
+                [](LidarFrame3D *self, std::istream &stream) {
+                    return self->m_setting_->Read(stream) && stream.good();
                 },
-            };
+            },
+        };
         return common::ReadTokens(s, this, token_function_pairs);
     }
 }  // namespace erl::geometry

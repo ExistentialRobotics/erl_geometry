@@ -6,11 +6,12 @@
 
 TEST(OccupancyQuadtree, BuildFromImage) {
     GTEST_PREPARE_OUTPUT_DIR();
-
+    std::filesystem::path kProjectDir = ERL_GEOMETRY_ROOT_DIR;
+    kProjectDir /= "data";
     using namespace erl::common;
     using namespace erl::geometry;
 
-    const cv::Mat map = CityStreetMap::LoadMap(gtest_src_dir / "Berlin_0_1024.map");
+    const cv::Mat map = CityStreetMap::LoadMap(kProjectDir / "Berlin_0_1024.map");
     std::shared_ptr<GridMapInfo2Dd> map_info = std::make_shared<GridMapInfo2Dd>(
         /*map_shape*/ Eigen::Vector2i(1024, 1024),
         /*map_min*/ Eigen::Vector2d(-10.0, -10.0),
@@ -54,8 +55,8 @@ TEST(OccupancyQuadtree, BuildFromImage) {
                 const auto grid_map_info = drawer->GetGridMapInfo();
                 cv::Mat img_new = img.clone();
 
-                // drawer coordinates: origin is at the bottom left corner, x is right, y is up
-                // openCV coordinates: origin is at the top left corner, x is right, y is down
+                // drawer coordinates: origin is in the bottom-left corner, x is right, y is up
+                // openCV coordinates: origin is in the top-left corner, x is right, y is down
 
                 Eigen::Vector2d position;
                 position[0] = grid_map_info->GridToMeterForValue(mouse_x, 0);

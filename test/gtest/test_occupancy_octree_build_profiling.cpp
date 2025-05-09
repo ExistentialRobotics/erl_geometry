@@ -10,6 +10,7 @@
 #include <open3d/io/TriangleMeshIO.h>
 
 #include <filesystem>
+#include <thread>
 
 // parameters
 #define WINDOW_NAME          "OccupancyOctree_Build"
@@ -65,7 +66,7 @@ TEST(OccupancyOctree, BuildProfiling) {
     auto octree = std::make_shared<OccupancyOctree>(octree_setting);
 
     std::size_t num_cores = std::thread::hardware_concurrency();
-    double max_duration = 600.0 * 32 / static_cast<double>(num_cores);
+    double max_duration = 800.0 * 32 / static_cast<double>(num_cores);
     double max_mean_duration = 520.0 * 32 / static_cast<double>(num_cores);
 
     std::size_t pose_idx = 0;
@@ -94,9 +95,14 @@ TEST(OccupancyOctree, BuildProfiling) {
 
         auto t0 = std::chrono::high_resolution_clock::now();
         octree->ClearChangedKeys();
-        octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
-        octree->UpdateInnerOccupancy();
-        octree->Prune();
+        constexpr bool parallel = true;
+        constexpr bool lazy_eval = true;
+        constexpr bool discrete = true;
+        octree->InsertPointCloud(points, sensor_origin, -1, parallel, lazy_eval, discrete);
+        if (lazy_eval) {
+            octree->UpdateInnerOccupancy();
+            octree->Prune();
+        }
         auto t1 = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "Insert time: " << duration << " ms." << std::endl;

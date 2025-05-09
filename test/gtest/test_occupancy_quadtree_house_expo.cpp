@@ -10,11 +10,11 @@ using namespace erl::common;
 using namespace erl::geometry;
 
 TEST(OccupancyQuadtree, BuildWithHouseExpo) {
-    std::filesystem::path test_data_dir = std::filesystem::path(__FILE__).parent_path();
+    std::filesystem::path test_data_dir = ERL_GEOMETRY_ROOT_DIR;
+    test_data_dir /= "data";
     int map_index = 1451;
-    std::filesystem::path map_file_path =
-        test_data_dir / ("house_expo_room_" + std::to_string(map_index) + ".json");
-    HouseExpoMap house_expo_map(map_file_path.string().c_str(), 0.2);
+    auto map_file_path = test_data_dir / ("house_expo_room_" + std::to_string(map_index) + ".json");
+    HouseExpoMap house_expo_map(map_file_path, 0.2);
     Eigen::Vector2d map_min =
         house_expo_map.GetMeterSpace()->GetSurface()->vertices.rowwise().minCoeff();
     Eigen::Vector2d map_max =
@@ -25,8 +25,7 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     lidar_setting->num_lines = 720;
     Lidar2D lidar(lidar_setting, house_expo_map.GetMeterSpace());
 
-    std::filesystem::path traj_file_path =
-        test_data_dir / ("house_expo_room_" + std::to_string(map_index) + ".csv");
+    auto traj_file_path = test_data_dir / ("house_expo_room_" + std::to_string(map_index) + ".csv");
     std::vector<std::vector<double>> trajectory = LoadAndCastCsvFile<double>(
         traj_file_path.string().c_str(),
         [](const std::string &str) -> double { return std::stod(str); });
@@ -87,7 +86,7 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
                   << " ms" << std::endl;
 
         drawer->DrawLeaves(img);
-        DrawTrajectoryInplace(
+        DrawTrajectoryInplace<double>(
             img,
             cur_traj.block(0, 0, 2, i),
             grid_map_info,
@@ -98,8 +97,12 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
         cv::waitKey(10);
     }
 
-    tree->WriteBinary("house_expo_room_" + std::to_string(map_index) + ".bt");
-    ERL_ASSERT(tree->Write("house_expo_room_" + std::to_string(map_index) + ".ot"));
+    EXPECT_TRUE(Serialization<OccupancyQuadtreeD>::Write(
+        "house_expo_room_" + std::to_string(map_index) + ".bt",
+        [&](std::ostream &s) { return tree->WriteBinary(s); }));
+    EXPECT_TRUE(Serialization<OccupancyQuadtreeD>::Write(
+        "house_expo_room_" + std::to_string(map_index) + ".ot",
+        *tree));
     std::cout << "Press any key to exit immediately. Test will exist in 10 seconds." << std::endl;
     cv::waitKey(10000);  // 10 seconds
 }

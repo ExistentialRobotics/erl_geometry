@@ -3,6 +3,8 @@
 #include "abstract_octree_node.hpp"
 #include "logodd.hpp"
 
+#include "erl_common/template_helper.hpp"
+
 #include <cstdint>
 
 namespace erl::geometry {
@@ -37,12 +39,14 @@ namespace erl::geometry {
 
         [[nodiscard]] AbstractOctreeNode *
         Create(const uint32_t depth, const int child_index) const override {
+            CheckRuntimeType<OccupancyOctreeNode>(this, /*debug_only*/ true);
             const auto node = new OccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
             return node;
         }
 
         [[nodiscard]] AbstractOctreeNode *
         Clone() const override {
+            CheckRuntimeType<OccupancyOctreeNode>(this, /*debug_only*/ true);
             const auto node = new OccupancyOctreeNode(*this);
             return node;
         }

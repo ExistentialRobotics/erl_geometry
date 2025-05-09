@@ -50,10 +50,10 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             double leaf_y = it.GetY();
             double leaf_size = it.GetNodeSize();
             double half_size = leaf_size / 2;
-            Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(
-                Eigen::Vector2d(leaf_x - half_size, leaf_y - half_size));
-            Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(
-                Eigen::Vector2d(leaf_x + half_size, leaf_y + half_size));
+            Eigen::Vector2d min_meter(leaf_x - half_size, leaf_y - half_size);
+            Eigen::Vector2d max_meter(leaf_x + half_size, leaf_y + half_size);
+            Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(min_meter);
+            Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(max_meter);
             cv::Point pt1(min[0], min[1]);
             cv::Point pt2(max[0], max[1]);
             cv::rectangle(
@@ -66,7 +66,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             cv::Point pt_key(
                 grid_map_info->MeterToGridForValue(leaf_x, 0),
                 grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(leaf_y, 1));
-            cv::circle(img, pt_key, 5, cv::Scalar(0, 0, 0, 255), cv::FILLED);
+            cv::circle(img, pt_key, 3, cv::Scalar(0, 0, 0, 255), cv::FILLED);
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         std::cout << "Time: " << std::chrono::duration<double, std::milli>(t1 - t0).count()
@@ -81,10 +81,13 @@ TEST(OccupancyQuadtree, IterateLeafInAABB) {
     UserData data;
     data.tree_setting->resolution = 0.1;
     data.tree = std::make_shared<OccupancyQuadtreeD>(data.tree_setting);
-    const std::filesystem::path path = gtest_src_dir / "house_expo_room_1451_2d.bt";
-    ASSERT_TRUE(data.tree->ReadBinary(path.string())) << "Fail to load the tree.";
+    std::filesystem::path data_dir = ERL_GEOMETRY_ROOT_DIR;
+    data_dir /= "data";
+    const std::filesystem::path path = data_dir / "house_expo_room_1451_2d_double.bt";
+    ASSERT_TRUE(Serialization<OccupancyQuadtreeD>::Read(path, [&](std::istream &s) -> bool {
+        return data.tree->ReadBinary(s);
+    }));
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
-    setting->resolution = 0.0025;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);

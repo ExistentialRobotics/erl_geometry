@@ -28,11 +28,11 @@ namespace erl::geometry {
 
     HouseExpoMap::HouseExpoMap(const std::string &file, double wall_thickness)
         : HouseExpoMap(file) {
-        ERL_ASSERTM(wall_thickness >= 0.1, "Wall thickness must be >= 0.1.");
+        ERL_ASSERTM(wall_thickness >= 0.1f, "Wall thickness must be >= 0.1.");
         ERL_INFO("Changing wall thickness to {:f} ...", wall_thickness);
 #if defined(NDEBUG)
         double free_threshold =
-            (wall_thickness - 0.1) / 2;  // 0.1 is the default thickness of the wall
+            (wall_thickness - 0.1f) / 2;  // 0.1 is the default thickness of the wall
         if (std::abs(free_threshold) < 1.e-6) {
             std::cout << "Done." << std::endl << std::flush;
             return;
@@ -71,7 +71,7 @@ namespace erl::geometry {
         const long num_vertices = surface_2d->GetNumVertices();
         for (long i = 0; i < num_vertices; ++i) {
             auto vertex = surface_2d->vertices.col(i);
-            wall_line_set.points_.emplace_back(vertex[0], vertex[1], 0.0);
+            wall_line_set.points_.emplace_back(vertex[0], vertex[1], 0.0f);
             polygon[0].emplace_back(vertex[0], vertex[1]);
         }
         const long num_lines = surface_2d->GetNumLines();

@@ -10,10 +10,10 @@ namespace erl::geometry {
     template<typename Dtype>
     struct OccupancyQuadtreeDrawerSetting
         : common::Yamlable<OccupancyQuadtreeDrawerSetting<Dtype>, AbstractQuadtreeDrawer::Setting> {
-        Eigen::Vector2<Dtype> area_min = {0.0, 0.0};
-        Eigen::Vector2<Dtype> area_max = {1.0, 1.0};
-        Dtype resolution = 0.1;
-        Dtype scaling = 1.0;
+        Eigen::Vector2<Dtype> area_min = {0.0f, 0.0f};
+        Eigen::Vector2<Dtype> area_max = {1.0f, 1.0f};
+        Dtype resolution = 0.1f;
+        Dtype scaling = 1.0f;
         cv::Scalar occupied_color = {0, 0, 0, 255};    // black
         cv::Scalar free_color = {255, 255, 255, 255};  // white
 

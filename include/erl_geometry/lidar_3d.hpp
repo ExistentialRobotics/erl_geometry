@@ -18,7 +18,8 @@ namespace erl::geometry {
 
         struct Setting : public common::Yamlable<Setting> {
 
-            // default setting is from: https://velodynelidar.com/wp-content/uploads/2019/12/63-9229_Rev-K_Puck-_Datasheet_Web.pdf
+            // the default setting is from:
+            // https://velodynelidar.com/wp-content/uploads/2019/12/63-9229_Rev-K_Puck-_Datasheet_Web.pdf
 
             Dtype azimuth_min = -M_PI;
             Dtype azimuth_max = M_PI;
@@ -45,7 +46,9 @@ namespace erl::geometry {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
-        Lidar3D(std::shared_ptr<Setting> setting, const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
+        Lidar3D(
+            std::shared_ptr<Setting> setting,
+            const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
             : Super(o3d_scene),
               m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
@@ -66,7 +69,9 @@ namespace erl::geometry {
         GetRayDirectionsInFrame() const override;
 
         [[nodiscard]] std::tuple<Matrix3, Vector3>
-        GetOpticalPose(const Eigen::Ref<const Matrix3> &orientation, const Eigen::Ref<const Vector3> &translation) const override;
+        GetOpticalPose(
+            const Eigen::Ref<const Matrix3> &orientation,
+            const Eigen::Ref<const Vector3> &translation) const override;
     };
 
     using Lidar3Dd = Lidar3D<double>;
@@ -76,7 +81,9 @@ namespace erl::geometry {
 #include "lidar_3d.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::Lidar3Dd::Setting> : erl::geometry::Lidar3Dd::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::Lidar3Dd::Setting>
+    : erl::geometry::Lidar3Dd::Setting::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::Lidar3Df::Setting> : erl::geometry::Lidar3Df::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::Lidar3Df::Setting>
+    : erl::geometry::Lidar3Df::Setting::YamlConvertImpl {};

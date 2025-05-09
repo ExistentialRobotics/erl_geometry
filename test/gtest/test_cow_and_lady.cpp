@@ -11,7 +11,7 @@
 #include <open3d/visualization/utility/DrawGeometry.h>
 
 struct Options {
-    std::string directory;
+    std::string directory = fmt::format("{}/data/cow_and_lady", ERL_GEOMETRY_ROOT_DIR);
     bool use_icp = false;
     bool hold = false;
 };
@@ -48,7 +48,8 @@ TEST(CowAndLady, Load) {
         }
 
         auto
-            [sequence_number,
+            [valid_frame,
+             sequence_number,
              time_stamp,
              header_time_stamp,
              rotation,
@@ -56,6 +57,10 @@ TEST(CowAndLady, Load) {
              depth,
              color,
              depth_jet] = cow_and_lady[wp_idx];
+        if (!valid_frame) {  // invalid frame, stop the callback
+            vis->Close();
+            return false;
+        }
         depth_frame.UpdateRanges(rotation, translation, depth);
         auto &points = depth_frame.GetHitPointsWorld();
         auto &hit_indices = depth_frame.GetHitRayIndices();

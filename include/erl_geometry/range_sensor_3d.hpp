@@ -106,7 +106,7 @@ namespace erl::geometry {
             const Eigen::Ref<const Matrix3> &orientation,
             const Eigen::Ref<const Vector3> &translation,
             bool add_noise = false,
-            Dtype noise_stddev = 0.03,
+            Dtype noise_stddev = 0.03f,
             bool cache_normals = false);
 
         [[nodiscard]] Eigen::MatrixX<Vector3>

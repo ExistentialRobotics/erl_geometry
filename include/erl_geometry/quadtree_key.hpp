@@ -75,12 +75,12 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         operator==(const QuadtreeKey& other) const {
-            return m_k_[0] == other.m_k_[0] && m_k_[1] == other.m_k_[1];
+            return !std::memcmp(m_k_, other.m_k_, sizeof(m_k_));
         }
 
         [[nodiscard]] bool
         operator!=(const QuadtreeKey& other) const {
-            return m_k_[0] != other.m_k_[0] || m_k_[1] != other.m_k_[1];
+            return std::memcmp(m_k_, other.m_k_, sizeof(m_k_));
         }
 
         KeyType&
@@ -95,24 +95,22 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         operator<(const QuadtreeKey& other) const {
-            return m_k_[0] < other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] < other.m_k_[1]);
+            return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) < 0;
         }
 
         [[nodiscard]] bool
         operator<=(const QuadtreeKey& other) const {
-            return m_k_[0] < other.m_k_[0] ||
-                   (m_k_[0] == other.m_k_[0] && m_k_[1] <= other.m_k_[1]);
+            return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) <= 0;
         }
 
         [[nodiscard]] bool
         operator>(const QuadtreeKey& other) const {
-            return m_k_[0] > other.m_k_[0] || (m_k_[0] == other.m_k_[0] && m_k_[1] > other.m_k_[1]);
+            return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) > 0;
         }
 
         [[nodiscard]] bool
         operator>=(const QuadtreeKey& other) const {
-            return m_k_[0] > other.m_k_[0] ||
-                   (m_k_[0] == other.m_k_[0] && m_k_[1] >= other.m_k_[1]);
+            return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) >= 0;
         }
 
         [[nodiscard]] explicit
@@ -139,12 +137,15 @@ namespace erl::geometry {
             const KeyType center_offset_key,
             const QuadtreeKey& parent_key,
             QuadtreeKey& child_key) {
-            child_key.m_k_[0] =
-                parent_key.m_k_[0] +
-                (pos & 1 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
-            child_key.m_k_[1] =
-                parent_key.m_k_[1] +
-                (pos & 2 ? center_offset_key : -center_offset_key - (center_offset_key ? 0 : 1));
+            if (center_offset_key == 0) {
+                child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? 0 : -1);
+                child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? 0 : -1);
+            } else {
+                child_key.m_k_[0] =
+                    parent_key.m_k_[0] + ((pos & 1) ? center_offset_key : -center_offset_key);
+                child_key.m_k_[1] =
+                    parent_key.m_k_[1] + ((pos & 2) ? center_offset_key : -center_offset_key);
+            }
         }
 
         /**

@@ -39,7 +39,8 @@ namespace erl::geometry {
         }();
 
         struct Frame {
-            long sequence_number = 0;
+            bool valid = true;
+            long sequence_number = -1;
             long time_stamp = 0;
             long header_time_stamp = 0;
             Eigen::Matrix3d rotation;     // rotation matrix

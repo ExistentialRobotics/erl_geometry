@@ -15,7 +15,8 @@ namespace erl::geometry {
      */
     template<typename Dtype>
     class LidarFrame2D {
-        inline static const std::string kFileHeader = fmt::format("# {}", type_name<LidarFrame2D>());
+        inline static const std::string kFileHeader =
+            fmt::format("# {}", type_name<LidarFrame2D>());
 
     public:
         using Matrix2 = Eigen::Matrix2<Dtype>;
@@ -80,15 +81,17 @@ namespace erl::geometry {
         std::vector<Vector2> m_end_pts_frame_ = {};
         std::vector<Vector2> m_end_pts_world_ = {};
 
-        Eigen::VectorXb m_mask_hit_ = {};               // if i-th element is true, then i-th vertex is a hit
-        Eigen::VectorXb m_mask_continuous_ = {};        // if i-th element is true, then (i-1, i) edge is continuous
+        // if i-th element is true, then i-th vertex is a hit
+        Eigen::VectorXb m_mask_hit_ = {};
+        // if i-th element is true, then (i-1, i) edge is continuous
+        Eigen::VectorXb m_mask_continuous_ = {};
         std::vector<long> m_hit_ray_indices_ = {};      // hit ray indices
-        std::vector<Vector2> m_hit_points_frame_ = {};  // hit points in frame
-        std::vector<Vector2> m_hit_points_world_ = {};  // hit points in world
+        std::vector<Vector2> m_hit_points_frame_ = {};  // hit points in the frame
+        std::vector<Vector2> m_hit_points_world_ = {};  // hit points in the world
 
         Dtype m_max_valid_range_ = 0.0;
-        std::vector<Partition> m_partitions_ = {};
         bool m_partitioned_ = false;
+        std::vector<Partition> m_partitions_ = {};
         std::shared_ptr<KdTree> m_kd_tree_ = std::make_shared<KdTree>();
 
     public:
@@ -113,7 +116,10 @@ namespace erl::geometry {
         PosFrameToWorld(const Vector2 &pos_local) const;
 
         void
-        UpdateRanges(const Eigen::Ref<const Matrix2> &rotation, const Eigen::Ref<const Vector2> &translation, VectorX ranges, bool partition_rays = false);
+        UpdateRanges(
+            const Eigen::Ref<const Matrix2> &rotation,
+            const Eigen::Ref<const Vector2> &translation,
+            VectorX ranges);
 
         [[nodiscard]] const std::shared_ptr<Setting> &
         GetSetting() const;
@@ -182,7 +188,11 @@ namespace erl::geometry {
         IsValid() const;
 
         void
-        ComputeClosestEndPoint(const Eigen::Ref<const Vector2> &position_world, long &end_point_index, Dtype &distance, bool brute_force = false);
+        ComputeClosestEndPoint(
+            const Eigen::Ref<const Vector2> &position_world,
+            long &end_point_index,
+            Dtype &distance,
+            bool brute_force = false);
 
         void
         SampleAlongRays(
@@ -234,19 +244,12 @@ namespace erl::geometry {
         [[nodiscard]] bool
         operator!=(const LidarFrame2D &other) const;
 
-        // [[nodiscard]] bool
-        // Write(const std::string &filename) const;
-
         [[nodiscard]] bool
         Write(std::ostream &s) const;
-
-        // [[nodiscard]] bool
-        // Read(const std::string &filename);
 
         [[nodiscard]] bool
         Read(std::istream &s);
 
-    private:
         void
         PartitionRays();
     };
@@ -258,7 +261,9 @@ namespace erl::geometry {
 #include "lidar_frame_2d.tpp"
 
 template<>
-struct YAML::convert<erl::geometry::LidarFrame2D<double>::Setting> : erl::geometry::LidarFrame2Dd::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::LidarFrame2D<double>::Setting>
+    : erl::geometry::LidarFrame2Dd::Setting::YamlConvertImpl {};
 
 template<>
-struct YAML::convert<erl::geometry::LidarFrame2D<float>::Setting> : erl::geometry::LidarFrame2Df::Setting::YamlConvertImpl {};
+struct YAML::convert<erl::geometry::LidarFrame2D<float>::Setting>
+    : erl::geometry::LidarFrame2Df::Setting::YamlConvertImpl {};

@@ -299,6 +299,7 @@ namespace erl::geometry {
         UpdateNodeRecurs(
             Node* node,
             bool node_just_created,
+            bool node_from_expansion,
             const OctreeKey& key,
             Dtype log_odds_delta,
             bool lazy_eval);

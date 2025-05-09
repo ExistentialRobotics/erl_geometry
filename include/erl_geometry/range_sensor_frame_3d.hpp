@@ -15,7 +15,7 @@ namespace erl::geometry {
         struct Setting : public common::Yamlable<Setting> {
             long row_margin = 0;
             long col_margin = 0;
-            Dtype valid_range_min = 0.0;
+            Dtype valid_range_min = 0.0f;
             Dtype valid_range_max = std::numeric_limits<Dtype>::max();
 
             struct YamlConvertImpl {
@@ -78,74 +78,43 @@ namespace erl::geometry {
         Register(std::string frame_type = "");
 
         [[nodiscard]] long
-        GetNumRays() const {
-            return m_ranges_.size();
-        }
+        GetNumRays() const;
 
         [[nodiscard]] long
-        GetNumHitRays() const {
-            return static_cast<long>(m_hit_ray_indices_.size());
-        }
+        GetNumHitRays() const;
 
         [[nodiscard]] const Matrix3 &
-        GetRotationMatrix() const {
-            return m_rotation_;
-        }
+        GetRotationMatrix() const;
 
         [[nodiscard]] const Vector3 &
-        GetTranslationVector() const {
-            return m_translation_;
-        }
+        GetTranslationVector() const;
 
         [[nodiscard]] Matrix4
-        GetPoseMatrix() const {
-            Eigen::Transform<Dtype, 3, Eigen::Isometry> pose;
-            pose.linear() = m_rotation_;
-            pose.translation() = m_translation_;
-            return pose.matrix();
-        }
+        GetPoseMatrix() const;
 
         [[nodiscard]] const Eigen::MatrixX<Vector2> &
-        GetFrameCoords() const {
-            return m_frame_coords_;
-        }
+        GetFrameCoords() const;
 
         [[nodiscard]] virtual bool
         PointIsInFrame(const Vector3 &xyz_frame) const = 0;
 
         [[nodiscard]] bool
-        CoordsIsInFrame(const Vector2 &frame_coords) const {
-            const Vector2 &top_left =
-                m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
-            const Vector2 &bottom_right = m_frame_coords_(  //
-                m_frame_coords_.rows() - m_setting_->row_margin - 1,
-                m_frame_coords_.cols() - m_setting_->col_margin - 1);
-            return frame_coords[0] >= top_left[0] && frame_coords[0] <= bottom_right[0] &&  //
-                   frame_coords[1] >= top_left[1] && frame_coords[1] <= bottom_right[1];
-        }
+        CoordsIsInFrame(const Vector2 &frame_coords) const;
 
         [[nodiscard]] virtual Vector2
         ComputeFrameCoords(const Vector3 &xyz_frame) const = 0;
 
         [[nodiscard]] virtual Vector3
-        DirWorldToFrame(const Vector3 &dir_world) const {
-            return m_rotation_.transpose() * dir_world;
-        }
+        DirWorldToFrame(const Vector3 &dir_world) const;
 
         [[nodiscard]] virtual Vector3
-        DirFrameToWorld(const Vector3 &dir_frame) const {
-            return m_rotation_ * dir_frame;
-        }
+        DirFrameToWorld(const Vector3 &dir_frame) const;
 
         [[nodiscard]] virtual Vector3
-        PosWorldToFrame(const Vector3 &pos_world) const {
-            return m_rotation_.transpose() * (pos_world - m_translation_);
-        }
+        PosWorldToFrame(const Vector3 &pos_world) const;
 
         [[nodiscard]] virtual Vector3
-        PosFrameToWorld(const Vector3 &pos_frame) const {
-            return m_rotation_ * pos_frame + m_translation_;
-        }
+        PosFrameToWorld(const Vector3 &pos_frame) const;
 
         virtual void
         UpdateRanges(
@@ -154,59 +123,37 @@ namespace erl::geometry {
             MatrixX ranges) = 0;
 
         [[nodiscard]] const MatrixX &
-        GetRanges() const {
-            return m_ranges_;
-        }
+        GetRanges() const;
 
         [[nodiscard]] const Eigen::MatrixX<Vector3> &
-        GetRayDirectionsInFrame() const {
-            return m_dirs_frame_;
-        }
+        GetRayDirectionsInFrame() const;
 
         [[nodiscard]] const Eigen::MatrixX<Vector3> &
-        GetRayDirectionsInWorld() const {
-            return m_dirs_world_;
-        }
+        GetRayDirectionsInWorld() const;
 
         [[nodiscard]] const Eigen::MatrixX<Vector3> &
-        GetEndPointsInFrame() const {
-            return m_end_pts_frame_;
-        }
+        GetEndPointsInFrame() const;
 
         [[nodiscard]] const Eigen::MatrixX<Vector3> &
-        GetEndPointsInWorld() const {
-            return m_end_pts_world_;
-        }
+        GetEndPointsInWorld() const;
 
         [[nodiscard]] const std::vector<std::pair<long, long>> &
-        GetHitRayIndices() const {
-            return m_hit_ray_indices_;
-        }
+        GetHitRayIndices() const;
 
         [[nodiscard]] const std::vector<Vector3> &
-        GetHitPointsFrame() const {
-            return m_hit_points_frame_;
-        }
+        GetHitPointsFrame() const;
 
         [[nodiscard]] const std::vector<Vector3> &
-        GetHitPointsWorld() const {
-            return m_hit_points_world_;
-        }
+        GetHitPointsWorld() const;
 
         [[nodiscard]] Dtype
-        GetMaxValidRange() const {
-            return m_max_valid_range_;
-        }
+        GetMaxValidRange() const;
 
         [[nodiscard]] const Eigen::MatrixXb &
-        GetHitMask() const {
-            return m_mask_hit_;
-        }
+        GetHitMask() const;
 
         [[nodiscard]] bool
-        IsValid() const {
-            return m_max_valid_range_ > 0.0;
-        }
+        IsValid() const;
 
         void
         ComputeClosestEndPoint(
@@ -275,9 +222,7 @@ namespace erl::geometry {
         operator==(const RangeSensorFrame3D &other) const;
 
         [[nodiscard]] virtual bool
-        operator!=(const RangeSensorFrame3D &other) const {
-            return !(*this == other);
-        }
+        operator!=(const RangeSensorFrame3D &other) const;
 
         [[nodiscard]] virtual bool
         Write(std::ostream &s) const;

@@ -50,6 +50,8 @@ namespace erl::geometry {
         std::vector<Dtype> m_size_lookup_table_;
         // data structure for parallel ray casting
         std::vector<OctreeKeyRay> m_key_rays_;
+        std::vector<OctreeKeySet> m_key_sets_;
+        std::vector<OctreeKeyVector> m_key_vectors_;
 
     public:
         using NodeType = Node;
@@ -870,8 +872,8 @@ namespace erl::geometry {
             Vector3 m_origin_ = {};
             Vector3 m_dir_ = {};
             Vector3 m_dir_inv_ = {};
-            Dtype m_max_range_ = 0.;
-            Dtype m_node_padding_ = 0.0;  // padding for node size
+            Dtype m_max_range_ = 0.f;
+            Dtype m_node_padding_ = 0.0f;  // padding for node size
             bool m_bidirectional_ = false;
             bool m_leaf_only_ = false;
             uint32_t m_min_node_depth_ = 0;
@@ -1329,11 +1331,23 @@ namespace erl::geometry {
         /**
          * Search node at specified depth given a key.
          * @param key
-         * @param max_depth Max depth to search. However, max_depth=0 means searching from the root.
-         * @return
+         * @param max_depth Max depth to search. 0 means searching until the deepest.
+         * @return A pointer to the deepest node that matches the key.
          */
         [[nodiscard]] const Node *
         Search(const OctreeKey &key, uint32_t max_depth = 0) const;
+
+        /**
+         * Search nodes that match the key at different depths.
+         * @param key The key to locate the nodes.
+         * @param max_depth The deepest node to search. 0 means searching until the deepest.
+         * @return A vector of pointers to the nodes that match the key at depths <= max_depth.
+         * @note The last node in the vector is the deepest node that matches the key. But this node
+         * may be shallower than the requested depth. If the last node is not a leaf node, it means
+         * a child node should be created to reach the requested depth.
+         */
+        [[nodiscard]] std::vector<const Node *>
+        SearchNodes(const OctreeKey &key, uint32_t max_depth = 0) const;
 
         Node *
         InsertNode(Dtype x, Dtype y, Dtype z, uint32_t depth = 0);

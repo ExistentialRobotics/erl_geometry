@@ -25,9 +25,9 @@ namespace erl::geometry {
               [&map_info, &setting]() -> std::shared_ptr<Setting> {
                   if (setting == nullptr) { setting = std::make_shared<Setting>(); }
                   setting->resolution = map_info->Resolution().mean();
-                  setting->log_odd_max = 10.0;
-                  setting->SetProbabilityHit(0.95);   // log_odd_hit = 3
-                  setting->SetProbabilityMiss(0.49);  // log_odd_miss = 0
+                  setting->log_odd_max = 10.0f;
+                  setting->SetProbabilityHit(0.95f);   // log_odd_hit = 3
+                  setting->SetProbabilityMiss(0.49f);  // log_odd_miss = 0
                   return setting;
               }()),
           m_setting_(std::static_pointer_cast<OccupancyQuadtreeBaseSetting>(std::move(setting))) {
@@ -199,15 +199,14 @@ namespace erl::geometry {
         const Eigen::Ref<const Matrix2X> &points,
         const Eigen::Ref<const Vector2> &sensor_origin,
         const Dtype max_range,
-        const bool parallel,
+        bool parallel,
         QuadtreeKeyVector &free_cells,
         QuadtreeKeyVector &occupied_cells) {
 
-        (void) parallel;
         const long num_points = points.cols();
         if (num_points == 0) { return; }
 
-        static QuadtreeKeySet free_cells_set;  // static to avoid memory allocation
+        QuadtreeKeySet &free_cells_set = this->m_key_sets_[0];
 
         free_cells_set.clear();
         m_end_point_mapping_.clear();
@@ -220,7 +219,7 @@ namespace erl::geometry {
 
         // insert occupied endpoint
         const bool aabb_limit = m_setting_->use_aabb_limit;
-        const Aabb2Dd &aabb = m_setting_->aabb;
+        const auto &aabb = m_setting_->aabb;
         for (long i = 0; i < num_points; ++i) {
             const auto &p = points.col(i);
 
@@ -253,19 +252,92 @@ namespace erl::geometry {
             }
         }
 
-        // insert free cells
-#pragma omp parallel for if (parallel) default(none) \
-    shared(num_points,                               \
-               points,                               \
-               sensor_origin,                        \
-               max_range,                            \
-               ranges,                               \
-               diffs,                                \
-               free_cells,                           \
-               free_cells_set)
+        const auto num_threads = static_cast<long>(this->m_key_rays_.size());
+        if (num_threads <= 1 || num_points < 100 * num_threads) { parallel = false; }
+        if (parallel) {
+            const auto batch_size = num_points / num_threads + 1;
+#pragma omp parallel for default(none) \
+    shared(num_threads, batch_size, num_points, points, ranges, diffs, sensor_origin, max_range)
+            for (long tid = 0; tid < num_threads; ++tid) {
+                const long start_idx = tid * batch_size;
+                const long end_idx = std::min(start_idx + batch_size, num_points);
+                QuadtreeKeyRay &key_ray = this->m_key_rays_[tid];
+                QuadtreeKeySet &key_set = this->m_key_sets_[tid];
+                QuadtreeKeyVector &free_cells_tid = this->m_key_vectors_[tid];
+                key_set.clear();
+                free_cells_tid.clear();
+                // clear key_set and free_cells_tid before checking if this thread is used.
+                if (start_idx >= num_points) { continue; }
+                const Dtype sx = sensor_origin[0];
+                const Dtype sy = sensor_origin[1];
+                for (long i = start_idx; i < end_idx; ++i) {
+                    const auto &point = points.col(i);
+                    const Dtype &range = ranges[i];
+                    Dtype ex = point[0];
+                    Dtype ey = point[1];
+                    if ((max_range >= 0.0f) && (range > max_range)) {  // crop ray at max_range
+                        const Dtype r = max_range / range;
+                        ex = sx + diffs[i][0] * r;
+                        ey = sy + diffs[i][1] * r;
+                    }
+                    if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { continue; }
+                    for (auto &key: key_ray) {
+                        // skip keys marked as occupied or already inserted
+                        if (m_end_point_mapping_.contains(key)) { continue; }
+                        if (!key_set.emplace(key).second) { continue; }
+                        free_cells_tid.push_back(key);
+                    }
+                }
+            }
+
+            // we do a stride-2 merge in advance with the following benefits:
+            // 1. we can parallelize it;
+            // 2. we don't need to do any set insertion so that rehashing and memory reallocation
+            // are avoided;
+            // 3. we can avoid the overhead of the critical section.
+            // this part may be less helpful when chunks have small overlaps between each other
+            // because it saves few insertion tries in the final merge step.
+#pragma omp parallel for default(none) shared(num_threads)
+            for (long i = 1; i < num_threads; i += 2) {  // 1, 3, 5, ...
+                if (i + 1 >= num_threads) { continue; }
+                QuadtreeKeySet &key_set0 = this->m_key_sets_[i];
+                QuadtreeKeyVector &free_cells0 = this->m_key_vectors_[i];
+                QuadtreeKeyVector &free_cells1 = this->m_key_vectors_[i + 1];
+                if (free_cells1.empty()) { continue; }
+                free_cells0.reserve(free_cells0.size() + free_cells1.size());
+                for (auto &key: free_cells1) {
+                    if (key_set0.contains(key)) { continue; }  // no insertion is needed
+                    free_cells0.push_back(key);
+                }
+                free_cells1.clear();
+            }
+
+            const std::size_t max_num_free_cells = std::accumulate(
+                this->m_key_vectors_.begin(),
+                this->m_key_vectors_.end(),
+                0,
+                [](const std::size_t sum, const QuadtreeKeyVector &vec) {
+                    return sum + vec.size();
+                });
+            free_cells.reserve(max_num_free_cells);
+            free_cells_set.reserve(max_num_free_cells);
+            free_cells.insert(
+                free_cells.end(),
+                this->m_key_vectors_[0].begin(),
+                this->m_key_vectors_[0].end());
+            // free_cells_set is the reference of m_key_sets_[0]
+            for (long i = 1; i < num_threads; i += 2) {
+                for (auto &key: this->m_key_vectors_[i]) {
+                    if (!free_cells_set.emplace(key).second) { continue; }
+                    free_cells.push_back(key);
+                }
+            }
+            return;  // done.
+        }
+
+        const Dtype sx = sensor_origin[0];
+        const Dtype sy = sensor_origin[1];
         for (long i = 0; i < num_points; ++i) {
-            const Dtype sx = sensor_origin[0];
-            const Dtype sy = sensor_origin[1];
             const auto &p = points.col(i);
             uint32_t thread_idx = omp_get_thread_num();
             QuadtreeKeyRay &key_ray = this->m_key_rays_[thread_idx];
@@ -273,22 +345,18 @@ namespace erl::geometry {
             const Dtype &range = ranges[i];
             Dtype ex = p[0];
             Dtype ey = p[1];
-            if (max_range >= 0. && range > max_range) {  // crop ray at max_range
+            if (max_range >= 0.0f && range > max_range) {  // crop ray at max_range
                 const Dtype r = max_range / range;
                 ex = sx + diffs[i][0] * r;
                 ey = sy + diffs[i][1] * r;
             }
 
-            if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { continue; }  // key is invalid
-#pragma omp critical(free_insert)
-            {
-                for (auto &key: key_ray) {
-                    // skip keys marked as occupied
-                    if (m_end_point_mapping_.find(key) != m_end_point_mapping_.end()) { continue; }
-                    if (const auto [_, new_key] = free_cells_set.emplace(key); new_key) {
-                        free_cells.push_back(key);
-                    }
-                }
+            if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { continue; }
+            for (auto &key: key_ray) {
+                // skip keys marked as occupied or already inserted
+                if (m_end_point_mapping_.find(key) != m_end_point_mapping_.end()) { continue; }
+                if (!free_cells_set.emplace(key).second) { continue; }
+                free_cells.push_back(key);
             }
         }
     }
@@ -764,15 +832,67 @@ namespace erl::geometry {
         const QuadtreeKey &key,
         float log_odds_delta,
         const bool lazy_eval) {
-        // early abort, no change will happen: node already at threshold or its log-odds is locked.
-        if (auto leaf = const_cast<Node *>(this->Search(key))) {
-            if (!leaf->AllowUpdateLogOdds(log_odds_delta)) { return leaf; }
-            if (log_odds_delta >= 0 && leaf->GetLogOdds() >= m_setting_->log_odd_max) {
-                return leaf;
+        if (std::vector<const Node *> nodes = this->SearchNodes(key); nodes.size() > 1) {
+            // if the size of nodes is 1, there is just the root node.
+            // when we enter this branch, it is more efficient because we will have a shallower
+            // recursive call of UpdateNodeRecurs.
+            Node *node = const_cast<Node *>(nodes.back());
+            if (!node->HasAnyChild()) {
+                // early abort, no change will happen: node already at threshold or its log-odds is
+                // locked.
+                if (!node->AllowUpdateLogOdds(log_odds_delta)) { return node; }
+                const float cur_log_odds = node->GetLogOdds();
+                if (log_odds_delta >= 0 && cur_log_odds >= m_setting_->log_odd_max) { return node; }
+                if (log_odds_delta <= 0 && cur_log_odds <= m_setting_->log_odd_min) { return node; }
             }
-            if (log_odds_delta <= 0 && leaf->GetLogOdds() <= m_setting_->log_odd_min) {
-                return leaf;
+            if (lazy_eval) {  // no pruning
+                return static_cast<Node *>(
+                    this->UpdateNodeRecurs(node, false, false, key, log_odds_delta, lazy_eval));
             }
+            // when we reach here, we assume that all the inner nodes have the correct occupancy
+            // before the update because `lazy_eval` is false. if the tree is ever updated with
+            // `lazy_eval` set to true, we need to update the occupancy of the inner nodes before
+            // updating the tree with `lazy_eval` set to false. the user should make it right.
+            const bool deepest = node->GetDepth() == this->m_setting_->tree_depth;
+            bool will_prune = deepest || node->HasAnyChild();
+            // if the node is not leaf, we will create a child node for the key. prune will happen.
+            // if the node is a leaf but not the deepest, we will expand the node. no prune then.
+            ERL_DEBUG_ASSERT(
+                node->HasAnyChild() || node == this->Search(key),
+                "search stack does not end with the deepest node.");
+            // the returned node is the deepest node after the update. and it is guaranteed that
+            // `returned_node` is a descendent of `node`. i.e., `returned_node` is deeper than
+            // `node`.
+            Node *returned_node =
+                this->UpdateNodeRecurs(node, false, false, key, log_odds_delta, lazy_eval);
+            // even though `node` is not a leaf before this update, it might be a leaf after the
+            // update. because the only missing child may be created and then pruned immediately,
+            // which makes `node` become a leaf node. and there is no guarantee that `returned_node`
+            // and `node` are the same.
+            will_prune = will_prune && returned_node == node;
+            // there might be pruning. if `node` and `returned_node` are the same, that means `node`
+            // is the deepest or `node` is pruned and has no child. if they are different, the
+            // pruning stops somewhere deeper under `node`. we don't need to prune anymore.
+            if (will_prune) {
+                // ERL_DEBUG_ASSERT(node == returned_node, "returned node is not leaf.");
+                bool prune_failed = false;
+                for (auto it = nodes.rbegin() + 1; it != nodes.rend(); ++it) {
+                    auto cur_node = const_cast<Node *>(*it);
+                    if (!prune_failed && this->PruneNode(cur_node)) {
+                        returned_node = cur_node;
+                    } else {
+                        prune_failed = true;  // no more pruning once failed
+                        this->UpdateInnerNodeOccupancy(cur_node);
+                    }
+                }
+                return returned_node;
+            }
+            // we start from a node that will be expanded, no pruning will happen.
+            // but we need to update inner node occupancy.
+            for (auto it = nodes.rbegin() + 1; it != nodes.rend(); ++it) {
+                this->UpdateInnerNodeOccupancy(const_cast<Node *>(*it));
+            }
+            return returned_node;
         }
 
         const bool create_root = this->m_root_ == nullptr;
@@ -783,7 +903,8 @@ namespace erl::geometry {
         }
         return static_cast<Node *>(this->UpdateNodeRecurs(
             this->m_root_.get(),
-            create_root,
+            create_root /*node_just_created*/,
+            false /*node_from_expansion*/,
             key,
             log_odds_delta,
             lazy_eval));
@@ -794,6 +915,7 @@ namespace erl::geometry {
     OccupancyQuadtreeBase<Dtype, Node, Setting>::UpdateNodeRecurs(
         Node *node,
         const bool node_just_created,
+        bool node_from_expansion,
         const QuadtreeKey &key,
         const float log_odds_delta,
         const bool lazy_eval) {
@@ -808,6 +930,7 @@ namespace erl::geometry {
                 if (!node->HasAnyChild() && !node_just_created) {
                     // the current node has no child and is not new: expand the pruned node
                     this->ExpandNode(node);
+                    node_from_expansion = true;
                 } else {
                     this->CreateNodeChild(node, pos);
                     created_node = true;
@@ -818,6 +941,7 @@ namespace erl::geometry {
                 return this->UpdateNodeRecurs(
                     this->GetNodeChild(node, pos),
                     created_node,
+                    node_from_expansion,
                     key,
                     log_odds_delta,
                     lazy_eval);
@@ -825,10 +949,13 @@ namespace erl::geometry {
             Node *returned_node = this->UpdateNodeRecurs(
                 this->GetNodeChild(node, pos),
                 created_node,
+                node_from_expansion,
                 key,
                 log_odds_delta,
                 lazy_eval);
-            if (this->PruneNode(node)) {
+            // if the node is created from expansion, we don't need to prune it. because a deeper
+            // node will block the pruning.
+            if (!node_from_expansion && this->PruneNode(node)) {
                 returned_node = node;  // returned_node is pruned, return its parent instead
             } else {
                 this->UpdateInnerNodeOccupancy(node);

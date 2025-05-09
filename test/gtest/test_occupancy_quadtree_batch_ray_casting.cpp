@@ -5,14 +5,19 @@
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 using namespace erl::common;
-using namespace erl::geometry;
+using Dtype = float;
+using OccupancyQuadtree = erl::geometry::OccupancyQuadtree<Dtype>;
+using QuadtreeDrawer = erl::geometry::OccupancyQuadtreeDrawer<OccupancyQuadtree>;
+using VectorX = Eigen::VectorX<Dtype>;
+using Vector2 = Eigen::Vector2<Dtype>;
+using Matrix2X = Eigen::Matrix2X<Dtype>;
 
 struct UserData {
     inline static const char *window_name = "quadtree ray casting";
-    std::shared_ptr<OccupancyQuadtreeD::Setting> tree_setting =
-        std::make_shared<OccupancyQuadtreeD::Setting>();
-    std::shared_ptr<OccupancyQuadtreeD> tree;
-    std::shared_ptr<OccupancyQuadtreeDrawer<OccupancyQuadtreeD>> drawer;
+    std::shared_ptr<OccupancyQuadtree::Setting> tree_setting =
+        std::make_shared<OccupancyQuadtree::Setting>();
+    std::shared_ptr<OccupancyQuadtree> tree;
+    std::shared_ptr<QuadtreeDrawer> drawer;
     cv::Mat img;
 };
 
@@ -41,19 +46,19 @@ MouseCallback(
 
         const auto grid_map_info = data->drawer->GetGridMapInfo();
         cv::Mat img = data->img.clone();
-        const double x = grid_map_info->GridToMeterForValue(mouse_x, 0);
-        const double y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
+        const Dtype x = grid_map_info->GridToMeterForValue(mouse_x, 0);
+        const Dtype y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
 
         constexpr long n = 721;
-        Eigen::VectorXd angles = Eigen::VectorXd::LinSpaced(n, 0, 2 * M_PI);
+        VectorX angles = VectorX::LinSpaced(n, 0, 2 * M_PI);
         const auto t0 = std::chrono::high_resolution_clock::now();
-        Eigen::Matrix2Xd ray_origins(2, n);
-        Eigen::Matrix2Xd ray_directions(2, n);
+        Matrix2X ray_origins(2, n);
+        Matrix2X ray_directions(2, n);
         for (long i = 0; i < n; ++i) {
             ray_origins.col(i) << x, y;
             ray_directions.col(i) << std::cos(angles[i]), std::sin(angles[i]);
         }
-        Eigen::VectorXd default_max_ranges, default_node_paddings;
+        VectorX default_max_ranges, default_node_paddings;
         Eigen::VectorXb default_bidirectional_flags;
         Eigen::VectorXb leaf_only_flags = Eigen::VectorXb::Constant(n, true);
         Eigen::VectorXi default_min_node_depths, default_max_node_depths;
@@ -66,35 +71,31 @@ MouseCallback(
             leaf_only_flags,
             default_min_node_depths,
             default_max_node_depths);
-        Eigen::VectorXd hit_distances = Eigen::VectorXd::Zero(n);
+        VectorX hit_distances = VectorX::Zero(n);
         Eigen::VectorXi thicknesses = Eigen::VectorXi::Ones(n);
         while (!batch_ray_caster.GetFrontierKeys().empty()) {
-            Eigen::Matrix2Xd start_pts(2, n);
-            Eigen::Matrix2Xd end_pts(2, n);
-            Eigen::VectorXd new_hit_distances = batch_ray_caster.GetHitDistances();
+            Matrix2X start_pts(2, n);
+            Matrix2X end_pts(2, n);
+            VectorX new_hit_distances = batch_ray_caster.GetHitDistances();
 
             std::uniform_int_distribution color_gen(0, 255);
-            const double color_r = color_gen(erl::common::g_random_engine);
-            const double color_g = color_gen(erl::common::g_random_engine);
-            const double color_b = color_gen(erl::common::g_random_engine);
-
+            const auto color_r = static_cast<double>(color_gen(erl::common::g_random_engine));
+            const auto color_g = static_cast<double>(color_gen(erl::common::g_random_engine));
+            const auto color_b = static_cast<double>(color_gen(erl::common::g_random_engine));
+            const int height = grid_map_info->Shape(1);
             for (long i = 0; i < n; ++i) {
-                const Eigen::Vector2d start_pt =
-                    ray_origins.col(i) + ray_directions.col(i) * hit_distances[i];
-                const Eigen::Vector2d end_pt =
-                    ray_origins.col(i) + ray_directions.col(i) * new_hit_distances[i];
+                Vector2 start_pt = ray_origins.col(i) + ray_directions.col(i) * hit_distances[i];
+                Vector2 end_pt = ray_origins.col(i) + ray_directions.col(i) * new_hit_distances[i];
                 const int start_px = grid_map_info->MeterToGridForValue(start_pt[0], 0);
-                const int start_py =
-                    grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(start_pt[1], 1);
+                const int start_py = height - grid_map_info->MeterToGridForValue(start_pt[1], 1);
                 const int end_px = grid_map_info->MeterToGridForValue(end_pt[0], 0);
-                const int end_py =
-                    grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(end_pt[1], 1);
+                const int end_py = height - grid_map_info->MeterToGridForValue(end_pt[1], 1);
 
                 cv::line(
                     img,
                     {start_px, start_py},
                     {end_px, end_py},
-                    {color_b, color_g, color_r, 255},
+                    {color_b, color_g, color_r, 255.0},
                     thicknesses[i]);
             }
             hit_distances = new_hit_distances;
@@ -116,16 +117,23 @@ const std::filesystem::path kProjectRootDir = ERL_GEOMETRY_ROOT_DIR;
 TEST(OccupancyQuadtree, BatchRayCasting) {
     UserData data;
     data.tree_setting->resolution = 0.1;
-    data.tree = std::make_shared<OccupancyQuadtreeD>(data.tree_setting);
-    const std::string file = (kProjectRootDir / "data" / "house_expo_room_1451_2d.bt").string();
-    ASSERT_TRUE(data.tree->ReadBinary(file)) << "Fail to load the tree.";
-    auto setting = std::make_shared<OccupancyQuadtreeDrawer<OccupancyQuadtreeD>::Setting>();
+    data.tree = std::make_shared<OccupancyQuadtree>(data.tree_setting);
+    const std::string file = fmt::format(
+        "{}/data/house_expo_room_1451_2d_{}.bt",
+        ERL_GEOMETRY_ROOT_DIR,
+        type_name<Dtype>());
+
+    ASSERT_TRUE(erl::common::Serialization<OccupancyQuadtree>::Read(
+        file,
+        [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }))
+        << "Fail to load the tree.";
+    auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     // setting->resolution = 0.0025;
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
     data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
-    data.drawer = std::make_shared<OccupancyQuadtreeDrawer<OccupancyQuadtreeD>>(setting, data.tree);
+    data.drawer = std::make_shared<QuadtreeDrawer>(setting, data.tree);
     data.drawer->DrawLeaves(data.img);
 
     cv::imshow(UserData::window_name, data.img);
