@@ -29,7 +29,9 @@ namespace erl::geometry {
         Setting &setting) {
         if (!node.IsMap()) { return false; }
         ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_min, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
+        setting.valid_range_max = std::stod(node["valid_range_max"].as<std::string>());
+        // OLD YAML-CPP version does not support inf.
+        // ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
         ERL_YAML_LOAD_ATTR_TYPE(node, setting, angle_min, Dtype);
         ERL_YAML_LOAD_ATTR_TYPE(node, setting, angle_max, Dtype);
         ERL_YAML_LOAD_ATTR_TYPE(node, setting, num_rays, long);
@@ -802,7 +804,6 @@ namespace erl::geometry {
                     stream.write(
                         reinterpret_cast<const char *>(self->m_hit_ray_indices_.data()),
                         static_cast<std::streamsize>(n_rays * sizeof(long)));
-                    ERL_INFO("Write {} hit rays.", n_rays);
                     return stream.good();
                 },
             },
@@ -969,7 +970,6 @@ namespace erl::geometry {
                     stream.read(
                         reinterpret_cast<char *>(self->m_hit_ray_indices_.data()),
                         static_cast<std::streamsize>(n * sizeof(long)));
-                    ERL_INFO("Read {} hit rays.", n);
                     return stream.good();
                 },
             },

@@ -16,7 +16,7 @@ namespace erl::geometry {
             long row_margin = 0;
             long col_margin = 0;
             Dtype valid_range_min = 0.0f;
-            Dtype valid_range_max = std::numeric_limits<Dtype>::max();
+            Dtype valid_range_max = std::numeric_limits<Dtype>::infinity();
 
             struct YamlConvertImpl {
                 static YAML::Node

@@ -35,7 +35,10 @@ namespace erl::geometry {
         void
         AddMesh(const std::string &mesh_path) const {
             const auto mesh = open3d::io::CreateMeshFromFile(mesh_path);
-            ERL_ASSERTM(mesh != nullptr, "Failed to load mesh from file: {}", mesh_path);
+            ERL_ASSERTM(
+                mesh != nullptr && !mesh->vertices_.empty(),
+                "Failed to load mesh from file: {}",
+                mesh_path);
             m_scene_->AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(*mesh));
         }
 

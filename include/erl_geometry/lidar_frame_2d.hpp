@@ -15,9 +15,6 @@ namespace erl::geometry {
      */
     template<typename Dtype>
     class LidarFrame2D {
-        inline static const std::string kFileHeader =
-            fmt::format("# {}", type_name<LidarFrame2D>());
-
     public:
         using Matrix2 = Eigen::Matrix2<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;

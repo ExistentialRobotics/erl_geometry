@@ -26,7 +26,9 @@ namespace erl::geometry {
         ERL_YAML_LOAD_ATTR_TYPE(node, setting, row_margin, long);
         ERL_YAML_LOAD_ATTR_TYPE(node, setting, col_margin, long);
         ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_min, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
+        setting.valid_range_max = std::stod(node["valid_range_max"].as<std::string>());
+        // OLD yaml version does not support inf.
+        // ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
         return true;
     }
 
