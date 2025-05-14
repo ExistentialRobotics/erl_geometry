@@ -97,12 +97,13 @@ erl_add_tests(
         test_occupancy_octree_build
         test_occupancy_octree_ray_casting
         test_occupancy_quadtree_batch_ray_casting
+        test_occupancy_quadtree_build
         test_occupancy_quadtree_build_from_image
         test_occupancy_quadtree_find_neighbors
         test_occupancy_quadtree_house_expo
         test_occupancy_quadtree_leaf_in_aabb
         test_occupancy_quadtree_leaf_of_node
-        test_occupancy_quadtree_leaf_of_ray
+        test_occupancy_quadtree_leaf_on_ray
         test_occupancy_quadtree_ray_casting
         IGNORE_FILES ${ignore_tests}
 )

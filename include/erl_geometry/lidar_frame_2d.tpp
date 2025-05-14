@@ -656,15 +656,19 @@ namespace erl::geometry {
         if (m_rotation_ != other.m_rotation_) { return false; }
         if (m_rotation_angle_ != other.m_rotation_angle_) { return false; }
         if (m_translation_ != other.m_translation_) { return false; }
-        if (m_angles_frame_ != other.m_angles_frame_) { return false; }
-        if (m_angles_world_ != other.m_angles_world_) { return false; }
-        if (m_ranges_ != other.m_ranges_) { return false; }
+        using namespace common;
+        if (!SafeEigenMatrixEqual(m_angles_frame_, other.m_angles_frame_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_angles_world_, other.m_angles_world_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_ranges_, other.m_ranges_)) { return false; }
+
         if (m_dirs_frame_ != other.m_dirs_frame_) { return false; }
         if (m_dirs_world_ != other.m_dirs_world_) { return false; }
         if (m_end_pts_frame_ != other.m_end_pts_frame_) { return false; }
         if (m_end_pts_world_ != other.m_end_pts_world_) { return false; }
-        if (m_mask_hit_ != other.m_mask_hit_) { return false; }
-        if (m_mask_continuous_ != other.m_mask_continuous_) { return false; }
+
+        if (!SafeEigenMatrixEqual(m_mask_hit_, other.m_mask_hit_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_mask_continuous_, other.m_mask_continuous_)) { return false; }
+
         if (m_hit_ray_indices_ != other.m_hit_ray_indices_) { return false; }
         if (m_hit_points_frame_ != other.m_hit_points_frame_) { return false; }
         if (m_hit_points_world_ != other.m_hit_points_world_) { return false; }

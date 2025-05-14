@@ -265,8 +265,8 @@ namespace erl::geometry {
             num_points);
 
         // prepare memory
-        if (m_phi_.rows() < num_points) {
-            m_phi_.resize(num_points, m_hinged_points_.cols());
+        if (m_xi_.rows() < num_points) {
+            if (!m_setting_->use_sparse) { m_phi_.resize(num_points, m_hinged_points_.cols()); }
             m_labels_.resize(num_points);
             m_xi_.resize(num_points);
             m_lambda_.resize(num_points);
@@ -1257,20 +1257,21 @@ namespace erl::geometry {
             (other.m_kernel_ == nullptr || *m_kernel_ != *other.m_kernel_)) {
             return false;
         }
-        if (m_hinged_points_ != other.m_hinged_points_) { return false; }
+        using namespace common;
+        if (!SafeEigenMatrixEqual(m_hinged_points_, other.m_hinged_points_)) { return false; }
         if (m_map_boundary_ != other.m_map_boundary_) { return false; }
         // if (m_generator_ != other.m_generator_) { return false; }  // cannot compare
         if (m_iteration_cnt_ != other.m_iteration_cnt_) { return false; }
-        if (m_sigma_inv_ != other.m_sigma_inv_) { return false; }
-        if (m_sigma_ != other.m_sigma_) { return false; }
-        if (m_sigma_inv_mat_l_ != other.m_sigma_inv_mat_l_) { return false; }
-        if (m_alpha_ != other.m_alpha_) { return false; }
-        if (m_labels_ != other.m_labels_) { return false; }
-        if (m_mu_ != other.m_mu_) { return false; }
-        if (m_phi_ != other.m_phi_) { return false; }
-        if (m_phi_sq_ != other.m_phi_sq_) { return false; }
-        if (m_phi_transpose_ != other.m_phi_transpose_) { return false; }
-        if (m_phi_sq_transpose_ != other.m_phi_sq_transpose_) { return false; }
+        if (!SafeEigenMatrixEqual(m_sigma_inv_, other.m_sigma_inv_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_sigma_, other.m_sigma_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_sigma_inv_mat_l_, other.m_sigma_inv_mat_l_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_alpha_, other.m_alpha_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_labels_, other.m_labels_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_mu_, other.m_mu_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_phi_, other.m_phi_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_phi_sq_, other.m_phi_sq_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_phi_transpose_, other.m_phi_transpose_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_phi_sq_transpose_, other.m_phi_sq_transpose_)) { return false; }
         for (auto &[left, right]:
              std::vector<std::pair<const SparseMatrix &, const SparseMatrix &>>{
                  {m_phi_sparse_, other.m_phi_sparse_},
@@ -1278,16 +1279,10 @@ namespace erl::geometry {
                  {m_phi_transpose_sparse_, other.m_phi_transpose_sparse_},
                  {m_phi_sq_transpose_sparse_, other.m_phi_sq_transpose_sparse_},
              }) {
-            if (left.rows() != right.rows() || left.cols() != right.cols()) { return false; }
-            if (left.nonZeros() != right.nonZeros()) { return false; }
-            for (long i = 0; i < left.outerSize(); ++i) {
-                for (typename SparseMatrix::InnerIterator it(left, i); it; ++it) {
-                    if (it.value() != right.coeff(it.row(), it.col())) { return false; }
-                }
-            }
+            if (!SafeSparseEigenMatrixEqual(left, right)) { return false; }
         }
-        if (m_xi_ != other.m_xi_) { return false; }
-        if (m_lambda_ != other.m_lambda_) { return false; }
+        if (!SafeEigenMatrixEqual(m_xi_, other.m_xi_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_lambda_, other.m_lambda_)) { return false; }
         return true;
     }
 

@@ -568,25 +568,16 @@ namespace erl::geometry {
         }
         if (m_rotation_ != other.m_rotation_) { return false; }
         if (m_translation_ != other.m_translation_) { return false; }
-        if (m_frame_coords_ != other.m_frame_coords_) { return false; }
-        if (m_ranges_ != other.m_ranges_) { return false; }
-        if (m_dirs_frame_ != other.m_dirs_frame_) { return false; }
-        if (m_dirs_world_ != other.m_dirs_world_) { return false; }
-        if (m_end_pts_frame_ != other.m_end_pts_frame_) { return false; }
-        // if (m_end_pts_frame_.rows() != other.m_end_pts_frame_.rows()) { return false; }
-        // if (m_end_pts_frame_.cols() != other.m_end_pts_frame_.cols()) { return false; }
-        // for (long c = 0; c < m_end_pts_frame_.cols(); ++c) {
-        //     for (long r = 0; r < m_end_pts_frame_.rows(); ++r) {
-        //         if (m_end_pts_frame_(r, c) != other.m_end_pts_frame_(r, c)) {
-        //             std::cout << "m_end_pts_frame_[" << r << ", " << c
-        //                       << "] = " << m_end_pts_frame_(r, c)
-        //                       << " != " << other.m_end_pts_frame_(r, c) << std::endl;
-        //             return false;
-        //         }
-        //     }
-        // }
-        if (m_end_pts_world_ != other.m_end_pts_world_) { return false; }
-        if (m_mask_hit_ != other.m_mask_hit_) { return false; }
+
+        using namespace common;
+        if (!SafeEigenMatrixEqual(m_frame_coords_, other.m_frame_coords_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_ranges_, other.m_ranges_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_dirs_frame_, other.m_dirs_frame_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_dirs_world_, other.m_dirs_world_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_end_pts_frame_, other.m_end_pts_frame_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_end_pts_world_, other.m_end_pts_world_)) { return false; }
+        if (!SafeEigenMatrixEqual(m_mask_hit_, other.m_mask_hit_)) { return false; }
+
         if (m_hit_ray_indices_ != other.m_hit_ray_indices_) { return false; }
         if (m_hit_points_frame_ != other.m_hit_points_frame_) { return false; }
         if (m_hit_points_world_ != other.m_hit_points_world_) { return false; }

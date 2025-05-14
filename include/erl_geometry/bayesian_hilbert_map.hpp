@@ -216,7 +216,7 @@ namespace erl::geometry {
             MatrixDX &gradient) const;
 
         [[nodiscard]] bool
-        Write(std::ostream &s) const;  // TODO: check implementation
+        Write(std::ostream &s) const;
 
         [[nodiscard]] bool
         Read(std::istream &s);
