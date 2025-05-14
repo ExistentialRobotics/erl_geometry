@@ -29,10 +29,10 @@ YAML::convert<erl::geometry::OccupancyNdTreeSetting>::decode(
     erl::geometry::OccupancyNdTreeSetting &rhs) {
     if (!node.IsMap()) { return false; }
     if (!convert<erl::geometry::NdTreeSetting>::decode(node, rhs)) { return false; }
-    ERL_YAML_LOAD_ATTR_TYPE(node, rhs, log_odd_min, float);
-    ERL_YAML_LOAD_ATTR_TYPE(node, rhs, log_odd_max, float);
-    ERL_YAML_LOAD_ATTR_TYPE(node, rhs, log_odd_hit, float);
-    ERL_YAML_LOAD_ATTR_TYPE(node, rhs, log_odd_miss, float);
-    ERL_YAML_LOAD_ATTR_TYPE(node, rhs, log_odd_occ_threshold, float);
+    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_min);
+    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_max);
+    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_hit);
+    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_miss);
+    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_occ_threshold);
     return true;
 }

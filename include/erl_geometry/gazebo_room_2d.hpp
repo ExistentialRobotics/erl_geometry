@@ -8,8 +8,8 @@ namespace erl::geometry {
     class GazeboRoom2D {
 
     public:
-        static constexpr double kSensorOffsetX = 0.08;  // sensor x-offset in the robot frame (IMU frame).
-        static constexpr double kSensorOffsetY = 0.;    // sensor y-offset in the robot frame (IMU frame).
+        static constexpr double kSensorOffsetX = 0.08;  // the sensor x-offset in the robot frame.
+        static constexpr double kSensorOffsetY = 0.;    // the sensor y-offset in the robot frame.
         inline static const Eigen::Vector2d kMapMin = {-4.0, -15.0};
         inline static const Eigen::Vector2d kMapMax = {19.0, 4.0};
 
@@ -36,9 +36,9 @@ namespace erl::geometry {
                 return m_data_frames_[i];
             }
 
-            [[nodiscard]] size_t
+            [[nodiscard]] long
             size() const {
-                return m_data_frames_.size();
+                return static_cast<long>(m_data_frames_.size());
             }
 
             auto
@@ -61,7 +61,11 @@ namespace erl::geometry {
             explicit TestDataFrame(const std::string &path);
 
             void
-            Extract(Eigen::VectorXd &distance, Eigen::Matrix2Xd &gradient, Eigen::VectorXd &distance_variance, Eigen::Matrix2Xd &gradient_variance);
+            Extract(
+                Eigen::VectorXd &distance,
+                Eigen::Matrix2Xd &gradient,
+                Eigen::VectorXd &distance_variance,
+                Eigen::Matrix2Xd &gradient_variance);
         };
     };
 }  // namespace erl::geometry

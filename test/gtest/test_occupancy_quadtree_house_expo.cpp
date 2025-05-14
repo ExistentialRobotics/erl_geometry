@@ -102,7 +102,7 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
         [&](std::ostream &s) { return tree->WriteBinary(s); }));
     EXPECT_TRUE(Serialization<OccupancyQuadtreeD>::Write(
         "house_expo_room_" + std::to_string(map_index) + ".ot",
-        *tree));
+        tree));
     std::cout << "Press any key to exit immediately. Test will exist in 10 seconds." << std::endl;
     cv::waitKey(10000);  // 10 seconds
 }

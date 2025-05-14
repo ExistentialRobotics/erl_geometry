@@ -27,7 +27,7 @@ namespace erl::geometry {
         explicit PyObjectOccupancyOctree(const std::string &filename)
             : PyObjectOccupancyOctree() {
             ERL_ASSERTM(
-                common::Serialization<PyObjectOccupancyOctree>::Read(filename, *this),
+                common::Serialization<PyObjectOccupancyOctree>::Read(filename, this),
                 "Failed to read {} from file: {}",
                 type_name<PyObjectOccupancyOctree>(),
                 filename);

@@ -23,16 +23,16 @@ namespace erl::geometry {
     bool
     LogOddMap2D<Dtype>::Setting::YamlConvertImpl::decode(const YAML::Node &node, Setting &setting) {
         if (!node.IsMap()) { return false; }
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, sensor_min_range, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, sensor_max_range, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, measurement_certainty, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, max_log_odd, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, min_log_odd, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, threshold_occupied, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, threshold_free, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, use_cross_kernel, bool);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, num_iters_for_cleaned_mask, int);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, filter_obstacles_in_cleaned_mask, bool);
+        ERL_YAML_LOAD_ATTR(node, setting, sensor_min_range);
+        ERL_YAML_LOAD_ATTR(node, setting, sensor_max_range);
+        ERL_YAML_LOAD_ATTR(node, setting, measurement_certainty);
+        ERL_YAML_LOAD_ATTR(node, setting, max_log_odd);
+        ERL_YAML_LOAD_ATTR(node, setting, min_log_odd);
+        ERL_YAML_LOAD_ATTR(node, setting, threshold_occupied);
+        ERL_YAML_LOAD_ATTR(node, setting, threshold_free);
+        ERL_YAML_LOAD_ATTR(node, setting, use_cross_kernel);
+        ERL_YAML_LOAD_ATTR(node, setting, num_iters_for_cleaned_mask);
+        ERL_YAML_LOAD_ATTR(node, setting, filter_obstacles_in_cleaned_mask);
         return true;
     }
 

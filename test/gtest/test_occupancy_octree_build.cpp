@@ -105,7 +105,7 @@ TEST(OccupancyOctree, Build) {
             }
             EXPECT_TRUE(Serialization<OccupancyOctree>::Write(
                 test_output_dir / "house_expo_room_1451_3d.ot",
-                *octree));
+                octree));
             EXPECT_TRUE(Serialization<OccupancyOctree>::Write(
                 test_output_dir / "house_expo_room_1451_3d.bt",
                 [&](std::ostream &s) -> bool { return octree->WriteBinary(s); }));

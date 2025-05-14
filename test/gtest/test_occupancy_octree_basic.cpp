@@ -28,7 +28,7 @@ TEST(OccupancyOctree, IO) {
     EXPECT_TRUE(TreeSerializer::Write("empty.bt", [&](std::ostream& s) -> bool {
         return tree.WriteBinary(s);
     }));
-    EXPECT_TRUE(TreeSerializer::Write("empty.ot", tree));
+    EXPECT_TRUE(TreeSerializer::Write("empty.ot", &tree));
 
     OccupancyOctree read_tree_bt;
     EXPECT_TRUE(TreeSerializer::Read("empty.bt", [&](std::istream& s) -> bool {
@@ -38,7 +38,7 @@ TEST(OccupancyOctree, IO) {
     EXPECT_TRUE(tree == read_tree_bt);
 
     OccupancyOctree read_tree_ot;
-    EXPECT_TRUE(TreeSerializer::Read("empty.ot", read_tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read("empty.ot", &read_tree_ot));
     EXPECT_TRUE(tree == read_tree_ot);
 }
 
@@ -96,9 +96,9 @@ TEST(OccupancyOctree, InsertPointCloud) {
         EXPECT_EQ(tree->GetSize(), node_cnt);
     }
     auto tree_ot_file = test_output_dir / "sphere.ot";
-    EXPECT_TRUE(TreeSerializer::Write(tree_ot_file, *tree));
+    EXPECT_TRUE(TreeSerializer::Write(tree_ot_file, tree));
     OccupancyOctree read_tree_ot;
-    EXPECT_TRUE(TreeSerializer::Read(tree_ot_file, read_tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read(tree_ot_file, &read_tree_ot));
     EXPECT_EQ(tree->GetSize(), read_tree_ot.GetSize());
     EXPECT_TRUE(*tree == read_tree_ot);
 
@@ -164,9 +164,9 @@ TEST(OccupancyOctree, InsertPointCloudRays) {
         tree->InsertPointCloudRays(points, sensor_origin, max_range, parallel, lazy_eval);
     });
 
-    EXPECT_TRUE(TreeSerializer::Write("sphere.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Write("sphere.ot", tree));
     OccupancyOctree read_tree_ot;
-    EXPECT_TRUE(TreeSerializer::Read("sphere.ot", read_tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read("sphere.ot", &read_tree_ot));
     EXPECT_EQ(tree->GetSize(), read_tree_ot.GetSize());
     EXPECT_TRUE(*tree == read_tree_ot);
     EXPECT_TRUE(TreeSerializer::Write("sphere.bt", [&](std::ostream& s) -> bool {
@@ -230,9 +230,9 @@ TEST(OccupancyOctree, InsertRay) {
         }
     });
 
-    EXPECT_TRUE(TreeSerializer::Write("sphere.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Write("sphere.ot", tree));
     OccupancyOctree read_tree_ot;
-    EXPECT_TRUE(TreeSerializer::Read("sphere.ot", read_tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read("sphere.ot", &read_tree_ot));
     EXPECT_EQ(tree->GetSize(), read_tree_ot.GetSize());
     EXPECT_TRUE(*tree == read_tree_ot);
 
@@ -548,12 +548,12 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size - 1);
 
-    EXPECT_TRUE(TreeSerializer::Write("prune.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Write("prune.ot", tree));
 }
 
 TEST(OccupancyOctree, CopyTree) {  // shallow copy
     OccupancyOctree tree1;
-    EXPECT_TRUE(TreeSerializer::Read("prune.ot", tree1));
+    EXPECT_TRUE(TreeSerializer::Read("prune.ot", &tree1));
     const OccupancyOctree tree2 = tree1;
     EXPECT_EQ(  // the setting pointers should be the same
         tree1.GetSetting<OccupancyOctree::Setting>(),
@@ -569,7 +569,7 @@ TEST(OccupancyOctree, CopyTree) {  // shallow copy
 
 TEST(OccupancyOctree, CloneTree) {  // deep copy
     OccupancyOctree tree1;
-    EXPECT_TRUE(TreeSerializer::Read("prune.ot", tree1));
+    EXPECT_TRUE(TreeSerializer::Read("prune.ot", &tree1));
     const auto tree2 = std::reinterpret_pointer_cast<OccupancyOctree>(tree1.Clone());
     EXPECT_NE(
         tree1.GetSetting<OccupancyOctree::Setting>(),
@@ -585,7 +585,7 @@ TEST(OccupancyOctree, CloneTree) {  // deep copy
 
 TEST(OccupancyOctree, DeleteTree) {
     OccupancyOctree tree;
-    EXPECT_TRUE(TreeSerializer::Read("prune.ot", tree));
+    EXPECT_TRUE(TreeSerializer::Read("prune.ot", &tree));
     tree.Clear();
     EXPECT_EQ(tree.GetSize(), 0);
     EXPECT_EQ(tree.ComputeNumberOfNodes(), tree.GetSize());
@@ -593,7 +593,7 @@ TEST(OccupancyOctree, DeleteTree) {
 
 TEST(OccupancyOctree, DeleteNodeChild) {
     OccupancyOctree tree;
-    EXPECT_TRUE(TreeSerializer::Read("prune.ot", tree));
+    EXPECT_TRUE(TreeSerializer::Read("prune.ot", &tree));
     const uint32_t cnt_node_deleted =
         tree.DeleteNodeChild(tree.GetRoot().get(), 0, tree.GetTreeCenterKey());
     EXPECT_GT(cnt_node_deleted, 0);
@@ -601,7 +601,7 @@ TEST(OccupancyOctree, DeleteNodeChild) {
 
 TEST(OccupancyOctree, DeleteNode) {
     OccupancyOctree tree;
-    EXPECT_TRUE(TreeSerializer::Read("prune.ot", tree));
+    EXPECT_TRUE(TreeSerializer::Read("prune.ot", &tree));
     const uint32_t cnt_node_deleted = tree.DeleteNode(-0.2, -0.2, -0.2);
     EXPECT_GT(cnt_node_deleted, 0);
 }
@@ -639,7 +639,7 @@ TEST(OccupancyOctree, Iterator) {
     EXPECT_TRUE(std::filesystem::exists(file))
         << "File " << file << " does not exist. Run OccupancyOctree/InsertPointCloud first.";
     OccupancyOctree tree_ot;
-    EXPECT_TRUE(TreeSerializer::Read(file, tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read(file, &tree_ot));
     std::size_t num_iterated_leaf_nodes = 0;
     std::size_t num_iterated_occupied_leaf_nodes = 0;
     l_it = tree_ot.BeginLeaf();
@@ -677,7 +677,7 @@ TEST(OccupancyOctree, RayCasting) {
         << "File " << file << " does not exist. Run OccupancyOctree/InsertPointCloud first.";
 
     OccupancyOctree tree;
-    EXPECT_TRUE(TreeSerializer::Read(file, tree));
+    EXPECT_TRUE(TreeSerializer::Read(file, &tree));
 
     ERL_INFO("Casting rays in sphere ...");
     unsigned int hit = 0;

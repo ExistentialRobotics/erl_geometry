@@ -28,11 +28,11 @@ TEST(DepthFrame3D, Serialization) {
     Eigen::Vector3d translation = Eigen::Vector3d::Zero();
     depth_frame.UpdateRanges(rotation, translation, depth);
 
-    EXPECT_TRUE(Serialization<DepthFrame3Dd>::Write("depth_frame.bin", depth_frame));
+    EXPECT_TRUE(Serialization<DepthFrame3Dd>::Write("depth_frame.bin", &depth_frame));
 
     auto depth_frame_setting_new = std::make_shared<DepthFrame3Dd::Setting>();
     DepthFrame3Dd depth_frame_new(depth_frame_setting_new);
-    EXPECT_TRUE(Serialization<DepthFrame3Dd>::Read("depth_frame.bin", depth_frame_new));
+    EXPECT_TRUE(Serialization<DepthFrame3Dd>::Read("depth_frame.bin", &depth_frame_new));
 
     EXPECT_TRUE(depth_frame == depth_frame_new);
 }

@@ -118,10 +118,10 @@ YAML::convert<erl::geometry::Lidar2D::Setting>::decode(
     const Node &node,
     erl::geometry::Lidar2D::Setting &setting) {
     if (!node.IsMap()) { return false; }
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, min_angle, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, max_angle, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, num_lines, int);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, mode, erl::geometry::Lidar2D::Mode);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, sign_method, erl::geometry::Space2D::SignMethod);
+    ERL_YAML_LOAD_ATTR(node, setting, min_angle);
+    ERL_YAML_LOAD_ATTR(node, setting, max_angle);
+    ERL_YAML_LOAD_ATTR(node, setting, num_lines);
+    ERL_YAML_LOAD_ATTR(node, setting, mode);
+    ERL_YAML_LOAD_ATTR(node, setting, sign_method);
     return true;
 }

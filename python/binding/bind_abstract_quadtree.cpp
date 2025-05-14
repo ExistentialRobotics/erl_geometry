@@ -11,13 +11,13 @@ BindAbstractQuadtreeImpl(const py::module& m, const char* name) {
     tree.def("apply_setting", &T::ApplySetting, "apply the latest setting to the tree")
         .def(
             "write",
-            [](const T& self, const std::string& filename) -> bool {
+            [](const T* self, const std::string& filename) -> bool {
                 return erl::common::Serialization<T>::Write(filename, self);
             },
             py::arg("filename"))
         .def(
             "read",
-            [](T& self, const std::string& filename) -> bool {
+            [](T* self, const std::string& filename) -> bool {
                 return erl::common::Serialization<T>::Read(filename, self);
             },
             py::arg("filename"))

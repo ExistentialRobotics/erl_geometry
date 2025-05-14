@@ -214,6 +214,18 @@ namespace erl::geometry {
             bool with_sigmoid,
             bool parallel,
             MatrixDX &gradient) const;
+
+        [[nodiscard]] bool
+        Write(std::ostream &s) const;  // TODO: check implementation
+
+        [[nodiscard]] bool
+        Read(std::istream &s);
+
+        [[nodiscard]] bool
+        operator==(const BayesianHilbertMap &other) const;
+
+        [[nodiscard]] bool
+        operator!=(const BayesianHilbertMap &other) const;
     };
 
 }  // namespace erl::geometry

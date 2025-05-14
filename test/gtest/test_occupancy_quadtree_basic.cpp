@@ -19,7 +19,7 @@ TEST(OccupancyQuadtree, IO) {
     EXPECT_TRUE(TreeSerializer::Write("empty.bt", [&](std::ofstream &s) -> bool {
         return tree.WriteBinary(s);
     }));
-    EXPECT_TRUE(TreeSerializer::Write("empty.ot", tree));
+    EXPECT_TRUE(TreeSerializer::Write("empty.ot", &tree));
 
     OccupancyQuadtree read_tree_bt;
     EXPECT_TRUE(TreeSerializer::Read("empty.bt", [&](std::ifstream &s) -> bool {
@@ -29,7 +29,7 @@ TEST(OccupancyQuadtree, IO) {
     EXPECT_TRUE(tree == read_tree_bt);
 
     OccupancyQuadtree read_tree_ot;
-    EXPECT_TRUE(TreeSerializer::Read("empty.ot", read_tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read("empty.ot", &read_tree_ot));
     EXPECT_EQ(read_tree_ot.GetSize(), 0);
     EXPECT_TRUE(tree == read_tree_ot);
 }
@@ -72,7 +72,7 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
     EXPECT_TRUE(TreeSerializer::Write("circle.bt", [&](std::ofstream &s) -> bool {
         return tree->WriteBinary(s, true);
     }));
-    EXPECT_TRUE(TreeSerializer::Write("circle.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Write("circle.ot", tree));
 
     auto read_tree_bt = std::make_shared<OccupancyQuadtree>();
     EXPECT_TRUE(TreeSerializer::Read("circle.bt", [&](std::ifstream &s) -> bool {
@@ -81,7 +81,7 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
     EXPECT_EQ(tree->GetSize(), read_tree_bt->GetSize());
 
     auto read_tree_ot = std::make_shared<OccupancyQuadtree>();
-    EXPECT_TRUE(TreeSerializer::Read("circle.ot", *read_tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read("circle.ot", read_tree_ot));
     EXPECT_EQ(*tree, *read_tree_ot);
 }
 
@@ -131,7 +131,7 @@ TEST(OccupancyQuadtree, InsertRay) {
     EXPECT_TRUE(TreeSerializer::Write("square.bt", [&](std::ofstream &s) -> bool {
         return tree->WriteBinary(s, true);
     }));
-    EXPECT_TRUE(TreeSerializer::Write("square.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Write("square.ot", tree));
 
     auto read_tree_bt = std::make_shared<OccupancyQuadtree>();
     EXPECT_TRUE(TreeSerializer::Read("square.bt", [&](std::ifstream &s) -> bool {
@@ -140,7 +140,7 @@ TEST(OccupancyQuadtree, InsertRay) {
     EXPECT_EQ(tree->GetSize(), read_tree_bt->GetSize());
 
     auto read_tree_ot = std::make_shared<OccupancyQuadtree>();
-    EXPECT_TRUE(TreeSerializer::Read("square.ot", *read_tree_ot));
+    EXPECT_TRUE(TreeSerializer::Read("square.ot", read_tree_ot));
     EXPECT_EQ(*tree, *read_tree_ot);
 }
 
@@ -397,12 +397,12 @@ TEST(OccupancyQuadtree, Prune) {
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size - 1);
 
-    EXPECT_TRUE(TreeSerializer::Write("prune.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Write("prune.ot", tree));
 }
 
 TEST(OccupancyQuadtree, DeleteTree) {
     auto tree = std::make_shared<OccupancyQuadtree>();
-    EXPECT_TRUE(TreeSerializer::Read("prune.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Read("prune.ot", tree));
     tree->Clear();
     EXPECT_EQ(tree->GetSize(), 0);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
@@ -437,7 +437,7 @@ TEST(OccupancyQuadtree, Iterator) {
 
     // iterate over a non-empty tree
     tree = std::make_shared<OccupancyQuadtree>();
-    EXPECT_TRUE(TreeSerializer::Read("circle.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Read("circle.ot", tree));
     std::size_t num_iterated_leaf_nodes = 0;
     std::size_t num_iterated_occupied_leaf_nodes = 0;
     l_it = tree->BeginLeaf();
@@ -475,7 +475,7 @@ TEST(OccupancyQuadtree, RayCasting) {
     // auto tree = std::dynamic_pointer_cast<OccupancyQuadtree>(abstract_tree);
     // EXPECT_TRUE(tree != nullptr);
     auto tree = std::make_shared<OccupancyQuadtree>();
-    EXPECT_TRUE(TreeSerializer::Read("circle.ot", *tree));
+    EXPECT_TRUE(TreeSerializer::Read("circle.ot", tree));
 
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
     setting->area_min << -4, -4;

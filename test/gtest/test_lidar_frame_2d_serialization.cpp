@@ -38,9 +38,9 @@ TEST(LidarFrame2D, Serialization) {
     auto lidar_frame = std::make_shared<LidarFrame2Dd>(setting);
 
     {
-        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Write("lidar_frame_2d.bin", *lidar_frame));
+        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Write("lidar_frame_2d.bin", lidar_frame));
         LidarFrame2Dd lidar_frame_read(std::make_shared<LidarFrame2Dd::Setting>());
-        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Read("lidar_frame_2d.bin", lidar_frame_read));
+        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Read("lidar_frame_2d.bin", &lidar_frame_read));
         EXPECT_TRUE(*lidar_frame == lidar_frame_read);
     }
 
@@ -49,17 +49,17 @@ TEST(LidarFrame2D, Serialization) {
     lidar_frame->UpdateRanges(rotation, position, lidar->Scan(rotation, position, true));
 
     {
-        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Write("lidar_frame_2d.bin", *lidar_frame));
+        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Write("lidar_frame_2d.bin", lidar_frame));
         LidarFrame2Dd lidar_frame_read(std::make_shared<LidarFrame2Dd::Setting>());
-        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Read("lidar_frame_2d.bin", lidar_frame_read));
+        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Read("lidar_frame_2d.bin", &lidar_frame_read));
         EXPECT_TRUE(*lidar_frame == lidar_frame_read);
     }
 
     lidar_frame->PartitionRays();
     {
-        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Write("lidar_frame_2d.bin", *lidar_frame));
+        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Write("lidar_frame_2d.bin", lidar_frame));
         LidarFrame2Dd lidar_frame_read(std::make_shared<LidarFrame2Dd::Setting>());
-        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Read("lidar_frame_2d.bin", lidar_frame_read));
+        ASSERT_TRUE(Serialization<LidarFrame2Dd>::Read("lidar_frame_2d.bin", &lidar_frame_read));
         EXPECT_TRUE(*lidar_frame == lidar_frame_read);
     }
 }

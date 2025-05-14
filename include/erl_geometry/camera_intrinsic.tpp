@@ -19,12 +19,12 @@ CameraIntrinsic<Dtype>::YamlConvertImpl::decode(
     const YAML::Node &node,
     CameraIntrinsic &intrinsic) {
     if (!node.IsMap()) { return false; }
-    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, image_height, long);
-    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, image_width, long);
-    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_fx, Dtype);
-    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_fy, Dtype);
-    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_cx, Dtype);
-    ERL_YAML_LOAD_ATTR_TYPE(node, intrinsic, camera_cy, Dtype);
+    ERL_YAML_LOAD_ATTR(node, intrinsic, image_height);
+    ERL_YAML_LOAD_ATTR(node, intrinsic, image_width);
+    ERL_YAML_LOAD_ATTR(node, intrinsic, camera_fx);
+    ERL_YAML_LOAD_ATTR(node, intrinsic, camera_fy);
+    ERL_YAML_LOAD_ATTR(node, intrinsic, camera_cx);
+    ERL_YAML_LOAD_ATTR(node, intrinsic, camera_cy);
     return true;
 }
 

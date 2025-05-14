@@ -22,7 +22,7 @@ namespace erl::geometry {
         explicit OccupancyQuadtree(const std::string &filename)
             : OccupancyQuadtree() {
             ERL_ASSERTM(
-                common::Serialization<OccupancyQuadtree>::Read(filename, *this),
+                common::Serialization<OccupancyQuadtree>::Read(filename, this),
                 "Failed to read OccupancyQuadtree from file: {}",
                 filename);
         }

@@ -28,16 +28,14 @@ namespace erl::geometry {
         const YAML::Node &node,
         Setting &setting) {
         if (!node.IsMap()) { return false; }
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_min, Dtype);
-        setting.valid_range_max = std::stod(node["valid_range_max"].as<std::string>());
-        // OLD YAML-CPP version does not support inf.
-        // ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, angle_min, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, angle_max, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, num_rays, long);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, discontinuity_factor, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, rolling_diff_discount, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, min_partition_size, int);
+        ERL_YAML_LOAD_ATTR(node, setting, valid_range_min);
+        ERL_YAML_LOAD_ATTR(node, setting, valid_range_max);
+        ERL_YAML_LOAD_ATTR(node, setting, angle_min);
+        ERL_YAML_LOAD_ATTR(node, setting, angle_max);
+        ERL_YAML_LOAD_ATTR(node, setting, num_rays);
+        ERL_YAML_LOAD_ATTR(node, setting, discontinuity_factor);
+        ERL_YAML_LOAD_ATTR(node, setting, rolling_diff_discount);
+        ERL_YAML_LOAD_ATTR(node, setting, min_partition_size);
         return true;
     }
 

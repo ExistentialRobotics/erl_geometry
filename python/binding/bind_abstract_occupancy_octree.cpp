@@ -10,9 +10,9 @@ BindAbstractOccupancyOctreeImpl(const py::module &m, const char *name) {
     py::class_<T, AbstractOctree<Dtype>, std::shared_ptr<T>>(m, name)
         .def(
             "write_binary",
-            [](T &self, const std::string &filename, const bool prune_at_first) -> bool {
+            [](T *self, const std::string &filename, const bool prune_at_first) -> bool {
                 return erl::common::Serialization<T>::Write(filename, [&](std::ostream &s) -> bool {
-                    return self.WriteBinary(s, prune_at_first);
+                    return self->WriteBinary(s, prune_at_first);
                 });
             },
             py::arg("filename"),

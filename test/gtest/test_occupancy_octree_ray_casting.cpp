@@ -151,7 +151,7 @@ TEST(OccupancyOctree, RayCasting) {
     file /= "data";
     file /= "house_expo_room_1451_3d_double.ot";
     g_user_data.octree = std::make_shared<OccupancyOctreeD>();
-    ASSERT_TRUE(Serialization<OccupancyOctreeD>::Read(file, *g_user_data.octree));
+    ASSERT_TRUE(Serialization<OccupancyOctreeD>::Read(file, g_user_data.octree));
     g_user_data.ApplySettings();
 
     g_user_data.drawer->DrawLeaves(g_user_data.geometries);

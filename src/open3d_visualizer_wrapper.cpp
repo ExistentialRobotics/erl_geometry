@@ -355,19 +355,19 @@ YAML::convert<erl::geometry::Open3dVisualizerWrapper::Setting>::decode(
     const Node &node,
     erl::geometry::Open3dVisualizerWrapper::Setting &setting) {
     if (!node.IsMap()) { return false; }
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, window_name, std::string);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, window_width, int);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, window_height, int);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, window_left, int);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, window_top, int);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, x, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, y, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, z, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, roll, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, pitch, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, yaw, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, translate_step, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, angle_step, double);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, mesh_show_back_face, bool);
+    ERL_YAML_LOAD_ATTR(node, setting, window_name);
+    ERL_YAML_LOAD_ATTR(node, setting, window_width);
+    ERL_YAML_LOAD_ATTR(node, setting, window_height);
+    ERL_YAML_LOAD_ATTR(node, setting, window_left);
+    ERL_YAML_LOAD_ATTR(node, setting, window_top);
+    ERL_YAML_LOAD_ATTR(node, setting, x);
+    ERL_YAML_LOAD_ATTR(node, setting, y);
+    ERL_YAML_LOAD_ATTR(node, setting, z);
+    ERL_YAML_LOAD_ATTR(node, setting, roll);
+    ERL_YAML_LOAD_ATTR(node, setting, pitch);
+    ERL_YAML_LOAD_ATTR(node, setting, yaw);
+    ERL_YAML_LOAD_ATTR(node, setting, translate_step);
+    ERL_YAML_LOAD_ATTR(node, setting, angle_step);
+    ERL_YAML_LOAD_ATTR(node, setting, mesh_show_back_face);
     return true;
 }

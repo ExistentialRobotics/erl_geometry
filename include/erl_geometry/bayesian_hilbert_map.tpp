@@ -17,6 +17,9 @@ namespace erl::geometry {
           m_map_boundary_(std::move(map_boundary)),
           m_generator_(seed) {
 
+        ERL_DEBUG_ASSERT(m_setting_ != nullptr, "Setting is null.");
+        ERL_DEBUG_ASSERT(m_kernel_ != nullptr, "Kernel is null.");
+
         const long m = m_hinged_points_.cols();
         const Dtype sigma = m_setting_->init_sigma;
         const Dtype sigma_inv = 1.0f / sigma;
@@ -906,6 +909,392 @@ namespace erl::geometry {
                 }
             }
         }
+    }
+
+    template<typename Dtype, int Dim>
+    bool
+    BayesianHilbertMap<Dtype, Dim>::Write(std::ostream &s) const {
+        using namespace common;
+        static const TokenWriteFunctionPairs<BayesianHilbertMap> token_function_pairs = {
+            {
+                "setting",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return self->m_setting_->Write(stream) && stream.good();
+                },
+            },
+            {
+                "kernel",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return self->m_kernel_->Write(stream) && stream.good();
+                },
+            },
+            {
+                "hinged_points",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_hinged_points_) &&
+                           stream.good();
+                },
+            },
+            {
+                "map_boundary",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return stream.write(
+                               reinterpret_cast<const char *>(self->m_map_boundary_.center.data()),
+                               sizeof(Dtype) * Dim) &&
+                           stream.write(
+                               reinterpret_cast<const char *>(
+                                   self->m_map_boundary_.half_sizes.data()),
+                               sizeof(Dtype) * Dim) &&
+                           stream.good();
+                },
+            },
+            {
+                "generator",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    stream << self->m_generator_ << '\n';
+                    return stream.good();
+                },
+            },
+            {
+                "iteration_cnt",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    stream.write(
+                        reinterpret_cast<const char *>(&self->m_iteration_cnt_),
+                        sizeof(uint64_t));
+                    return stream.good();
+                },
+            },
+            {
+                "sigma_inv",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_sigma_inv_) &&
+                           stream.good();
+                },
+            },
+            {
+                "sigma",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_sigma_) && stream.good();
+                },
+            },
+            {
+                "sigma_inv_mat_l",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_sigma_inv_mat_l_) &&
+                           stream.good();
+                },
+            },
+            {
+                "alpha",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_alpha_) && stream.good();
+                },
+            },
+            {
+                "labels",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_labels_) && stream.good();
+                },
+            },
+            {
+                "mu",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_mu_) && stream.good();
+                },
+            },
+            {
+                "phi",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_phi_) && stream.good();
+                },
+            },
+            {
+                "phi_sq",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_phi_sq_) && stream.good();
+                },
+            },
+            {
+                "phi_transpose",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_phi_transpose_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sq_transpose",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_phi_sq_transpose_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sparse",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveSparseEigenMatrixToBinaryStream(stream, self->m_phi_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sq_sparse",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveSparseEigenMatrixToBinaryStream(stream, self->m_phi_sq_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_transpose_sparse",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveSparseEigenMatrixToBinaryStream(
+                               stream,
+                               self->m_phi_transpose_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sq_transpose_sparse",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveSparseEigenMatrixToBinaryStream(
+                               stream,
+                               self->m_phi_sq_transpose_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "xi",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_xi_) && stream.good();
+                },
+            },
+            {
+                "lambda",
+                [](const BayesianHilbertMap *self, std::ostream &stream) {
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_lambda_) && stream.good();
+                },
+            },
+        };
+        return WriteTokens(s, this, token_function_pairs);
+    }
+
+    template<typename Dtype, int Dim>
+    bool
+    BayesianHilbertMap<Dtype, Dim>::Read(std::istream &s) {
+        using namespace common;
+        static const TokenReadFunctionPairs<BayesianHilbertMap> token_function_pairs = {
+            {
+                "setting",
+                [](const BayesianHilbertMap *self, std::istream &stream) {
+                    return self->m_setting_->Read(stream) && stream.good();
+                },
+            },
+            {
+                "kernel",
+                [](const BayesianHilbertMap *self, std::istream &stream) {
+                    return self->m_kernel_->Read(stream) && stream.good();
+                },
+            },
+            {
+                "hinged_points",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_hinged_points_) &&
+                           stream.good();
+                },
+            },
+            {
+                "map_boundary",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return stream.read(
+                               reinterpret_cast<char *>(self->m_map_boundary_.center.data()),
+                               sizeof(Dtype) * Dim) &&
+                           stream.read(
+                               reinterpret_cast<char *>(self->m_map_boundary_.half_sizes.data()),
+                               sizeof(Dtype) * Dim) &&
+                           stream.good();
+                },
+            },
+            {
+                "generator",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    stream >> self->m_generator_;
+                    SkipLine(stream);
+                    return stream.good();
+                },
+            },
+            {
+                "iteration_cnt",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    stream.read(
+                        reinterpret_cast<char *>(&self->m_iteration_cnt_),
+                        sizeof(uint64_t));
+                    return stream.good();
+                },
+            },
+            {
+                "sigma_inv",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_sigma_inv_) &&
+                           stream.good();
+                },
+            },
+            {
+                "sigma",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_sigma_) && stream.good();
+                },
+            },
+            {
+                "sigma_inv_mat_l",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_sigma_inv_mat_l_) &&
+                           stream.good();
+                },
+            },
+            {
+                "alpha",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_alpha_) && stream.good();
+                },
+            },
+            {
+                "labels",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_labels_) &&
+                           stream.good();
+                },
+            },
+            {
+                "mu",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_mu_) && stream.good();
+                },
+            },
+            {
+                "phi",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_phi_) && stream.good();
+                },
+            },
+            {
+                "phi_sq",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_phi_sq_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_transpose",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_phi_transpose_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sq_transpose",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_phi_sq_transpose_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sparse",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadSparseEigenMatrixFromBinaryStream(stream, self->m_phi_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sq_sparse",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadSparseEigenMatrixFromBinaryStream(stream, self->m_phi_sq_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_transpose_sparse",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadSparseEigenMatrixFromBinaryStream(
+                               stream,
+                               self->m_phi_transpose_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "phi_sq_transpose_sparse",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadSparseEigenMatrixFromBinaryStream(
+                               stream,
+                               self->m_phi_sq_transpose_sparse_) &&
+                           stream.good();
+                },
+            },
+            {
+                "xi",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_xi_) && stream.good();
+                },
+            },
+            {
+                "lambda",
+                [](BayesianHilbertMap *self, std::istream &stream) {
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_lambda_) &&
+                           stream.good();
+                },
+            },
+        };
+        return ReadTokens(s, this, token_function_pairs);
+    }
+
+    template<typename Dtype, int Dim>
+    bool
+    BayesianHilbertMap<Dtype, Dim>::operator==(const BayesianHilbertMap &other) const {
+        if (m_setting_ == nullptr && other.m_setting_ != nullptr) { return false; }
+        if (m_setting_ != nullptr &&
+            (other.m_setting_ == nullptr || *m_setting_ != *other.m_setting_)) {
+            return false;
+        }
+        if (m_kernel_ == nullptr && other.m_kernel_ != nullptr) { return false; }
+        if (m_kernel_ != nullptr &&
+            (other.m_kernel_ == nullptr || *m_kernel_ != *other.m_kernel_)) {
+            return false;
+        }
+        if (m_hinged_points_ != other.m_hinged_points_) { return false; }
+        if (m_map_boundary_ != other.m_map_boundary_) { return false; }
+        // if (m_generator_ != other.m_generator_) { return false; }  // cannot compare
+        if (m_iteration_cnt_ != other.m_iteration_cnt_) { return false; }
+        if (m_sigma_inv_ != other.m_sigma_inv_) { return false; }
+        if (m_sigma_ != other.m_sigma_) { return false; }
+        if (m_sigma_inv_mat_l_ != other.m_sigma_inv_mat_l_) { return false; }
+        if (m_alpha_ != other.m_alpha_) { return false; }
+        if (m_labels_ != other.m_labels_) { return false; }
+        if (m_mu_ != other.m_mu_) { return false; }
+        if (m_phi_ != other.m_phi_) { return false; }
+        if (m_phi_sq_ != other.m_phi_sq_) { return false; }
+        if (m_phi_transpose_ != other.m_phi_transpose_) { return false; }
+        if (m_phi_sq_transpose_ != other.m_phi_sq_transpose_) { return false; }
+        for (auto &[left, right]:
+             std::vector<std::pair<const SparseMatrix &, const SparseMatrix &>>{
+                 {m_phi_sparse_, other.m_phi_sparse_},
+                 {m_phi_sq_sparse_, other.m_phi_sq_sparse_},
+                 {m_phi_transpose_sparse_, other.m_phi_transpose_sparse_},
+                 {m_phi_sq_transpose_sparse_, other.m_phi_sq_transpose_sparse_},
+             }) {
+            if (left.rows() != right.rows() || left.cols() != right.cols()) { return false; }
+            if (left.nonZeros() != right.nonZeros()) { return false; }
+            for (long i = 0; i < left.outerSize(); ++i) {
+                for (typename SparseMatrix::InnerIterator it(left, i); it; ++it) {
+                    if (it.value() != right.coeff(it.row(), it.col())) { return false; }
+                }
+            }
+        }
+        if (m_xi_ != other.m_xi_) { return false; }
+        if (m_lambda_ != other.m_lambda_) { return false; }
+        return true;
+    }
+
+    template<typename Dtype, int Dim>
+    bool
+    BayesianHilbertMap<Dtype, Dim>::operator!=(const BayesianHilbertMap &other) const {
+        return !(*this == other);
     }
 
 }  // namespace erl::geometry

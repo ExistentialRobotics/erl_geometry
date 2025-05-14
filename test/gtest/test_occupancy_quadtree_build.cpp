@@ -20,16 +20,16 @@ using MatrixX = Eigen::MatrixX<Dtype>;
 using Matrix2 = Eigen::Matrix2<Dtype>;
 
 const std::filesystem::path kProjectRootDir = ERL_GEOMETRY_ROOT_DIR;
+const std::filesystem::path kDataDir = kProjectRootDir / "data";
+const std::filesystem::path kConfigDir = kProjectRootDir / "config";
 static std::string g_window_name = "OccupancyQuadtree_Build";
 
 struct Options {
-    std::string gazebo_train_foler = (kProjectRootDir / "data" / "gazebo").string();
-    std::string gazebo_test_file = (kProjectRootDir / "data" / "gazebo_test.dat").string();
-    std::string house_expo_map_file =
-        (kProjectRootDir / "data" / "house_expo_room_1451.json").string();
-    std::string house_expo_traj_file =
-        (kProjectRootDir / "data" / "house_expo_room_1451.csv").string();
-    std::string ucsd_fah_2d_file = (kProjectRootDir / "data" / "ucsd_fah_2d.dat").string();
+    std::string gazebo_train_folder = kDataDir / "gazebo";
+    std::string gazebo_test_file = kDataDir / "gazebo_test.dat";
+    std::string house_expo_map_file = kDataDir / "house_expo_room_1451.json";
+    std::string house_expo_traj_file = kDataDir / "house_expo_room_1451.csv";
+    std::string ucsd_fah_2d_file = kDataDir / "ucsd_fah_2d.dat";
     bool use_gazebo_room_2d = true;
     bool use_house_expo_lidar_2d = false;
     bool use_ucsd_fah_2d = false;
@@ -85,7 +85,7 @@ TEST(OccupancyQuadtree, Build) {
         tree_name = "gazebo";
         // load raw data
         auto train_data_loader =
-            erl::geometry::GazeboRoom2D::TrainDataLoader(g_options.gazebo_train_foler);
+            erl::geometry::GazeboRoom2D::TrainDataLoader(g_options.gazebo_train_folder);
         // prepare buffer
         max_update_cnt = static_cast<long>(train_data_loader.size()) / g_options.stride + 1;
         buf_points.reserve(max_update_cnt);
@@ -94,7 +94,7 @@ TEST(OccupancyQuadtree, Build) {
         long j = 0;
         std::shared_ptr<erl::common::ProgressBar> bar = erl::common::ProgressBar::Open();
         bar->SetTotal(max_update_cnt);
-        for (std::size_t i = 0; i < train_data_loader.size(); i += g_options.stride) {
+        for (long i = 0; i < train_data_loader.size(); i += g_options.stride) {
             auto &df = train_data_loader[i];
             trajectory.col(j) << df.translation;
             buf_points.push_back(load_scan(
@@ -234,7 +234,7 @@ TEST(OccupancyQuadtree, Build) {
     }
     EXPECT_TRUE(erl::common::Serialization<OccupancyQuadtree>::Write(
         test_output_dir / fmt::format("{}_{}.ot", tree_name, type_name<Dtype>()),
-        *tree));
+        tree));
     EXPECT_TRUE(erl::common::Serialization<OccupancyQuadtree>::Write(
         test_output_dir / fmt::format("{}_{}.bt", tree_name, type_name<Dtype>()),
         [&](std::ostream &s) -> bool { return tree->WriteBinary(s, true); }));
@@ -274,7 +274,7 @@ main(int argc, char *argv[]) {
                 "HouseExpo trajectory file"
             )(
                 "gazebo-train-file",
-                po::value<std::string>(&g_options.gazebo_train_foler)->default_value(g_options.gazebo_train_foler)->value_name("file"),
+                po::value<std::string>(&g_options.gazebo_train_folder)->default_value(g_options.gazebo_train_folder)->value_name("file"),
                 "Gazebo train data file"
             )(
                 "gazebo-test-file",

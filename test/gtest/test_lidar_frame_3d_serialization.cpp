@@ -53,9 +53,9 @@ TEST(LidarFrame3D, Serialization) {
     auto lidar_frame_3d = std::make_shared<LidarFrame3Dd>(lidar_frame_3d_setting);
 
     {
-        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Write("lidar_frame_3d.bin", *lidar_frame_3d));
+        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Write("lidar_frame_3d.bin", lidar_frame_3d));
         LidarFrame3Dd lidar_frame_3d_read(std::make_shared<LidarFrame3Dd::Setting>());
-        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Read("lidar_frame_3d.bin", lidar_frame_3d_read));
+        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Read("lidar_frame_3d.bin", &lidar_frame_3d_read));
         EXPECT_TRUE(*lidar_frame_3d == lidar_frame_3d_read);
     }
 
@@ -65,9 +65,9 @@ TEST(LidarFrame3D, Serialization) {
     lidar_frame_3d->UpdateRanges(rotation, lidar_position, ranges);
 
     {
-        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Write("lidar_frame_3d.bin", *lidar_frame_3d));
+        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Write("lidar_frame_3d.bin", lidar_frame_3d));
         LidarFrame3Dd lidar_frame_3d_read(std::make_shared<LidarFrame3Dd::Setting>());
-        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Read("lidar_frame_3d.bin", lidar_frame_3d_read));
+        ASSERT_TRUE(Serialization<LidarFrame3Dd>::Read("lidar_frame_3d.bin", &lidar_frame_3d_read));
         EXPECT_TRUE(*lidar_frame_3d == lidar_frame_3d_read);
     }
 }

@@ -30,7 +30,7 @@ namespace erl::geometry {
         explicit PyObjectOccupancyQuadtree(const std::string &filename)
             : PyObjectOccupancyQuadtree() {
             ERL_ASSERTM(
-                common::Serialization<PyObjectOccupancyQuadtree>::Read(filename, *this),
+                common::Serialization<PyObjectOccupancyQuadtree>::Read(filename, this),
                 "Failed to read {} from file: {}",
                 type_name<PyObjectOccupancyQuadtree>(),
                 filename);

@@ -23,12 +23,10 @@ namespace erl::geometry {
         const YAML::Node &node,
         Setting &setting) {
         if (!node.IsMap()) { return false; }
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, row_margin, long);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, col_margin, long);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_min, Dtype);
-        setting.valid_range_max = std::stod(node["valid_range_max"].as<std::string>());
-        // OLD yaml version does not support inf.
-        // ERL_YAML_LOAD_ATTR_TYPE(node, setting, valid_range_max, Dtype);
+        ERL_YAML_LOAD_ATTR(node, setting, row_margin);
+        ERL_YAML_LOAD_ATTR(node, setting, col_margin);
+        ERL_YAML_LOAD_ATTR(node, setting, valid_range_min);
+        ERL_YAML_LOAD_ATTR(node, setting, valid_range_max);
         return true;
     }
 
@@ -575,6 +573,18 @@ namespace erl::geometry {
         if (m_dirs_frame_ != other.m_dirs_frame_) { return false; }
         if (m_dirs_world_ != other.m_dirs_world_) { return false; }
         if (m_end_pts_frame_ != other.m_end_pts_frame_) { return false; }
+        // if (m_end_pts_frame_.rows() != other.m_end_pts_frame_.rows()) { return false; }
+        // if (m_end_pts_frame_.cols() != other.m_end_pts_frame_.cols()) { return false; }
+        // for (long c = 0; c < m_end_pts_frame_.cols(); ++c) {
+        //     for (long r = 0; r < m_end_pts_frame_.rows(); ++r) {
+        //         if (m_end_pts_frame_(r, c) != other.m_end_pts_frame_(r, c)) {
+        //             std::cout << "m_end_pts_frame_[" << r << ", " << c
+        //                       << "] = " << m_end_pts_frame_(r, c)
+        //                       << " != " << other.m_end_pts_frame_(r, c) << std::endl;
+        //             return false;
+        //         }
+        //     }
+        // }
         if (m_end_pts_world_ != other.m_end_pts_world_) { return false; }
         if (m_mask_hit_ != other.m_mask_hit_) { return false; }
         if (m_hit_ray_indices_ != other.m_hit_ray_indices_) { return false; }
@@ -593,7 +603,8 @@ namespace erl::geometry {
     template<typename Dtype>
     bool
     RangeSensorFrame3D<Dtype>::Write(std::ostream &s) const {
-        static const common::TokenWriteFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
+        using namespace common;
+        static const TokenWriteFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
             {
                 "setting",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
@@ -603,21 +614,21 @@ namespace erl::geometry {
             {
                 "rotation",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_rotation_) &&
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_rotation_) &&
                            stream.good();
                 },
             },
             {
                 "translation",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_translation_) &&
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_translation_) &&
                            stream.good();
                 },
             },
             {
                 "frame_coords",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
                                stream,
                                self->m_frame_coords_) &&
                            stream.good();
@@ -626,14 +637,13 @@ namespace erl::geometry {
             {
                 "ranges",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_ranges_) &&
-                           stream.good();
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_ranges_) && stream.good();
                 },
             },
             {
                 "dirs_frame",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
                                stream,
                                self->m_dirs_frame_) &&
                            stream.good();
@@ -642,7 +652,7 @@ namespace erl::geometry {
             {
                 "dirs_world",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
                                stream,
                                self->m_dirs_world_) &&
                            stream.good();
@@ -651,7 +661,7 @@ namespace erl::geometry {
             {
                 "end_pts_frame",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
                                stream,
                                self->m_end_pts_frame_) &&
                            stream.good();
@@ -660,7 +670,7 @@ namespace erl::geometry {
             {
                 "end_pts_world",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixOfEigenMatricesToBinaryStream(
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
                                stream,
                                self->m_end_pts_world_) &&
                            stream.good();
@@ -669,7 +679,7 @@ namespace erl::geometry {
             {
                 "mask_hit",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_mask_hit_) &&
+                    return SaveEigenMatrixToBinaryStream(stream, self->m_mask_hit_) &&
                            stream.good();
                 },
             },
@@ -686,7 +696,7 @@ namespace erl::geometry {
             {
                 "hit_points_frame",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                    return SaveVectorOfEigenMatricesToBinaryStream(
                                stream,
                                self->m_hit_points_frame_) &&
                            stream.good();
@@ -695,7 +705,7 @@ namespace erl::geometry {
             {
                 "hit_points_world",
                 [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
+                    return SaveVectorOfEigenMatricesToBinaryStream(
                                stream,
                                self->m_hit_points_world_) &&
                            stream.good();
@@ -711,13 +721,14 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::WriteTokens(s, this, token_function_pairs);
+        return WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
     RangeSensorFrame3D<Dtype>::Read(std::istream &s) {
-        static const common::TokenReadFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
+        using namespace common;
+        static const TokenReadFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
             {
                 "setting",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
@@ -727,21 +738,21 @@ namespace erl::geometry {
             {
                 "rotation",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_rotation_) &&
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_rotation_) &&
                            stream.good();
                 },
             },
             {
                 "translation",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_translation_) &&
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_translation_) &&
                            stream.good();
                 },
             },
             {
                 "frame_coords",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
                                stream,
                                self->m_frame_coords_) &&
                            stream.good();
@@ -750,14 +761,14 @@ namespace erl::geometry {
             {
                 "ranges",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_ranges_) &&
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_ranges_) &&
                            stream.good();
                 },
             },
             {
                 "dirs_frame",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
                                stream,
                                self->m_dirs_frame_) &&
                            stream.good();
@@ -766,7 +777,7 @@ namespace erl::geometry {
             {
                 "dirs_world",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
                                stream,
                                self->m_dirs_world_) &&
                            stream.good();
@@ -775,7 +786,7 @@ namespace erl::geometry {
             {
                 "end_pts_frame",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
                                stream,
                                self->m_end_pts_frame_) &&
                            stream.good();
@@ -784,7 +795,7 @@ namespace erl::geometry {
             {
                 "end_pts_world",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(
+                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
                                stream,
                                self->m_end_pts_world_) &&
                            stream.good();
@@ -793,7 +804,7 @@ namespace erl::geometry {
             {
                 "mask_hit",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_mask_hit_) &&
+                    return LoadEigenMatrixFromBinaryStream(stream, self->m_mask_hit_) &&
                            stream.good();
                 },
             },
@@ -804,17 +815,17 @@ namespace erl::geometry {
                     stream >> num_hit_ray_indices;
                     self->m_hit_ray_indices_.resize(num_hit_ray_indices);
                     for (long i = 0; i < num_hit_ray_indices; ++i) {
-                        stream                                    //
-                            >> self->m_hit_ray_indices_[i].first  //
-                            >> self->m_hit_ray_indices_[i].second;
+                        stream >> self->m_hit_ray_indices_[i].first >>
+                            self->m_hit_ray_indices_[i].second;
                     }
+                    SkipLine(stream);
                     return stream.good();
                 },
             },
             {
                 "hit_points_frame",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                    return LoadVectorOfEigenMatricesFromBinaryStream(
                                stream,
                                self->m_hit_points_frame_) &&
                            stream.good();
@@ -823,7 +834,7 @@ namespace erl::geometry {
             {
                 "hit_points_world",
                 [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
+                    return LoadVectorOfEigenMatricesFromBinaryStream(
                                stream,
                                self->m_hit_points_world_) &&
                            stream.good();
@@ -837,7 +848,7 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::ReadTokens(s, this, token_function_pairs);
+        return ReadTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>

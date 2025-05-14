@@ -29,8 +29,8 @@ YAML::convert<erl::geometry::OccupancyQuadtreeBaseSetting>::decode(
     erl::geometry::OccupancyQuadtreeBaseSetting &setting) {
     if (!node.IsMap()) { return false; }
     if (!convert<erl::geometry::OccupancyNdTreeSetting>::decode(node, setting)) { return false; }
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, use_change_detection, bool);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, use_aabb_limit, bool);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, aabb, erl::geometry::Aabb2Dd);
+    ERL_YAML_LOAD_ATTR(node, setting, use_change_detection);
+    ERL_YAML_LOAD_ATTR(node, setting, use_aabb_limit);
+    ERL_YAML_LOAD_ATTR(node, setting, aabb);
     return true;
 }

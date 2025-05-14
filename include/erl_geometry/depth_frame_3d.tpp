@@ -18,7 +18,7 @@ namespace erl::geometry {
         const YAML::Node &node,
         Setting &setting) {
         if (!Super::Setting::YamlConvertImpl::decode(node, setting)) { return false; }
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, camera_intrinsic, CameraIntrinsic<Dtype>);
+        ERL_YAML_LOAD_ATTR(node, setting, camera_intrinsic);
         return true;
     }
 
@@ -120,26 +120,34 @@ namespace erl::geometry {
         const Dtype valid_range_min = m_setting_->valid_range_min;
         const Dtype valid_range_max = m_setting_->valid_range_max;
 
-// compute directions and end points
+        // compute directions and end points
 #pragma omp parallel for default(none) \
     shared(image_height, image_width, valid_range_min, valid_range_max, Eigen::Dynamic)
         for (long u = 0; u < image_width; ++u) {
             for (long v = 0; v < image_height; ++v) {
-                Dtype &range = this->m_ranges_(v, u);
-                if (range <= 0 || !std::isfinite(range)) { continue; }
-
                 // directions and end_points in the frame
-                Vector3 &dir_frame = this->m_dirs_frame_(v, u);
+                const Vector3 &dir_frame = this->m_dirs_frame_(v, u);
                 Vector3 &end_pt_frame = this->m_end_pts_frame_(v, u);
+                // directions and end_points in the world
+                Vector3 &dir_world = this->m_dirs_world_(v, u);
+                Vector3 &end_pt_world = this->m_end_pts_world_(v, u);
+
+                Dtype &range = this->m_ranges_(v, u);
+                if (range <= 0 || !std::isfinite(range)) {
+                    end_pt_frame.setZero();
+                    dir_world.setZero();
+                    end_pt_world.setZero();
+                    continue;
+                }
+
                 // u <--> image coordinate x
                 // v <--> image coordinate y
                 end_pt_frame << dir_frame * (range / dir_frame[2]);  // range is depth currently
                 range = end_pt_frame.norm();  // range is now the actual range
 
                 // transform directions and end_points to the world
-                this->m_dirs_world_(v, u) << this->m_rotation_ * dir_frame;
-                this->m_end_pts_world_(v, u)
-                    << this->m_rotation_ * end_pt_frame + this->m_translation_;
+                dir_world << this->m_rotation_ * dir_frame;
+                end_pt_world << this->m_rotation_ * end_pt_frame + this->m_translation_;
 
                 // max valid range
                 if (range < valid_range_min || range > valid_range_max) { continue; }

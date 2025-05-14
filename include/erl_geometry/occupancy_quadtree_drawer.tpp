@@ -24,11 +24,11 @@ namespace erl::geometry {
         if (!YAML::convert<AbstractQuadtreeDrawer::Setting>::decode(node, setting)) {
             return false;
         }
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, area_min, Eigen::Vector2<Dtype>);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, area_max, Eigen::Vector2<Dtype>);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, resolution, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, occupied_color, cv::Scalar);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, free_color, cv::Scalar);
+        ERL_YAML_LOAD_ATTR(node, setting, area_min);
+        ERL_YAML_LOAD_ATTR(node, setting, area_max);
+        ERL_YAML_LOAD_ATTR(node, setting, resolution);
+        ERL_YAML_LOAD_ATTR(node, setting, occupied_color);
+        ERL_YAML_LOAD_ATTR(node, setting, free_color);
         return true;
     }
 

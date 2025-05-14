@@ -20,12 +20,12 @@ namespace erl::geometry {
         const YAML::Node &node,
         Setting &setting) {
         if (!Super::Setting::YamlConvertImpl::decode(node, setting)) { return false; }
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, azimuth_min, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, azimuth_max, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, elevation_min, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, elevation_max, Dtype);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, num_azimuth_lines, long);
-        ERL_YAML_LOAD_ATTR_TYPE(node, setting, num_elevation_lines, long);
+        ERL_YAML_LOAD_ATTR(node, setting, azimuth_min);
+        ERL_YAML_LOAD_ATTR(node, setting, azimuth_max);
+        ERL_YAML_LOAD_ATTR(node, setting, elevation_min);
+        ERL_YAML_LOAD_ATTR(node, setting, elevation_max);
+        ERL_YAML_LOAD_ATTR(node, setting, num_azimuth_lines);
+        ERL_YAML_LOAD_ATTR(node, setting, num_elevation_lines);
         return true;
     }
 
@@ -118,28 +118,36 @@ namespace erl::geometry {
         this->m_hit_points_world_.clear();
         this->m_hit_points_world_.reserve(num_azimuths * num_elevations);
 
-#pragma omp parallel for default(none) shared(num_azimuths, num_elevations, Eigen::Dynamic)
+        const Dtype valid_range_min = m_setting_->valid_range_min;
+        const Dtype valid_range_max = m_setting_->valid_range_max;
+
+#pragma omp parallel for default(none) \
+    shared(num_azimuths, num_elevations, valid_range_min, valid_range_max, Eigen::Dynamic)
         for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
             for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {
-                Dtype &range = this->m_ranges_(azimuth_idx, elevation_idx);
-                if (range == 0 || !std::isfinite(range)) {
-                    continue;
-                }  // zero, nan or inf depth! Not allowed.
-
-                // directions
+                // directions and end points in the frame
                 const Vector3 &dir_frame = this->m_dirs_frame_(azimuth_idx, elevation_idx);
-                this->m_dirs_world_(azimuth_idx, elevation_idx) << this->m_rotation_ * dir_frame;
-
-                // end points
                 Vector3 &end_pt_frame = this->m_end_pts_frame_(azimuth_idx, elevation_idx);
-                end_pt_frame << range * dir_frame;
-                this->m_end_pts_world_(azimuth_idx, elevation_idx)
-                    << this->m_rotation_ * end_pt_frame + this->m_translation_;
+                // directions and end points in the world
+                Vector3 &dir_world = this->m_dirs_world_(azimuth_idx, elevation_idx);
+                Vector3 &end_pt_world = this->m_end_pts_world_(azimuth_idx, elevation_idx);
 
-                // max valid range
-                if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) {
+                Dtype &range = this->m_ranges_(azimuth_idx, elevation_idx);
+                if (range <= 0 || !std::isfinite(range)) {
+                    end_pt_frame.setZero();
+                    dir_world.setZero();
+                    end_pt_world.setZero();
                     continue;
                 }
+
+                dir_world << this->m_rotation_ * dir_frame;
+
+                // end points
+                end_pt_frame << range * dir_frame;
+                end_pt_world << this->m_rotation_ * end_pt_frame + this->m_translation_;
+
+                // max valid range
+                if (range < valid_range_min || range > valid_range_max) { continue; }
                 this->m_mask_hit_(azimuth_idx, elevation_idx) = true;
             }
         }

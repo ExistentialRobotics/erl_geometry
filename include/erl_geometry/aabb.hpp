@@ -95,8 +95,8 @@ namespace YAML {
         static bool
         decode(const Node &node, AABB &aabb) {
             if (!node.IsMap()) { return false; }
-            ERL_YAML_LOAD_ATTR_TYPE(node, aabb, center, typename AABB::Point);
-            ERL_YAML_LOAD_ATTR_TYPE(node, aabb, half_sizes, typename AABB::Point);
+            ERL_YAML_LOAD_ATTR(node, aabb, center);
+            ERL_YAML_LOAD_ATTR(node, aabb, half_sizes);
             return true;
         }
     };

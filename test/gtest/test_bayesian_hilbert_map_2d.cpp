@@ -197,7 +197,29 @@ VisualizeResult(
 
 template<typename Dtype>
 void
-TestBayesianHilbertMap2D(
+TestIo(
+    const erl::geometry::BayesianHilbertMap<Dtype, 2> &bhm,
+    const Eigen::Matrix2X<Dtype> &hinged_points,
+    const Aabb<Dtype, 2> &map_boundary) {
+    GTEST_PREPARE_OUTPUT_DIR();
+    std::string filename = fmt::format("test_bhm_2d_{}.bin", type_name<Dtype>());
+    filename = test_output_dir / filename;
+    using Serializer = Serialization<BayesianHilbertMap<Dtype, 2>>;
+    ASSERT_TRUE(Serializer::Write(filename, &bhm));
+    BayesianHilbertMap<Dtype, 2> bhm_read(
+        std::make_shared<BayesianHilbertMapSetting>(),
+        std::make_shared<RadialBiasFunction<Dtype, 2>>(
+            std::make_shared<typename Covariance<Dtype>::Setting>()),
+        hinged_points,
+        map_boundary,
+        1);
+    ASSERT_TRUE(Serializer::Read(filename, &bhm_read));
+    ASSERT_TRUE(bhm == bhm_read);
+}
+
+template<typename Dtype>
+void
+TestImpl2D(
     const int hinged_grid_size,
     const int test_grid_size,
     const Dtype rbf_gamma,
@@ -218,6 +240,8 @@ TestBayesianHilbertMap2D(
     Eigen::Matrix2X<Dtype> hinged_points =
         GenerateGridPoints(hinged_grid_size, map_boundary).second;
     BayesianHilbertMap<Dtype, 2> bhm(bhm_setting, kernel, hinged_points, map_boundary, 0);
+
+    TestIo<Dtype>(bhm, hinged_points, map_boundary);
 
     std::vector<Eigen::Vector3<Dtype>> trajectory = GenerateTrajectory<Dtype>(50, 1);
 
@@ -338,6 +362,8 @@ TestBayesianHilbertMap2D(
     }
 
     cv::waitKey(2000);
+
+    TestIo<Dtype>(bhm, hinged_points, map_boundary);
 }
 
 struct Options {
@@ -347,23 +373,22 @@ struct Options {
     bool diagonal_sigma = true;
     bool faster = true;
     bool use_sparse = false;
-    bool double_precision = false;
 };
 
 Options g_options;
 
-TEST(BayesianHilbertMap, 2D) {
-    if (g_options.double_precision) {
-        TestBayesianHilbertMap2D<double>(
-            g_options.hinged_grid_size,
-            g_options.test_grid_size,
-            g_options.rbf_gamma,
-            g_options.diagonal_sigma,
-            g_options.faster,
-            g_options.use_sparse);
-        return;
-    }
-    TestBayesianHilbertMap2D<float>(
+TEST(BayesianHilbertMap, 2Dd) {
+    TestImpl2D<double>(
+        g_options.hinged_grid_size,
+        g_options.test_grid_size,
+        g_options.rbf_gamma,
+        g_options.diagonal_sigma,
+        g_options.faster,
+        g_options.use_sparse);
+}
+
+TEST(BayesianHilbertMap, 2Df) {
+    TestImpl2D<float>(
         g_options.hinged_grid_size,
         g_options.test_grid_size,
         g_options.rbf_gamma,
@@ -387,8 +412,7 @@ main(int argc, char *argv[]) {
             ("rbf-gamma", po::value<float>(&g_options.rbf_gamma)->default_value(g_options.rbf_gamma), "RBF gamma value")
             ("diagonal-sigma", po::value<bool>(&g_options.diagonal_sigma)->default_value(g_options.diagonal_sigma), "Use diagonal sigma")
             ("faster", po::value<bool>(&g_options.faster)->default_value(g_options.faster), "Use faster prediction")
-            ("use-sparse", po::value<bool>(&g_options.use_sparse)->default_value(g_options.use_sparse), "Use sparse matrix")
-            ("double-precision", po::value<bool>(&g_options.double_precision)->default_value(g_options.double_precision), "Use double precision");
+            ("use-sparse", po::value<bool>(&g_options.use_sparse)->default_value(g_options.use_sparse), "Use sparse matrix");
         // clang-format on
         po::variables_map vm;
         po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);

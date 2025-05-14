@@ -13,7 +13,7 @@ YAML::convert<erl::geometry::NdTreeSetting>::decode(
     const Node &node,
     erl::geometry::NdTreeSetting &setting) {
     if (!node.IsMap()) { return false; }
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, resolution, float);
-    ERL_YAML_LOAD_ATTR_TYPE(node, setting, tree_depth, uint32_t);
+    ERL_YAML_LOAD_ATTR(node, setting, resolution);
+    ERL_YAML_LOAD_ATTR(node, setting, tree_depth);
     return true;
 }
