@@ -42,8 +42,8 @@ MouseCallback(
 
         const auto grid_map_info = data->drawer->GetGridMapInfo();
         cv::Mat img = data->img.clone();
-        const double x = grid_map_info->GridToMeterForValue(mouse_x, 0);
-        const double y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
+        const double x = grid_map_info->GridToMeterAtDim(mouse_x, 0);
+        const double y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
 
         constexpr long n = 721;
         Eigen::VectorXd angles = Eigen::VectorXd::LinSpaced(n, 0, 2 * M_PI);
@@ -87,8 +87,8 @@ MouseCallback(
                 img,
                 cv::Point(mouse_x, mouse_y),
                 cv::Point(
-                    grid_map_info->MeterToGridForValue(ex, 0),
-                    grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(ey, 1)),
+                    grid_map_info->MeterToGridAtDim(ex, 0),
+                    grid_map_info->Shape(1) - grid_map_info->MeterToGridAtDim(ey, 1)),
                 cv::Scalar(0, 0, 255, 255),
                 1);
         }

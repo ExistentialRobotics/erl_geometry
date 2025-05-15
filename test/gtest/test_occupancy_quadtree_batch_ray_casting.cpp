@@ -46,8 +46,8 @@ MouseCallback(
 
         const auto grid_map_info = data->drawer->GetGridMapInfo();
         cv::Mat img = data->img.clone();
-        const Dtype x = grid_map_info->GridToMeterForValue(mouse_x, 0);
-        const Dtype y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
+        const Dtype x = grid_map_info->GridToMeterAtDim(mouse_x, 0);
+        const Dtype y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
 
         constexpr long n = 721;
         VectorX angles = VectorX::LinSpaced(n, 0, 2 * M_PI);
@@ -86,10 +86,10 @@ MouseCallback(
             for (long i = 0; i < n; ++i) {
                 Vector2 start_pt = ray_origins.col(i) + ray_directions.col(i) * hit_distances[i];
                 Vector2 end_pt = ray_origins.col(i) + ray_directions.col(i) * new_hit_distances[i];
-                const int start_px = grid_map_info->MeterToGridForValue(start_pt[0], 0);
-                const int start_py = height - grid_map_info->MeterToGridForValue(start_pt[1], 1);
-                const int end_px = grid_map_info->MeterToGridForValue(end_pt[0], 0);
-                const int end_py = height - grid_map_info->MeterToGridForValue(end_pt[1], 1);
+                const int start_px = grid_map_info->MeterToGridAtDim(start_pt[0], 0);
+                const int start_py = height - grid_map_info->MeterToGridAtDim(start_pt[1], 1);
+                const int end_px = grid_map_info->MeterToGridAtDim(end_pt[0], 0);
+                const int end_py = height - grid_map_info->MeterToGridAtDim(end_pt[1], 1);
 
                 cv::line(
                     img,

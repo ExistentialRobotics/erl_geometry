@@ -1,3 +1,8 @@
+# 2025-05-15
+
+- Add: `MeshSdf` to compute SDF for a watertight mesh.
+- Add: `MarchingCubes` to extract meshes from SDF.
+
 # 2024-11-14
 
 - Add: implement `RgbdCamera3D` and `RgbdFrame3D`.

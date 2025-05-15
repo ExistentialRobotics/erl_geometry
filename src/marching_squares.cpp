@@ -1,4 +1,4 @@
-#include "erl_geometry/marching_square.hpp"
+#include "erl_geometry/marching_squares.hpp"
 
 #include <unordered_map>
 
@@ -46,66 +46,41 @@
 
 namespace erl::geometry {
 
+    const std::array<MarchingSquares::Edge, 5> MarchingSquares::kBaseEdgeTable = {
+        0, 0, 0, 1,  // edge 0
+        0, 0, 1, 0,  // edge 1
+        1, 0, 1, 1,  // edge 2
+        0, 1, 1, 1,  // edge 3
+        4, 4, 4, 4   // None
+    };
+
+    const std::array<std::array<MarchingSquares::Edge, 4>, 16> MarchingSquares::kEdgePairTable = {
+        kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[1], kBaseEdgeTable[2],  // and 1, 2
+        kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[3],  // and 2, 3
+        kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+    };  // 16 x 4 Edge, 16 x 16 long
+
+    template<typename Dtype>
     void
-    MarchingSquare(
-        const Eigen::Ref<const Eigen::MatrixXd> &img,
-        const double iso_value,
-        Eigen::Matrix2Xd &vertices,
+    MarchingSquareImpl(
+        const Eigen::Ref<const Eigen::MatrixX<Dtype>> &img,
+        const Dtype iso_value,
+        Eigen::Matrix2X<Dtype> &vertices,
         Eigen::Matrix2Xi &lines_to_vertices,
         Eigen::Matrix2Xi &objects_to_lines) {
-
-        using Edge = struct Edge {
-            Eigen::Vector2i v1, v2;  // vertices of an edge
-
-            bool
-            operator==(const Edge &other) const {
-                return other.v1 == v1 && other.v2 == v2;
-            }
-        };
-
-        struct HashEdge {
-            std::size_t
-            operator()(const Edge &e) const noexcept {
-                constexpr std::hash<long> long_hash;
-                std::size_t &&h_1 = long_hash(e.v1.x());
-                std::size_t &&h_2 = long_hash(e.v1.y());
-                std::size_t &&h_3 = long_hash(e.v2.x());
-                std::size_t &&h_4 = long_hash(e.v2.y());
-                return h_1 ^ h_2 << 1 ^ h_3 << 1 ^ h_4 << 1;
-            }
-        };
-
-        static std::vector<Edge> base_edge_table{
-            {{0, 0}, {0, 1}},  // edge 0
-            {{0, 0}, {1, 0}},  // edge 1
-            {{1, 0}, {1, 1}},  // edge 2
-            {{0, 1}, {1, 1}},  // edge 3
-            {{4, 4}, {4, 4}}   // kNone
-        };
-
-        static std::vector<std::vector<Edge>> edge_pair_table = {
-            {base_edge_table[4], base_edge_table[4]},
-            {base_edge_table[0], base_edge_table[3]},
-            {base_edge_table[2], base_edge_table[3]},
-            {base_edge_table[0], base_edge_table[2]},
-            {base_edge_table[1], base_edge_table[2]},
-            {base_edge_table[0],
-             base_edge_table[3],
-             base_edge_table[1],
-             base_edge_table[2]},  // val = 5 and 1, 2
-            {base_edge_table[1], base_edge_table[3]},
-            {base_edge_table[0], base_edge_table[1]},
-            {base_edge_table[0], base_edge_table[1]},
-            {base_edge_table[1], base_edge_table[3]},
-            {base_edge_table[0],
-             base_edge_table[1],
-             base_edge_table[2],
-             base_edge_table[3]},  // and 2, 3
-            {base_edge_table[1], base_edge_table[2]},
-            {base_edge_table[0], base_edge_table[2]},
-            {base_edge_table[2], base_edge_table[3]},
-            {base_edge_table[0], base_edge_table[3]},
-            {base_edge_table[4], base_edge_table[4]}};  // 16 x 2 Edge, 16 x 8 long
 
         static auto sort_lines_to_objects = [](Eigen::Matrix2Xi &lines_to_vertices_,
                                                Eigen::Matrix2Xi &objects_to_lines_) {
@@ -199,8 +174,10 @@ namespace erl::geometry {
         // binary mGoalMask of img <= iso_value
         auto b_mat = Eigen::MatrixX<bool>(img_height, img_width);
 
-        std::vector<Edge> edges;
-        std::unordered_map<Edge, int, HashEdge> unique_edges;
+        std::vector<MarchingSquares::Edge> edges;
+        std::unordered_map<MarchingSquares::Edge, int, MarchingSquares::HashEdge> unique_edges;
+        edges.reserve(img_height * img_width);
+        unique_edges.reserve(img_height * img_width);
 
         // 1. compute the first row of b_mat
         for (long y = 0; y < img_width; y++) { b_mat(0, y) = img(0, y) <= iso_value; }
@@ -209,7 +186,7 @@ namespace erl::geometry {
         //      a. compute x+1 row of b_mat
         //      b. compute v, Update edges, unique_edges and lines_to_vertices
         int idx_3, idx_4;
-        auto get_edge_index = [&](const Edge &e) -> int {
+        auto get_edge_index = [&](const MarchingSquares::Edge &e) -> int {
             // assign value to `e` only when it is a new key
             auto [map_pair, is_new_edge] = unique_edges.try_emplace(e, edges.size());
             if (is_new_edge) { edges.push_back(e); }
@@ -217,8 +194,9 @@ namespace erl::geometry {
             return edge_index;
         };
 
+        auto &edge_pair_table = MarchingSquares::kEdgePairTable;
+
         int num_lines = 0;
-        // auto &edge_pair_table = getEdgePairTable();
         for (long v = 0; v < img_height - 1; v++) {
             b_mat(v + 1, 0) = img(v + 1, 0) <= iso_value;
             for (long u = 0; u < img_width - 1; u++) {
@@ -227,13 +205,11 @@ namespace erl::geometry {
                 if (const int val = b_mat(v, u) << 3 | b_mat(v, u + 1) << 2 |
                                     b_mat(v + 1, u + 1) << 1 | b_mat(v + 1, u);
                     val > 0 && val < 15) {
-                    const auto &[e1_v1, e1_v2] = edge_pair_table[val][0];
-                    int idx_1 = get_edge_index(
-                        {{u + e1_v1.x(), v + e1_v1.y()}, {u + e1_v2.x(), v + e1_v2.y()}});
+                    const auto &[e1v1x, e1v1y, e1v2x, e1v2y] = edge_pair_table[val][0];
+                    int idx_1 = get_edge_index({u + e1v1x, v + e1v1y, u + e1v2x, v + e1v2y});
 
-                    const auto &[e2_v1, e2_v2] = edge_pair_table[val][1];
-                    int idx_2 = get_edge_index(
-                        {{u + e2_v1.x(), v + e2_v1.y()}, {u + e2_v2.x(), v + e2_v2.y()}});
+                    const auto &[e2v1x, e2v1y, e2v2x, e2v2y] = edge_pair_table[val][1];
+                    int idx_2 = get_edge_index({u + e2v1x, v + e2v1y, u + e2v2x, v + e2v2y});
 
                     if (lines_to_vertices.cols() == num_lines) {
                         lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
@@ -241,13 +217,11 @@ namespace erl::geometry {
                     lines_to_vertices.col(num_lines++) << idx_1, idx_2;
 
                     if (val == 5) {
-                        const auto &[e3_v1, e3_v2] = edge_pair_table[val][2];
-                        idx_3 = get_edge_index(
-                            {{u + e3_v1.x(), v + e3_v1.y()}, {u + e3_v2.x(), v + e3_v2.y()}});
+                        const auto &[e3v1x, e3v1y, e3v2x, e3v2y] = edge_pair_table[val][2];
+                        idx_3 = get_edge_index({u + e3v1x, v + e3v1y, u + e3v2x, v + e3v2y});
 
-                        const auto &[e4_v1, e4_v2] = edge_pair_table[val][3];
-                        idx_4 = get_edge_index(
-                            {{u + e4_v1.x(), v + e4_v1.y()}, {u + e4_v2.x(), v + e4_v2.y()}});
+                        const auto &[e4v1x, e4v1y, e4v2x, e4v2y] = edge_pair_table[val][3];
+                        idx_4 = get_edge_index({u + e4v1x, v + e4v1y, u + e4v2x, v + e4v2y});
 
                         if (lines_to_vertices.cols() == num_lines) {
                             lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
@@ -255,13 +229,11 @@ namespace erl::geometry {
                         lines_to_vertices.col(num_lines++) << idx_3, idx_4;
 
                     } else if (val == 10) {
-                        const auto &[e3_v1, e3_v2] = edge_pair_table[val][2];
-                        idx_3 = get_edge_index(
-                            {{u + e3_v1.x(), v + e3_v1.y()}, {u + e3_v2.x(), v + e3_v2.y()}});
+                        const auto &[e3v1x, e3v1y, e3v2x, e3v2y] = edge_pair_table[val][2];
+                        idx_3 = get_edge_index({u + e3v1x, v + e3v1y, u + e3v2x, v + e3v2y});
 
-                        const auto &[e4_v1, e4_v2] = edge_pair_table[val][3];
-                        idx_4 = get_edge_index(
-                            {{u + e4_v1.x(), v + e4_v1.y()}, {u + e4_v2.x(), v + e4_v2.y()}});
+                        const auto &[e4v1x, e4v1y, e4v2x, e4v2y] = edge_pair_table[val][3];
+                        idx_4 = get_edge_index({u + e4v1x, v + e4v1y, u + e4v2x, v + e4v2y});
 
                         if (lines_to_vertices.cols() == num_lines) {
                             lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
@@ -276,17 +248,38 @@ namespace erl::geometry {
         // 3. compute sub-pixel vertex coordinate by interpolation
         vertices.resize(2, static_cast<ssize_t>(edges.size()));
         for (ssize_t i = 0; i < static_cast<ssize_t>(edges.size()); ++i) {
-            const auto &[v1, v2] = edges[i];
-            const double w1 = std::abs(img(v1.y(), v1.x()) - iso_value);
-            const double w2 = std::abs(img(v2.y(), v2.x()) - iso_value);
-            const double a = w2 / (w1 + w2);
+            const auto &[v1x, v1y, v2x, v2y] = edges[i];
+            const Dtype w1 = std::abs(img(v1y, v1x) - iso_value);
+            const Dtype w2 = std::abs(img(v2y, v2x) - iso_value);
+            const Dtype a = w2 / (w1 + w2);
             // clang-format off
-            vertices.col(i) << static_cast<double>(v1.x()) * a + static_cast<double>(v2.x()) * (1.0 - a),
-                               static_cast<double>(v1.y()) * a + static_cast<double>(v2.y()) * (1.0 - a);
+            vertices.col(i) << static_cast<Dtype>(v1x) * a + static_cast<Dtype>(v2x) * (1.0f - a),
+                               static_cast<Dtype>(v1y) * a + static_cast<Dtype>(v2y) * (1.0f - a);
             // clang-format on
         }
 
         // 4. find objects
         sort_lines_to_objects(lines_to_vertices, objects_to_lines);
     }
+
+    void
+    MarchingSquares::Run(
+        const Eigen::Ref<const Eigen::MatrixXd> &img,
+        const double iso_value,
+        Eigen::Matrix2Xd &vertices,
+        Eigen::Matrix2Xi &lines_to_vertices,
+        Eigen::Matrix2Xi &objects_to_lines) {
+        MarchingSquareImpl<double>(img, iso_value, vertices, lines_to_vertices, objects_to_lines);
+    }
+
+    void
+    MarchingSquares::Run(
+        const Eigen::Ref<const Eigen::MatrixXf> &img,
+        const float iso_value,
+        Eigen::Matrix2Xf &vertices,
+        Eigen::Matrix2Xi &lines_to_vertices,
+        Eigen::Matrix2Xi &objects_to_lines) {
+        MarchingSquareImpl<float>(img, iso_value, vertices, lines_to_vertices, objects_to_lines);
+    }
+
 }  // namespace erl::geometry

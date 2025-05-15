@@ -37,8 +37,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 
         auto grid_map_info = data->drawer->GetGridMapInfo();
         cv::Mat img = data->img.clone();
-        double x = grid_map_info->GridToMeterForValue(mouse_x, 0);
-        double y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
+        double x = grid_map_info->GridToMeterAtDim(mouse_x, 0);
+        double y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
         QuadtreeKey key;
         if (!data->tree->CoordToKeyChecked(x, y, key)) { return; }
         unsigned int key_depth = 0;

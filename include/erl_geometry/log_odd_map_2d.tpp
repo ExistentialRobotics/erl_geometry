@@ -497,8 +497,8 @@ namespace erl::geometry {
                 clipped_range = kRange;
                 // clang-format off
                 mask->occupied_grids.col(num_obstacle_grids++) <<
-                    m_grid_map_info_->MeterToGridForValue(position[0] + kRange * std::cos(angles[i]), 0),
-                    m_grid_map_info_->MeterToGridForValue(position[1] + kRange * std::sin(angles[i]), 1);
+                    m_grid_map_info_->MeterToGridAtDim(position[0] + kRange * std::cos(angles[i]), 0),
+                    m_grid_map_info_->MeterToGridAtDim(position[1] + kRange * std::sin(angles[i]), 1);
                 // clang-format on
             }
         }
@@ -507,8 +507,8 @@ namespace erl::geometry {
         // compute the boundary of the in-map lidar scan area
         std::vector<std::vector<cv::Point>> lidar_area_contours(1);
         auto &contour = lidar_area_contours[0];
-        int start_x = m_grid_map_info_->MeterToGridForValue(position[0], 0);
-        int start_y = m_grid_map_info_->MeterToGridForValue(position[1], 1);
+        int start_x = m_grid_map_info_->MeterToGridAtDim(position[0], 0);
+        int start_y = m_grid_map_info_->MeterToGridAtDim(position[1], 1);
         if (ray_mode) {  // start, end1, end2, end3, ..., endN
             contour.reserve(2 * num_rays);
         } else {  // area mode: start, end1, start, end2, start, end3, ..., start, endN
@@ -521,8 +521,8 @@ namespace erl::geometry {
             if (ray_mode) { contour.emplace_back(start_y, start_x); }
             const Dtype &distance = clipped_ranges[i];
             // if (distance > clipped_ranges[i]) { distance = clipped_ranges[i]; }
-            int x = m_grid_map_info_->MeterToGridForValue(position[0] + direction[0] * distance, 0);
-            int y = m_grid_map_info_->MeterToGridForValue(position[1] + direction[1] * distance, 1);
+            int x = m_grid_map_info_->MeterToGridAtDim(position[0] + direction[0] * distance, 0);
+            int y = m_grid_map_info_->MeterToGridAtDim(position[1] + direction[1] * distance, 1);
             contour.emplace_back(y, x);
             mask->UpdateGridRange(x, y);
         }
@@ -633,16 +633,16 @@ namespace erl::geometry {
                     const Dtype &angle = angles[j];
                     // clang-format off
                     mask->occupied_grids.col(num_obstacle_grids++) <<
-                        m_grid_map_info_->MeterToGridForValue(lidar_x + kRange * std::cos(angle), 0),
-                        m_grid_map_info_->MeterToGridForValue(lidar_y + kRange * std::sin(angle), 1);
+                        m_grid_map_info_->MeterToGridAtDim(lidar_x + kRange * std::cos(angle), 0),
+                        m_grid_map_info_->MeterToGridAtDim(lidar_y + kRange * std::sin(angle), 1);
                     // clang-format on
                 }
             }
 
             // compute the boundary of the lidar scan area
             auto &contour = lidar_area_contours[i];
-            int start_x = m_grid_map_info_->MeterToGridForValue(lidar_x, 0);
-            int start_y = m_grid_map_info_->MeterToGridForValue(lidar_y, 1);
+            int start_x = m_grid_map_info_->MeterToGridAtDim(lidar_x, 0);
+            int start_y = m_grid_map_info_->MeterToGridAtDim(lidar_y, 1);
 
             // area mode: start, end1, start, end2, start, end3, ..., start, endN
             contour.reserve(1 + num_rays);
@@ -652,8 +652,8 @@ namespace erl::geometry {
             for (int j = 0; j < num_rays; ++j) {
                 Eigen::Vector2<Dtype> direction(std::cos(angles[j]), std::sin(angles[j]));
                 const Dtype distance = clipped_ranges[j];
-                int x = m_grid_map_info_->MeterToGridForValue(lidar_x + direction[0] * distance, 0);
-                int y = m_grid_map_info_->MeterToGridForValue(lidar_y + direction[1] * distance, 1);
+                int x = m_grid_map_info_->MeterToGridAtDim(lidar_x + direction[0] * distance, 0);
+                int y = m_grid_map_info_->MeterToGridAtDim(lidar_y + direction[1] * distance, 1);
                 contour.emplace_back(y, x);
                 mask->UpdateGridRange(x, y);
             }
@@ -817,9 +817,9 @@ namespace erl::geometry {
             Eigen::Rotation2D<Dtype>(theta).toRotationMatrix();
         for (int i = 0; i < num_vertices; ++i) {
             Vector2 vertex = rotation_matrix * m_shape_vertices_.col(i) + position;
-            int x = m_grid_map_info_->MeterToGridForValue(vertex[0], 0);  // row
-            int y = m_grid_map_info_->MeterToGridForValue(vertex[1], 1);  // col
-            robot_shape.emplace_back(y, x);                               // (col, row)
+            int x = m_grid_map_info_->MeterToGridAtDim(vertex[0], 0);  // row
+            int y = m_grid_map_info_->MeterToGridAtDim(vertex[1], 1);  // col
+            robot_shape.emplace_back(y, x);                            // (col, row)
         }
         cv::drawContours(m_cleaned_mask_.free_mask, contour, 0, cv::Scalar(1), cv::FILLED);
         cv::drawContours(m_cleaned_mask_.occupied_mask, contour, 0, cv::Scalar(0), cv::FILLED);

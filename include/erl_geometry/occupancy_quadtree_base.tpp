@@ -36,8 +36,8 @@ namespace erl::geometry {
         cv::threshold(image_map, obstacle_map, occupied_threshold, 255, cv::THRESH_BINARY);
         for (int gx = 0; gx < obstacle_map.rows; ++gx) {
             for (int gy = 0; gy < obstacle_map.cols; ++gy) {
-                const Dtype x = map_info->GridToMeterForValue(gx, 0);
-                const Dtype y = map_info->GridToMeterForValue(gy, 1);
+                const Dtype x = map_info->GridToMeterAtDim(gx, 0);
+                const Dtype y = map_info->GridToMeterAtDim(gy, 1);
                 this->UpdateNode(
                     x,
                     y,
@@ -49,29 +49,29 @@ namespace erl::geometry {
         // add padding
         for (int gx = -padding; gx < 0; ++gx) {
             for (int gy = -padding; gy < obstacle_map.cols + padding; ++gy) {
-                const Dtype x = map_info->GridToMeterForValue(gx, 0);
-                const Dtype y = map_info->GridToMeterForValue(gy, 1);
+                const Dtype x = map_info->GridToMeterAtDim(gx, 0);
+                const Dtype y = map_info->GridToMeterAtDim(gy, 1);
                 this->UpdateNode(x, y, /*occupied*/ true, /*lazy_eval*/ false);
             }
         }
         for (int gx = obstacle_map.rows; gx < obstacle_map.rows + padding; ++gx) {
             for (int gy = -padding; gy < obstacle_map.cols + padding; ++gy) {
-                const Dtype x = map_info->GridToMeterForValue(gx, 0);
-                const Dtype y = map_info->GridToMeterForValue(gy, 1);
+                const Dtype x = map_info->GridToMeterAtDim(gx, 0);
+                const Dtype y = map_info->GridToMeterAtDim(gy, 1);
                 this->UpdateNode(x, y, /*occupied*/ true, /*lazy_eval*/ false);
             }
         }
         for (int gx = 0; gx < obstacle_map.rows; ++gx) {
             for (int gy = -padding; gy < 0; ++gy) {
-                const Dtype x = map_info->GridToMeterForValue(gx, 0);
-                const Dtype y = map_info->GridToMeterForValue(gy, 1);
+                const Dtype x = map_info->GridToMeterAtDim(gx, 0);
+                const Dtype y = map_info->GridToMeterAtDim(gy, 1);
                 this->UpdateNode(x, y, /*occupied*/ true, /*lazy_eval*/ false);
             }
         }
         for (int gx = 0; gx < obstacle_map.rows; ++gx) {
             for (int gy = obstacle_map.cols; gy < obstacle_map.cols + padding; ++gy) {
-                const Dtype x = map_info->GridToMeterForValue(gx, 0);
-                const Dtype y = map_info->GridToMeterForValue(gy, 1);
+                const Dtype x = map_info->GridToMeterAtDim(gx, 0);
+                const Dtype y = map_info->GridToMeterAtDim(gy, 1);
                 this->UpdateNode(x, y, /*occupied*/ true, /*lazy_eval*/ false);
             }
         }

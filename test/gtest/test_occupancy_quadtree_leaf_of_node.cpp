@@ -36,8 +36,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 
         auto grid_map_info = data->drawer->GetGridMapInfo();
         cv::Mat img = data->img.clone();
-        double x = grid_map_info->GridToMeterForValue(mouse_x, 0);
-        double y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
+        double x = grid_map_info->GridToMeterAtDim(mouse_x, 0);
+        double y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
 
         unsigned int node_depth = data->tree->GetTreeDepth() - 6;
         QuadtreeKey key = data->tree->CoordToKey(x, y, node_depth);
@@ -76,8 +76,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                                                 : cv::Scalar(0, 128, 255, 255),
                 cv::FILLED);
             cv::Point pt_key(
-                grid_map_info->MeterToGridForValue(kx, 0),
-                grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(ky, 1));
+                grid_map_info->MeterToGridAtDim(kx, 0),
+                grid_map_info->Shape(1) - grid_map_info->MeterToGridAtDim(ky, 1));
             cv::circle(img, pt_key, 5, cv::Scalar(0, 0, 0, 255), cv::FILLED);
         }
         auto t1 = std::chrono::high_resolution_clock::now();

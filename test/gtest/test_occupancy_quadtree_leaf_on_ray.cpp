@@ -30,8 +30,8 @@ Draw(UserData *data) {
 
     auto grid_map_info = data->drawer->GetGridMapInfo();
     cv::Mat img = data->img.clone();
-    double x = grid_map_info->GridToMeterForValue(data->mouse_x, 0);
-    double y = grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - data->mouse_y, 1);
+    double x = grid_map_info->GridToMeterAtDim(data->mouse_x, 0);
+    double y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - data->mouse_y, 1);
 
     auto t0 = std::chrono::high_resolution_clock::now();
     double vx = std::cos(data->angle);
@@ -71,8 +71,8 @@ Draw(UserData *data) {
         img,
         {data->mouse_x, data->mouse_y},
         {
-            grid_map_info->MeterToGridForValue(x + d_forward * vx, 0),
-            grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(y + d_forward * vy, 1),
+            grid_map_info->MeterToGridAtDim(x + d_forward * vx, 0),
+            grid_map_info->Shape(1) - grid_map_info->MeterToGridAtDim(y + d_forward * vy, 1),
         },
         {0, 255, 0, 255},
         2);
@@ -80,8 +80,8 @@ Draw(UserData *data) {
         img,
         {data->mouse_x, data->mouse_y},
         {
-            grid_map_info->MeterToGridForValue(x + d_backward * vx, 0),
-            grid_map_info->Shape(1) - grid_map_info->MeterToGridForValue(y + d_backward * vy, 1),
+            grid_map_info->MeterToGridAtDim(x + d_backward * vx, 0),
+            grid_map_info->Shape(1) - grid_map_info->MeterToGridAtDim(y + d_backward * vy, 1),
         },
         {255, 0, 0, 255},
         2);

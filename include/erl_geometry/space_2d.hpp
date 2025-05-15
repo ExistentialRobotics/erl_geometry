@@ -1,7 +1,7 @@
 #pragma once
 
 #include "kdtree_eigen_adaptor.hpp"
-#include "marching_square.hpp"
+#include "marching_squares.hpp"
 #include "surface_2d.hpp"
 
 #include "erl_common/grid_map_info.hpp"

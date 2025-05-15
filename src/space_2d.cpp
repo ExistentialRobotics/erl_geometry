@@ -152,7 +152,12 @@ namespace erl::geometry {
         Eigen::Matrix2Xi lines_to_vertices;
         Eigen::Matrix2Xi objects_to_lines;
         // in pixels, (u, v) <--> (x_grid, height - y_grid)
-        MarchingSquare(map_image, free_threshold, vertices, lines_to_vertices, objects_to_lines);
+        MarchingSquares::Run(
+            map_image,
+            free_threshold,
+            vertices,
+            lines_to_vertices,
+            objects_to_lines);
         m_surface_ = std::make_shared<Surface2D>(
             std::move(vertices),
             Eigen::Matrix2Xd{},

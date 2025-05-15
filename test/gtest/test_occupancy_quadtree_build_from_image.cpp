@@ -59,9 +59,9 @@ TEST(OccupancyQuadtree, BuildFromImage) {
                 // openCV coordinates: origin is in the top-left corner, x is right, y is down
 
                 Eigen::Vector2d position;
-                position[0] = grid_map_info->GridToMeterForValue(mouse_x, 0);
+                position[0] = grid_map_info->GridToMeterAtDim(mouse_x, 0);
                 position[1] =
-                    grid_map_info->GridToMeterForValue(grid_map_info->Shape(1) - mouse_y, 1);
+                    grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
                 const Eigen::Matrix2d rotation = Eigen::Matrix2d::Identity();
                 const Eigen::VectorXd angles =
                     Eigen::VectorXd::LinSpaced(361, 0, 2 * M_PI).head(360);
@@ -98,9 +98,9 @@ TEST(OccupancyQuadtree, BuildFromImage) {
                         img_new,
                         cv::Point(mouse_x, mouse_y),
                         cv::Point(
-                            grid_map_info->MeterToGridForValue(hit_position[0], 0),
+                            grid_map_info->MeterToGridAtDim(hit_position[0], 0),
                             grid_map_info->Shape(1) -
-                                grid_map_info->MeterToGridForValue(hit_position[1], 1)),
+                                grid_map_info->MeterToGridAtDim(hit_position[1], 1)),
                         cv::Scalar(0, 0, 255, 255),
                         1);
                 }
