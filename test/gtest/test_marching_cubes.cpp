@@ -79,6 +79,8 @@ TEST(MarchingCubes, Sphere) {
     constexpr int n = 71;
     constexpr int resolution = 100;
     auto sphere = open3d::geometry::TriangleMesh::CreateSphere(radius, resolution);
+    open3d::io::WriteTriangleMesh(test_output_dir / "sphere.ply", *sphere, true);
+
     // generate test data
     erl::common::GridMapInfo3Dd grid_map_info(
         Eigen::Vector3i(n, n, n),

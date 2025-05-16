@@ -8,36 +8,9 @@ foreach(package erl_common)
     endif()
 endforeach()
 
-erl_find_package(
-        PACKAGE Qhull
-        REQUIRED
-        COMMANDS UBUNTU_LINUX "try `sudo apt-get install libqhull-dev`"
-        COMMANDS ARCH_LINUX "try `sudo pacman -S qhull`")
-get_target_property(Qhull_INCLUDE_DIRS Qhull::qhullcpp INTERFACE_INCLUDE_DIRECTORIES)
-get_target_property(qhull_r_location Qhull::qhull_r LOCATION)
-get_target_property(qhullcpp_location Qhull::qhullcpp LOCATION)
-list(APPEND Qhull_LIBRARIES ${qhull_r_location} ${qhullcpp_location})
-
-erl_find_package(
-        PACKAGE absl
-        REQUIRED
-        COMMANDS APPLE "try `brew install abseil`"
-        COMMANDS UBUNTU_LINUX "try `sudo apt install libabseil-dev`"
-        COMMANDS ARCH_LINUX "try `sudo pacman -S abseil-cpp`")
-
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.24)
-    get_target_property(absl::flat_hash_map_location absl::flat_hash_map LOCATION)
-    get_target_property(absl::flat_hash_set_location absl::flat_hash_set LOCATION)
-    list(APPEND absl_LIBRARIES ${absl_flat_hash_map_location} ${absl_flat_hash_set_location})
-endif ()
-
-erl_find_package(
-        PACKAGE Open3D
-        REQUIRED
-        COMMANDS GENERAL "visit http://www.open3d.org/"
-        COMMANDS ARCH_LINUX "try `paru -S open3d`"
-)
-get_target_property(Open3D_LIBRARIES Open3D::Open3D LOCATION)
+erl_config_qhull()
+erl_config_absl()
+erl_config_open3d()
 
 if (ERL_BUILD_TEST_${PROJECT_NAME})
     erl_find_package(

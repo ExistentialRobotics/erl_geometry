@@ -48,9 +48,11 @@ target_include_directories(${PROJECT_NAME}
         PUBLIC
         $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-if (catkin_LIBRARIES)
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
+if (ROS_ACTIVATED)
+    if (ROS_VERSION STREQUAL "1")
+        target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+        target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
+    endif ()
 else ()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif ()
@@ -83,11 +85,12 @@ erl_install(
 ####################################################################################################
 # TEST
 ####################################################################################################
+erl_set_gtest_extra_libraries(test_convex_hull_3d_impls CGAL::CGAL)
+erl_set_gtest_extra_libraries(test_occupancy_octree_impls octomap)
 erl_add_tests(
-        test_convex_hull_3d_impls_LIBRARIES CGAL::CGAL
-        test_occupancy_octree_impls_LIBRARIES octomap
         LIBRARIES ${PROJECT_NAME}
-        EXCLUDE_FROM_ALL test_depth_frame_3d_basic
+        EXCLUDE_FROM_ALL
+        test_depth_frame_3d_basic
         test_convex_hull
         test_convex_hull_3d_impls
         test_depth_frame_3d_basic
