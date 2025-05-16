@@ -24,7 +24,7 @@ TEST(MeshSdf, Sphere) {
     Eigen::Matrix3Xd positions = grid_map_info.GenerateMeterCoordinates(false);
     Eigen::VectorXd sdf_gt_values = positions.colwise().norm().array() - radius;
     // test
-    erl::geometry::MeshSdf sdf(mesh->vertices_, mesh->triangles_, false);
+    erl::geometry::MeshSdf sdf(mesh->vertices_, mesh->triangles_, true);
     Eigen::VectorXd sdf_values = sdf(positions);
     // check
     Eigen::VectorXd abs_err = (sdf_values - sdf_gt_values).cwiseAbs();
@@ -65,11 +65,10 @@ TEST(MeshSdf, Sphere) {
         .SetCurrentColor(PlplotFig::Color0::White)
         .DrawContour(sdf_gt_values_xy.data(), n, n, xmin, xmax, ymin, ymax, true, {0.0})
         .ColorBar(color_bar_opt)
-        .DrawAxesBox(
-            PlplotFig::AxisOpt().DrawTopRightEdge(),
-            PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
+        .DrawAxesBox(PlplotFig::AxisOpt(), PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
         .SetAxisLabelX("x")
-        .SetAxisLabelY("y");
+        .SetAxisLabelY("y")
+        .SetTitle("Ground Truth SDF");
     cv::imshow(test_info_->name() + std::string(": SDF G.T."), fig.ToCvMat());
     cv::imwrite(test_output_dir / "sdf_gt.png", fig.ToCvMat());
 
@@ -86,11 +85,10 @@ TEST(MeshSdf, Sphere) {
         .SetCurrentColor(PlplotFig::Color0::White)
         .DrawContour(sdf_values_xy.data(), n, n, xmin, xmax, ymin, ymax, true, {0.0})
         .ColorBar(color_bar_opt)
-        .DrawAxesBox(
-            PlplotFig::AxisOpt().DrawTopRightEdge(),
-            PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
+        .DrawAxesBox(PlplotFig::AxisOpt(), PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
         .SetAxisLabelX("x")
-        .SetAxisLabelY("y");
+        .SetAxisLabelY("y")
+        .SetTitle("MeshSdf Output");
     cv::imshow(test_info_->name() + std::string(": SDF"), fig.ToCvMat());
     cv::imwrite(test_output_dir / "sdf.png", fig.ToCvMat());
 
@@ -186,11 +184,10 @@ TEST(MeshSdf, Bunny) {
         .SetCurrentColor(PlplotFig::Color0::White)
         .DrawContour(sdf_gt_values_yz.data(), n, n, ymin, ymax, zmin, zmax, true, {0.0})
         .ColorBar(color_bar_opt)
-        .DrawAxesBox(
-            PlplotFig::AxisOpt().DrawTopRightEdge(),
-            PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
+        .DrawAxesBox(PlplotFig::AxisOpt(), PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
         .SetAxisLabelX("y")
-        .SetAxisLabelY("z");
+        .SetAxisLabelY("z")
+        .SetTitle("Ground Truth SDF");
     cv::imshow(test_info_->name() + std::string(": SDF G.T."), fig.ToCvMat());
     cv::imwrite(test_output_dir / "sdf_gt.png", fig.ToCvMat());
 
@@ -207,11 +204,10 @@ TEST(MeshSdf, Bunny) {
         .SetCurrentColor(PlplotFig::Color0::White)
         .DrawContour(sdf_values_yz.data(), n, n, ymin, ymax, zmin, zmax, true, {0.0})
         .ColorBar(color_bar_opt)
-        .DrawAxesBox(
-            PlplotFig::AxisOpt().DrawTopRightEdge(),
-            PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
+        .DrawAxesBox(PlplotFig::AxisOpt(), PlplotFig::AxisOpt().DrawPerpendicularTickLabels())
         .SetAxisLabelX("y")
-        .SetAxisLabelY("z");
+        .SetAxisLabelY("z")
+        .SetTitle("MeshSdf Output");
     cv::imshow(test_info_->name() + std::string(": SDF X=0"), fig.ToCvMat());
     cv::imwrite(test_output_dir / "sdf.png", fig.ToCvMat());
     cv::waitKey(100);

@@ -9,7 +9,7 @@ namespace erl::geometry {
     Open3dVisualizerWrapper::Open3dVisualizerWrapper(std::shared_ptr<Setting> setting)
         : m_setting_(std::move(setting)) {
         if (!m_setting_) { m_setting_ = std::make_shared<Setting>(); }
-        m_axis_mesh_ = CreateAxisMesh(Eigen::Matrix4d::Identity(), 0.1);
+        m_axis_mesh_ = open3d::geometry::TriangleMesh::CreateCoordinateFrame(0.1);
         Init();
     }
 

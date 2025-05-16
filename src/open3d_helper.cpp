@@ -45,40 +45,63 @@ namespace erl::geometry {
     }
 
     std::shared_ptr<open3d::geometry::TriangleMesh>
-    CreateAxisMesh(const Eigen::Matrix4d &pose, const double axis_length) {
-        auto axis_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
-        constexpr double cylinder_radius = 0.0025;
-        constexpr double cone_radius = 0.0075;
-        constexpr double cone_height = 0.04;
-        const auto axis_x = open3d::geometry::TriangleMesh::CreateArrow(
-            cylinder_radius,
-            cone_radius,
-            axis_length,
-            cone_height);
-        axis_x->PaintUniformColor(Eigen::Vector3d(1.0, 0.0, 0.0));  // red
-        axis_x->Rotate(
-            open3d::geometry::TriangleMesh::GetRotationMatrixFromXYZ(Eigen::Vector3d(0, M_PI_2, 0)),
-            Eigen::Vector3d(0, 0, 0));
-        const auto axis_y = open3d::geometry::TriangleMesh::CreateArrow(
-            cylinder_radius,
-            cone_radius,
-            axis_length,
-            cone_height);
-        axis_y->PaintUniformColor(Eigen::Vector3d(0.0, 1.0, 0.0));  // green
-        axis_y->Rotate(
-            open3d::geometry::TriangleMesh::GetRotationMatrixFromXYZ(
-                Eigen::Vector3d(-M_PI_2, 0, 0)),
-            Eigen::Vector3d(0, 0, 0));
-        const auto axis_z = open3d::geometry::TriangleMesh::CreateArrow(
-            cylinder_radius,
-            cone_radius,
-            axis_length,
-            cone_height);
-        axis_z->PaintUniformColor(Eigen::Vector3d(0.0, 0.0, 1.0));  // blue
-        *axis_mesh += *axis_x;
-        *axis_mesh += *axis_y;
-        *axis_mesh += *axis_z;
-        axis_mesh->Transform(pose);
-        return axis_mesh;
+    CreateUnitBoxFrameMesh(const double edge_radius) {
+        // clang-format off
+        //       v7_______e6_____________v6
+        //        /|                    /|
+        //       / |                   / |
+        //    e7/  |                e5/  |
+        //     /___|______e4_________/   |
+        //  v4|    |                 |v5 |e10
+        //    |    |                 |   |
+        //    |    |e11              |e9 |
+        //  e8|    |                 |   |
+        //    |    |_________________|___|
+        //    |   / v3      e2       |   /v2
+        //    |  /                   |  /
+        //    | /e3                  | /e1
+        //    |/_____________________|/
+        //    v0         e0          v1
+        // clang-format on
+
+        auto box = std::make_shared<open3d::geometry::TriangleMesh>();
+        auto edge = open3d::geometry::TriangleMesh::CreateCylinder(edge_radius, 1.0);
+
+        open3d::geometry::TriangleMesh z_axis = *edge;
+        z_axis.Translate({0.0, 0.0, 0.5});
+        // *box += edge8;
+
+        open3d::geometry::TriangleMesh edge0 = z_axis;
+        edge0.Rotate(
+            Eigen::AngleAxisd(M_PI / 2.0, Eigen::Vector3d::UnitY()).toRotationMatrix(),
+            {0.0, 0.0, 0.0});
+        *box += edge0;
+
+        open3d::geometry::TriangleMesh edge3 = z_axis;
+        edge3.Rotate(
+            Eigen::AngleAxisd(-M_PI / 2.0, Eigen::Vector3d::UnitX()).toRotationMatrix(),
+            {0.0, 0.0, 0.0});
+        *box += edge3;
+
+        open3d::geometry::TriangleMesh edge1 = edge3;
+        edge1.Translate({1.0, 0.0, 0.0});
+        *box += edge1;
+
+        open3d::geometry::TriangleMesh edge2 = edge0;
+        edge2.Translate({0.0, 1.0, 0.0});
+        *box += edge2;
+
+        open3d::geometry::TriangleMesh frame = *box;
+        frame.Translate({0.0, 0.0, 1.0});
+        *box += frame;
+
+        *box += z_axis;
+        z_axis.Translate({1.0, 0.0, 0.0});
+        *box += z_axis;
+        z_axis.Translate({0.0, 1.0, 0.0});
+        *box += z_axis;
+        z_axis.Translate({-1.0, 0.0, 0.0});
+        *box += z_axis;
+        return box;
     }
 }  // namespace erl::geometry
