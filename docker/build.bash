@@ -10,7 +10,7 @@ if [ "${BUILD_UBUNTU_2004}" = "true" ]; then
   ./build.bash $@
 fi
 
-if [ "${BUILD_ROS_NOETIC}" = "true"]; then
+if [ "${BUILD_ROS_NOETIC}" = "true" ]; then
   echo "Building ROS image..."
   cd $SCRIPT_DIR/ros-noetic
   ./build.bash $@
