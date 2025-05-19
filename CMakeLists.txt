@@ -48,6 +48,11 @@ target_include_directories(${PROJECT_NAME}
         PUBLIC
         $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
+target_link_libraries(${PROJECT_NAME}
+        PUBLIC nanoflann::nanoflann
+        PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
+        PUBLIC absl::flat_hash_map absl::flat_hash_set
+)
 if (ROS_ACTIVATED)
     if (ROS_VERSION STREQUAL "1")
         target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
@@ -56,11 +61,6 @@ if (ROS_ACTIVATED)
 else ()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif ()
-target_link_libraries(${PROJECT_NAME}
-        PUBLIC nanoflann::nanoflann
-        PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
-        PUBLIC absl::flat_hash_map absl::flat_hash_set
-)
 
 ###################
 # Python bindings #

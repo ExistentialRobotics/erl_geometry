@@ -7,9 +7,7 @@ RUN cp /etc/apt/sources.list /etc/apt/sources.list.backup &&\
         sed -i "s|http://archive.ubuntu.com/ubuntu/|$APT_MIRROR|g" /etc/apt/sources.list; \
     fi
 RUN DEBIAN_FRONTEND=noninteractive apt update -y
-RUN DEBIAN_FRONTEND=noninteractive apt install -y ubuntu-desktop-minimal
-RUN DEBIAN_FRONTEND=noninteractive apt install -y \
-    software-properties-common lsb-release vim locales apt-utils ca-certificates curl iproute2
+RUN DEBIAN_FRONTEND=noninteractive apt install -y ubuntu-desktop-minimal vim curl iproute2
 
 RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | DEBIAN_FRONTEND=noninteractive apt-key add -
