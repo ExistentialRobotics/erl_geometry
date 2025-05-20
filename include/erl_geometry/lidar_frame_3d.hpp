@@ -17,6 +17,7 @@ namespace erl::geometry {
         using Super = RangeSensorFrame3D<Dtype>;
         using MatrixX = Eigen::MatrixX<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;
+        using Matrix3X = Eigen::Matrix3X<Dtype>;
         using Matrix2X = Eigen::Matrix2X<Dtype>;
         using VectorX = Eigen::VectorX<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
@@ -50,6 +51,9 @@ namespace erl::geometry {
             this->m_max_valid_range_ = std::numeric_limits<Dtype>::min();
         }
 
+        [[nodiscard]] std::pair<long, long>
+        GetFrameShape() const override;
+
         [[nodiscard]] bool
         PointIsInFrame(const Vector3 &xyz_frame) const override;
 
@@ -76,6 +80,13 @@ namespace erl::geometry {
         GetNumElevationLines() const {
             return this->m_frame_coords_.cols();
         }
+
+        [[nodiscard]] MatrixX
+        PointCloudToRanges(
+            const Matrix3 &rotation,
+            const Vector3 &translation,
+            const Eigen::Ref<const Matrix3X> &points,
+            bool are_local) const override;
 
         [[nodiscard]] bool
         operator==(const Super &other) const override;

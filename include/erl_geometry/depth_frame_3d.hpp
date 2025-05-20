@@ -15,8 +15,10 @@ namespace erl::geometry {
         using Super = RangeSensorFrame3D<Dtype>;
         using MatrixX = Eigen::MatrixX<Dtype>;
         using Matrix3 = Eigen::Matrix3<Dtype>;
+        using Matrix3X = Eigen::Matrix3X<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
         using Vector2 = Eigen::Vector2<Dtype>;
+        using VectorX = Eigen::VectorX<Dtype>;
 
         struct Setting : public common::Yamlable<Setting, typename Super::Setting> {
             CameraIntrinsic<Dtype> camera_intrinsic = {};
@@ -48,6 +50,9 @@ namespace erl::geometry {
         [[nodiscard]] long
         GetImageWidth() const;
 
+        [[nodiscard]] std::pair<long, long>
+        GetFrameShape() const override;
+
         [[nodiscard]] bool
         PointIsInFrame(const Vector3 &xyz_frame) const override;
 
@@ -78,6 +83,13 @@ namespace erl::geometry {
             const Eigen::Ref<const Vector3> &translation,
             const std::string &depth_file,
             double depth_scale);
+
+        [[nodiscard]] MatrixX
+        PointCloudToRanges(
+            const Matrix3 &rotation,
+            const Vector3 &translation,
+            const Eigen::Ref<const Matrix3X> &points,
+            bool are_local) const override;
 
         [[nodiscard]] bool
         operator==(const Super &other) const override;

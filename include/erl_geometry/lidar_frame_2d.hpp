@@ -118,6 +118,21 @@ namespace erl::geometry {
             const Eigen::Ref<const Vector2> &translation,
             VectorX ranges);
 
+        /**
+         * Convert a point cloud to ranges.
+         * @param rotation The rotation of the sensor, which is a 2x2 matrix.
+         * @param translation The translation of the sensor, which is a 2x1 vector.
+         * @param points The point cloud, which is a 2xN matrix.
+         * @param are_local If true, the points are in the local frame.
+         * @return The ranges, which is a vector of size N.
+         */
+        [[nodiscard]] VectorX
+        PointCloudToRanges(
+            const Matrix2 &rotation,
+            const Vector2 &translation,
+            const Eigen::Ref<const Matrix2X> &points,
+            bool are_local) const;
+
         [[nodiscard]] const std::shared_ptr<Setting> &
         GetSetting() const;
 

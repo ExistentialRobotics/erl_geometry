@@ -1,6 +1,5 @@
 #pragma once
 
-#include "erl_common/exception.hpp"
 #include "erl_common/opencv.hpp"
 
 namespace erl::geometry {
@@ -52,6 +51,14 @@ namespace erl::geometry {
     long
     DepthFrame3D<Dtype>::GetImageWidth() const {
         return this->m_frame_coords_.cols();
+    }
+
+    template<typename Dtype>
+    std::pair<long, long>
+    DepthFrame3D<Dtype>::GetFrameShape() const {
+        return {
+            m_setting_->camera_intrinsic.image_height,
+            m_setting_->camera_intrinsic.image_width};
     }
 
     template<typename Dtype>
@@ -189,6 +196,47 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
+    typename DepthFrame3D<Dtype>::MatrixX
+    DepthFrame3D<Dtype>::PointCloudToRanges(
+        const Matrix3 &rotation,
+        const Vector3 &translation,
+        const Eigen::Ref<const Matrix3X> &points,
+        const bool are_local) const {
+        Eigen::Matrix2Xi frame_coords(2, points.cols());  // [row, col]
+        VectorX depths(points.cols());
+        const Dtype fx = m_setting_->camera_intrinsic.camera_fx;
+        const Dtype fy = m_setting_->camera_intrinsic.camera_fy;
+        const Dtype cx = m_setting_->camera_intrinsic.camera_cx;
+        const Dtype cy = m_setting_->camera_intrinsic.camera_cy;
+        // compute directions, distances and frame coordinates
+#pragma omp parallel for default(none) \
+    shared(rotation, translation, points, are_local, frame_coords, depths, fx, fy, cx, cy)
+        for (long i = 0; i < points.cols(); ++i) {
+            Vector3 p = are_local ? Vector3(points.col(i))
+                                  : Vector3(rotation.transpose() * (points.col(i) - translation));
+            // clang-format off
+            frame_coords.col(i) << static_cast<int>(std::floor(fy * p[1] / p[2] + cy)),  // row
+                                   static_cast<int>(std::floor(fx * p[0] / p[2] + cx));  // col
+            // clang-format on
+            depths[i] = p[2];
+        }
+        const long rows = m_setting_->camera_intrinsic.image_height;
+        const long cols = m_setting_->camera_intrinsic.image_width;
+        MatrixX ranges(rows, cols);
+        ranges.setConstant(-1.0f);  // -1.0f means invalid range
+        for (long i = 0; i < points.cols(); ++i) {
+            auto coords = frame_coords.col(i);
+            if (coords[0] < 0 || coords[0] >= rows || coords[1] < 0 || coords[1] >= cols) {
+                continue;  // out of range
+            }
+            Dtype &range = ranges(coords[0], coords[1]);
+            if (range > 0.0f) { continue; }  // already has a range
+            range = depths[i];
+        }
+        return ranges;
+    }
+
+    template<typename Dtype>
     bool
     DepthFrame3D<Dtype>::operator==(const Super &other) const {
         if (!Super::operator==(other)) { return false; }
@@ -209,16 +257,14 @@ namespace erl::geometry {
             ERL_WARN("Failed to write parent class {}.", type_name<Super>());
             return false;
         }
-        static const std::vector<
-            std::pair<const char *, std::function<bool(const DepthFrame3D *, std::ostream &)>>>
-            token_function_pairs = {
-                {
-                    "setting",
-                    [](const DepthFrame3D *self, std::ostream &stream) {
-                        return self->m_setting_->Write(stream) && stream.good();
-                    },
+        static const common::TokenWriteFunctionPairs<DepthFrame3D> token_function_pairs = {
+            {
+                "setting",
+                [](const DepthFrame3D *self, std::ostream &stream) {
+                    return self->m_setting_->Write(stream) && stream.good();
                 },
-            };
+            },
+        };
         return common::WriteTokens(s, this, token_function_pairs);
     }
 
@@ -229,16 +275,14 @@ namespace erl::geometry {
             ERL_WARN("Failed to read parent class {}.", type_name<Super>());
             return false;
         }
-        static const std::vector<
-            std::pair<const char *, std::function<bool(DepthFrame3D *, std::istream &)>>>
-            token_function_pairs = {
-                {
-                    "setting",
-                    [](DepthFrame3D *self, std::istream &stream) {
-                        return self->m_setting_->Read(stream) && stream.good();
-                    },
+        static const common::TokenReadFunctionPairs<DepthFrame3D> token_function_pairs = {
+            {
+                "setting",
+                [](DepthFrame3D *self, std::istream &stream) {
+                    return self->m_setting_->Read(stream) && stream.good();
                 },
-            };
+            },
+        };
         return common::ReadTokens(s, this, token_function_pairs);
     }
 

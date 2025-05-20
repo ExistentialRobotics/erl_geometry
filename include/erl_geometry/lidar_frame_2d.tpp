@@ -194,6 +194,37 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
+    typename LidarFrame2D<Dtype>::VectorX
+    LidarFrame2D<Dtype>::PointCloudToRanges(
+        const Matrix2 &rotation,
+        const Vector2 &translation,
+        const Eigen::Ref<const Matrix2X> &points,
+        const bool are_local) const {
+        Eigen::VectorXi frame_coords(points.cols());
+        VectorX distances(points.cols());
+        const Dtype angle_min = m_setting_->angle_min;
+        const long n = m_setting_->num_rays;
+        const Dtype angle_res = (m_setting_->angle_max - angle_min) / static_cast<Dtype>(n - 1);
+        for (long i = 0; i < points.cols(); ++i) {
+            Vector2 p = are_local ? Vector2(points.col(i))
+                                  : Vector2(rotation.transpose() * (points.col(i) - translation));
+            distances[i] = p.norm();
+            Dtype angle = std::atan2(p[1], p[0]);
+            frame_coords[i] = static_cast<int>((angle - angle_min) / angle_res);
+        }
+        VectorX ranges(n);
+        ranges.setConstant(-1.0f);
+        for (long i = 0; i < n; ++i) {
+            int &coord = frame_coords[i];
+            if (coord < 0 || coord >= n) { continue; }
+            Dtype &range = ranges[i];
+            if (range > 0.0f) { continue; }
+            range = distances[i];
+        }
+        return ranges;
+    }
+
+    template<typename Dtype>
     const std::shared_ptr<typename LidarFrame2D<Dtype>::Setting> &
     LidarFrame2D<Dtype>::GetSetting() const {
         return m_setting_;

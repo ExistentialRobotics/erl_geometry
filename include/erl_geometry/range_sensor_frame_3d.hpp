@@ -62,8 +62,11 @@ namespace erl::geometry {
         std::shared_ptr<KdTree> m_kd_tree_ = std::make_shared<KdTree>();
 
     public:
-        using Factory = common::
-            FactoryPattern<RangeSensorFrame3D, false, false, const std::shared_ptr<Setting> &>;
+        using Factory = common::FactoryPattern<
+            RangeSensorFrame3D,
+            false /*UniquePtr*/,
+            false /*RawPtr*/,
+            const std::shared_ptr<Setting> & /*Init Args*/>;
 
         explicit RangeSensorFrame3D(std::shared_ptr<Setting> setting);
 
@@ -76,6 +79,13 @@ namespace erl::geometry {
         template<typename Derived>
         static bool
         Register(std::string frame_type = "");
+
+        [[nodiscard]] virtual MatrixX
+        PointCloudToRanges(
+            const Matrix3 &rotation,
+            const Vector3 &translation,
+            const Eigen::Ref<const Matrix3X> &points,
+            bool are_local) const = 0;
 
         [[nodiscard]] long
         GetNumRays() const;
@@ -94,6 +104,9 @@ namespace erl::geometry {
 
         [[nodiscard]] const Eigen::MatrixX<Vector2> &
         GetFrameCoords() const;
+
+        [[nodiscard]] virtual std::pair<long, long>
+        GetFrameShape() const = 0;
 
         [[nodiscard]] virtual bool
         PointIsInFrame(const Vector3 &xyz_frame) const = 0;

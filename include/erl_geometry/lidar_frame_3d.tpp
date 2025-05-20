@@ -63,6 +63,12 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
+    std::pair<long, long>
+    LidarFrame3D<Dtype>::GetFrameShape() const {
+        return {m_setting_->num_azimuth_lines, m_setting_->num_elevation_lines};
+    }
+
+    template<typename Dtype>
     bool
     LidarFrame3D<Dtype>::PointIsInFrame(const Vector3 &xyz_frame) const {
         if (const Dtype range = xyz_frame.norm();
@@ -168,6 +174,60 @@ namespace erl::geometry {
                 this->m_hit_points_world_.emplace_back(end_pts_world_ptr[azimuth_idx]);
             }
         }
+    }
+
+    template<typename Dtype>
+    typename LidarFrame3D<Dtype>::MatrixX
+    LidarFrame3D<Dtype>::PointCloudToRanges(
+        const Matrix3 &rotation,
+        const Vector3 &translation,
+        const Eigen::Ref<const Matrix3X> &points,
+        const bool are_local) const {
+        Eigen::Matrix2Xi frame_coords(2, points.cols());  // [row, col]
+        VectorX distances(points.cols());
+        const long rows = m_setting_->num_azimuth_lines;
+        const long cols = m_setting_->num_elevation_lines;
+        const Dtype row_min = m_setting_->azimuth_min;
+        const Dtype row_res = (m_setting_->azimuth_max - row_min) / static_cast<Dtype>(rows - 1);
+        const Dtype col_min = m_setting_->elevation_min;
+        const Dtype col_res = (m_setting_->elevation_max - col_min) / static_cast<Dtype>(cols - 1);
+        // compute directions, distances and frame coordinates
+#pragma omp parallel for default(none) \
+    shared(rotation,                   \
+               translation,            \
+               points,                 \
+               are_local,              \
+               frame_coords,           \
+               distances,              \
+               row_min,                \
+               row_res,                \
+               col_min,                \
+               col_res)
+        for (long i = 0; i < points.cols(); ++i) {
+            Vector3 dir = are_local ? Vector3(points.col(i))
+                                    : Vector3(rotation.transpose() * (points.col(i) - translation));
+            Dtype &dist = distances[i];
+            dist = dir.norm();
+            dir /= dist;
+            Dtype azimuth, elevation;
+            common::DirectionToAzimuthElevation<Dtype>(dir, azimuth, elevation);
+            // clang-format off
+            frame_coords.col(i) << static_cast<long>((azimuth - row_min) / row_res),
+                                   static_cast<long>((elevation - col_min) / col_res);
+            // clang-format on
+        }
+        MatrixX ranges(rows, cols);
+        ranges.setConstant(-1.0f);  // -1.0f means invalid range
+        for (long i = 0; i < points.cols(); ++i) {
+            auto coords = frame_coords.col(i);
+            if (coords[0] < 0 || coords[0] >= rows || coords[1] < 0 || coords[1] >= cols) {
+                continue;  // out of range
+            }
+            Dtype &range = ranges(coords[0], coords[1]);
+            if (range > 0.0f) { continue; }  // already has a range
+            range = distances[i];
+        }
+        return ranges;
     }
 
     template<typename Dtype>
