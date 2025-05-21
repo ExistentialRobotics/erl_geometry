@@ -9,6 +9,7 @@ namespace erl::geometry {
     AbstractOctree<Dtype>::AbstractOctree(std::shared_ptr<NdTreeSetting> setting)
         : m_setting_(std::move(setting)) {
         ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
+        ERL_ASSERTM(m_setting_->tree_depth <= 16, "tree_depth > 16 is not supported.");
     }
 
     template<typename Dtype>

@@ -150,7 +150,7 @@ namespace erl::geometry {
         GetMetricSize(Dtype &x, Dtype &y, Dtype &z) const override;
 
         [[nodiscard]] Dtype
-        GetNodeSize(uint32_t depth) const;
+        GetNodeSize(uint32_t depth) const override;
 
         [[nodiscard]] Aabb<Dtype, 3>
         GetNodeAabb(const OctreeKey &key, uint32_t depth) const;
@@ -437,10 +437,10 @@ namespace erl::geometry {
             GetNodeAabb() const;
 
             [[nodiscard]] const OctreeKey &
-            GetKey() const;
+            GetKey() const override;
 
             [[nodiscard]] OctreeKey
-            GetIndexKey() const;
+            GetIndexKey() const override;
 
         protected:
             /**
@@ -1313,6 +1313,9 @@ namespace erl::geometry {
         //-- Search functions
         [[nodiscard]] const AbstractOctreeNode *
         SearchNode(Dtype x, Dtype y, Dtype z, uint32_t max_depth) const override;
+
+        [[nodiscard]] const AbstractOctreeNode *
+        SearchNode(const OctreeKey &key, uint32_t max_depth) const override;
 
         [[nodiscard]] const Node *
         Search(const Eigen::Ref<const Vector3> &position, uint32_t max_depth = 0) const;

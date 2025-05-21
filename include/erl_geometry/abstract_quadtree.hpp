@@ -3,9 +3,9 @@
 #include "aabb.hpp"
 #include "abstract_quadtree_node.hpp"
 #include "nd_tree_setting.hpp"
+#include "quadtree_key.hpp"
 
 #include "erl_common/factory_pattern.hpp"
-#include "erl_common/string_utils.hpp"
 
 #include <memory>
 #include <string>
@@ -18,8 +18,6 @@ namespace erl::geometry {
      */
     template<typename Dtype>
     class AbstractQuadtree {
-        inline static const std::string kFileHeader =
-            fmt::format("# {}", type_name<AbstractQuadtree>());
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
 
     public:
@@ -191,6 +189,9 @@ namespace erl::geometry {
         virtual void
         GetMetricSize(Dtype& x, Dtype& y) const = 0;
 
+        [[nodiscard]] virtual Dtype
+        GetNodeSize(uint32_t depth) const = 0;
+
         //-- IO
         virtual void
         Clear() = 0;
@@ -226,6 +227,9 @@ namespace erl::geometry {
         [[nodiscard]] virtual const AbstractQuadtreeNode*
         SearchNode(Dtype x, Dtype y, uint32_t max_depth) const = 0;
 
+        [[nodiscard]] virtual const AbstractQuadtreeNode*
+        SearchNode(const QuadtreeKey& key, uint32_t max_depth) const = 0;
+
         //-- iterators
         struct QuadtreeNodeIterator {
             virtual ~QuadtreeNodeIterator() = default;
@@ -244,6 +248,10 @@ namespace erl::geometry {
             IsValid() const = 0;
             [[nodiscard]] virtual const AbstractQuadtreeNode*
             GetNode() const = 0;
+            [[nodiscard]] virtual const QuadtreeKey&
+            GetKey() const = 0;
+            [[nodiscard]] virtual QuadtreeKey
+            GetIndexKey() const = 0;
         };
 
         [[nodiscard]] virtual std::shared_ptr<QuadtreeNodeIterator>

@@ -96,7 +96,7 @@ namespace erl::geometry {
     QuadtreeImpl<Node, Interface, InterfaceSetting>::ApplySettingToQuadtreeImpl() {
         const Dtype resolution = m_setting_->resolution;
         const uint32_t tree_depth = m_setting_->tree_depth;
-        m_resolution_inv_ = 1.0 / resolution;
+        m_resolution_inv_ = 1.0f / resolution;
         m_tree_key_offset_ = 1 << (tree_depth - 1);
 
         // init node size lookup table
@@ -2328,6 +2328,14 @@ namespace erl::geometry {
         const Dtype y,
         const uint32_t max_depth) const {
         return static_cast<const AbstractQuadtreeNode *>(Search(x, y, max_depth));
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    const AbstractQuadtreeNode *
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::SearchNode(
+        const QuadtreeKey &key,
+        const uint32_t max_depth) const {
+        return static_cast<const AbstractQuadtreeNode *>(Search(key, max_depth));
     }
 
     template<class Node, class Interface, class InterfaceSetting>

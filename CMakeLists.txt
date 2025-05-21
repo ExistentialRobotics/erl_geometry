@@ -11,11 +11,18 @@ if (NOT COMMAND erl_project_setup)
 endif ()
 erl_project_setup(
         ${PROJECT_NAME}
-        ERL_PACKAGES erl_common erl_covariance)
+        ERL_PACKAGES erl_common erl_covariance
+        CATKIN_COMPONENTS roscpp std_msgs message_generation
+        CATKIN_DEPENDS roscpp std_msgs message_runtime rviz
+)
 
 erl_config_qhull()
 erl_config_absl()
 erl_config_open3d()
+if (ROS1_ACTIVATED)
+    erl_config_qt5(Core Widgets)
+    erl_config_ogre()
+endif ()
 
 if (ERL_BUILD_TEST_${PROJECT_NAME})
     add_subdirectory(deps/octomap)  # test_occupancy_octree_impls depends on octomap
@@ -26,7 +33,11 @@ if (ERL_BUILD_TEST_${PROJECT_NAME})
     endif ()
 endif ()
 
-erl_setup_ros()
+erl_setup_ros(
+        CATKIN_COMPONENTS ${${PROJECT_NAME}_CATKIN_COMPONENTS}
+        MSG_FILES OccupancyTreeMsg.msg
+        MSG_DEPENDENCIES std_msgs
+)
 erl_catkin_package(
         INCLUDE_DIRS include
         LIBRARIES ${PROJECT_NAME} py${PROJECT_NAME}
@@ -41,8 +52,8 @@ erl_catkin_package(
 # define the libraries #
 ########################
 
-file(GLOB_RECURSE SRC_FILES src/*.cpp)
-add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
+file(GLOB SRC_FILES src/*.cpp)
+add_library(${PROJECT_NAME} SHARED ${SRC_FILES} src/sdf/mesh_sdf.cpp src/sdf/sdf_util.cpp)
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME}
         PUBLIC
@@ -53,11 +64,21 @@ target_link_libraries(${PROJECT_NAME}
         PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
         PUBLIC absl::flat_hash_map absl::flat_hash_set
 )
-if (ROS_ACTIVATED)
-    if (ROS_VERSION STREQUAL "1")
-        target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-        target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
-    endif ()
+if (ROS1_ACTIVATED)
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
+
+    add_library(${PROJECT_NAME}_rviz_plugin MODULE
+            include/erl_geometry/rviz_plugin/occupancy_tree_grid_display.hpp
+            src/rviz_plugin/occupancy_tree_grid_display.cpp)
+    target_include_directories(${PROJECT_NAME}_rviz_plugin
+            PRIVATE ${Qt5_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME}_rviz_plugin
+            ${PROJECT_NAME} ${Qt5_LIBRARIES} ${OGRE_LIBRARIES})
+    target_compile_definitions(${PROJECT_NAME}_rviz_plugin PRIVATE QT_NO_KEYWORDS)
+    set_target_properties(${PROJECT_NAME}_rviz_plugin PROPERTIES AUTOMOC ON)
+    # Avoid OGRE deprecation warnings under C++17
+    target_compile_options(${PROJECT_NAME}_rviz_plugin PUBLIC "-Wno-register")
 else ()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif ()
@@ -80,7 +101,8 @@ erl_add_python_package(
 ####################################################################################################
 erl_install(
         LIBRARIES ${PROJECT_NAME}
-        PYBIND_MODULES py${PROJECT_NAME})
+        PYBIND_MODULES py${PROJECT_NAME}
+        OTHER_FILES plugin_description.xml)
 
 ####################################################################################################
 # TEST

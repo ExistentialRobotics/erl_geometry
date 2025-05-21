@@ -97,7 +97,7 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::ApplySettingToOctreeImpl() {
         const Dtype resolution = m_setting_->resolution;
         const uint32_t tree_depth = m_setting_->tree_depth;
-        m_resolution_inv_ = 1.0 / resolution;
+        m_resolution_inv_ = 1.0f / resolution;
         m_tree_key_offset_ = 1 << (tree_depth - 1);
 
         // init node size lookup table
@@ -2797,6 +2797,14 @@ namespace erl::geometry {
         const Dtype z,
         const uint32_t max_depth) const {
         return static_cast<const AbstractOctreeNode *>(Search(x, y, z, max_depth));
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    const AbstractOctreeNode *
+    OctreeImpl<Node, Interface, InterfaceSetting>::SearchNode(
+        const OctreeKey &key,
+        const uint32_t max_depth) const {
+        return static_cast<const AbstractOctreeNode *>(Search(key, max_depth));
     }
 
     template<class Node, class Interface, class InterfaceSetting>

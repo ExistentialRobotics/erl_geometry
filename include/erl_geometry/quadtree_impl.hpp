@@ -143,7 +143,7 @@ namespace erl::geometry {
         GetMetricSize(Dtype &x, Dtype &y) const override;
 
         [[nodiscard]] Dtype
-        GetNodeSize(uint32_t depth) const;
+        GetNodeSize(uint32_t depth) const override;
 
         [[nodiscard]] Aabb<Dtype, 2>
         GetNodeAabb(const QuadtreeKey &key, uint32_t depth) const;
@@ -414,10 +414,10 @@ namespace erl::geometry {
             GetNodeAabb() const;
 
             [[nodiscard]] const QuadtreeKey &
-            GetKey() const;
+            GetKey() const override;
 
             [[nodiscard]] QuadtreeKey
-            GetIndexKey() const;
+            GetIndexKey() const override;
 
         protected:
             /**
@@ -1153,6 +1153,9 @@ namespace erl::geometry {
         //-- Search functions
         [[nodiscard]] const AbstractQuadtreeNode *
         SearchNode(Dtype x, Dtype y, uint32_t max_depth) const override;
+
+        [[nodiscard]] const AbstractQuadtreeNode *
+        SearchNode(const QuadtreeKey &key, uint32_t max_depth) const override;
 
         [[nodiscard]] const Node *
         Search(const Eigen::Ref<const Vector2> &position, uint32_t max_depth = 0) const;

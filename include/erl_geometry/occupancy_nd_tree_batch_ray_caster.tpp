@@ -1,5 +1,7 @@
 #pragma once
 
+#include <absl/container/flat_hash_map.h>
+
 namespace erl::geometry {
     template<typename Tree, int Dim>
     OccupancyNdTreeBatchRayCaster<Tree, Dim>::OccupancyNdTreeBatchRayCaster(

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "erl_geometry/intersection.hpp"
+#include "erl_common/eigen.hpp"
 
-#include <absl/container/flat_hash_map.h>
+#include <vector>
 
 namespace erl::geometry {
 

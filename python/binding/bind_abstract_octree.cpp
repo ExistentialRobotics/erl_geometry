@@ -8,7 +8,9 @@ BindAbstractOctreeImpl(const py::module& m, const char* name) {
     using T = AbstractOctree<Dtype>;
 
     py::class_<T, std::shared_ptr<T>> tree(m, name);
-    tree.def("apply_setting", &T::ApplySetting, "apply the latest setting to the tree")
+    tree.def("apply_setting", &T::ApplySetting)
+        .def("read_setting", &T::ReadSetting)
+        .def("write_setting", &T::WriteSetting)
         .def(
             "write",
             [](const T* self, const std::string& filename) -> bool {
@@ -23,10 +25,15 @@ BindAbstractOctreeImpl(const py::module& m, const char* name) {
             py::arg("filename"))
         .def(
             "search_node",
-            &T::SearchNode,
+            py::overload_cast<Dtype, Dtype, Dtype, uint32_t>(&T::SearchNode, py::const_),
             py::arg("x"),
             py::arg("y"),
             py::arg("z"),
+            py::arg("max_depth"))
+        .def(
+            "search_node",
+            py::overload_cast<const OctreeKey&, uint32_t>(&T::SearchNode, py::const_),
+            py::arg("key"),
             py::arg("max_depth"));
     py::class_<typename T::OctreeNodeIterator>(tree, "OctreeNodeIterator")
         .def_property_readonly("x", &T::OctreeNodeIterator::GetX)
@@ -35,7 +42,10 @@ BindAbstractOctreeImpl(const py::module& m, const char* name) {
         .def_property_readonly("node_size", &T::OctreeNodeIterator::GetNodeSize)
         .def_property_readonly("depth", &T::OctreeNodeIterator::GetDepth)
         .def("next", &T::OctreeNodeIterator::Next)
-        .def_property_readonly("is_valid", &T::OctreeNodeIterator::IsValid);
+        .def_property_readonly("is_valid", &T::OctreeNodeIterator::IsValid)
+        .def("get_node", &T::OctreeNodeIterator::GetNode)
+        .def("get_key", &T::OctreeNodeIterator::GetKey)
+        .def("get_index_key", &T::OctreeNodeIterator::GetIndexKey);
 }
 
 void

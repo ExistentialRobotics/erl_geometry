@@ -3,9 +3,9 @@
 #include "aabb.hpp"
 #include "abstract_octree_node.hpp"
 #include "nd_tree_setting.hpp"
+#include "octree_key.hpp"
 
 #include "erl_common/factory_pattern.hpp"
-#include "erl_common/string_utils.hpp"
 
 #include <memory>
 #include <string>
@@ -18,8 +18,6 @@ namespace erl::geometry {
      */
     template<typename Dtype>
     class AbstractOctree {
-        inline static const std::string kFileHeader =
-            fmt::format("# {}", type_name<AbstractOctree>());
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
 
     public:
@@ -204,6 +202,9 @@ namespace erl::geometry {
         virtual void
         GetMetricSize(Dtype& x, Dtype& y, Dtype& z) const = 0;
 
+        [[nodiscard]] virtual Dtype
+        GetNodeSize(uint32_t depth) const = 0;
+
         //-- IO
         virtual void
         Clear() = 0;
@@ -244,6 +245,9 @@ namespace erl::geometry {
         [[nodiscard]] virtual const AbstractOctreeNode*
         SearchNode(Dtype x, Dtype y, Dtype z, uint32_t max_depth) const = 0;
 
+        [[nodiscard]] virtual const AbstractOctreeNode*
+        SearchNode(const OctreeKey& key, uint32_t max_depth) const = 0;
+
         //-- iterators
         struct OctreeNodeIterator {
             virtual ~OctreeNodeIterator() = default;
@@ -264,6 +268,10 @@ namespace erl::geometry {
             IsValid() const = 0;
             [[nodiscard]] virtual const AbstractOctreeNode*
             GetNode() const = 0;
+            [[nodiscard]] virtual const OctreeKey&
+            GetKey() const = 0;
+            [[nodiscard]] virtual OctreeKey
+            GetIndexKey() const = 0;
         };
 
         [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
