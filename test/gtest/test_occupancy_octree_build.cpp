@@ -103,12 +103,14 @@ TEST(OccupancyOctree, Build) {
                 ERL_WARN_ONCE("callback is still called after octree is saved.");
                 return false;
             }
-            EXPECT_TRUE(Serialization<OccupancyOctree>::Write(
-                test_output_dir / "house_expo_room_1451_3d.ot",
-                octree));
-            EXPECT_TRUE(Serialization<OccupancyOctree>::Write(
-                test_output_dir / "house_expo_room_1451_3d.bt",
-                [&](std::ostream &s) -> bool { return octree->WriteBinary(s); }));
+            EXPECT_TRUE(
+                Serialization<OccupancyOctree>::Write(
+                    test_output_dir / "house_expo_room_1451_3d.ot",
+                    octree));
+            EXPECT_TRUE(
+                Serialization<OccupancyOctree>::Write(
+                    test_output_dir / "house_expo_room_1451_3d.bt",
+                    [&](std::ostream &s) -> bool { return octree->WriteBinary(s); }));
             octree_saved = true;
             wrapper->ClearGeometries();
             std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries =
@@ -165,11 +167,9 @@ TEST(OccupancyOctree, Build) {
 
         octree->ClearChangedKeys();
         {
-            {
-                ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
-                // octree->InsertPointCloud(points, sensor_origin, -1, false, false, true);
-                octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
-            }
+            ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
+            // octree->InsertPointCloud(points, sensor_origin, -1, false, false, true);
+            octree->InsertPointCloud(points, sensor_origin, -1, false, true, true);
             octree->UpdateInnerOccupancy();
             octree->Prune();
         }

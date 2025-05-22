@@ -98,14 +98,14 @@ namespace erl::geometry::rviz_plugin {
 
         m_max_height_property_ = new FloatProperty(
             "Max. Height",
-            std::numeric_limits<double>::infinity(),
+            std::numeric_limits<float>::infinity(),
             "Defines the maximum height to display",
             this,
             SLOT(UpdateMaxHeight()));
 
         m_min_height_property_ = new FloatProperty(
             "Min. Height",
-            -std::numeric_limits<double>::infinity(),
+            -std::numeric_limits<float>::infinity(),
             "Defines the minimum height to display",
             this,
             SLOT(UpdateMinHeight()));
@@ -134,14 +134,18 @@ namespace erl::geometry::rviz_plugin {
     }
 
     void
-    OccupancyTreeGridDisplay::update(float wall_dt, float ros_dt) {
+    OccupancyTreeGridDisplay::update(float /* wall_dt */, float /* ros_dt */) {
         if (m_new_points_received_) {
             std::lock_guard<std::mutex> lock(m_mutex_);
 
             for (size_t i = 0; i < kMaxTreeDepth; ++i) {
                 double size = m_box_size_[i];
                 m_clouds_[i]->clear();
-                m_clouds_[i]->setDimensions(size, size, size);
+                if (m_is_2d_) {
+                    m_clouds_[i]->setDimensions(size, size, m_tree_resolution_);
+                } else {
+                    m_clouds_[i]->setDimensions(size, size, size);
+                }
                 m_clouds_[i]->addPoints(m_new_points_[i].data(), m_new_points_[i].size());
                 m_new_points_[i].clear();
                 m_clouds_[i]->setAlpha(m_alpha_property_->getFloat());
@@ -296,12 +300,13 @@ namespace erl::geometry::rviz_plugin {
         // reset rviz pointcloud classes
         for (uint32_t i = 0; i < kMaxTreeDepth; ++i) {
             m_point_buf_[i].clear();
-            if (i <= tree_depth) { m_box_size_[i] = tree->GetNodeSize(i); }
+            if (i < tree_depth) { m_box_size_[i] = tree->GetNodeSize(i + 1); }  // skip depth 0
         }
 
         std::size_t point_count = 0;
         auto selected_depth = std::min<uint32_t>(tree_depth, m_tree_depth_property_->getInt());
-        const double z = m_min_height_property_->getFloat();       // quadtree is 2D
+        float z = m_min_height_property_->getFloat();              // quadtree is 2D
+        if (z < -100.0f) { z = 0.0; }                              // default height
         const int step_size = 1 << (tree_depth - selected_depth);  // for pruning of occluded voxels
         const int render_mode_mask = m_tree_render_mode_property_->getOptionInt();
 
@@ -374,7 +379,11 @@ namespace erl::geometry::rviz_plugin {
                     [[fallthrough]];
                 }
                 case Z_AXIS_COLOR: {
-                    SetColor(it->GetX(), min_x, max_x, new_point);
+                    if (tree->IsNodeOccupied(node)) {
+                        SetColor(it->GetX(), min_x, max_x, new_point);
+                    } else {
+                        SetColor(it->GetY(), min_x, max_x, new_point);
+                    }
                     break;
                 }
                 case PROBABLILTY_COLOR: {
@@ -394,6 +403,8 @@ namespace erl::geometry::rviz_plugin {
             std::lock_guard<std::mutex> lock(m_mutex_);
             m_new_points_received_ = true;
             for (size_t i = 0; i < kMaxTreeDepth; ++i) { m_new_points_[i].swap(m_point_buf_[i]); }
+            m_is_2d_ = true;
+            m_tree_resolution_ = tree->GetResolution();
         }
     }
 
@@ -441,7 +452,7 @@ namespace erl::geometry::rviz_plugin {
         // reset rviz pointcloud classes
         for (uint32_t i = 0; i < kMaxTreeDepth; ++i) {
             m_point_buf_[i].clear();
-            if (i <= tree_depth) { m_box_size_[i] = tree->GetNodeSize(i); }
+            if (i < tree_depth) { m_box_size_[i] = tree->GetNodeSize(i + 1); }  // skip depth 0
         }
 
         std::size_t point_count = 0;
@@ -547,6 +558,8 @@ namespace erl::geometry::rviz_plugin {
             std::lock_guard<std::mutex> guard(m_mutex_);
             m_new_points_received_ = true;
             for (size_t i = 0; i < kMaxTreeDepth; ++i) { m_new_points_[i].swap(m_point_buf_[i]); }
+            m_is_2d_ = false;
+            m_tree_resolution_ = tree->GetResolution();
         }
     }
 
@@ -641,5 +654,4 @@ namespace erl::geometry::rviz_plugin {
 }  // namespace erl::geometry::rviz_plugin
 
 #include <pluginlib/class_list_macros.h>
-typedef erl::geometry::rviz_plugin::OccupancyTreeGridDisplay OccupancyTreeGridDisplay;
-PLUGINLIB_EXPORT_CLASS(OccupancyTreeGridDisplay, rviz::Display)
+PLUGINLIB_EXPORT_CLASS(erl::geometry::rviz_plugin::OccupancyTreeGridDisplay, rviz::Display)

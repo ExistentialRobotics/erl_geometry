@@ -64,10 +64,11 @@ target_link_libraries(${PROJECT_NAME}
         PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
         PUBLIC absl::flat_hash_map absl::flat_hash_set
 )
+set(libs ${PROJECT_NAME})
 if (ROS1_ACTIVATED)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
-
+    # library: erl_geometry_rviz_plugin
     add_library(${PROJECT_NAME}_rviz_plugin MODULE
             include/erl_geometry/rviz_plugin/occupancy_tree_grid_display.hpp
             src/rviz_plugin/occupancy_tree_grid_display.cpp)
@@ -79,6 +80,7 @@ if (ROS1_ACTIVATED)
     set_target_properties(${PROJECT_NAME}_rviz_plugin PROPERTIES AUTOMOC ON)
     # Avoid OGRE deprecation warnings under C++17
     target_compile_options(${PROJECT_NAME}_rviz_plugin PUBLIC "-Wno-register")
+    list(APPEND libs ${PROJECT_NAME}_rviz_plugin)
 else ()
     target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif ()
@@ -100,7 +102,7 @@ erl_add_python_package(
 # INSTALL
 ####################################################################################################
 erl_install(
-        LIBRARIES ${PROJECT_NAME}
+        LIBRARIES ${libs}
         PYBIND_MODULES py${PROJECT_NAME}
         OTHER_FILES plugin_description.xml)
 
@@ -132,6 +134,13 @@ erl_add_tests(
         test_occupancy_quadtree_ray_casting
         IGNORE_FILES ${ignore_tests}
 )
+if (ROS1_ACTIVATED)
+    add_executable(test_rviz_plugin_occupancy_tree_grid_display
+            test/gtest/ros1/test_rviz_plugin_occupancy_tree_grid_display.cpp)
+    target_link_libraries(test_rviz_plugin_occupancy_tree_grid_display
+            PUBLIC ${PROJECT_NAME}
+            PUBLIC ${catkin_LIBRARIES})
+endif ()
 
 ####################################################################################################
 # export variables

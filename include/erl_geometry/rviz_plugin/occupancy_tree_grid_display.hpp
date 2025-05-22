@@ -50,6 +50,8 @@ namespace erl::geometry::rviz_plugin {
         u_int32_t m_queue_size_ = 0;
         uint32_t m_messages_received_ = 0;
         float m_color_factor_;
+        bool m_is_2d_ = false;
+        double m_tree_resolution_ = 0.0;
 
     public:
         OccupancyTreeGridDisplay();

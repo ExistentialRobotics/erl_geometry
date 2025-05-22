@@ -1,6 +1,6 @@
 <library path="lib/liberl_geometry_rviz_plugin">
-    <class name="erl_geometry_rviz_plugin/OccupancyTreeGridDisplay"
-           type="OccupancyTreeGridDisplay"
+    <class name="erl_geometry/OccupancyTreeGrid"
+           type="erl::geometry::rviz_plugin::OccupancyTreeGridDisplay"
            base_class_type="rviz::Display">
            <description>
                 Display an occupancy quadtree/octree stored in OccupancyTreeMsg as occupancy grids.

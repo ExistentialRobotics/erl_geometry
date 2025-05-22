@@ -27,4 +27,8 @@
 
     <exec_depend>message_runtime</exec_depend>
 
+    <export>
+        <rviz plugin="${prefix}/plugin_description.xml"/>
+    </export>
+
 </package>

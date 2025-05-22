@@ -31,16 +31,25 @@ namespace erl::geometry {
     bool
     SaveToOccupancyTreeMsg(
         const std::shared_ptr<AbstractOccupancyOctree<Dtype>>& tree,
+        bool binary,
         erl_geometry::OccupancyTreeMsg& msg) {
         std::ostringstream s;  // create a ostream to wrap msg->data
-        if (msg.binary) {
+        msg.dim = 3;
+        msg.tree_type = tree->GetTreeType();
+        msg.is_double = std::is_same_v<Dtype, double>;
+        msg.binary = binary;
+        if (binary) {
             if (tree->WriteBinary(s)) {
-                msg.data = std::vector<int8_t>(s.str().begin(), s.str().end());
+                std::string str = s.str();
+                msg.data.clear();
+                msg.data.insert(msg.data.end(), str.begin(), str.end());
                 return true;
             }
         } else {
             if (tree->Write(s)) {
-                msg.data = std::vector<int8_t>(s.str().begin(), s.str().end());
+                std::string str = s.str();
+                msg.data.clear();
+                msg.data.insert(msg.data.end(), str.begin(), str.end());
                 return true;
             }
         }
@@ -51,16 +60,25 @@ namespace erl::geometry {
     bool
     SaveToOccupancyTreeMsg(
         const std::shared_ptr<AbstractOccupancyQuadtree<Dtype>>& tree,
+        bool binary,
         erl_geometry::OccupancyTreeMsg& msg) {
         std::ostringstream s;  // create a ostream to wrap msg->data
-        if (msg.binary) {
+        msg.dim = 2;
+        msg.tree_type = tree->GetTreeType();
+        msg.is_double = std::is_same_v<Dtype, double>;
+        msg.binary = binary;
+        if (binary) {
             if (tree->WriteBinary(s)) {
-                msg.data = std::vector<int8_t>(s.str().begin(), s.str().end());
+                std::string str = s.str();
+                msg.data.clear();
+                msg.data.insert(msg.data.end(), str.begin(), str.end());
                 return true;
             }
         } else {
             if (tree->Write(s)) {
-                msg.data = std::vector<int8_t>(s.str().begin(), s.str().end());
+                std::string str = s.str();
+                msg.data.clear();
+                msg.data.insert(msg.data.end(), str.begin(), str.end());
                 return true;
             }
         }
