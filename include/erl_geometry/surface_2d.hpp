@@ -122,6 +122,11 @@ namespace erl::geometry {
             return {-1, -1};
         }
 
+        void
+        Translate(const Eigen::Vector2d &translation) {
+            vertices.colwise() += translation;
+        }
+
     private:
         void
         ComputeObjectsToVertices() {

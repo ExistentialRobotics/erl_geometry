@@ -1,19 +1,16 @@
 #pragma once
 #ifndef Q_MOC_RUN
     #include "erl_geometry/ros_msgs/occupancy_tree_msg.hpp"
-    #include "rviz/ogre_helpers/point_cloud.h"
 
     #include <message_filters/subscriber.h>
     #include <ros/ros.h>
     #include <rviz/display.h>
+    #include <rviz/ogre_helpers/point_cloud.h>
+    #include <rviz/properties/enum_property.h>
+    #include <rviz/properties/float_property.h>
+    #include <rviz/properties/int_property.h>
+    #include <rviz/properties/ros_topic_property.h>
 #endif
-
-namespace rviz {
-    class RosTopicProperty;
-    class IntProperty;
-    class EnumProperty;
-    class FloatProperty;
-}  // namespace rviz
 
 namespace erl::geometry::rviz_plugin {
 
@@ -24,7 +21,7 @@ namespace erl::geometry::rviz_plugin {
         typedef std::vector<rviz::PointCloud::Point> VPoint;
         typedef std::vector<VPoint> VVPoint;
 
-        std::shared_ptr<message_filters::Subscriber<erl_geometry::OccupancyTreeMsg> > m_sub_;
+        std::shared_ptr<message_filters::Subscriber<erl_geometry::OccupancyTreeMsg>> m_sub_;
         std::mutex m_mutex_;
 
         // point buffer

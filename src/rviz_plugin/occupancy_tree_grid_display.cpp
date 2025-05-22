@@ -13,16 +13,11 @@
 #include <OGRE/OgreSceneManager.h>
 #include <OGRE/OgreSceneNode.h>
 #include <rviz/frame_manager.h>
-#include <rviz/properties/enum_property.h>
-#include <rviz/properties/float_property.h>
-#include <rviz/properties/int_property.h>
-#include <rviz/properties/ros_topic_property.h>
+#include <rviz/properties/status_property.h>
 #include <rviz/visualization_manager.h>
 
 #include <QObject>
 #include <sstream>
-
-using namespace rviz;
 
 namespace erl::geometry::rviz_plugin {
 
@@ -39,7 +34,7 @@ namespace erl::geometry::rviz_plugin {
           m_messages_received_(0),
           m_color_factor_(0.8) {
 
-        m_queue_size_property_ = new IntProperty(
+        m_queue_size_property_ = new rviz::IntProperty(
             "Queue Size",
             m_queue_size_,
             "Advanced: set the size of the incoming message queue.  Increasing this "
@@ -49,7 +44,7 @@ namespace erl::geometry::rviz_plugin {
             SLOT(UpdateQueueSize()));
         m_queue_size_property_->setMin(1);
 
-        m_tree_topic_property_ = new RosTopicProperty(
+        m_tree_topic_property_ = new rviz::RosTopicProperty(
             "Tree Topic",
             "",
             QString::fromStdString(ros::message_traits::datatype<erl_geometry::OccupancyTreeMsg>()),
@@ -87,7 +82,7 @@ namespace erl::geometry::rviz_plugin {
         m_alpha_property_->setMin(0.0);
         m_alpha_property_->setMax(1.0);
 
-        m_tree_depth_property_ = new IntProperty(
+        m_tree_depth_property_ = new rviz::IntProperty(
             "Max. Octree Depth",
             kMaxTreeDepth,
             "Defines the maximum tree depth",
@@ -96,14 +91,14 @@ namespace erl::geometry::rviz_plugin {
         m_tree_depth_property_->setMin(0);
         m_tree_depth_property_->setMax(kMaxTreeDepth);
 
-        m_max_height_property_ = new FloatProperty(
+        m_max_height_property_ = new rviz::FloatProperty(
             "Max. Height",
             std::numeric_limits<float>::infinity(),
             "Defines the maximum height to display",
             this,
             SLOT(UpdateMaxHeight()));
 
-        m_min_height_property_ = new FloatProperty(
+        m_min_height_property_ = new rviz::FloatProperty(
             "Min. Height",
             -std::numeric_limits<float>::infinity(),
             "Defines the minimum height to display",
@@ -159,7 +154,10 @@ namespace erl::geometry::rviz_plugin {
     OccupancyTreeGridDisplay::reset() {
         Clear();
         m_messages_received_ = 0;
-        setStatus(StatusProperty::Ok, "Messages", QString("0 binary octomap messages received"));
+        setStatus(
+            rviz::StatusProperty::Ok,
+            "Messages",
+            QString("0 binary octomap messages received"));
     }
 
     void
@@ -234,7 +232,7 @@ namespace erl::geometry::rviz_plugin {
             }
         } catch (ros::Exception& e) {
             setStatus(
-                StatusProperty::Error,
+                rviz::StatusProperty::Error,
                 "Topic",
                 (std::string("Error subscribing: ") + e.what()).c_str());
         }
@@ -248,7 +246,7 @@ namespace erl::geometry::rviz_plugin {
             m_sub_.reset();  // reset filters
         } catch (ros::Exception& e) {
             setStatus(
-                StatusProperty::Error,
+                rviz::StatusProperty::Error,
                 "Topic",
                 (std::string("Error unsubscribing: ") + e.what()).c_str());
         }
@@ -264,7 +262,7 @@ namespace erl::geometry::rviz_plugin {
         auto tree = std::dynamic_pointer_cast<AbstractOccupancyQuadtree<Dtype>>(abstract_tree);
         if (tree == nullptr) {
             setStatusStd(
-                StatusProperty::Error,
+                rviz::StatusProperty::Error,
                 "Message",
                 fmt::format(
                     "Wrong occupancy tree type %s. Use a different display type.",
@@ -278,14 +276,14 @@ namespace erl::geometry::rviz_plugin {
             std::stringstream ss;
             ss << "Failed to transform from frame [" << m_header_.frame_id << "] to frame ["
                << context_->getFrameManager()->getFixedFrame() << "]";
-            setStatusStd(StatusProperty::Error, "Message", ss.str());
+            setStatusStd(rviz::StatusProperty::Error, "Message", ss.str());
             return;
         }
 
         // deserialize the message
         if (!LoadFromOccupancyTreeMsg<Dtype>(*msg, tree)) {
             setStatusStd(
-                StatusProperty::Error,
+                rviz::StatusProperty::Error,
                 "Message",
                 "Failed to deserialize quadtree message.");
             return;
@@ -313,7 +311,7 @@ namespace erl::geometry::rviz_plugin {
         for (auto it = tree->GetTreeIterator(selected_depth); it->IsValid(); it->Next()) {
             const auto* node = static_cast<const OccupancyQuadtreeNode*>(it->GetNode());
             if (node == nullptr) {
-                setStatusStd(StatusProperty::Error, "Message", "Failed to get node.");
+                setStatusStd(rviz::StatusProperty::Error, "Message", "Failed to get node.");
                 return;
             }
             if (node->HasAnyChild()) { continue; }  // skip inner nodes
@@ -353,7 +351,7 @@ namespace erl::geometry::rviz_plugin {
             if (all_neighbors_found) { continue; }  // skip occluded voxels
 
             // display voxel if it does not have all the neighbors.
-            PointCloud::Point new_point;
+            rviz::PointCloud::Point new_point;
             new_point.position.x = it->GetX();
             new_point.position.y = it->GetY();
             new_point.position.z = z;
@@ -371,7 +369,7 @@ namespace erl::geometry::rviz_plugin {
                         break;
                     }
                     setStatus(
-                        StatusProperty::Error,
+                        rviz::StatusProperty::Error,
                         "Messages",
                         QString(
                             "Cannot extract color, node is not derived from "
@@ -418,7 +416,7 @@ namespace erl::geometry::rviz_plugin {
         auto tree = std::dynamic_pointer_cast<AbstractOccupancyOctree<Dtype>>(abstract_tree);
         if (tree == nullptr) {
             setStatusStd(
-                StatusProperty::Error,
+                rviz::StatusProperty::Error,
                 "Message",
                 fmt::format(
                     "Wrong occupancy tree type %s. Use a different display type.",
@@ -432,13 +430,16 @@ namespace erl::geometry::rviz_plugin {
             std::stringstream ss;
             ss << "Failed to transform from frame [" << m_header_.frame_id << "] to frame ["
                << context_->getFrameManager()->getFixedFrame() << "]";
-            setStatusStd(StatusProperty::Error, "Message", ss.str());
+            setStatusStd(rviz::StatusProperty::Error, "Message", ss.str());
             return;
         }
 
         // deserialize the message
         if (!LoadFromOccupancyTreeMsg<Dtype>(*msg, tree)) {
-            setStatusStd(StatusProperty::Error, "Message", "Failed to deserialize octree message.");
+            setStatusStd(
+                rviz::StatusProperty::Error,
+                "Message",
+                "Failed to deserialize octree message.");
             return;
         }
 
@@ -464,7 +465,7 @@ namespace erl::geometry::rviz_plugin {
         for (auto it = tree->GetTreeIterator(selected_depth); it->IsValid(); it->Next()) {
             const auto* node = static_cast<const OccupancyOctreeNode*>(it->GetNode());
             if (node == nullptr) {
-                setStatusStd(StatusProperty::Error, "Message", "Failed to get node.");
+                setStatusStd(rviz::StatusProperty::Error, "Message", "Failed to get node.");
                 return;
             }
             if (node->HasAnyChild()) { continue; }  // skip inner nodes
@@ -511,7 +512,7 @@ namespace erl::geometry::rviz_plugin {
             if (all_neighbors_found) { continue; }  // skip voxels with all neighbors
 
             // display voxel if it does not have all the neighbors.
-            PointCloud::Point new_point;
+            rviz::PointCloud::Point new_point;
             new_point.position.x = it->GetX();
             new_point.position.y = it->GetY();
             new_point.position.z = z;
@@ -529,7 +530,7 @@ namespace erl::geometry::rviz_plugin {
                         break;
                     }
                     setStatus(
-                        StatusProperty::Error,
+                        rviz::StatusProperty::Error,
                         "Messages",
                         QString(
                             "Cannot extract color, node is not derived from "
@@ -568,22 +569,27 @@ namespace erl::geometry::rviz_plugin {
         const erl_geometry::OccupancyTreeMsgConstPtr& msg) {
         ++m_messages_received_;
         setStatus(
-            StatusProperty::Ok,
+            rviz::StatusProperty::Ok,
             "Messages",
             QString::number(m_messages_received_) + " occupancy tree messages received");
-        setStatusStd(StatusProperty::Ok, "Type", msg->tree_type.c_str());
+        setStatusStd(rviz::StatusProperty::Ok, "Type", msg->tree_type.c_str());
         if (msg->dim == 2) {
             if (msg->is_double) {
                 IncomingMessageCallbackForQuadtree<double>(msg);
             } else {
                 IncomingMessageCallbackForQuadtree<float>(msg);
             }
-        } else {
+        } else if (msg->dim == 3) {
             if (msg->is_double) {
                 IncomingMessageCallbackForOctree<double>(msg);
             } else {
                 IncomingMessageCallbackForOctree<float>(msg);
             }
+        } else {
+            setStatusStd(
+                rviz::StatusProperty::Error,
+                "Message",
+                fmt::format("Unsupported occupancy tree dimension %d", msg->dim));
         }
     }
 

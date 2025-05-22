@@ -12,8 +12,8 @@ endif ()
 erl_project_setup(
         ${PROJECT_NAME}
         ERL_PACKAGES erl_common erl_covariance
-        CATKIN_COMPONENTS roscpp std_msgs message_generation
-        CATKIN_DEPENDS roscpp std_msgs message_runtime rviz
+        CATKIN_COMPONENTS roscpp std_msgs nav_msgs message_generation
+        CATKIN_DEPENDS roscpp std_msgs nav_msgs message_runtime rviz
 )
 
 erl_config_qhull()
@@ -71,7 +71,9 @@ if (ROS1_ACTIVATED)
     # library: erl_geometry_rviz_plugin
     add_library(${PROJECT_NAME}_rviz_plugin MODULE
             include/erl_geometry/rviz_plugin/occupancy_tree_grid_display.hpp
-            src/rviz_plugin/occupancy_tree_grid_display.cpp)
+            include/erl_geometry/rviz_plugin/occupancy_tree_map_display.hpp
+            src/rviz_plugin/occupancy_tree_grid_display.cpp
+            src/rviz_plugin/occupancy_tree_map_display.cpp)
     target_include_directories(${PROJECT_NAME}_rviz_plugin
             PRIVATE ${Qt5_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME}_rviz_plugin
@@ -135,9 +137,9 @@ erl_add_tests(
         IGNORE_FILES ${ignore_tests}
 )
 if (ROS1_ACTIVATED)
-    add_executable(test_rviz_plugin_occupancy_tree_grid_display
-            test/gtest/ros1/test_rviz_plugin_occupancy_tree_grid_display.cpp)
-    target_link_libraries(test_rviz_plugin_occupancy_tree_grid_display
+    add_executable(test_rviz_plugin_occupancy_tree_display
+            test/gtest/ros1/test_rviz_plugin_occupancy_tree_display.cpp)
+    target_link_libraries(test_rviz_plugin_occupancy_tree_display
             PUBLIC ${PROJECT_NAME}
             PUBLIC ${catkin_LIBRARIES})
 endif ()

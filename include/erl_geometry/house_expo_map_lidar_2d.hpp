@@ -39,6 +39,17 @@ namespace erl::geometry {
             return m_map_.GetMeterSpace()->GetSurface()->vertices.rowwise().maxCoeff();
         }
 
+        HouseExpoMap &
+        GetHouseExpoMap() {
+            return m_map_;
+        }
+
+        void
+        Translate(const Eigen::Vector2d &translation) {
+            m_map_.Translate(translation);
+            m_trajectory_.topRows<2>().colwise() += translation;
+        }
+
         /**
          *
          * @param index frame index.

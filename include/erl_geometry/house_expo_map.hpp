@@ -51,6 +51,12 @@ namespace erl::geometry {
             return m_meter_space_->GetSurface()->vertices.rowwise().maxCoeff();
         }
 
+        void
+        Translate(const Eigen::Vector2d &translation) {
+            m_meter_space_->Translate(translation);
+            m_bbox_.colwise() += translation;
+        }
+
         [[nodiscard]] std::shared_ptr<open3d::geometry::TriangleMesh>
         ExtrudeTo3D(double room_height) const;
 

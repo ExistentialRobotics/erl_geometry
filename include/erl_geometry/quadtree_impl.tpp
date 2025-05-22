@@ -383,7 +383,8 @@ namespace erl::geometry {
         const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
         const uint32_t diff = tree_depth - depth;
         if (!diff) { return keyval + m_tree_key_offset_; }
-        return ((keyval >> diff) << diff) + (1 << (diff - 1)) + m_tree_key_offset_;
+        return ((keyval >> diff) << diff) + static_cast<uint32_t>(1 << (diff - 1)) +
+               m_tree_key_offset_;
     }
 
     template<class Node, class Interface, class InterfaceSetting>
@@ -921,7 +922,7 @@ namespace erl::geometry {
         if (this->m_stack_.empty()) { return; }
         ERL_DEBUG_ASSERT(tree != nullptr, "Tree is null.");
 
-        // If the provided AABB is too large, CoordsToKeyChecked will return false.
+        // If the provided AABB is too large, CoordToKeyChecked will return false.
         // We should avoid this case.
         if (!this->GetInTreeAabb(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y)) {
             this->Terminate();  // the tree is not in the AABB at all

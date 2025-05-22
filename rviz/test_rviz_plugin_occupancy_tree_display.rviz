@@ -7,7 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /OccupancyTreeGrid1
-        - /OccupancyTreeGrid1/Status1
+        - /OccupancyTreeMap1
       Splitter Ratio: 0.5
     Tree Height: 858
   - Class: rviz/Selection
@@ -57,14 +57,27 @@ Visualization Manager:
       Enabled: true
       Max. Height: 2.9000000953674316
       Max. Octree Depth: 16
-      Min. Height: -inf
+      Min. Height: -3.4028234663852886e+38
       Name: OccupancyTreeGrid
       Queue Size: 5
       Tree Topic: /test_rviz_plugin_occupancy_tree_grid_display/tree
       Value: true
-      Voxel Alpha: 1
+      Voxel Alpha: 0.6000000238418579
       Voxel Coloring: Z-Axis
       Voxel Rendering: Occupied Voxels
+    - Alpha: 0.699999988079071
+      Class: erl_geometry/OccupancyTreeMap
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Max. Height: 2.9000000953674316
+      Max. Octree Depth: 16
+      Min. Height: 0.10000000149011612
+      Name: OccupancyTreeMap
+      Tree Topic: /test_rviz_plugin_occupancy_tree_grid_display/tree
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -93,7 +106,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 17.692110061645508
+      Distance: 19.939672470092773
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -101,17 +114,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 7.166723728179932
-        Y: 4.458660125732422
-        Z: 2.0694940090179443
+        X: 5.370225429534912
+        Y: 5.526187896728516
+        Z: -0.059356689453125
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.0203977823257446
+      Pitch: 1.0197961330413818
       Target Frame: <Fixed Frame>
-      Yaw: 5.49357795715332
+      Yaw: 5.243184566497803
     Saved: ~
 Window Geometry:
   Displays:
@@ -129,5 +142,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 2054
-  X: 1594
-  Y: 405
+  X: 1711
+  Y: 615

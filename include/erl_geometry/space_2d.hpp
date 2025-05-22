@@ -61,6 +61,11 @@ namespace erl::geometry {
             return m_surface_;
         }
 
+        void
+        Translate(const Eigen::Vector2d &translation) {
+            m_surface_->Translate(translation);
+        }
+
         [[nodiscard]] Space2D
         AddObstacles(
             const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &obstacle_vertices,

@@ -17,7 +17,7 @@ const static std::filesystem::path kProjectDir = ERL_GEOMETRY_ROOT_DIR;
 #define ELEVATION_MAX       (M_PI / 2)
 #define NUM_AZIMUTH_LINES   360
 #define NUM_ELEVATION_LINES 181
-#define OCTREE_RESOLUTION   0.1
+#define OCTREE_RESOLUTION   0.05
 #define QUADTREE_RESOLUTION 0.05
 
 template<typename Dtype>
@@ -190,6 +190,9 @@ public:
             std::make_shared<Lidar2D::Setting>(),
             false /* add_noise */,
             0.01 /* noise_std */);
+        Eigen::Vector2d map_min = m_map_->GetMapMin();
+        Eigen::Vector2d map_max = m_map_->GetMapMax();
+        m_map_->Translate(-(map_min + map_max) / 2.0);
 
         // create occupancy quadtree
         auto quadtree_setting = std::make_shared<typename OccupancyQuadtree::Setting>();

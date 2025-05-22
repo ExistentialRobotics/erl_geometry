@@ -1,0 +1,15 @@
+<launch>
+    <arg name="is_double" default="false" />
+    <arg name="is_3d" default="true" />
+    <arg name="publish_binary_msg" default="false" />
+    <node pkg="erl_geometry" type="test_rviz_plugin_occupancy_tree_display"
+        name="test_rviz_plugin_occupancy_tree_grid_display" output="screen">
+        <param name="is_double" value="$(arg is_double)" />
+        <param name="is_3d" value="$(arg is_3d)" />
+        <param name="publish_binary_msg" value="$(arg publish_binary_msg)" />
+    </node>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="map_odom_transformer"
+        args="0 0 0 0 0 0 1 map odom" />
+    <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find erl_geometry)/rviz/test_rviz_plugin_occupancy_tree_display.rviz" />
+</launch>
