@@ -23,6 +23,9 @@ namespace erl::geometry::rviz_plugin {
         std::unique_ptr<message_filters::Subscriber<sensor_msgs::PointCloud2>> m_sub_ = nullptr;
         rviz::RosTopicProperty *&m_pcd_topic_property_ = marker_topic_property_;  // for clarity
         rviz::BoolProperty *m_show_normals_property_ = nullptr;
+        rviz::EnumProperty *m_normal_x_property_ = nullptr;
+        rviz::EnumProperty *m_normal_y_property_ = nullptr;
+        rviz::EnumProperty *m_normal_z_property_ = nullptr;
         rviz::FloatProperty *m_normal_length_property_ = nullptr;
         rviz::FloatProperty *m_normal_width_property_ = nullptr;
         rviz::IntProperty *m_normal_start_property_ = nullptr;
@@ -33,6 +36,9 @@ namespace erl::geometry::rviz_plugin {
         visualization_msgs::MarkerArrayPtr m_marker_delete_req_;
         visualization_msgs::MarkerArrayPtr m_marker_add_req_;
         bool m_show_normals_ = false;
+        std::string m_normal_x_name_ = "normal_x";
+        std::string m_normal_y_name_ = "normal_y";
+        std::string m_normal_z_name_ = "normal_z";
         float m_normal_length_ = 0.01f;
         float m_normal_width_ = 0.0005f;
         int m_normal_start_ = 0.0;
@@ -79,6 +85,15 @@ namespace erl::geometry::rviz_plugin {
 
         void
         UpdateShowNormals();
+
+        void
+        UpdateNormalX();
+
+        void
+        UpdateNormalY();
+
+        void
+        UpdateNormalZ();
 
         void
         UpdateNormalLength();

@@ -18,13 +18,6 @@ namespace erl::geometry::rviz_plugin {
         : rviz::MarkerDisplay(),
           m_point_cloud_common_(std::make_unique<rviz::PointCloudCommon>(this)) {
 
-        // override the MarkerDisplay's topic property
-        // marker_topic_property_->setMessageType(
-        //     QString::fromStdString(ros::message_traits::datatype<sensor_msgs::PointCloud2>()));
-        // marker_topic_property_->setDescription("sensor_msgs::PointCloud2 topic to subscribe
-        // to."); marker_topic_property_->disconnect(); marker_topic_property_->connect(this,
-        // SLOT(UpdateTopic()));
-
         delete marker_topic_property_;
         marker_topic_property_ = new rviz::RosTopicProperty(
             "PointCloud2 Topic",
@@ -80,6 +73,30 @@ namespace erl::geometry::rviz_plugin {
             "Show normals in the point cloud.",
             this,
             SLOT(UpdateShowNormals()),
+            this);
+        // add a property to set the x component of the normals
+        m_normal_x_property_ = new rviz::EnumProperty(
+            "Normal X",
+            "normal_x",
+            "Component of the normals in the point cloud.",
+            this,
+            SLOT(UpdateNormalX()),
+            this);
+        // add a property to set the y component of the normals
+        m_normal_y_property_ = new rviz::EnumProperty(
+            "Normal Y",
+            "normal_y",
+            "Component of the normals in the point cloud.",
+            this,
+            SLOT(UpdateNormalY()),
+            this);
+        // add a property to set the z component of the normals
+        m_normal_z_property_ = new rviz::EnumProperty(
+            "Normal Z",
+            "normal_z",
+            "Component of the normals in the point cloud.",
+            this,
+            SLOT(UpdateNormalZ()),
             this);
         // add a property to set the length of the normals
         m_normal_length_property_ = new rviz::FloatProperty(
@@ -211,6 +228,24 @@ namespace erl::geometry::rviz_plugin {
     }
 
     void
+    BetterPointCloud2Display::UpdateNormalX() {
+        m_normal_x_name_ = m_normal_x_property_->getStdString();
+        UpdateTopic();
+    }
+
+    void
+    BetterPointCloud2Display::UpdateNormalY() {
+        m_normal_y_name_ = m_normal_y_property_->getStdString();
+        UpdateTopic();
+    }
+
+    void
+    BetterPointCloud2Display::UpdateNormalZ() {
+        m_normal_z_name_ = m_normal_z_property_->getStdString();
+        UpdateTopic();
+    }
+
+    void
     BetterPointCloud2Display::UpdateNormalLength() {
         m_normal_length_ = m_normal_length_property_->getFloat();
         UpdateTopic();
@@ -278,9 +313,15 @@ namespace erl::geometry::rviz_plugin {
         auto filtered = ProcessCloud(cloud, has_normals, color_ch_min, color_ch_max);
         if (!filtered) { return; }
 
+        m_normal_x_property_->clearOptions();
+        m_normal_y_property_->clearOptions();
+        m_normal_z_property_->clearOptions();
         m_normal_color_mode_property_->clearOptions();
         m_normal_color_mode_property_->addOptionStd("Constant Color");
         for (auto &field: filtered->fields) {
+            m_normal_x_property_->addOptionStd(field.name);
+            m_normal_y_property_->addOptionStd(field.name);
+            m_normal_z_property_->addOptionStd(field.name);
             m_normal_color_mode_property_->addOptionStd(field.name);
         }
 
@@ -315,9 +356,9 @@ namespace erl::geometry::rviz_plugin {
         const int32_t xi = rviz::findChannelIndex(filtered, "x");
         const int32_t yi = rviz::findChannelIndex(filtered, "y");
         const int32_t zi = rviz::findChannelIndex(filtered, "z");
-        const int32_t normal_xi = rviz::findChannelIndex(filtered, "normal_x");
-        const int32_t normal_yi = rviz::findChannelIndex(filtered, "normal_y");
-        const int32_t normal_zi = rviz::findChannelIndex(filtered, "normal_z");
+        const int32_t normal_xi = rviz::findChannelIndex(filtered, m_normal_x_name_);
+        const int32_t normal_yi = rviz::findChannelIndex(filtered, m_normal_y_name_);
+        const int32_t normal_zi = rviz::findChannelIndex(filtered, m_normal_z_name_);
         const int32_t color_idx = rviz::findChannelIndex(filtered, m_normal_color_mode_);
         const int32_t x_off = filtered->fields[xi].offset;
         const int32_t y_off = filtered->fields[yi].offset;
@@ -334,6 +375,11 @@ namespace erl::geometry::rviz_plugin {
         marker_add.points.reserve(normals_cnt * 2);
         marker_add.colors.reserve(normals_cnt * 2);
         std_msgs::ColorRGBA color;
+        std_msgs::ColorRGBA color_black;
+        color_black.r = 0.0f;
+        color_black.g = 0.0f;
+        color_black.b = 0.0f;
+        color_black.a = 1.0f;
         const bool use_constant_color = m_normal_color_mode_ == "Constant Color" && color_idx < 0;
         if (use_constant_color) {
             color.r = m_normal_color_.redF();
@@ -375,8 +421,8 @@ namespace erl::geometry::rviz_plugin {
                 color_value = 1.0f - (color_value - color_ch_min) / color_range;
                 GetRainbowColor(color_value, color);
             }
-            marker_add.colors.push_back(color);  // start color
-            marker_add.colors.push_back(color);  // end color
+            marker_add.colors.push_back(color);        // start color
+            marker_add.colors.push_back(color_black);  // end color
         }
         marker_add.scale.x = m_normal_width_;
         MarkerDisplay::incomingMarkerArray(m_marker_add_req_);
@@ -474,9 +520,9 @@ namespace erl::geometry::rviz_plugin {
         }
 
         if (m_show_normals_) {
-            int32_t normal_xi = rviz::findChannelIndex(cloud, "normal_x");
-            int32_t normal_yi = rviz::findChannelIndex(cloud, "normal_y");
-            int32_t normal_zi = rviz::findChannelIndex(cloud, "normal_z");
+            int32_t normal_xi = rviz::findChannelIndex(cloud, m_normal_x_name_);
+            int32_t normal_yi = rviz::findChannelIndex(cloud, m_normal_y_name_);
+            int32_t normal_zi = rviz::findChannelIndex(cloud, m_normal_z_name_);
             if (normal_xi < 0 || normal_yi < 0 || normal_zi < 0) {
                 setStatusStd(
                     rviz::StatusProperty::Error,

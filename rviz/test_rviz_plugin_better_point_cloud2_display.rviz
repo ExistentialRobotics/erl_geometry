@@ -77,6 +77,9 @@ Visualization Manager:
       Normal Start: 0
       Normal Stride: 10
       Normal Width: 0.0005000000237487257
+      Normal X: normal_x
+      Normal Y: normal_y
+      Normal Z: normal_z
       PointCloud2 Topic: /test_rviz_plugin_better_point_cloud2_display/point_cloud
       Position Transformer: XYZ
       Queue Size: 5
@@ -93,7 +96,7 @@ Visualization Manager:
     Background Color: 48; 48; 48
     Default Light: true
     Fixed Frame: map
-    Frame Rate: 30
+    Frame Rate: 300
   Name: root
   Tools:
     - Class: rviz/Interact
@@ -152,5 +155,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 2148
-  X: 1448
-  Y: 110
+  X: 376
+  Y: 712
