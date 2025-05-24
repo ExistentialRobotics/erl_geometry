@@ -66,10 +66,10 @@ namespace erl::geometry::rviz_plugin {
         [[nodiscard]] OctreeKey
         CoordToKey(double x, double y, double z, uint32_t depth) const;
 
-        [[nodiscard]] void
+        void
         KeyToCoord(const OctreeKey& key, double& x, double& y, double& z) const;
 
-        [[nodiscard]] void
+        void
         KeyToCoord(const OctreeKey& key, uint32_t depth, double& x, double& y, double& z) const;
 
         [[nodiscard]] QuadtreeKey
@@ -78,10 +78,10 @@ namespace erl::geometry::rviz_plugin {
         [[nodiscard]] QuadtreeKey
         CoordToKey(double x, double y, uint32_t depth) const;
 
-        [[nodiscard]] void
+        void
         KeyToCoord(const QuadtreeKey& key, double& x, double& y) const;
 
-        [[nodiscard]] void
+        void
         KeyToCoord(const QuadtreeKey& key, uint32_t depth, double& x, double& y) const;
     };
 

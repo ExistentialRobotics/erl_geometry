@@ -52,7 +52,7 @@ namespace erl::geometry::rviz_plugin {
 
     public:
         OccupancyTreeGridDisplay();
-        virtual ~OccupancyTreeGridDisplay();
+        ~OccupancyTreeGridDisplay();
 
         // Overrides from Display
         void
@@ -100,7 +100,7 @@ namespace erl::geometry::rviz_plugin {
         void
         IncomingMessageCallbackForOctree(const erl_geometry::OccupancyTreeMsgConstPtr& msg);
 
-        virtual void
+        void
         IncomingMessageCallback(const erl_geometry::OccupancyTreeMsgConstPtr& msg);
 
         void
@@ -109,7 +109,7 @@ namespace erl::geometry::rviz_plugin {
         void
         Clear();
 
-        virtual bool
+        bool
         UpdateFromTf();
     };
 }  // namespace erl::geometry::rviz_plugin

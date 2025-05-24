@@ -13,4 +13,12 @@
             Display an occupancy quadtree/octree stored in OccupancyTreeMsg as an occupancy map.
         </description>
     </class>
+    <class name="BetterPointCloud2"
+        type="erl::geometry::rviz_plugin::BetterPointCloud2Display"
+        base_class_type="rviz::Display">
+        <description>
+            Display normal vectors of points in a point cloud (sensor_msgs::PointCloud2), if
+            available.
+        </description>
+    </class>
 </library>

@@ -30,7 +30,7 @@ namespace erl::geometry {
     template<typename Dtype>
     bool
     SaveToOccupancyTreeMsg(
-        const std::shared_ptr<AbstractOccupancyOctree<Dtype>>& tree,
+        const std::shared_ptr<const AbstractOccupancyOctree<Dtype>>& tree,
         bool binary,
         erl_geometry::OccupancyTreeMsg& msg) {
         std::ostringstream s;  // create a ostream to wrap msg->data
@@ -59,7 +59,7 @@ namespace erl::geometry {
     template<typename Dtype>
     bool
     SaveToOccupancyTreeMsg(
-        const std::shared_ptr<AbstractOccupancyQuadtree<Dtype>>& tree,
+        const std::shared_ptr<const AbstractOccupancyQuadtree<Dtype>>& tree,
         bool binary,
         erl_geometry::OccupancyTreeMsg& msg) {
         std::ostringstream s;  // create a ostream to wrap msg->data

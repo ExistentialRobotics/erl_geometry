@@ -273,10 +273,13 @@ namespace erl::geometry::rviz_plugin {
 
         m_header_ = msg->header;
         if (!UpdateFromTf()) {
-            std::stringstream ss;
-            ss << "Failed to transform from frame [" << m_header_.frame_id << "] to frame ["
-               << context_->getFrameManager()->getFixedFrame() << "]";
-            setStatusStd(rviz::StatusProperty::Error, "Message", ss.str());
+            setStatusStd(
+                rviz::StatusProperty::Error,
+                "Message",
+                fmt::format(
+                    "Failed to transform from frame [%s] to frame [%s]",
+                    m_header_.frame_id,
+                    context_->getFrameManager()->getFixedFrame()));
             return;
         }
 

@@ -13,3 +13,13 @@
   |                                                  |                                                 |
   | ------------------------------------------------ | ----------------------------------------------- |
   | ![](assets/test_occupancy_tree_grid_display.png) | ![](assets/test_occupancy_tree_map_display.png) |
+
+- [test_rviz_plugin_better_point_cloud2_display.launch](test_rviz_plugin_better_point_cloud2_display.launch):
+  Launches the `test_rviz_plugin_better_point_cloud2_display` node to test the rviz plugin for
+  visualizing a point cloud2 with better performance.
+  ```shell
+  roslaunch erl_geometry test_rviz_plugin_better_point_cloud2_display.launch
+  ```
+  |                                                              |
+  | ------------------------------------------------------------ |
+  | ![](assets/test_rviz_plugin_better_point_cloud2_display.png) |

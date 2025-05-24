@@ -1,0 +1,7 @@
+<launch>
+    <node pkg="erl_geometry" type="test_rviz_plugin_better_point_cloud2_display"
+        name="test_rviz_plugin_better_point_cloud2_display" output="screen">
+    </node>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="map_odom_transformer"
+        args="0 0 0 0 0 0 1 map odom" />
+</launch>
