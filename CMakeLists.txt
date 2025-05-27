@@ -13,8 +13,8 @@ endif()
 erl_project_setup(
         ${PROJECT_NAME}
         ERL_PACKAGES erl_common erl_covariance
-        CATKIN_COMPONENTS roscpp std_msgs nav_msgs message_generation
-        CATKIN_DEPENDS roscpp std_msgs nav_msgs message_runtime rviz
+        CATKIN_COMPONENTS roscpp std_msgs nav_msgs geometry_msgs message_generation rviz tf2_ros
+        CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs message_runtime rviz tf2_ros
 )
 
 erl_config_qhull()
@@ -87,6 +87,11 @@ if(ROS1_ACTIVATED)
         # Avoid OGRE deprecation warnings under C++17
         target_compile_options(${PROJECT_NAME}_rviz_plugin PUBLIC "-Wno-register")
         list(APPEND libs ${PROJECT_NAME}_rviz_plugin)
+
+        # node: gazebo_room_2d_node
+        add_executable(gazebo_room_2d_node src/ros1/gazebo_room_2d_node.cpp)
+        target_include_directories(gazebo_room_2d_node PRIVATE ${catkin_INCLUDE_DIRS})
+        target_link_libraries(gazebo_room_2d_node PRIVATE ${PROJECT_NAME} ${catkin_LIBRARIES})
 else()
         target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
 endif()

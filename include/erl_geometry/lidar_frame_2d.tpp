@@ -141,7 +141,11 @@ namespace erl::geometry {
         m_kd_tree_->Clear();
 
         const long n = m_angles_frame_.size();
-        ERL_ASSERTM(n == m_ranges_.size(), "angles and ranges have different sizes.");
+        ERL_ASSERTM(
+            n == m_ranges_.size(),
+            "angles and ranges have different sizes: {} vs {}.",
+            n,
+            m_ranges_.size());
         ERL_ASSERTM(n > 0, "angles and ranges are empty.");
 
         m_angles_world_.resize(n);

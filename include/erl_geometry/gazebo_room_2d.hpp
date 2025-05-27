@@ -1,7 +1,8 @@
 #pragma once
 
 #include "erl_common/binary_file.hpp"
-#include "erl_common/eigen.hpp"
+
+#include <open3d/geometry/TriangleMesh.h>
 
 namespace erl::geometry {
 
@@ -67,5 +68,8 @@ namespace erl::geometry {
                 Eigen::VectorXd &distance_variance,
                 Eigen::Matrix2Xd &gradient_variance);
         };
+
+        static std::shared_ptr<open3d::geometry::TriangleMesh>
+        ExtrudeTo3D(double room_height, bool add_ceiling);
     };
 }  // namespace erl::geometry

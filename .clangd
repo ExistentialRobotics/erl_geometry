@@ -1,4 +1,0 @@
-If:
-    PathMatch: .*\.tpp$
-CompileFlags:
-    Add: -include=file.hpp
