@@ -108,8 +108,9 @@ GenerateGridPoints(const int grid_size, const Aabb<Dtype, 2> &map_boundary) {
 }
 
 template<typename Dtype>
-void
+std::tuple<cv::Mat, cv::Mat, cv::Mat>
 VisualizeResult(
+    const BayesianHilbertMap<Dtype, 2> &bhm,
     const GridMapInfo2D<Dtype> &grid_map,
     const std::vector<Eigen::Vector2<Dtype>> &waypoints,
     const std::vector<Eigen::Matrix2X<Dtype>> &scanned_points,
@@ -138,7 +139,7 @@ VisualizeResult(
     cv::flip(img_prob_occupied_rgb, img_prob_occupied_rgb, 0);
     cv::flip(img_gradient_norm_rgb, img_gradient_norm_rgb, 0);
 
-    constexpr int s = 9;
+    const int s = 800 / img_prob_occupied_rgb.rows;
     cv::resize(
         img_prob_occupied_rgb,
         img_prob_occupied_rgb,
@@ -162,8 +163,6 @@ VisualizeResult(
         const Eigen::Vector2<Dtype> &waypoint = waypoints[idx];
         Eigen::Vector2i px = grid_map_scaled.MeterToPixelForPoints(waypoint);
         pts[0].emplace_back(px[0], px[1]);
-        // cv::circle(img_prob_occupied_rgb, cv::Point(px[0], px[1]), 2, cv::Scalar(255, 255, 255),
-        // -1);
 
         const Eigen::Matrix2X<Dtype> &points = scanned_points[idx];
         for (long i = 0; i < points.cols(); ++i) {
@@ -176,7 +175,7 @@ VisualizeResult(
                 -1);
         }
     }
-    cv::polylines(img_prob_occupied_rgb, pts, false, cv::Scalar(255, 255, 255), 1, cv::LINE_AA, 0);
+    cv::polylines(img_prob_occupied_rgb, pts, false, cv::Scalar(0, 255, 0), 1, cv::LINE_AA, 0);
 
     // visualize gradient
     for (long i = 0; i < surface_points.cols(); ++i) {
@@ -186,13 +185,41 @@ VisualizeResult(
         gradient.normalize();
         px += grid_map_scaled.MeterToPixelForVectors(-gradient * 0.25);
         const cv::Point pt2(px[0], px[1]);
+        cv::arrowedLine(img_prob_occupied_rgb, pt1, pt2, cv::Scalar(255, 255, 255), 2);
         cv::arrowedLine(img_gradient_norm_rgb, pt1, pt2, cv::Scalar(255, 255, 255), 2);
         cv::circle(img_gradient_norm_rgb, pt1, 1, cv::Scalar(0, 0, 255), -1);
     }
+    cv::polylines(img_gradient_norm_rgb, pts, false, cv::Scalar(0, 255, 0), 1, cv::LINE_AA, 0);
+
+    // visualize bhm weights
+    Eigen::VectorX<Dtype> mu = bhm.GetWeights();
+    // Apply x^0.25 to the weights for visualization
+    mu = mu.unaryExpr([](Dtype v) { return v > 0 ? std::pow(v, 0.25f) : -std::pow(-v, 0.25f); });
+    cv::Mat mu_color;
+    cv::eigen2cv(mu, mu_color);
+    cv::normalize(mu_color, mu_color, 0, 255, cv::NORM_MINMAX);
+    mu_color.convertTo(mu_color, CV_8UC1);
+    cv::applyColorMap(mu_color, mu_color, cv::COLORMAP_JET);
+    const Eigen::Matrix2X<Dtype> &hinged_points = bhm.GetHingedPoints();
+    cv::Mat img_bhm_weights(img_prob_occupied_rgb.rows, img_prob_occupied_rgb.cols, CV_8UC3);
+    img_bhm_weights.setTo(0);
+    for (long i = 0; i < hinged_points.cols(); ++i) {
+        Eigen::Vector2i px = grid_map_scaled.MeterToPixelForPoints(hinged_points.col(i));
+        cv::circle(
+            img_bhm_weights,
+            cv::Point(px[0], px[1]),
+            8,
+            mu_color.at<cv::Vec3b>(static_cast<int>(i), 0),
+            -1);
+    }
+    cv::polylines(img_bhm_weights, pts, false, cv::Scalar(0, 255, 0), 1, cv::LINE_AA, 0);
 
     cv::imshow("Probability Occupied", img_prob_occupied_rgb);
     cv::imshow("Gradient Norm", img_gradient_norm_rgb);
+    cv::imshow("BHM Weights", img_bhm_weights);
     cv::waitKey(100);
+
+    return {img_prob_occupied_rgb, img_gradient_norm_rgb, img_bhm_weights};
 }
 
 template<typename Dtype>
@@ -227,6 +254,7 @@ TestImpl2D(
     const bool faster,
     const bool use_sparse) {
 
+    GTEST_PREPARE_OUTPUT_DIR();
     auto bhm_setting = std::make_shared<BayesianHilbertMapSetting>();
     bhm_setting->diagonal_sigma = diagonal_sigma;
     bhm_setting->use_sparse = use_sparse;
@@ -236,7 +264,7 @@ TestImpl2D(
     std::shared_ptr<Covariance<Dtype>> kernel =
         std::make_shared<RadialBiasFunction<Dtype, 2>>(kernel_setting);
 
-    Aabb<Dtype, 2> map_boundary(Eigen::Vector2<Dtype>(-5.0, -5.0), Eigen::Vector2<Dtype>(5.0, 5.0));
+    Aabb<Dtype, 2> map_boundary(Eigen::Vector2<Dtype>(-3.0, -3.0), Eigen::Vector2<Dtype>(3.0, 3.0));
     Eigen::Matrix2X<Dtype> hinged_points =
         GenerateGridPoints(hinged_grid_size, map_boundary).second;
     BayesianHilbertMap<Dtype, 2> bhm(bhm_setting, kernel, hinged_points, map_boundary, 0);
@@ -261,7 +289,13 @@ TestImpl2D(
 
     std::vector<Eigen::Vector2<Dtype>> waypoints;
     std::vector<Eigen::Matrix2X<Dtype>> scanned_points;
-
+    long cnt = 0;
+    std::filesystem::path prob_occupied_dir = test_output_dir / "prob_occupied";
+    std::filesystem::create_directories(prob_occupied_dir);
+    std::filesystem::path gradient_norms_dir = test_output_dir / "gradient_norms";
+    std::filesystem::create_directories(gradient_norms_dir);
+    std::filesystem::path bhm_weights_dir = test_output_dir / "bhm_weights";
+    std::filesystem::create_directories(bhm_weights_dir);
     for (const auto &pose: trajectory) {
         auto scan = lidar.Scan(
             static_cast<double>(pose[2]),
@@ -289,27 +323,6 @@ TestImpl2D(
             dataset_points,
             dataset_labels,
             hit_indices);
-
-        // constexpr bool with_sigmoid = false;
-        // constexpr bool parallel = true;
-        // bhm.Predict(
-        //     test_points,
-        //     false /*logodd*/,
-        //     faster,
-        //     true /*compute_gradient*/,
-        //     with_sigmoid,
-        //     parallel,
-        //     predicted_prob_occupied,
-        //     predicted_gradient);
-        // bhm.PredictGradient(surf_points, faster, with_sigmoid, parallel,
-        // predicted_gradient_surf); VisualizeResult(
-        //     test_grid,
-        //     waypoints,
-        //     scanned_points,
-        //     predicted_prob_occupied,
-        //     predicted_gradient,
-        //     surf_points,
-        //     predicted_gradient_surf);
 
         bhm.GenerateDataset(
             pose.template head<2>(),
@@ -350,7 +363,8 @@ TestImpl2D(
                 with_sigmoid,
                 parallel,
                 predicted_gradient_surf);
-            VisualizeResult(
+            auto [img_prob_occupied_rgb, img_gradient_norm_rgb, img_bhm_weights] = VisualizeResult(
+                bhm,
                 test_grid,
                 waypoints,
                 scanned_points,
@@ -358,6 +372,11 @@ TestImpl2D(
                 predicted_gradient,
                 surf_points,
                 predicted_gradient_surf);
+
+            std::string filename = fmt::format("{:04d}.png", cnt++);
+            cv::imwrite(prob_occupied_dir / filename, img_prob_occupied_rgb);
+            cv::imwrite(gradient_norms_dir / filename, img_gradient_norm_rgb);
+            cv::imwrite(bhm_weights_dir / filename, img_bhm_weights);
         }
     }
 

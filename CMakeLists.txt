@@ -6,9 +6,9 @@ project(erl_geometry
         DESCRIPTION "erl_geometry is a C++ library of geometry data structures, algorithms and datasets.")
 message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 
-if(NOT COMMAND erl_project_setup)
-        find_package(erl_common REQUIRED)
-endif()
+if (NOT COMMAND erl_project_setup)
+    find_package(erl_common REQUIRED)
+endif ()
 
 erl_project_setup(
         ${PROJECT_NAME}
@@ -17,24 +17,25 @@ erl_project_setup(
         CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs message_runtime rviz tf2_ros
 )
 
+erl_config_nanoflann()
 erl_config_qhull()
 erl_config_absl()
 erl_config_open3d()
 
-if(ROS1_ACTIVATED)
-        erl_config_qt5(Core Widgets)
-        erl_config_ogre()
-endif()
+if (ROS1_ACTIVATED)
+    erl_config_qt5(Core Widgets)
+    erl_config_ogre()
+endif ()
 
-if(ERL_BUILD_TEST_${PROJECT_NAME})
-        add_subdirectory(deps/octomap) # test_occupancy_octree_impls depends on octomap
-        erl_config_cgal()
+if (ERL_BUILD_TEST_${PROJECT_NAME})
+    add_subdirectory(deps/octomap) # test_occupancy_octree_impls depends on octomap
+    erl_config_cgal()
 
-        if(NOT CGAL_FOUND)
-                list(APPEND ignore_tests test_convex_hull_3d_impls.cpp) # CGAL is not found, ignore the test
-                message(WARNING "CGAL not found, ignoring test_convex_hull_3d_impls")
-        endif()
-endif()
+    if (NOT CGAL_FOUND)
+        list(APPEND ignore_tests test_convex_hull_3d_impls.cpp) # CGAL is not found, ignore the test
+        message(WARNING "CGAL not found, ignoring test_convex_hull_3d_impls")
+    endif ()
+endif ()
 
 erl_setup_ros(
         CATKIN_COMPONENTS ${${PROJECT_NAME}_CATKIN_COMPONENTS}
@@ -68,33 +69,33 @@ target_link_libraries(${PROJECT_NAME}
 )
 set(libs ${PROJECT_NAME})
 
-if(ROS1_ACTIVATED)
-        target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-        target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
+if (ROS1_ACTIVATED)
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
 
-        # library: erl_geometry_rviz_plugin
-        file(GLOB RVIZ_PLUGIN_INCLUDE_FILES include/erl_geometry/rviz_plugin/*.hpp)
-        file(GLOB RVIZ_PLUGIN_SRC_FILES src/rviz_plugin/*.cpp)
-        add_library(${PROJECT_NAME}_rviz_plugin MODULE
-                ${RVIZ_PLUGIN_INCLUDE_FILES} ${RVIZ_PLUGIN_SRC_FILES})
-        target_include_directories(${PROJECT_NAME}_rviz_plugin
-                PRIVATE ${Qt5_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
-        target_link_libraries(${PROJECT_NAME}_rviz_plugin
-                ${PROJECT_NAME} ${Qt5_LIBRARIES} ${OGRE_LIBRARIES})
-        target_compile_definitions(${PROJECT_NAME}_rviz_plugin PRIVATE QT_NO_KEYWORDS)
-        set_target_properties(${PROJECT_NAME}_rviz_plugin PROPERTIES AUTOMOC ON)
+    # library: erl_geometry_rviz_plugin
+    file(GLOB RVIZ_PLUGIN_INCLUDE_FILES include/erl_geometry/rviz_plugin/*.hpp)
+    file(GLOB RVIZ_PLUGIN_SRC_FILES src/rviz_plugin/*.cpp)
+    add_library(${PROJECT_NAME}_rviz_plugin MODULE
+            ${RVIZ_PLUGIN_INCLUDE_FILES} ${RVIZ_PLUGIN_SRC_FILES})
+    target_include_directories(${PROJECT_NAME}_rviz_plugin
+            PRIVATE ${Qt5_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME}_rviz_plugin
+            ${PROJECT_NAME} ${Qt5_LIBRARIES} ${OGRE_LIBRARIES})
+    target_compile_definitions(${PROJECT_NAME}_rviz_plugin PRIVATE QT_NO_KEYWORDS)
+    set_target_properties(${PROJECT_NAME}_rviz_plugin PROPERTIES AUTOMOC ON)
 
-        # Avoid OGRE deprecation warnings under C++17
-        target_compile_options(${PROJECT_NAME}_rviz_plugin PUBLIC "-Wno-register")
-        list(APPEND libs ${PROJECT_NAME}_rviz_plugin)
+    # Avoid OGRE deprecation warnings under C++17
+    target_compile_options(${PROJECT_NAME}_rviz_plugin PUBLIC "-Wno-register")
+    list(APPEND libs ${PROJECT_NAME}_rviz_plugin)
 
-        # node: gazebo_room_2d_node
-        add_executable(gazebo_room_2d_node src/ros1/gazebo_room_2d_node.cpp)
-        target_include_directories(gazebo_room_2d_node PRIVATE ${catkin_INCLUDE_DIRS})
-        target_link_libraries(gazebo_room_2d_node PRIVATE ${PROJECT_NAME} ${catkin_LIBRARIES})
-else()
-        target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
-endif()
+    # node: gazebo_room_2d_node
+    add_executable(gazebo_room_2d_node src/ros1/gazebo_room_2d_node.cpp)
+    target_include_directories(gazebo_room_2d_node PRIVATE ${catkin_INCLUDE_DIRS})
+    target_link_libraries(gazebo_room_2d_node PRIVATE ${PROJECT_NAME} ${catkin_LIBRARIES})
+else ()
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
+endif ()
 
 # ##################
 # Python bindings #
@@ -146,18 +147,18 @@ erl_add_tests(
         IGNORE_FILES ${ignore_tests}
 )
 
-if(ROS1_ACTIVATED)
-        add_executable(test_rviz_plugin_occupancy_tree_display
-                test/ros1/test_rviz_plugin_occupancy_tree_display.cpp)
-        target_link_libraries(test_rviz_plugin_occupancy_tree_display
-                PUBLIC ${PROJECT_NAME}
-                PUBLIC ${catkin_LIBRARIES})
-        add_executable(test_rviz_plugin_better_point_cloud2_display
-                test/ros1/test_rviz_plugin_better_point_cloud2_display.cpp)
-        target_link_libraries(test_rviz_plugin_better_point_cloud2_display
-                PUBLIC ${PROJECT_NAME}
-                PUBLIC ${catkin_LIBRARIES})
-endif()
+if (ROS1_ACTIVATED)
+    add_executable(test_rviz_plugin_occupancy_tree_display
+            test/ros1/test_rviz_plugin_occupancy_tree_display.cpp)
+    target_link_libraries(test_rviz_plugin_occupancy_tree_display
+            PUBLIC ${PROJECT_NAME}
+            PUBLIC ${catkin_LIBRARIES})
+    add_executable(test_rviz_plugin_better_point_cloud2_display
+            test/ros1/test_rviz_plugin_better_point_cloud2_display.cpp)
+    target_link_libraries(test_rviz_plugin_better_point_cloud2_display
+            PUBLIC ${PROJECT_NAME}
+            PUBLIC ${catkin_LIBRARIES})
+endif ()
 
 # ###################################################################################################
 # export variables

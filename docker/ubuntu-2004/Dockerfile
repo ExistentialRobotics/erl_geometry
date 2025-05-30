@@ -3,6 +3,14 @@ FROM ${BASE_IMAGE}
 
 WORKDIR /root
 
+# install nanoflann
+RUN git clone https://github.com/jlblancoc/nanoflann && \
+    cd nanoflann && git checkout v1.7.1 && \
+    mkdir build && cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release && \
+    make install && \
+    cd /root && rm -rf nanoflann
+
 # install abseil-cpp
 RUN git clone --recursive https://github.com/abseil/abseil-cpp.git && cd abseil-cpp && \
     git checkout 20240722.1 && mkdir -p build && cd build && \
