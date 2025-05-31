@@ -17,7 +17,7 @@ const static std::filesystem::path kProjectDir = ERL_GEOMETRY_ROOT_DIR;
 #define ELEVATION_MAX       (M_PI / 2)
 #define NUM_AZIMUTH_LINES   360
 #define NUM_ELEVATION_LINES 181
-#define OCTREE_RESOLUTION   0.05
+#define OCTREE_RESOLUTION   0.1
 #define QUADTREE_RESOLUTION 0.05
 
 template<typename Dtype>
@@ -85,7 +85,7 @@ public:
         // publish topic, ros timer
         m_pub_ = m_nh_.advertise<erl_geometry::OccupancyTreeMsg>("tree", 1, true);
         m_timer_ = m_nh_.createTimer(
-            ros::Duration(0.1),
+            ros::Duration(0.01),
             &TestOccupancyTreeGridDisplayNode3D::CallbackTimer,
             this);
         ROS_INFO("TestOccupancyTreeGridDisplayNode3D initialized");
