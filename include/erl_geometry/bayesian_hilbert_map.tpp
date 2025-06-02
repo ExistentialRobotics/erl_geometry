@@ -648,6 +648,119 @@ namespace erl::geometry {
 
     template<typename Dtype, int Dim>
     void
+    BayesianHilbertMap<Dtype, Dim>::Predict(
+        const VectorD &point,
+        const bool logodd,
+        const bool faster,
+        const bool compute_gradient,
+        const bool gradient_with_sigmoid,
+        Dtype &prob_occupied,
+        VectorD &gradient) const {
+
+        // sparsity does not improve the performance of the prediction
+        // if (m_setting_->use_sparse) {
+        //     PredictSparse(points, logodd, faster, compute_gradient, gradient_with_sigmoid,
+        //     parallel, prob_occupied, gradient); return;
+        // }
+
+        constexpr Dtype kPI = static_cast<Dtype>(M_PI);
+        const long n_hinged = m_hinged_points_.cols();
+        const long phi_cols = compute_gradient ? (Dim + 1) : 1;
+
+        const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
+        MatrixX phi(n_hinged, phi_cols);
+        if (compute_gradient) {
+            m_kernel_->ComputeKtestWithGradient(
+                m_hinged_points_,
+                n_hinged,
+                grad_flags,
+                point,
+                1,
+                true,
+                phi);
+        } else {
+            m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, point, 1, phi);
+        }
+
+        if (faster) {  // assume sigma is very small; we can use the mean directly
+            const Dtype t1 = phi.col(0).dot(m_mu_);
+            prob_occupied = logodd ? t1 : 1.0f / (1.0f + std::exp(-t1));
+
+            if (!compute_gradient) { return; }
+
+            for (long d = 0, j = 1; d < Dim; ++d, ++j) {
+                gradient[d] = phi.col(j).dot(m_mu_);
+                if (gradient_with_sigmoid) {
+                    Dtype p = logodd ? 1.0f / (1.0f + std::exp(-t1)) : prob_occupied;
+                    gradient[d] *= p * (1.0f - p);
+                }
+            }
+            return;
+        }
+
+        const Dtype *mu_ptr = m_mu_.data();
+        if (m_setting_->diagonal_sigma) {
+            // assume sigma is diagonal, i.e. element of mu is independent
+            Dtype t1 = phi.col(0).dot(m_mu_);
+            Dtype t2 = 1.0f + phi.col(0).cwiseAbs2().dot(m_sigma_.col(0)) * (kPI / 8.0f);
+            Dtype t3 = std::sqrt(t2);
+            Dtype h = t1 / t3;
+            prob_occupied = logodd ? h : 1.0f / (1.0f + std::exp(-h));  // sigmoid
+
+            if (!compute_gradient) { return; }
+
+            for (long d = 0, j = 1; d < Dim; ++d, ++j) {
+                const Dtype *grad_phi_x = phi.col(j).data();
+                const Dtype *phi_ptr = phi.col(0).data();
+                const Dtype *sigma_ptr = m_sigma_.data();
+                gradient[d] = 0;
+                for (long k = 0; k < n_hinged; ++k) {
+                    Dtype tmp = mu_ptr[k] * t2 - kPI * t1 * sigma_ptr[k] * phi_ptr[k];
+                    gradient[d] += tmp * grad_phi_x[k];
+                }
+                if (gradient_with_sigmoid) {
+                    Dtype p = logodd ? 1.0f / (1.0f + std::exp(-h)) : prob_occupied;
+                    gradient[d] *= p * (1.0f - p) / (8.0f * t2 * t3);
+                } else {
+                    gradient[d] /= 8.0f * t2 * t3;
+                }
+            }
+            return;
+        }
+
+        const Dtype t1 = phi.col(0).dot(m_mu_);
+        VectorX beta = m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solve(phi.col(0));
+        // 1 + phi^T @ sigma @ phi * (kPI / 8.0)
+        const Dtype t2 = 1.0f + beta.squaredNorm() * (kPI / 8.0f);
+        const Dtype t3 = std::sqrt(t2);
+        const Dtype h = t1 / t3;
+        prob_occupied = logodd ? h : 1.0f / (1.0f + std::exp(-h));  // sigmoid function
+
+        if (!compute_gradient) { return; }
+
+        // beta = sigma @ phi
+        m_sigma_inv_mat_l_.template triangularView<Eigen::Upper>().solveInPlace(beta);
+        const Dtype *beta_ptr = beta.data();
+        for (long d = 0, j = 1; d < Dim; ++d, ++j) {
+            // grad = grad_phi_x @ grad_phi_h @ grad_prob_h
+            // phi: n x (n * (Dim + 1))
+            gradient[d] = 0;
+            Dtype *grad_phi_x = phi.col(j).data();
+            for (long k = 0; k < n_hinged; ++k) {
+                gradient[d] += (mu_ptr[k] * t2 - kPI * t1 * beta_ptr[k]) * grad_phi_x[k];
+            }
+
+            if (gradient_with_sigmoid) {
+                const Dtype p = logodd ? 1.0f / (1.0f + std::exp(-h)) : prob_occupied;
+                gradient[d] *= p * (1.0f - p) / (8.0f * t2 * t3);
+            } else {
+                gradient[d] /= 8.0f * t2 * t3;
+            }
+        }
+    }
+
+    template<typename Dtype, int Dim>
+    void
     BayesianHilbertMap<Dtype, Dim>::PredictSparse(
         const Eigen::Ref<const MatrixDX> &points,
         const bool logodd,

@@ -197,6 +197,16 @@ namespace erl::geometry {
             MatrixDX &gradient) const;
 
         void
+        Predict(
+            const VectorD &point,
+            bool logodd,
+            bool faster,
+            bool compute_gradient,
+            bool gradient_with_sigmoid,
+            Dtype &prob_occupied,
+            VectorD &gradient) const;
+
+        void
         PredictSparse(
             const Eigen::Ref<const MatrixDX> &points,
             bool logodd,
