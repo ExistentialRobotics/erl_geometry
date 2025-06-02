@@ -64,6 +64,9 @@ namespace erl::geometry {
                 callback);
 
         void
+        SetViewStatus(const std::filesystem::path &view_status_file) const;
+
+        void
         AddGeometries(
             const std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const;
 

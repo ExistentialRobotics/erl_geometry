@@ -1,6 +1,7 @@
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
 
 #include "erl_common/angle_utils.hpp"
+#include "erl_common/json.hpp"
 #include "erl_common/logging.hpp"
 #include "erl_geometry/open3d_helper.hpp"
 
@@ -56,6 +57,20 @@ namespace erl::geometry {
         } else {
             m_visualizer_->RegisterAnimationCallback(nullptr);
         }
+    }
+
+    void
+    Open3dVisualizerWrapper::SetViewStatus(const std::filesystem::path &view_status_file) const {
+        if (std::filesystem::exists(view_status_file)) {
+            std::ifstream ifs(view_status_file);
+            auto json_str =
+                std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+            m_visualizer_->SetViewStatus(json_str);
+            return;
+        }
+        ERL_WARN(
+            "View status file {} does not exist, skipping setting view status.",
+            view_status_file);
     }
 
     void
