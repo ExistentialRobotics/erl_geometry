@@ -2,9 +2,7 @@
 
 #include "kdtree_eigen_adaptor.hpp"
 
-#include "erl_common/angle_utils.hpp"
 #include "erl_common/eigen.hpp"
-#include "erl_common/random.hpp"
 #include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
@@ -29,9 +27,10 @@ namespace erl::geometry {
             Dtype angle_min = -M_PI;
             Dtype angle_max = M_PI;
             long num_rays = 360;
+            bool discontinuity_detection = true;
             Dtype discontinuity_factor = 10;
             Dtype rolling_diff_discount = 0.9;
-            int min_partition_size = 5;
+            long min_partition_size = 5;
 
             struct YamlConvertImpl {
                 static YAML::Node
@@ -80,7 +79,7 @@ namespace erl::geometry {
 
         // if i-th element is true, then i-th vertex is a hit
         Eigen::VectorXb m_mask_hit_ = {};
-        // if i-th element is true, then (i-1, i) edge is continuous
+        // if i-th element is true, then (i-1, i) and (i, i+1) edges are continuous
         Eigen::VectorXb m_mask_continuous_ = {};
         std::vector<long> m_hit_ray_indices_ = {};      // hit ray indices
         std::vector<Vector2> m_hit_points_frame_ = {};  // hit points in the frame
@@ -175,8 +174,11 @@ namespace erl::geometry {
         [[nodiscard]] const std::vector<Vector2> &
         GetEndPointsInWorld() const;
 
-        const Eigen::VectorXb &
-        GetHitMask();
+        [[nodiscard]] const Eigen::VectorXb &
+        GetHitMask() const;
+
+        [[nodiscard]] const Eigen::VectorXb &
+        GetContinuityMask() const;
 
         [[nodiscard]] const std::vector<long> &
         GetHitRayIndices() const;

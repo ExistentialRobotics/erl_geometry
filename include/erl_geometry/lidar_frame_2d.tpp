@@ -1,6 +1,10 @@
 #pragma once
 
+#include "lidar_frame_2d.hpp"
+
+#include "erl_common/angle_utils.hpp"
 #include "erl_common/logging.hpp"
+#include "erl_common/random.hpp"
 #include "erl_common/serialization.hpp"
 #include "erl_geometry/intersection.hpp"
 #include "erl_geometry/winding_number.hpp"
@@ -16,6 +20,7 @@ namespace erl::geometry {
         ERL_YAML_SAVE_ATTR(node, setting, angle_min);
         ERL_YAML_SAVE_ATTR(node, setting, angle_max);
         ERL_YAML_SAVE_ATTR(node, setting, num_rays);
+        ERL_YAML_SAVE_ATTR(node, setting, discontinuity_detection);
         ERL_YAML_SAVE_ATTR(node, setting, discontinuity_factor);
         ERL_YAML_SAVE_ATTR(node, setting, rolling_diff_discount);
         ERL_YAML_SAVE_ATTR(node, setting, min_partition_size);
@@ -33,6 +38,7 @@ namespace erl::geometry {
         ERL_YAML_LOAD_ATTR(node, setting, angle_min);
         ERL_YAML_LOAD_ATTR(node, setting, angle_max);
         ERL_YAML_LOAD_ATTR(node, setting, num_rays);
+        ERL_YAML_LOAD_ATTR(node, setting, discontinuity_detection);
         ERL_YAML_LOAD_ATTR(node, setting, discontinuity_factor);
         ERL_YAML_LOAD_ATTR(node, setting, rolling_diff_discount);
         ERL_YAML_LOAD_ATTR(node, setting, min_partition_size);
@@ -77,11 +83,11 @@ namespace erl::geometry {
         : m_setting_(std::move(setting)) {
         ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
 
-        m_angles_frame_ =
-            VectorX::LinSpaced(m_setting_->num_rays, m_setting_->angle_min, m_setting_->angle_max);
+        const long n = m_setting_->num_rays;
+        m_angles_frame_ = VectorX::LinSpaced(n, m_setting_->angle_min, m_setting_->angle_max);
         m_dirs_frame_.clear();
-        m_dirs_frame_.reserve(m_setting_->num_rays);
-        for (long i = 0; i < m_setting_->num_rays; ++i) {
+        m_dirs_frame_.reserve(n);
+        for (long i = 0; i < n; ++i) {
             m_dirs_frame_.emplace_back(std::cos(m_angles_frame_[i]), std::sin(m_angles_frame_[i]));
         }
     }
@@ -155,6 +161,10 @@ namespace erl::geometry {
         m_end_pts_frame_.resize(n);
         m_end_pts_world_.resize(n);
         m_mask_hit_.setConstant(n, false);
+        m_mask_continuous_.setConstant(n, true);
+        m_mask_continuous_[0] = false;      // first ray is always discontinuous
+        m_mask_continuous_[n - 1] = false;  // last ray is always discontinuous
+        Dtype rolling_range_diff = 0.0;
 
         m_hit_ray_indices_.clear();
         m_hit_ray_indices_.reserve(n);
@@ -163,10 +173,17 @@ namespace erl::geometry {
         m_hit_points_world_.clear();
         m_hit_points_world_.reserve(n);
 
+        const Dtype valid_range_min = m_setting_->valid_range_min;
+        const Dtype valid_range_max = m_setting_->valid_range_max;
+        const bool discontinuity_detection = m_setting_->discontinuity_detection;
+        const Dtype gamma1 = m_setting_->rolling_diff_discount;
+        const Dtype gamma2 = 1 - gamma1;
+        const Dtype eta = m_setting_->discontinuity_factor;
+
         for (long i = 0; i < n; ++i) {
             const Dtype &range = m_ranges_[i];
             if (range == 0 || !std::isfinite(range)) { continue; }
-            const Dtype &angle = m_angles_frame_[i];
+            Dtype angle = m_angles_frame_[i];
             m_angles_world_[i] = common::WrapAnglePi(angle + m_rotation_angle_);
 
             // directions
@@ -179,10 +196,19 @@ namespace erl::geometry {
             m_end_pts_world_[i] << m_rotation_ * end_pt_frame + m_translation_;
 
             // max valid range
-            if (range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) {
-                continue;
-            }
+            if (range < valid_range_min || range > valid_range_max) { continue; }
             m_mask_hit_[i] = true;
+
+            // discontinuity detection
+            if (!discontinuity_detection || i == 0 || !m_mask_hit_[i]) { continue; }
+            angle = common::WrapAnglePi(angle);
+            Dtype diff = std::abs((range - m_ranges_[i - 1]) / (angle - m_angles_frame_[i - 1]));
+            if (diff > eta * rolling_range_diff) {
+                m_mask_continuous_[i - 1] = false;
+                m_mask_continuous_[i] = false;
+            }
+            if (rolling_range_diff == 0.0) { rolling_range_diff = diff; }
+            rolling_range_diff = gamma1 * rolling_range_diff + gamma2 * diff;
         }
 
         m_max_valid_range_ = 0.0;
@@ -317,8 +343,14 @@ namespace erl::geometry {
 
     template<typename Dtype>
     const Eigen::VectorXb &
-    LidarFrame2D<Dtype>::GetHitMask() {
+    LidarFrame2D<Dtype>::GetHitMask() const {
         return m_mask_hit_;
+    }
+
+    template<typename Dtype>
+    const Eigen::VectorXb &
+    LidarFrame2D<Dtype>::GetContinuityMask() const {
+        return m_mask_continuous_;
     }
 
     template<typename Dtype>
@@ -1063,41 +1095,42 @@ namespace erl::geometry {
     template<typename Dtype>
     void
     LidarFrame2D<Dtype>::PartitionRays() {
+        if (m_hit_ray_indices_.empty()) { return; }
         const long n = m_angles_frame_.size();
-        // detect discontinuities, out-of-max-range measurements
-        m_mask_continuous_.setConstant(n, true);
-        m_mask_continuous_[0] = false;
-        m_mask_continuous_[n - 1] = false;
-        Dtype rolling_range_diff = 0.0;
-        const Dtype gamma1 = m_setting_->rolling_diff_discount;
-        const Dtype gamma2 = 1 - gamma1;
-        for (long i = 0; i < n; ++i) {
-            const Dtype angle = common::WrapAnglePi(m_angles_frame_[i]);
-            const Dtype range = m_ranges_[i];
-            if (i == 0 || !m_mask_hit_[i]) { continue; }
+        if (!m_setting_->discontinuity_detection) {
+            // detect discontinuities, out-of-max-range measurements
+            m_mask_continuous_.setConstant(n, true);
+            m_mask_continuous_[0] = false;
+            m_mask_continuous_[n - 1] = false;
+            Dtype rolling_range_diff = 0.0;
+            const Dtype gamma1 = m_setting_->rolling_diff_discount;
+            const Dtype gamma2 = 1 - gamma1;
+            const Dtype eta = m_setting_->discontinuity_factor;
+            for (long i = 0; i < n; ++i) {
+                const Dtype angle = common::WrapAnglePi(m_angles_frame_[i]);
+                const Dtype range = m_ranges_[i];
+                if (i == 0 || !m_mask_hit_[i]) { continue; }
 
-            const Dtype range_diff =  // range difference per angle
-                std::abs((range - m_ranges_[i - 1]) / (angle - m_angles_frame_[i - 1]));
-            if (range_diff > m_setting_->discontinuity_factor * rolling_range_diff) {
-                m_mask_continuous_[i - 1] = false;
+                const Dtype range_diff =  // range difference per angle
+                    std::abs((range - m_ranges_[i - 1]) / (angle - m_angles_frame_[i - 1]));
+                if (range_diff > eta * rolling_range_diff) { m_mask_continuous_[i - 1] = false; }
+                if (rolling_range_diff == 0.0) { rolling_range_diff = range_diff; }
+                rolling_range_diff = gamma1 * rolling_range_diff + gamma2 * range_diff;
             }
-            if (rolling_range_diff == 0.0) { rolling_range_diff = range_diff; }
-            rolling_range_diff = gamma1 * rolling_range_diff + gamma2 * range_diff;
         }
         // partition the sensor frame
         long j = 0;  // beginning index of the next partition, j-th ray must hit something
+        const long min_partition_size = m_setting_->min_partition_size;
         for (long i = 0; i < n; ++i) {
             const long m = i - j + 1;
             if (!m_mask_hit_[i]) {
-                if (m >= m_setting_->min_partition_size) {
-                    // do not include i-th ray, which does not hit anything
-                    m_partitions_.emplace_back(this, j, i - 1);
-                }
+                // do not include i-th ray, which does not hit anything
+                if (m >= min_partition_size) { m_partitions_.emplace_back(this, j, i - 1); }
                 j = i + 1;  // maybe the next ray hit something
                 continue;
             }
             if (!m_mask_continuous_[i]) {
-                if (m >= m_setting_->min_partition_size) { m_partitions_.emplace_back(this, j, i); }
+                if (m >= min_partition_size) { m_partitions_.emplace_back(this, j, i); }
                 j = i + 1;
             }
         }
