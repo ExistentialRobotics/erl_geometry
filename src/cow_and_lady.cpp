@@ -3,7 +3,6 @@
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/opencv.hpp"
 #include "erl_common/progress_bar.hpp"
-#include "erl_common/random.hpp"
 
 #include <open3d/core/EigenConverter.h>
 #include <open3d/geometry/PointCloud.h>
@@ -19,7 +18,9 @@ namespace erl::geometry {
         : m_directory_(std::move(directory)),
           m_pcd_gt_(open3d::io::CreatePointCloudFromFile(m_directory_ / "cow_and_lady_gt.ply")),
           m_pose_data_(common::LoadEigenMatrixFromBinaryFile<double>(m_directory_ / "poses.dat")),
-          m_use_icp_poses_(use_icp_poses) {
+          m_use_icp_poses_(use_icp_poses),
+          m_start_idx(kStartIdx),
+          m_end_idx(kEndIdx) {
         if (m_use_icp_poses_) {
             const std::string pose_icp_filename = m_directory_ / "poses_icp.dat";
             if (!std::filesystem::exists(pose_icp_filename)) {
@@ -186,7 +187,7 @@ namespace erl::geometry {
 
     bool
     CowAndLady::LoadData(
-        const long index,
+        long index,
         long &sequence_number,
         long &time_stamp,
         long &header_time_stamp,
@@ -194,6 +195,8 @@ namespace erl::geometry {
         Eigen::Vector3d &translation,
         Eigen::MatrixX<Eigen::Vector3f> &points,
         cv::Mat &color) const {
+
+        index = m_start_idx + index;
 
         const double *data = m_pose_data_.col(index).data();
         sequence_number = static_cast<long>(data[0]);

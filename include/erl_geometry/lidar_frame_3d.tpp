@@ -30,6 +30,14 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
+    std::pair<long, long>
+    LidarFrame3D<Dtype>::Setting::Resize(Dtype factor) {
+        num_azimuth_lines = static_cast<long>(num_azimuth_lines * factor);
+        num_elevation_lines = static_cast<long>(num_elevation_lines * factor);
+        return {num_azimuth_lines, num_elevation_lines};
+    }
+
+    template<typename Dtype>
     LidarFrame3D<Dtype>::LidarFrame3D(std::shared_ptr<Setting> setting)
         : Super(setting),
           m_setting_(std::move(setting)) {

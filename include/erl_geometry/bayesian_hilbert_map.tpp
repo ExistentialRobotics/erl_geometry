@@ -1,6 +1,11 @@
 #pragma once
 
+#include "bayesian_hilbert_map.hpp"
+
+#include "erl_common/block_timer.hpp"
 #include "erl_geometry/intersection.hpp"
+
+#include <unordered_set>
 
 namespace erl::geometry {
 
@@ -38,7 +43,7 @@ namespace erl::geometry {
                 m_sigma_inv_(i, i) = sigma_inv;  // initialize the inverse covariance matrix
             }
         }
-        m_mu_ = VectorX::Zero(m);
+        m_mu_ = VectorX::Constant(m, m_setting_->init_mu);
         m_alpha_ = VectorX::Zero(m);
     }
 
@@ -83,8 +88,9 @@ namespace erl::geometry {
     BayesianHilbertMap<Dtype, Dim>::GenerateDataset(
         const Eigen::Ref<const VectorD> &sensor_position,
         const Eigen::Ref<const MatrixDX> &points,
+        const std::vector<long> &point_indices,
         const long max_dataset_size,
-        long &num_sample_points,
+        long &num_samples,
         MatrixDX &dataset_points,
         VectorX &dataset_labels,
         std::vector<long> &hit_indices) {
@@ -94,128 +100,41 @@ namespace erl::geometry {
         // 3. sample the free points uniformly within the range.
         // 4. return the result.
 
-        const Dtype max_distance = m_setting_->max_distance;
-        const Dtype free_points_per_meter = m_setting_->free_points_per_meter;
-        const Dtype free_sampling_margin = m_setting_->free_sampling_margin;
-
         // tuple of (point_index, hit_flag, num_free_points, d1, d2)
         std::vector<std::tuple<long, bool, long, Dtype, Dtype>> infos;
-        infos.reserve(points.cols() / 10);  // reserve space for the infos
-        long num_total_free_points = 0;
-        long num_total_hit_points = 0;
-        hit_indices.clear();
+        long max_num_free_points = 0, max_num_hit_points = 0;
+        GenerateRayInfos(
+            sensor_position,
+            points,
+            point_indices,
+            infos,
+            max_num_free_points,
+            max_num_hit_points);
 
-        for (long i = 0; i < points.cols(); ++i) {
-            VectorD point = points.col(i);
-            VectorD v = point - sensor_position;
-            Dtype v_norm = v.norm();
-            v /= v_norm;  // normalize the vector
-            Dtype d1 = 0;
-            Dtype d2 = 0;
-            bool hit_flag = false;
-            bool intersected = false;
-            bool is_inside = false;
-            // compute intersection between the ray (point -> sensor_position) and the map boundary
-            geometry::ComputeIntersectionBetweenRayAndAabb<Dtype, Dim>(
-                sensor_position,
-                v.cwiseInverse(),
-                m_map_boundary_.min(),
-                m_map_boundary_.max(),
-                d1,
-                d2,
-                intersected,
-                is_inside);
-            // the ray does not intersect with the map boundary, or
-            // hits a point outside the map, and v points away from the map; or
-            // the ray hits a point outside the map, v points toward the map.
-            if (!intersected || (d1 < 0 && d2 < 0) || (v_norm <= d1 && d1 <= d2)) { continue; }
-            // check if the point is inside the map
-            hit_flag = m_map_boundary_.contains(point) && (v_norm < max_distance);
-            if (is_inside) {  // the ray hits a point inside the map, d2 < 0 is useless
-                d2 = std::min((1.0f - free_sampling_margin) * v_norm, d1);
-                d1 = free_sampling_margin * v_norm;
-            } else {
-                d1 = std::max(free_sampling_margin * v_norm, d1);
-                d2 = std::min((1.0f - free_sampling_margin) * v_norm, d2);
-            }
-            // number of free points to sample
-            auto n = std::max(0l, static_cast<long>(std::ceil((d2 - d1) * free_points_per_meter)));
-            if (n == 0 && !hit_flag) { continue; }  // no free points and the point is not hit
-            num_total_free_points += n;             // count the number of free points to sample
-            num_total_hit_points += static_cast<long>(hit_flag);  // count the number of hit points
-            d1 /= v_norm;
-            d2 /= v_norm;
-            infos.emplace_back(i, hit_flag, n, d1, d2);
+        // check if the dataset size limit is exceeded.
+        // if exceeded, adjust the number of points to sample.
+        const long max_num_points = max_num_free_points + max_num_hit_points;
+        const bool limit_exceeded = max_dataset_size > 0 && max_num_points > max_dataset_size;
+        long num_hit_to_sample, num_free_to_sample;
+        if (limit_exceeded) {
+            num_hit_to_sample = max_dataset_size * max_num_hit_points / max_num_points;
+            num_free_to_sample = max_dataset_size * max_num_free_points / max_num_points;
+        } else {
+            num_hit_to_sample = max_num_hit_points;
+            num_free_to_sample = max_num_free_points;
         }
 
-        ERL_DEBUG_ASSERT(
-            (num_total_hit_points == 0 && num_total_free_points == 0) ||
-                (num_total_hit_points > 0 && num_total_free_points > 0),
-            "num_total_hit_points = {}, num_total_free_points = {}.",
-            num_total_hit_points,
-            num_total_free_points);
-
-        long num_sample_hit_points = num_total_hit_points;
-        long num_sample_free_points = num_total_free_points;
-        num_sample_points = num_sample_hit_points + num_sample_free_points;
-        bool size_limit_exceeded = max_dataset_size > 0 && num_sample_points > max_dataset_size;
-        if (size_limit_exceeded) {
-            num_sample_hit_points = max_dataset_size * num_sample_hit_points / num_sample_points;
-            num_sample_free_points = max_dataset_size * num_sample_free_points / num_sample_points;
-            num_sample_points = num_sample_hit_points + num_sample_free_points;
-            ERL_DEBUG_ASSERT(
-                num_sample_points <= max_dataset_size,
-                "num_sample_points = {}, max_dataset_size = {}.",
-                num_sample_points,
-                max_dataset_size);
-            std::shuffle(infos.begin(), infos.end(), m_generator_);  // shuffle the info to sample
-            infos.resize(num_sample_hit_points);
-        }
-        if (dataset_points.cols() < num_sample_points) {
-            dataset_points.resize(Dim, num_sample_points);
-            dataset_labels.resize(num_sample_points);
-        }
-        Dtype *points_ptr = dataset_points.data();
-        Dtype *labels_ptr = dataset_labels.data();
-        num_sample_points = 0;  // reset the number of points to 0
-        for (const auto &[point_index, hit_flag, num_free_points, d1, d2]: infos) {
-            if (max_dataset_size > 0 && num_sample_points >= max_dataset_size) { break; }
-            const Dtype *point_ptr = points.col(point_index).data();
-            if (hit_flag) {
-                std::memcpy(points_ptr, point_ptr, sizeof(Dtype) * Dim);  // save the hit point
-                *labels_ptr++ = 1.0f;                                     // label as occupied
-                points_ptr += Dim;                   // move the pointer to the next position
-                ++num_sample_points;                 // increment the number of points
-                hit_indices.push_back(point_index);  // add the index to the list
-            }
-            if (num_total_free_points == 0) { continue; }  // no free points to sample.
-            // sample points in free space uniformly within the range [d1, d2]
-            long n = num_free_points;
-            if (size_limit_exceeded) {
-                n = std::min(
-                    num_free_points * num_sample_free_points / num_total_free_points,
-                    max_dataset_size - num_sample_points);
-            }
-            if (n <= 0) { continue; }  // no free points to sample
-            num_sample_points += n;
-
-            std::uniform_real_distribution<Dtype> distribution(d1, d2);
-            for (long j = 0; j < n; ++j) {
-                // sample a random distance within the range [d1, d2]
-                Dtype r = distribution(m_generator_);
-                Dtype s = 1 - r;
-                for (long k = 0; k < Dim; ++k, ++points_ptr) {
-                    // compute the free point position
-                    *points_ptr = sensor_position[k] * s + point_ptr[k] * r;
-                }
-                *labels_ptr++ = 0.0f;  // label as free
-            }
-        }
-        ERL_DEBUG_ASSERT(
-            max_dataset_size < 0 || num_sample_points <= max_dataset_size,
-            "num_sample_points = {}, max_dataset_size = {}.",
-            num_sample_points,
-            max_dataset_size);
+        GenerateSamples(
+            sensor_position,
+            points,
+            infos,
+            limit_exceeded,
+            num_hit_to_sample,
+            num_free_to_sample,
+            num_samples,
+            dataset_points,
+            dataset_labels,
+            hit_indices);
     }
 
     template<typename Dtype, int Dim>
@@ -1403,6 +1322,145 @@ namespace erl::geometry {
     bool
     BayesianHilbertMap<Dtype, Dim>::operator!=(const BayesianHilbertMap &other) const {
         return !(*this == other);
+    }
+
+    template<typename Dtype, int Dim>
+    void
+    BayesianHilbertMap<Dtype, Dim>::GenerateRayInfos(
+        const Eigen::Ref<const VectorD> &sensor_position,
+        const Eigen::Ref<const MatrixDX> &points,
+        const std::vector<long> &point_indices,
+        std::vector<std::tuple<long, bool, long, Dtype, Dtype>> &infos,
+        long &max_num_free_points,
+        long &max_num_hit_points) {
+
+        const Dtype max_distance = m_setting_->max_distance;
+        const Dtype free_sampling_margin = m_setting_->free_sampling_margin;
+        const Dtype free_points_per_meter = m_setting_->free_points_per_meter;
+
+        infos.reserve(points.cols() / 10);  // reserve space for the infos
+        max_num_free_points = 0;
+        max_num_hit_points = 0;
+
+        auto npts = point_indices.empty() ? points.cols() : static_cast<long>(point_indices.size());
+
+        for (long i = 0; i < npts; ++i) {
+            long idx = point_indices.empty() ? i : point_indices[i];
+            VectorD point = points.col(idx);
+            VectorD v = point - sensor_position;
+            Dtype v_norm = v.norm();
+            v /= v_norm;  // normalize the vector
+            Dtype d1 = 0;
+            Dtype d2 = 0;
+            bool hit_flag = false;
+            bool intersected = false;
+            bool is_inside = false;
+            // compute intersection between the ray (point -> sensor_position) and the map boundary
+            geometry::ComputeIntersectionBetweenRayAndAabb<Dtype, Dim>(
+                sensor_position,
+                v.cwiseInverse(),
+                m_map_boundary_.min(),
+                m_map_boundary_.max(),
+                d1,
+                d2,
+                intersected,
+                is_inside);
+            // the ray does not intersect with the map boundary, or
+            // hits a point outside the map, and v points away from the map; or
+            // the ray hits a point outside the map, v points toward the map.
+            if (!intersected || (d1 < 0 && d2 < 0) || (v_norm <= d1 && d1 <= d2)) { continue; }
+            // check if the point is inside the map
+            hit_flag = m_map_boundary_.contains(point) && (v_norm < max_distance);
+            if (is_inside) {  // the ray hits a point inside the map, d2 < 0 is useless
+                d2 = std::min((1.0f - free_sampling_margin) * v_norm, d1);
+                d1 = free_sampling_margin * v_norm;
+            } else {
+                d1 = std::max(free_sampling_margin * v_norm, d1);
+                d2 = std::min((1.0f - free_sampling_margin) * v_norm, d2);
+            }
+            // number of free points to sample
+            auto n = std::max(0l, static_cast<long>(std::ceil((d2 - d1) * free_points_per_meter)));
+            if (n == 0 && !hit_flag) { continue; }  // no free points and the point is not hit
+            max_num_free_points += n;               // count the number of free points to sample
+            max_num_hit_points += static_cast<long>(hit_flag);  // count the number of hit points
+            d1 /= v_norm;
+            d2 /= v_norm;
+            infos.emplace_back(idx, hit_flag, n, d1, d2);
+        }
+
+        ERL_DEBUG_ASSERT(
+            (max_num_hit_points == 0 && max_num_free_points == 0) ||
+                (max_num_hit_points > 0 && max_num_free_points > 0),
+            "max_num_hit_points = {}, max_num_free_points = {}.",
+            max_num_hit_points,
+            max_num_free_points);
+    }
+
+    template<typename Dtype, int Dim>
+    void
+    BayesianHilbertMap<Dtype, Dim>::GenerateSamples(
+        const Eigen::Ref<const VectorD> &sensor_position,
+        const Eigen::Ref<const MatrixDX> &points,
+        const std::vector<std::tuple<long, bool, long, Dtype, Dtype>> &infos,
+        const bool random_infos,
+        const long num_hit_to_sample,
+        const long num_free_to_sample,
+        long &num_samples,
+        MatrixDX &dataset_points,
+        VectorX &dataset_labels,
+        std::vector<long> &hit_indices) {
+
+        ERL_DEBUG_ASSERT(!infos.empty(), "infos is empty.");
+
+        const long n_to_sample = num_hit_to_sample + num_free_to_sample;
+        if (dataset_points.cols() < n_to_sample) { dataset_points.resize(Dim, n_to_sample); }
+        if (dataset_labels.size() < n_to_sample) { dataset_labels.resize(n_to_sample); }
+
+        std::vector<std::size_t> info_indices(infos.size());
+        std::iota(info_indices.begin(), info_indices.end(), 0);
+        if (random_infos) { std::shuffle(info_indices.begin(), info_indices.end(), m_generator_); }
+
+        Dtype *points_ptr = dataset_points.data();
+        Dtype *labels_ptr = dataset_labels.data();
+        num_samples = 0;
+        long n_hit = 0, n_free = 0;
+        hit_indices.clear();
+
+        for (std::size_t i = 0; i < infos.size(); ++i) {
+            if (num_samples >= n_to_sample) { break; }  // already sampled enough points
+
+            std::size_t idx = i;
+            if (random_infos) { idx = info_indices[i]; }
+            const auto &[point_index, hit_flag, num_free_points, d1, d2] = infos[idx];
+            const Dtype *point_ptr = points.col(point_index).data();
+
+            if (hit_flag && n_hit < num_hit_to_sample) {
+                std::memcpy(points_ptr, point_ptr, sizeof(Dtype) * Dim);  // save the hit point
+                *labels_ptr++ = 1.0f;                                     // label as occupied
+                points_ptr += Dim;  // move to the next position
+                ++n_hit;
+                ++num_samples;
+                hit_indices.push_back(point_index);  // add the index to the list
+            }
+
+            const long n = std::min(num_free_points, num_free_to_sample - n_free);
+            if (n <= 0) { continue; }  // no free points to sample
+
+            n_free += n;
+            num_samples += n;
+            std::uniform_real_distribution<Dtype> distribution(d1, d2);
+            for (long j = 0; j < n; ++j) {
+                // sample a random distance within the range [d1, d2]
+                Dtype r = distribution(m_generator_);
+                Dtype s = 1 - r;
+                for (long k = 0; k < Dim; ++k) {  // compute the free point position
+                    *points_ptr++ = sensor_position[k] * s + point_ptr[k] * r;
+                }
+                *labels_ptr++ = 0.0f;  // label as free
+            }
+        }
+
+        ERL_DEBUG("Sampled {} points, {} hit points, {} free points.", num_samples, n_hit, n_free);
     }
 
 }  // namespace erl::geometry

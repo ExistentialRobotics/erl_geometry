@@ -2,12 +2,9 @@
 
 #include "aabb.hpp"
 
+#include "erl_common/random.hpp"
 #include "erl_common/yaml.hpp"
 #include "erl_covariance/covariance.hpp"
-
-#include <Eigen/Sparse>
-
-#include <random>
 
 namespace erl::geometry {
 
@@ -22,6 +19,9 @@ namespace erl::geometry {
         // percentage margin to use when sampling free points to avoid sampling too close to the
         // surface or the sensor.
         float free_sampling_margin = 0.05f;
+        // initial value for initializing the mean vector. 0.0f means unknown. <0.0f means we
+        // assume the point is occupied, >0.0f means we assume the point is free.
+        float init_mu = 0.0f;
         // initial value for initializing the covariance matrix.
         float init_sigma = 1.0e4f;
         // number of iterations for the Expectation-Maximization (EM) algorithm to optimize the mean
@@ -130,8 +130,10 @@ namespace erl::geometry {
          * occupied, 0 for free).
          * @param sensor_position the position of the sensor in the world frame.
          * @param points point cloud in the world frame of the sensor measurement.
+         * @param point_indices indices of the points in the point cloud that are valid for dataset.
+         * If empty, all points will be used.
          * @param max_dataset_size maximum number of points in the dataset. -1 means no limit.
-         * @param num_sample_points number of points in the dataset.
+         * @param num_samples number of points in the dataset.
          * @param dataset_points points in the dataset.
          * @param dataset_labels labels of the points in the dataset.
          * @param hit_indices indices of the points that are occupied.
@@ -141,8 +143,9 @@ namespace erl::geometry {
         GenerateDataset(
             const Eigen::Ref<const VectorD> &sensor_position,
             const Eigen::Ref<const MatrixDX> &points,
+            const std::vector<long> &point_indices,
             long max_dataset_size,
-            long &num_sample_points,
+            long &num_samples,
             MatrixDX &dataset_points,
             VectorX &dataset_labels,
             std::vector<long> &hit_indices);
@@ -236,6 +239,29 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         operator!=(const BayesianHilbertMap &other) const;
+
+    private:
+        void
+        GenerateRayInfos(
+            const Eigen::Ref<const VectorD> &sensor_position,
+            const Eigen::Ref<const MatrixDX> &points,
+            const std::vector<long> &point_indices,
+            std::vector<std::tuple<long, bool, long, Dtype, Dtype>> &infos,
+            long &max_num_free_points,
+            long &max_num_hit_points);
+
+        void
+        GenerateSamples(
+            const Eigen::Ref<const VectorD> &sensor_position,
+            const Eigen::Ref<const MatrixDX> &points,
+            const std::vector<std::tuple<long, bool, long, Dtype, Dtype>> &infos,
+            bool random_infos,
+            long num_hit_to_sample,
+            long num_free_to_sample,
+            long &num_samples,
+            MatrixDX &dataset_points,
+            VectorX &dataset_labels,
+            std::vector<long> &hit_indices);
     };
 
 }  // namespace erl::geometry

@@ -12,6 +12,9 @@
 
 struct Options {
     std::string directory = fmt::format("{}/data/cow_and_lady", ERL_GEOMETRY_ROOT_DIR);
+    double valid_range_min = 0.0;
+    double valid_range_max = 1000;
+    bool show_gt = false;
     bool use_icp = false;
     bool hold = false;
 };
@@ -28,6 +31,8 @@ TEST(CowAndLady, Load) {
     depth_frame_setting->camera_intrinsic.camera_fy = erl::geometry::CowAndLady::kCameraFy;
     depth_frame_setting->camera_intrinsic.camera_cx = erl::geometry::CowAndLady::kCameraCx;
     depth_frame_setting->camera_intrinsic.camera_cy = erl::geometry::CowAndLady::kCameraCy;
+    depth_frame_setting->valid_range_min = g_options.valid_range_min;
+    depth_frame_setting->valid_range_max = g_options.valid_range_max;
     erl::geometry::DepthFrame3Dd depth_frame(depth_frame_setting);
 
     erl::geometry::CowAndLady cow_and_lady(g_options.directory, g_options.use_icp);
@@ -89,7 +94,12 @@ TEST(CowAndLady, Load) {
     visualizer_setting->window_name = test_info->name();
     visualizer_setting->mesh_show_back_face = false;
     erl::geometry::Open3dVisualizerWrapper visualizer(visualizer_setting);
-    visualizer.AddGeometries({pcd_gt, pcd});
+    if (g_options.show_gt) {
+        visualizer.AddGeometries({pcd_gt, pcd});
+    } else {
+        visualizer.AddGeometries({pcd});
+    }
+    visualizer.SetViewStatus(ERL_GEOMETRY_ROOT_DIR "/data/cow_and_lady/open3d_view_status.json");
     visualizer.SetAnimationCallback(callback);
     visualizer.Show();
 
@@ -108,6 +118,9 @@ main(int argc, char *argv[]) {
         desc.add_options()
             ("help", "produce help message")
             ("directory", po::value<std::string>(&g_options.directory), "Cow and lady dataset directory")
+            ("valid-range-min", po::value<double>(&g_options.valid_range_min)->default_value(0.0), "Minimum valid range for depth")
+            ("valid-range-max", po::value<double>(&g_options.valid_range_max)->default_value(1000.0), "Maximum valid range for depth")
+            ("show-gt", po::bool_switch(&g_options.show_gt)->default_value(false), "Show ground truth point cloud")
             ("use-icp", po::bool_switch(&g_options.use_icp)->default_value(false), "Use ICP for registration")
             ("hold", po::bool_switch(&g_options.hold)->default_value(false), "Hold the visualization window");
         // clang-format on

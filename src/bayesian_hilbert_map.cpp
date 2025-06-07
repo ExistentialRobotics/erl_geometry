@@ -8,6 +8,7 @@ YAML::convert<erl::geometry::BayesianHilbertMapSetting>::encode(
     ERL_YAML_SAVE_ATTR(node, setting, max_distance);
     ERL_YAML_SAVE_ATTR(node, setting, free_points_per_meter);
     ERL_YAML_SAVE_ATTR(node, setting, free_sampling_margin);
+    ERL_YAML_SAVE_ATTR(node, setting, init_mu);
     ERL_YAML_SAVE_ATTR(node, setting, init_sigma);
     ERL_YAML_SAVE_ATTR(node, setting, num_em_iterations);
     ERL_YAML_SAVE_ATTR(node, setting, sparse_zero_threshold);
@@ -24,6 +25,7 @@ YAML::convert<erl::geometry::BayesianHilbertMapSetting>::decode(
     ERL_YAML_LOAD_ATTR(node, setting, max_distance);
     ERL_YAML_LOAD_ATTR(node, setting, free_points_per_meter);
     ERL_YAML_LOAD_ATTR(node, setting, free_sampling_margin);
+    ERL_YAML_LOAD_ATTR(node, setting, init_mu);
     ERL_YAML_LOAD_ATTR(node, setting, init_sigma);
     ERL_YAML_LOAD_ATTR(node, setting, num_em_iterations);
     ERL_YAML_LOAD_ATTR(node, setting, sparse_zero_threshold);

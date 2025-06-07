@@ -46,12 +46,12 @@ namespace erl::geometry {
             const auto old_image_width = static_cast<Dtype>(image_width);
             image_height = static_cast<int>(image_height * factor);
             image_width = static_cast<int>(image_width * factor);
-            factor = (static_cast<Dtype>(image_height) / old_image_height +
-                      static_cast<Dtype>(image_width) / old_image_width) *
-                     0.5f;
-            camera_fx *= factor;
-            camera_cx *= factor;
-            camera_cy *= factor;
+            const Dtype factor_x = static_cast<Dtype>(image_width) / old_image_width;
+            camera_fx *= factor_x;
+            camera_cx *= factor_x;
+            const Dtype factor_y = static_cast<Dtype>(image_height) / old_image_height;
+            camera_fy *= factor_y;
+            camera_cy *= factor_y;
             return {image_height, image_width};
         }
 

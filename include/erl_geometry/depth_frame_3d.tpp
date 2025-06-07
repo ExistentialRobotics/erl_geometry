@@ -17,8 +17,7 @@ namespace erl::geometry {
         const YAML::Node &node,
         Setting &setting) {
         if (!Super::Setting::YamlConvertImpl::decode(node, setting)) { return false; }
-        ERL_YAML_LOAD_ATTR(node, setting, camera_intrinsic);
-        return true;
+        return ERL_YAML_LOAD_ATTR(node, setting, camera_intrinsic);
     }
 
     template<typename Dtype>

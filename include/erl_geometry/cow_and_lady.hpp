@@ -18,6 +18,8 @@ namespace erl::geometry {
         std::shared_ptr<open3d::geometry::PointCloud> m_pcd_gt_;
         Eigen::MatrixXd m_pose_data_;
         bool m_use_icp_poses_ = false;
+        long m_start_idx = 0;
+        long m_end_idx = 0;
 
     public:
         static constexpr long kImageWidth = 640;
@@ -26,6 +28,8 @@ namespace erl::geometry {
         static constexpr double kCameraFy = 525.0;
         static constexpr double kCameraCx = 319.5;
         static constexpr double kCameraCy = 239.5;
+        static constexpr long kStartIdx = 90;
+        static constexpr long kEndIdx = 2684;  // 2829 - 145
 
         inline static const Eigen::Matrix4d sk_Transform_ = []() -> Eigen::Matrix4d {
             Eigen::Matrix4d transform;
@@ -67,7 +71,37 @@ namespace erl::geometry {
 
         [[nodiscard]] long
         Size() const {
-            return m_pose_data_.cols();
+            return kEndIdx - kStartIdx;
+        }
+
+        [[nodiscard]] long
+        GetStartIndex() const {
+            return m_start_idx;
+        }
+
+        [[nodiscard]] long
+        GetEndIndex() const {
+            return m_end_idx;
+        }
+
+        [[nodiscard]] bool
+        SetStartIndex(long start_index) {
+            if (start_index < 0 || start_index >= kEndIdx) {
+                ERL_WARN("Invalid start index: {}", start_index);
+                return false;
+            }
+            m_start_idx = start_index;
+            return true;
+        }
+
+        [[nodiscard]] bool
+        SetEndIndex(long end_index) {
+            if (end_index <= m_start_idx || end_index > kEndIdx) {
+                ERL_WARN("Invalid end index: {}", end_index);
+                return false;
+            }
+            m_end_idx = end_index;
+            return true;
         }
 
         [[nodiscard]] Eigen::Vector3d

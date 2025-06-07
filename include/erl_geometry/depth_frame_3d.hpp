@@ -30,6 +30,11 @@ namespace erl::geometry {
                 static bool
                 decode(const YAML::Node &node, Setting &setting);
             };
+
+            std::pair<long, long>
+            Resize(Dtype factor) {
+                return camera_intrinsic.Resize(factor);
+            }
         };
 
     private:
