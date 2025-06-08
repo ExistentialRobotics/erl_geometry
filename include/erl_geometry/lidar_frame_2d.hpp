@@ -39,6 +39,9 @@ namespace erl::geometry {
                 static bool
                 decode(const YAML::Node &node, Setting &setting);
             };
+
+            long
+            Resize(Dtype factor);
         };
 
         class Partition {

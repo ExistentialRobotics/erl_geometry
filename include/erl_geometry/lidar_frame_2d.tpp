@@ -46,6 +46,13 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
+    long
+    LidarFrame2D<Dtype>::Setting::Resize(Dtype factor) {
+        num_rays = static_cast<long>(factor * num_rays);
+        return num_rays;
+    }
+
+    template<typename Dtype>
     LidarFrame2D<Dtype>::Partition::Partition(
         LidarFrame2D *frame,
         const long index_begin,

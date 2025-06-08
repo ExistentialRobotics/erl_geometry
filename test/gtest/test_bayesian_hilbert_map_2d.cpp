@@ -318,6 +318,7 @@ TestImpl2D(
         bhm.Update(
             pose.template head<2>(),
             points,
+            std::vector<long>{},
             -1l,
             num_points,
             dataset_points,
@@ -327,6 +328,7 @@ TestImpl2D(
         bhm.GenerateDataset(
             pose.template head<2>(),
             points,
+            std::vector<long>{},
             -1l,
             num_points,
             dataset_points,

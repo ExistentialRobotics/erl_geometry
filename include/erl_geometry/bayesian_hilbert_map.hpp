@@ -169,6 +169,7 @@ namespace erl::geometry {
         Update(
             const Eigen::Ref<const VectorD> &sensor_position,
             const Eigen::Ref<const MatrixDX> &points,
+            const std::vector<long> &point_indices,
             long max_dataset_size,
             long &num_points,
             MatrixDX &dataset_points,
@@ -264,9 +265,18 @@ namespace erl::geometry {
             std::vector<long> &hit_indices);
     };
 
+    using BayesianHilbertMap2Df = BayesianHilbertMap<float, 2>;
+    using BayesianHilbertMap2Dd = BayesianHilbertMap<double, 2>;
+    using BayesianHilbertMap3Df = BayesianHilbertMap<float, 3>;
+    using BayesianHilbertMap3Dd = BayesianHilbertMap<double, 3>;
+
+    extern template class BayesianHilbertMap<float, 2>;
+    extern template class BayesianHilbertMap<double, 2>;
+    extern template class BayesianHilbertMap<float, 3>;
+    extern template class BayesianHilbertMap<double, 3>;
 }  // namespace erl::geometry
 
-#include "bayesian_hilbert_map.tpp"
+// #include "bayesian_hilbert_map.tpp"
 
 template<>
 struct YAML::convert<erl::geometry::BayesianHilbertMapSetting> {
