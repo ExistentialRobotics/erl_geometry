@@ -1,0 +1,20 @@
+<launch>
+    <arg name="cow_and_lady_bag" default="$(env HOME)/Data/CowAndLady/data.bag" />
+    <arg name="gt_point_cloud_file" default="$(env HOME)/Data/CowAndLady/cow_and_lady_gt.ply" />
+    <arg name="rosbag_play_rate" default="1.0" />
+
+    <node pkg="tf2_ros" type="static_transform_publisher" name="map_odom_transformer" args="0 0 0 0 0 0 1 map odom" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="map_vicon_transformer" args="0 0 0 0 0 0 1 map vicon" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="kinect_camera_transformer" args="0.00114049  0.0450936  0.0430765 0.0924132 0.0976455 0.0702949  0.988425 kinect camera_rgb_optical_frame" />
+
+    <node pkg="erl_geometry" type="transform_to_tf_node" name="transform_to_tf_node" output="screen">
+        <param name="transform_topic" value="/kinect/vrpn_client/estimated_transform" />
+    </node>
+    <node pkg="erl_geometry" type="point_cloud_node" name="gt_point_cloud_node" output="screen">
+        <param name="frame_id" value="map" />
+        <param name="point_cloud_file" value="$(arg gt_point_cloud_file)" />
+        <param name="publish_colors" value="true" />
+    </node>
+    <node pkg="rosbag" type="play" name="rosbag_play" args="$(arg cow_and_lady_bag) --clock --rate=$(arg rosbag_play_rate) --delay=2 --start 5 --duration 128" output="screen"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find erl_geometry)/rviz/cow_and_lady.rviz"/>
+</launch>

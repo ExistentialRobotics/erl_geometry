@@ -71,7 +71,7 @@ namespace erl::geometry {
 
         [[nodiscard]] long
         Size() const {
-            return kEndIdx - kStartIdx;
+            return m_end_idx - m_start_idx;
         }
 
         [[nodiscard]] long

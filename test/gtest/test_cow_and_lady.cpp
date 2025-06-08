@@ -24,6 +24,13 @@ Options g_options;
 TEST(CowAndLady, Load) {
     GTEST_PREPARE_OUTPUT_DIR();
 
+    std::cout << "Transform: vicon -> camera" << std::endl;
+    Eigen::Quaterniond q(erl::geometry::CowAndLady::sk_Transform_.topLeftCorner<3, 3>(0, 0));
+    std::cout << "rotation: " << q.coeffs().transpose() << std::endl;
+    std::cout << "translation: "
+              << erl::geometry::CowAndLady::sk_Transform_.topRightCorner<3, 1>().transpose()
+              << std::endl;
+
     const auto depth_frame_setting = std::make_shared<erl::geometry::DepthFrame3Dd::Setting>();
     depth_frame_setting->camera_intrinsic.image_height = erl::geometry::CowAndLady::kImageHeight;
     depth_frame_setting->camera_intrinsic.image_width = erl::geometry::CowAndLady::kImageWidth;
