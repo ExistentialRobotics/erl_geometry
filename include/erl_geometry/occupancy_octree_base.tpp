@@ -1,5 +1,7 @@
 #pragma once
 
+#include "occupancy_octree_base.hpp"
+
 #include "erl_common/block_timer.hpp"
 
 #include <omp.h>

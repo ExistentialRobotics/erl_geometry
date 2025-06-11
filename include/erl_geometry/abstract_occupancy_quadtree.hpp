@@ -98,6 +98,7 @@ namespace erl::geometry {
         virtual void
         ToMaxLikelihood() = 0;
     };
-}  // namespace erl::geometry
 
-#include "abstract_occupancy_quadtree.tpp"
+    extern template class AbstractOccupancyQuadtree<double>;
+    extern template class AbstractOccupancyQuadtree<float>;
+}  // namespace erl::geometry

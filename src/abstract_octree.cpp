@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/abstract_octree.hpp"
 
 #include "erl_common/logging.hpp"
 #include "erl_common/serialization.hpp"
@@ -24,29 +24,6 @@ namespace erl::geometry {
         const std::string &tree_id,
         const std::shared_ptr<NdTreeSetting> &setting) {
         return Factory::GetInstance().Create(tree_id, setting);
-    }
-
-    template<typename Dtype>
-    template<typename Derived>
-    std::enable_if_t<std::is_base_of_v<AbstractOctree<Dtype>, Derived>, bool>
-    AbstractOctree<Dtype>::Register(const std::string &tree_type) {
-        return Factory::GetInstance().template Register<Derived>(
-            tree_type,
-            [](const std::shared_ptr<NdTreeSetting> &setting) {
-                auto tree_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
-                if (setting == nullptr) {
-                    tree_setting = std::make_shared<typename Derived::Setting>();
-                }
-                ERL_ASSERTM(tree_setting != nullptr, "setting is nullptr.");
-                return std::make_shared<Derived>(tree_setting);
-            });
-    }
-
-    template<typename Dtype>
-    template<typename T>
-    std::shared_ptr<T>
-    AbstractOctree<Dtype>::GetSetting() const {
-        return std::reinterpret_pointer_cast<T>(m_setting_);
     }
 
     template<typename Dtype>
@@ -266,4 +243,7 @@ namespace erl::geometry {
         };
         return common::ReadTokens(s, this, token_function_pairs);
     }
+
+    template class AbstractOctree<double>;
+    template class AbstractOctree<float>;
 }  // namespace erl::geometry

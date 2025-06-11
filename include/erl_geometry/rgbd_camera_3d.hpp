@@ -69,6 +69,7 @@ namespace erl::geometry {
 
     using RgbdCamera3Dd = RgbdCamera3D<double>;
     using RgbdCamera3Df = RgbdCamera3D<float>;
-}  // namespace erl::geometry
 
-#include "rgbd_camera_3d.tpp"
+    extern template class RgbdCamera3D<double>;
+    extern template class RgbdCamera3D<float>;
+}  // namespace erl::geometry

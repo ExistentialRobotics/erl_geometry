@@ -48,5 +48,9 @@ namespace erl::geometry {
     Eigen::Matrix3<Dtype>
     EulerToRotation3D(Dtype a, Dtype b, Dtype c, EulerAngleOrder euler_angle_order);
 
-#include "euler_angle.tpp"
+    extern template Eigen::Matrix3<double>
+    EulerToRotation3D<double>(double a, double b, double c, EulerAngleOrder euler_angle_order);
+
+    extern template Eigen::Matrix3<float>
+    EulerToRotation3D<float>(float a, float b, float c, EulerAngleOrder euler_angle_order);
 }  // namespace erl::geometry

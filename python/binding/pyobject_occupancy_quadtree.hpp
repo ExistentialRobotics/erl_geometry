@@ -3,6 +3,7 @@
 #include "pyobject_occupancy_quadtree_node.hpp"
 
 #include "erl_common/pybind11.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_geometry/occupancy_quadtree_base.hpp"
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 

@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/log_odd_map_2d.hpp"
 
 namespace erl::geometry {
 
@@ -57,9 +57,10 @@ namespace erl::geometry {
               m_grid_map_info_->Shape(1),
               CV_8UC1,
               cv::Scalar{kUnexplored}),
-          m_kernel_(cv::getStructuringElement(
-              m_setting_->use_cross_kernel ? cv::MORPH_CROSS : cv::MORPH_RECT,
-              cv::Size{3, 3})),
+          m_kernel_(
+              cv::getStructuringElement(
+                  m_setting_->use_cross_kernel ? cv::MORPH_CROSS : cv::MORPH_RECT,
+                  cv::Size{3, 3})),
           m_mask_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1)),
           m_cleaned_mask_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1)),
           m_num_unexplored_cells_(m_grid_map_info_->Shape(0) * m_grid_map_info_->Shape(1)) {}
@@ -554,11 +555,12 @@ namespace erl::geometry {
         // cv::Mat(rows, cols, type, value)
         mask->mask = cv::Mat(n_rows, n_cols, CV_8UC1, cv::Scalar(kUnexplored));
         if (old_mask != nullptr) {
-            old_mask->mask.copyTo(mask->mask(cv::Rect(
-                old_mask->y_grid_min - mask->y_grid_min,
-                old_mask->x_grid_min - mask->x_grid_min,
-                old_mask->mask.cols,
-                old_mask->mask.rows)));
+            old_mask->mask.copyTo(mask->mask(
+                cv::Rect(
+                    old_mask->y_grid_min - mask->y_grid_min,
+                    old_mask->x_grid_min - mask->x_grid_min,
+                    old_mask->mask.cols,
+                    old_mask->mask.rows)));
         }
 
         // vector of points (x, y), in OpenCV, (x, y) = (col, row).
@@ -584,7 +586,7 @@ namespace erl::geometry {
     template<typename Dtype>
     std::shared_ptr<typename LogOddMap2D<Dtype>::LidarFrameMask>
     LogOddMap2D<Dtype>::ComputeLidarFramesMask(
-        const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
+        const Eigen::Ref<const Eigen::Matrix3X<Dtype>> &lidar_poses,
         const Eigen::Ref<const Eigen::VectorX<Dtype>> &lidar_angles_body,
         const std::vector<Eigen::VectorX<Dtype>> &lidar_ranges,
         const bool clip_ranges,
@@ -681,11 +683,12 @@ namespace erl::geometry {
         if (old_mask != nullptr) {
             ERL_INFO("old_mask size: {}, {}", old_mask->mask.rows, old_mask->mask.cols);
             ERL_INFO("new_mask size: {}, {}", mask->mask.rows, mask->mask.cols);
-            old_mask->mask.copyTo(mask->mask(cv::Rect(
-                old_mask->y_grid_min - mask->y_grid_min,
-                old_mask->x_grid_min - mask->x_grid_min,
-                old_mask->mask.cols,
-                old_mask->mask.rows)));
+            old_mask->mask.copyTo(mask->mask(
+                cv::Rect(
+                    old_mask->y_grid_min - mask->y_grid_min,
+                    old_mask->x_grid_min - mask->x_grid_min,
+                    old_mask->mask.cols,
+                    old_mask->mask.rows)));
         }
 
         for (long i = 0; i < num_frames; ++i) {
@@ -825,4 +828,8 @@ namespace erl::geometry {
         cv::drawContours(m_cleaned_mask_.occupied_mask, contour, 0, cv::Scalar(0), cv::FILLED);
         cv::drawContours(m_cleaned_mask_.unexplored_mask, contour, 0, cv::Scalar(0), cv::FILLED);
     }
+
+    template class LogOddMap2D<double>;
+    template class LogOddMap2D<float>;
+
 }  // namespace erl::geometry

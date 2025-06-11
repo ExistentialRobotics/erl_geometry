@@ -1,5 +1,7 @@
 #pragma once
+
 // Reference: https://dl.acm.org/doi/10.1145/1276377.1276407
+#include "hidden_point_removal.hpp"
 
 #include "erl_common/logging.hpp"
 #include "erl_geometry/convex_hull.hpp"

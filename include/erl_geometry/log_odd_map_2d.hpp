@@ -212,7 +212,7 @@ namespace erl::geometry {
 
         [[nodiscard]] std::shared_ptr<LidarFrameMask>
         ComputeLidarFramesMask(
-            const Eigen::Ref<const Eigen::Matrix3Xd> &lidar_poses,
+            const Eigen::Ref<const Matrix3X> &lidar_poses,
             const Eigen::Ref<const VectorX> &lidar_angles_body,
             const std::vector<VectorX> &lidar_ranges,
             bool clip_ranges,
@@ -233,9 +233,10 @@ namespace erl::geometry {
     using LogOddMap2Dd = LogOddMap2D<double>;
     using LogOddMap2Df = LogOddMap2D<float>;
 
-}  // namespace erl::geometry
+    extern template class LogOddMap2D<double>;
+    extern template class LogOddMap2D<float>;
 
-#include "log_odd_map_2d.tpp"
+}  // namespace erl::geometry
 
 template<>
 struct YAML::convert<erl::geometry::LogOddMap2Dd::Setting>

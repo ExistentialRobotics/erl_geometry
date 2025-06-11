@@ -1,5 +1,7 @@
 #pragma once
 
+#include "occupancy_quadtree_base.hpp"
+
 #include "erl_common/random.hpp"
 
 #include <omp.h>

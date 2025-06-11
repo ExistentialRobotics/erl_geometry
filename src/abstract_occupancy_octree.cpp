@@ -1,44 +1,44 @@
-#pragma once
+#include "erl_geometry/abstract_occupancy_octree.hpp"
 
-#include "erl_geometry/abstract_occupancy_quadtree.hpp"
+#include "erl_common/serialization.hpp"
 
 #include <fstream>
 
 namespace erl::geometry {
 
     template<typename Dtype>
-    AbstractOccupancyQuadtree<Dtype>::AbstractOccupancyQuadtree(
+    AbstractOccupancyOctree<Dtype>::AbstractOccupancyOctree(
         std::shared_ptr<OccupancyNdTreeSetting> setting)
-        : AbstractQuadtree<Dtype>(setting),
+        : Super(setting),
           m_setting_(std::move(setting)) {}
 
     template<typename Dtype>
     bool
-    AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s, const bool prune) {
+    AbstractOccupancyOctree<Dtype>::WriteBinary(std::ostream &s, const bool prune) {
         if (prune) {
-            this->ToMaxLikelihood();
+            ToMaxLikelihood();
             this->Prune();
-            s << "# Pruned quadtree\n";  // add a comment line
+            s << "# Pruned octree\n";  // add a comment line
         }
-        return const_cast<const AbstractOccupancyQuadtree *>(this)->WriteBinary(s);
+        return const_cast<const AbstractOccupancyOctree *>(this)->WriteBinary(s);
     }
 
     template<typename Dtype>
     bool
-    AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s) const {
+    AbstractOccupancyOctree<Dtype>::WriteBinary(std::ostream &s) const {
         s << "# Binary file\n";  // add a comment line
-        static const common::TokenWriteFunctionPairs<AbstractOccupancyQuadtree>
-            token_function_pairs = {
+        static const common::TokenWriteFunctionPairs<AbstractOccupancyOctree> token_function_pairs =
+            {
                 {
                     "setting",
-                    [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
+                    [](const AbstractOccupancyOctree *self, std::ostream &stream) {
                         self->WriteSetting(stream);
                         return stream.good();
                     },
                 },
                 {
                     "data",
-                    [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
+                    [](const AbstractOccupancyOctree *self, std::ostream &stream) {
                         const std::size_t size = self->GetSize();
                         stream << size << '\n';
                         if (size > 0) { return self->WriteBinaryData(stream) && stream.good(); }
@@ -51,12 +51,12 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    AbstractOccupancyQuadtree<Dtype>::ReadBinary(std::istream &s) {
-        static const common::TokenReadFunctionPairs<AbstractOccupancyQuadtree>
-            token_function_pairs = {
+    AbstractOccupancyOctree<Dtype>::ReadBinary(std::istream &s) {
+        static const common::TokenReadFunctionPairs<AbstractOccupancyOctree> token_function_pairs =
+            {
                 {
                     "setting",
-                    [](AbstractOccupancyQuadtree *self, std::istream &stream) {
+                    [](AbstractOccupancyOctree *self, std::istream &stream) {
                         self->Clear();  // clear the tree before reading the setting
                         if (!self->ReadSetting(stream)) { return false; }
                         self->ApplySetting();
@@ -65,7 +65,7 @@ namespace erl::geometry {
                 },
                 {
                     "data",
-                    [](AbstractOccupancyQuadtree *self, std::istream &stream) {
+                    [](AbstractOccupancyOctree *self, std::istream &stream) {
                         std::size_t size;
                         stream >> size;
                         common::SkipLine(stream);
@@ -80,33 +80,39 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    AbstractOccupancyQuadtree<Dtype>::IsNodeOccupied(const OccupancyQuadtreeNode *node) const {
-        return node->GetLogOdds() >= m_setting_->log_odd_occ_threshold;
+    AbstractOccupancyOctree<Dtype>::IsNodeOccupied(const OccupancyOctreeNode *node) const {
+        return node->GetLogOdds() > m_setting_->log_odd_occ_threshold;
     }
 
     template<typename Dtype>
     bool
-    AbstractOccupancyQuadtree<Dtype>::IsNodeAtThreshold(const OccupancyQuadtreeNode *node) const {
+    AbstractOccupancyOctree<Dtype>::IsNodeAtThreshold(const OccupancyOctreeNode *node) const {
         const float log_odds = node->GetLogOdds();
         return log_odds >= m_setting_->log_odd_max || log_odds <= m_setting_->log_odd_min;
     }
 
     template<typename Dtype>
-    const OccupancyQuadtreeNode *
-    AbstractOccupancyQuadtree<Dtype>::GetHitOccupiedNode(
-        const Eigen::Ref<typename Super::Vector2> &p,
-        const Eigen::Ref<typename Super::Vector2> &v,
+    const OccupancyOctreeNode *
+    AbstractOccupancyOctree<Dtype>::GetHitOccupiedNode(
+        const Eigen::Ref<typename Super::Vector3> &p,
+        const Eigen::Ref<typename Super::Vector3> &v,
         const bool ignore_unknown,
         const Dtype max_range,
-        typename Super::Vector2 &hit_position) {
+        typename Super::Vector3 &hit_position) {
         return GetHitOccupiedNode(
             p.x(),
             p.y(),
+            p.z(),
             v.x(),
             v.y(),
+            v.z(),
             ignore_unknown,
             max_range,
             hit_position.x(),
-            hit_position.y());
+            hit_position.y(),
+            hit_position.z());
     }
+
+    template class AbstractOccupancyOctree<double>;
+    template class AbstractOccupancyOctree<float>;
 }  // namespace erl::geometry

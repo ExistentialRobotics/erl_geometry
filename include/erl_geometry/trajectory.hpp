@@ -28,6 +28,7 @@ namespace erl::geometry {
 
     using TrajectoryD = Trajectory<double>;
     using TrajectoryF = Trajectory<float>;
-}  // namespace erl::geometry
 
-#include "trajectory.tpp"
+    extern template struct Trajectory<double>;
+    extern template struct Trajectory<float>;
+}  // namespace erl::geometry

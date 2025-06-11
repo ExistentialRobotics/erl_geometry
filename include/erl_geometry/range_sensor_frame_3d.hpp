@@ -78,7 +78,30 @@ namespace erl::geometry {
 
         template<typename Derived>
         static bool
-        Register(std::string frame_type = "");
+        Register(std::string frame_type = "") {
+            return Factory::GetInstance().template Register<Derived>(
+                frame_type,
+                [](const std::shared_ptr<Setting> &setting) -> std::shared_ptr<RangeSensorFrame3D> {
+                    const std::string derived_frame_type = type_name<Derived>();
+                    if (setting == nullptr) {
+                        ERL_WARN(
+                            "setting is nullptr before creating a derived RangeSensorFrame3D of "
+                            "type "
+                            "{}.",
+                            derived_frame_type);
+                        return nullptr;
+                    }
+                    auto frame_setting =
+                        std::dynamic_pointer_cast<typename Derived::Setting>(setting);
+                    if (frame_setting == nullptr) {
+                        ERL_WARN(
+                            "Failed to cast setting for derived RangeSensorFrame3D of type {}.",
+                            derived_frame_type);
+                        return nullptr;
+                    }
+                    return std::make_shared<Derived>(frame_setting);
+                });
+        }
 
         [[nodiscard]] virtual MatrixX
         PointCloudToRanges(
@@ -269,9 +292,10 @@ namespace erl::geometry {
 
     using RangeSensorFrame3Dd = RangeSensorFrame3D<double>;
     using RangeSensorFrame3Df = RangeSensorFrame3D<float>;
-}  // namespace erl::geometry
 
-#include "range_sensor_frame_3d.tpp"
+    extern template class RangeSensorFrame3D<double>;
+    extern template class RangeSensorFrame3D<float>;
+}  // namespace erl::geometry
 
 template<>
 struct YAML::convert<erl::geometry::RangeSensorFrame3D<double>::Setting>

@@ -101,10 +101,11 @@ namespace erl::geometry {
             std::vector<Vector3> &colors) const;
     };
 
-#include "camera_intrinsic.tpp"
-
     using CameraIntrinsicD = CameraIntrinsic<double>;
     using CameraIntrinsicF = CameraIntrinsic<float>;
+
+    extern template struct CameraIntrinsic<double>;
+    extern template struct CameraIntrinsic<float>;
 }  // namespace erl::geometry
 
 template<>

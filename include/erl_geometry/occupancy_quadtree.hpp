@@ -3,6 +3,8 @@
 #include "occupancy_quadtree_base.hpp"
 #include "occupancy_quadtree_node.hpp"
 
+#include "erl_common/serialization.hpp"
+
 namespace erl::geometry {
 
     template<typename Dtype>

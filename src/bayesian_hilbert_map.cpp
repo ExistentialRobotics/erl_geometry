@@ -1,6 +1,7 @@
 #include "erl_geometry/bayesian_hilbert_map.hpp"
 
 #include "erl_common/block_timer.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_geometry/intersection.hpp"
 
 #include <unordered_set>

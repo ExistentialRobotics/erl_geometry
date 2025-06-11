@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/winding_number.hpp"
 
 namespace erl::geometry {
 
@@ -48,4 +48,14 @@ namespace erl::geometry {
 
         return wn;  // positive winding number <==> inside the polygon defined by `vertices`
     }
+
+    template int
+    WindingNumber<double>(
+        const Eigen::Ref<const Eigen::Vector2<double>> &p,
+        const Eigen::Ref<const Eigen::Matrix2X<double>> &vertices);
+
+    template int
+    WindingNumber<float>(
+        const Eigen::Ref<const Eigen::Vector2<float>> &p,
+        const Eigen::Ref<const Eigen::Matrix2X<float>> &vertices);
 }  // namespace erl::geometry

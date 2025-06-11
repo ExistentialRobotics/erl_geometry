@@ -100,6 +100,7 @@ namespace erl::geometry {
         virtual void
         ToMaxLikelihood() = 0;
     };
-}  // namespace erl::geometry
 
-#include "abstract_occupancy_octree.tpp"
+    extern template class AbstractOccupancyOctree<double>;
+    extern template class AbstractOccupancyOctree<float>;
+}  // namespace erl::geometry

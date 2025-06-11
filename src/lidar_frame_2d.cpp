@@ -1,6 +1,4 @@
-#pragma once
-
-#include "lidar_frame_2d.hpp"
+#include "erl_geometry/lidar_frame_2d.hpp"
 
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/logging.hpp"
@@ -1144,4 +1142,6 @@ namespace erl::geometry {
         m_partitioned_ = true;
     }
 
+    template class LidarFrame2D<double>;
+    template class LidarFrame2D<float>;
 }  // namespace erl::geometry

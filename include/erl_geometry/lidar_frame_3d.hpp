@@ -104,9 +104,10 @@ namespace erl::geometry {
     using LidarFrame3Dd = LidarFrame3D<double>;
     using LidarFrame3Df = LidarFrame3D<float>;
 
-}  // namespace erl::geometry
+    extern template class LidarFrame3D<double>;
+    extern template class LidarFrame3D<float>;
 
-#include "lidar_frame_3d.tpp"
+}  // namespace erl::geometry
 
 template<>
 struct YAML::convert<erl::geometry::LidarFrame3Dd::Setting>

@@ -1,6 +1,7 @@
-#pragma once
+#include "erl_geometry/depth_frame_3d.hpp"
 
 #include "erl_common/opencv.hpp"
+#include "erl_common/serialization.hpp"
 
 namespace erl::geometry {
     template<typename Dtype>
@@ -292,4 +293,7 @@ namespace erl::geometry {
             this->m_frame_coords_,
             this->m_dirs_frame_);
     }
+
+    template class DepthFrame3D<double>;
+    template class DepthFrame3D<float>;
 }  // namespace erl::geometry

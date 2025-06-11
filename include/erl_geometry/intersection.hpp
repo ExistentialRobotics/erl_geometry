@@ -21,7 +21,13 @@ namespace erl::geometry {
      */
     template<typename Dtype>
     Dtype
-    ComputeNearestDistanceFromPointToLineSegment2D(Dtype x0, Dtype y0, Dtype x1, Dtype y1, Dtype x2, Dtype y2);
+    ComputeNearestDistanceFromPointToLineSegment2D(
+        Dtype x0,
+        Dtype y0,
+        Dtype x1,
+        Dtype y1,
+        Dtype x2,
+        Dtype y2);
 
     template<typename Dtype>
     void
@@ -115,16 +121,20 @@ namespace erl::geometry {
     /**
      * find the intersection between ray [p, r] and axis-aligned bounding box [box_min, box_max]
      * @param p            ray start point
-     * @param v_inv        1 / r considering performance of multiple computations with the same ray direction
+     * @param v_inv        1 / r considering performance of multiple computations with the same ray
+     * direction
      * @param box_min      box min point
      * @param box_max      box max point
-     * @param d1           output distance from p to the first intersection point (closest one if p is outside the box, forward one if p is inside the box)
-     * @param d2           output distance from p to the second intersection point (farthest one if p is outside the box, backward one if p is inside the box)
+     * @param d1           output distance from p to the first intersection point (closest one if p
+     * is outside the box, forward one if p is inside the box)
+     * @param d2           output distance from p to the second intersection point (farthest one if
+     * p is outside the box, backward one if p is inside the box)
      * @param intersected  output whether the ray intersects the box
      * @param is_inside    output whether the ray starts inside the box
      *
      * @refitem https://tavianator.com/fast-branchless-raybounding-box-intersections/
-     * @refitem https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
+     * @refitem
+     * https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-box-intersection
      * @refitem https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm
      * @refitem https://en.wikipedia.org/wiki/Liang%E2%80%93Barsky_algorithm
      * @refitem https://en.wikipedia.org/wiki/Cyrus%E2%80%93Beck_algorithm
@@ -146,11 +156,14 @@ namespace erl::geometry {
     /**
      * find the intersection between ray [p, r] and axis-aligned bounding box [box_min, box_max]
      * @param p            ray start point
-     * @param r_inv        1 / r considering performance of multiple computations with the same ray direction
+     * @param r_inv        1 / r considering performance of multiple computations with the same ray
+     * direction
      * @param box_min      box min point
      * @param box_max      box max point
-     * @param d1           output distance from p to the first intersection point (closest one if p is outside the box, forward one if p is inside the box)
-     * @param d2           output distance from p to the second intersection point (farthest one if p is outside the box, backward one if p is inside the box)
+     * @param d1           output distance from p to the first intersection point (closest one if p
+     * is outside the box, forward one if p is inside the box)
+     * @param d2           output distance from p to the second intersection point (farthest one if
+     * p is outside the box, backward one if p is inside the box)
      * @param intersected  output whether the ray intersects the box
      */
     template<typename Dtype>
@@ -166,7 +179,8 @@ namespace erl::geometry {
         bool &is_inside);
 
     /**
-     * Compute the intersection between a line and an ellipse assumed to be centered at the origin and axis-aligned.
+     * Compute the intersection between a line and an ellipse assumed to be centered at the origin
+     * and axis-aligned.
      * @param x0 x coordinate of the p0 of the line
      * @param y0 y coordinate of the p0 of the line
      * @param x1 x coordinate of the p1 of the line
@@ -174,15 +188,26 @@ namespace erl::geometry {
      * @param a x-axis radius of the ellipse
      * @param b y-axis radius of the ellipse
      * @param lam1 output the first intersection point: lam1 * (x0, y0) + (1 - lam1) * (x1, y1)
-     * @param lam2 output the second intersection point: lam2 * (x0, y0) + (1 - lam2) * (x1, y1), lam1 < lam2
+     * @param lam2 output the second intersection point: lam2 * (x0, y0) + (1 - lam2) * (x1, y1),
+     * lam1 < lam2
      * @param intersected output whether the line intersects the ellipse
      */
     template<typename Dtype>
     void
-    ComputeIntersectionBetweenLineAndEllipse2D(Dtype x0, Dtype y0, Dtype x1, Dtype y1, Dtype a, Dtype b, Dtype &lam1, Dtype &lam2, bool &intersected);
+    ComputeIntersectionBetweenLineAndEllipse2D(
+        Dtype x0,
+        Dtype y0,
+        Dtype x1,
+        Dtype y1,
+        Dtype a,
+        Dtype b,
+        Dtype &lam1,
+        Dtype &lam2,
+        bool &intersected);
 
     /**
-     * Compute the intersection between a line and an ellipse assumed to be centered at the origin and axis-aligned.
+     * Compute the intersection between a line and an ellipse assumed to be centered at the origin
+     * and axis-aligned.
      * @param x0 x coordinate of the p0 of the line
      * @param y0 y coordinate of the p0 of the line
      * @param z0 z coordinate of the p0 of the line
@@ -192,8 +217,10 @@ namespace erl::geometry {
      * @param a x-axis radius of the ellipsoid
      * @param b y-axis radius of the ellipsoid
      * @param c z-axis radius of the ellipsoid
-     * @param lam1 output the first intersection point: lam1 * (x0, y0, z0) + (1 - lam1) * (x1, y1, z1)
-     * @param lam2 output the second intersection point: lam2 * (x0, y0, z0) + (1 - lam2) * (x1, y1, z1), lam1 < lam2
+     * @param lam1 output the first intersection point: lam1 * (x0, y0, z0) + (1 - lam1) * (x1, y1,
+     * z1)
+     * @param lam2 output the second intersection point: lam2 * (x0, y0, z0) + (1 - lam2) * (x1, y1,
+     * z1), lam1 < lam2
      * @param intersected output whether the line intersects the ellipsoid
      */
     template<typename Dtype>

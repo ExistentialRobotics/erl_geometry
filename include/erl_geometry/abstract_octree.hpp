@@ -65,7 +65,19 @@ namespace erl::geometry {
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractOctree, Derived>, bool>
-        Register(const std::string& tree_type = "");
+        Register(const std::string& tree_type = "") {
+            return Factory::GetInstance().template Register<Derived>(
+                tree_type,
+                [](const std::shared_ptr<NdTreeSetting>& setting) {
+                    auto tree_setting =
+                        std::dynamic_pointer_cast<typename Derived::Setting>(setting);
+                    if (setting == nullptr) {
+                        tree_setting = std::make_shared<typename Derived::Setting>();
+                    }
+                    ERL_ASSERTM(tree_setting != nullptr, "setting is nullptr.");
+                    return std::make_shared<Derived>(tree_setting);
+                });
+        }
 
         //-- setting
         /**
@@ -75,7 +87,9 @@ namespace erl::geometry {
          */
         template<typename T>
         std::shared_ptr<T>
-        GetSetting() const;
+        GetSetting() const {
+            return std::reinterpret_pointer_cast<T>(m_setting_);
+        }
 
         /**
          * This function should be called when the setting is changed.
@@ -280,6 +294,7 @@ namespace erl::geometry {
         [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
         GetLeafInAabbIterator(const Aabb<Dtype, 3>& aabb, uint32_t max_depth) const = 0;
     };
-}  // namespace erl::geometry
 
-#include "abstract_octree.tpp"
+    extern template class AbstractOctree<double>;
+    extern template class AbstractOctree<float>;
+}  // namespace erl::geometry

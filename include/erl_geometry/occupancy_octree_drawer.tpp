@@ -1,5 +1,7 @@
 #pragma once
 
+#include "occupancy_octree_drawer.hpp"
+
 namespace erl::geometry {
 
     template<typename OccupancyOctreeType>

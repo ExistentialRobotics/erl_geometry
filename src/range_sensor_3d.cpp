@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/range_sensor_3d.hpp"
 
 namespace erl::geometry {
     template<typename Dtype>
@@ -100,4 +100,7 @@ namespace erl::geometry {
 
         return ranges_mat;
     }
+
+    template class RangeSensor3D<double>;
+    template class RangeSensor3D<float>;
 }  // namespace erl::geometry

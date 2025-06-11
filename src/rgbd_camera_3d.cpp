@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/rgbd_camera_3d.hpp"
 
 #include <open3d/io/TriangleMeshIO.h>
 
@@ -42,4 +42,7 @@ namespace erl::geometry {
         depth_mat = depth_mat.clone();  // perform copy
         return {rgb_mat, depth_mat};
     }
+
+    template class RgbdCamera3D<double>;
+    template class RgbdCamera3D<float>;
 }  // namespace erl::geometry

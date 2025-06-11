@@ -1,4 +1,7 @@
-#pragma once
+#include "erl_geometry/lidar_frame_3d.hpp"
+
+#include "erl_common/angle_utils.hpp"
+#include "erl_common/serialization.hpp"
 
 namespace erl::geometry {
     template<typename Dtype>
@@ -287,4 +290,7 @@ namespace erl::geometry {
         };
         return common::ReadTokens(s, this, token_function_pairs);
     }
+
+    template class LidarFrame3D<double>;
+    template class LidarFrame3D<float>;
 }  // namespace erl::geometry

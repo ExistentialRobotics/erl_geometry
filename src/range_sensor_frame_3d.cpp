@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/range_sensor_frame_3d.hpp"
 
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/random.hpp"
@@ -42,32 +42,6 @@ namespace erl::geometry {
         const std::string &type,
         const std::shared_ptr<Setting> &setting) {
         return Factory::GetInstance().Create(type, setting);
-    }
-
-    template<typename Dtype>
-    template<typename Derived>
-    bool
-    RangeSensorFrame3D<Dtype>::Register(std::string frame_type) {
-        return Factory::GetInstance().template Register<Derived>(
-            frame_type,
-            [](const std::shared_ptr<Setting> &setting) -> std::shared_ptr<RangeSensorFrame3D> {
-                const std::string derived_frame_type = type_name<Derived>();
-                if (setting == nullptr) {
-                    ERL_WARN(
-                        "setting is nullptr before creating a derived RangeSensorFrame3D of type "
-                        "{}.",
-                        derived_frame_type);
-                    return nullptr;
-                }
-                auto frame_setting = std::dynamic_pointer_cast<typename Derived::Setting>(setting);
-                if (frame_setting == nullptr) {
-                    ERL_WARN(
-                        "Failed to cast setting for derived RangeSensorFrame3D of type {}.",
-                        derived_frame_type);
-                    return nullptr;
-                }
-                return std::make_shared<Derived>(frame_setting);
-            });
     }
 
     template<typename Dtype>
@@ -1059,4 +1033,7 @@ namespace erl::geometry {
         directions_samples.conservativeResize(3, sample_idx);
         distances_samples.conservativeResize(sample_idx);
     }
+
+    template class RangeSensorFrame3D<double>;
+    template class RangeSensorFrame3D<float>;
 }  // namespace erl::geometry

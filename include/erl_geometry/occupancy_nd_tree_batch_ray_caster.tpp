@@ -1,5 +1,7 @@
 #pragma once
 
+#include "occupancy_nd_tree_batch_ray_caster.hpp"
+
 #include <absl/container/flat_hash_map.h>
 
 namespace erl::geometry {

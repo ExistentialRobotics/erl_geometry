@@ -3,6 +3,7 @@
 #include "pyobject_occupancy_octree_node.hpp"
 
 #include "erl_common/pybind11.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_geometry/occupancy_octree_base.hpp"
 #include "erl_geometry/occupancy_octree_drawer.hpp"
 

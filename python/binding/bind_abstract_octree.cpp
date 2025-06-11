@@ -1,4 +1,5 @@
 #include "erl_common/pybind11.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_geometry/abstract_octree.hpp"
 
 template<typename Dtype>

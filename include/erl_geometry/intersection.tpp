@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/intersection.hpp"
 
 #include <cmath>
 
@@ -6,7 +6,13 @@ namespace erl::geometry {
 
     template<typename Dtype>
     Dtype
-    ComputeNearestDistanceFromPointToLineSegment2D(const Dtype x0, const Dtype y0, const Dtype x1, const Dtype y1, const Dtype x2, const Dtype y2) {
+    ComputeNearestDistanceFromPointToLineSegment2D(
+        const Dtype x0,
+        const Dtype y0,
+        const Dtype x1,
+        const Dtype y1,
+        const Dtype x2,
+        const Dtype y2) {
 
         const Dtype dx_20 = x2 - x0;
         const Dtype dx_21 = x2 - x1;
@@ -92,7 +98,8 @@ namespace erl::geometry {
         // Dtype e = d2.dot(d2); // e = 1
 
         Dtype tmp = 1 - b * b;
-        if (std::abs(tmp) < std::numeric_limits<Dtype>::min()) {  // two lines are parallel, no unique solution
+        if (std::abs(tmp) <
+            std::numeric_limits<Dtype>::min()) {  // two lines are parallel, no unique solution
             lam1 = 0;
             lam2 = -a;
             valid = false;
@@ -142,8 +149,9 @@ namespace erl::geometry {
             dist = std::numeric_limits<Dtype>::infinity();
             return;
         }
-        lam = (v_20.x() * v.y() - v_20.y() * v.x()) / tmp;         // (p2 - p0).cross(v) / tmp
-        dist = (v_21.x() * v_20.y() - v_21.y() * v_20.x()) / tmp;  // dist = (p2 - p1).cross(p2 - p0) / tmp
+        lam = (v_20.x() * v.y() - v_20.y() * v.x()) / tmp;  // (p2 - p0).cross(v) / tmp
+        dist = (v_21.x() * v_20.y() - v_21.y() * v_20.x()) /
+               tmp;  // dist = (p2 - p1).cross(p2 - p0) / tmp
     }
 
     template<typename Dtype, int Dim>
@@ -157,7 +165,15 @@ namespace erl::geometry {
         Dtype &d2,
         bool &intersected,
         bool &is_inside) {
-        ComputeIntersectionBetweenRayAndAabb2D<Dtype>(p, v_inv, box_min, box_max, d1, d2, intersected, is_inside);
+        ComputeIntersectionBetweenRayAndAabb2D<Dtype>(
+            p,
+            v_inv,
+            box_min,
+            box_max,
+            d1,
+            d2,
+            intersected,
+            is_inside);
     }
 
     template<typename Dtype, int Dim>
@@ -171,7 +187,15 @@ namespace erl::geometry {
         Dtype &d2,
         bool &intersected,
         bool &is_inside) {
-        ComputeIntersectionBetweenRayAndAabb3D<Dtype>(p, v_inv, box_min, box_max, d1, d2, intersected, is_inside);
+        ComputeIntersectionBetweenRayAndAabb3D<Dtype>(
+            p,
+            v_inv,
+            box_min,
+            box_max,
+            d1,
+            d2,
+            intersected,
+            is_inside);
     }
 
     template<typename Dtype>
@@ -347,8 +371,10 @@ namespace erl::geometry {
         }
 
         /*
-         * The following code is equivalent to the above code. Although its mathematical form is more compact, but uses 13 multiplications and 3 divisions.
-         * The above code uses 17 multiplications and 1 division. 1 division cost is about 6 multiplications.
+         * The following code is equivalent to the above code. Although its mathematical form is
+        more compact, but uses 13 multiplications and 3 divisions.
+         * The above code uses 17 multiplications and 1 division. 1 division cost is about 6
+        multiplications.
 
         a = 1.0 / a;
         b = 1.0 / b;
@@ -394,8 +420,8 @@ namespace erl::geometry {
         bool &intersected) {
 
         // ellipse equation: (x - cx)^2 / a^2 + (y - cy)^2 / b^2 + (z - cz)^2 / c^2 = 1
-        // line equation: x = x0 + lam * (x1 - x0), y = y0 + lam * (y1 - y0), z = z0 + lam * (z1 - z0)
-        // substitute line equation into ellipse equation and solve for lam
+        // line equation: x = x0 + lam * (x1 - x0), y = y0 + lam * (y1 - y0), z = z0 + lam * (z1 -
+        // z0) substitute line equation into ellipse equation and solve for lam
 
         const Dtype a_sq = a * a;
         const Dtype b_sq = b * b;
@@ -415,14 +441,16 @@ namespace erl::geometry {
         const Dtype cross_x = y0 * z1 - y1 * z0;
         const Dtype cross_y = z0 * x1 - z1 * x0;
         const Dtype cross_z = x0 * y1 - x1 * y0;
-        const Dtype cross_term_sq = a_sq * cross_x * cross_x + b_sq * cross_y * cross_y + c_sq * cross_z * cross_z;
+        const Dtype cross_term_sq =
+            a_sq * cross_x * cross_x + b_sq * cross_y * cross_y + c_sq * cross_z * cross_z;
 
         Dtype tmp0 = b_sq_c_sq * x_diff_sq + a_sq_c_sq * y_diff_sq + a_sq_b_sq * z_diff_sq;
 
         if (const Dtype tmp1 = tmp0 - cross_term_sq; tmp1 < 0) {  // no intersection
             intersected = false;
         } else {
-            const Dtype tmp2 = b_sq_c_sq * x0 * x_diff + a_sq_c_sq * y0 * y_diff + a_sq_b_sq * z0 * z_diff;
+            const Dtype tmp2 =
+                b_sq_c_sq * x0 * x_diff + a_sq_c_sq * y0 * y_diff + a_sq_b_sq * z0 * z_diff;
             const Dtype tmp3 = std::sqrt(tmp1) * a * b * c;
             tmp0 = 1.0 / tmp0;
             lam1 = (-tmp3 + tmp2) * tmp0;

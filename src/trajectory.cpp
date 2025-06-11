@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/trajectory.hpp"
 
 #include <Eigen/Geometry>
 
@@ -85,4 +85,6 @@ namespace erl::geometry {
         return trajectory;
     }
 
+    template struct Trajectory<double>;
+    template struct Trajectory<float>;
 }  // namespace erl::geometry

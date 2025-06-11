@@ -35,6 +35,7 @@ namespace erl::geometry {
     using RgbdFrame3Dd = RgbdFrame3D<double>;
     using RgbdFrame3Df = RgbdFrame3D<float>;
 
-}  // namespace erl::geometry
+    extern template class RgbdFrame3D<double>;
+    extern template class RgbdFrame3D<float>;
 
-#include "rgbd_frame_3d.tpp"
+}  // namespace erl::geometry

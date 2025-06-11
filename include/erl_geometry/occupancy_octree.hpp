@@ -3,6 +3,8 @@
 #include "occupancy_octree_base.hpp"
 #include "occupancy_octree_node.hpp"
 
+#include "erl_common/serialization.hpp"
+
 namespace erl::geometry {
 
     template<typename Dtype>

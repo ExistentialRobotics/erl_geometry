@@ -113,9 +113,10 @@ namespace erl::geometry {
     using DepthFrame3Dd = DepthFrame3D<double>;
     using DepthFrame3Df = DepthFrame3D<float>;
 
-}  // namespace erl::geometry
+    extern template class DepthFrame3D<double>;
+    extern template class DepthFrame3D<float>;
 
-#include "depth_frame_3d.tpp"
+}  // namespace erl::geometry
 
 template<>
 struct YAML::convert<erl::geometry::DepthFrame3D<double>::Setting>

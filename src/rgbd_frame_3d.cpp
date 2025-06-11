@@ -1,4 +1,4 @@
-#pragma once
+#include "erl_geometry/rgbd_frame_3d.hpp"
 
 namespace erl::geometry {
 
@@ -38,4 +38,7 @@ namespace erl::geometry {
             colors[k][2] = static_cast<Dtype>(color[2]) / 255.0f;
         }
     }
+
+    template class RgbdFrame3D<double>;
+    template class RgbdFrame3D<float>;
 }  // namespace erl::geometry

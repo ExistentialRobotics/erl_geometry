@@ -118,6 +118,10 @@ namespace erl::geometry {
         }
     };
 
-}  // namespace erl::geometry
+    using RangeSensor3Dd = RangeSensor3D<double>;
+    using RangeSensor3Df = RangeSensor3D<float>;
 
-#include "range_sensor_3d.tpp"
+    extern template class RangeSensor3D<double>;
+    extern template class RangeSensor3D<float>;
+
+}  // namespace erl::geometry
