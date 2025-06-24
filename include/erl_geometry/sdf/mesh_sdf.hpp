@@ -162,6 +162,7 @@ namespace erl::geometry {
         MeshSdf(
             const Eigen::Ref<const Points>& verts,
             const Eigen::Ref<const Triangles>& faces,
+            bool use_open3d = true,
             bool robust = true,
             bool copy = false);
 
@@ -169,6 +170,7 @@ namespace erl::geometry {
         MeshSdf(
             const std::vector<Eigen::Vector3<T>>& verts,
             const std::vector<Eigen::Vector3i>& faces,
+            const bool use_open3d = true,
             const bool robust = true)
             : MeshSdf(
                   Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, 3, Eigen::RowMajor>>(
@@ -181,6 +183,7 @@ namespace erl::geometry {
                       static_cast<long>(faces.size()),
                       3)
                       .cast<uint32_t>(),
+                  use_open3d,
                   robust,
                   true) {}
 
@@ -245,7 +248,7 @@ namespace erl::geometry {
         // Call if vertex positions have been updated to rebuild the KD tree
         // and update face normals+areas
         void
-        Update();
+        Update() const;
 
         /*** MISC UTILITIES ***/
         // Sample 'num_points' points uniformly on surface, output (num_points, 3).
@@ -290,6 +293,9 @@ namespace erl::geometry {
         Eigen::Ref<Points>
         GetVerticesMutable();
 
+        // Whether to use Open3D for signed distance function
+        const bool use_open3d;
+
         // Whether SDF is in robust mode
         const bool robust;
 
@@ -301,7 +307,10 @@ namespace erl::geometry {
         Points owned_verts;
         Triangles owned_faces;
 
-        struct Impl;
-        std::unique_ptr<Impl> p_impl;
+        struct PySdfImpl;
+        std::unique_ptr<PySdfImpl> pysdf_impl;
+
+        struct Open3dImpl;
+        std::unique_ptr<Open3dImpl> open3d_impl;
     };
 }  // namespace erl::geometry

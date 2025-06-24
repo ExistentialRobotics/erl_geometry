@@ -1,5 +1,6 @@
 import importlib
 import os
+import pathlib
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,15 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.build_ext import build_ext
+
+torch_dir = None
+try:
+    import torch
+
+    torch_dir = pathlib.Path(torch.__file__).parent / "share" / "cmake" / "Torch"
+except ImportError:
+    print("torch is not installed, the system libtorch will be used if needed.")
+    pass
 
 # read project configuration from pyproject.toml
 with open("pyproject.toml", "r") as f:
@@ -73,10 +83,10 @@ clean_before_build = os.environ.get("CLEAN_BEFORE_BUILD", "0") == "1"
 n_proc = os.environ.get("N_JOBS", os.cpu_count())
 
 # compute paths
-project_dir = os.path.dirname(os.path.realpath(__file__))  # the directory of setup.py, should be the project root
-src_python_dir = os.path.join(project_dir, "python", python_pkg_name)  # the directory of python source code
-egg_info_dir = os.path.join(project_dir, f"{python_pkg_name}.egg-info")  # the directory of egg-info
-build_dir = os.path.join(project_dir, "build", cmake_build_type)  # the build directory
+project_dir = pathlib.Path(__file__).resolve().parent  # the directory of setup.py, should be the project root
+src_python_dir = project_dir / "python" / python_pkg_name  # the directory of python source code
+egg_info_dir = project_dir / f"{python_pkg_name}.egg-info"  # the directory of egg-info
+build_dir = project_dir / "build" / cmake_build_type  # the build directory
 
 # print configuration
 print("====================================================================================================")
@@ -103,7 +113,7 @@ print(f"ERL_BUILD_TEST: {cmake_build_test}")
 print("====================================================================================================")
 
 # clean up
-if os.path.exists(egg_info_dir):
+if egg_info_dir.exists():
     os.system(f"rm -rf {egg_info_dir}")
 if clean_before_build:
     os.system(f"rm -rf {build_dir}")
@@ -136,21 +146,20 @@ class CMakeBuild(build_ext):
         # ext_dir equals to {build_dir}/lib.linux-$(architecture)-cpython-${python_version}
         editable = os.path.dirname(original_full_path) == project_dir  # editable install
         if editable:
-            ext_dir: str = src_python_dir
+            ext_dir = src_python_dir
         else:
-            ext_dir: str = os.path.abspath(os.path.dirname(original_full_path))
-            ext_dir: str = os.path.join(ext_dir, self.distribution.get_name())
-        old_ext_path = os.path.join(ext_dir, os.path.basename(original_full_path))
-        if os.path.exists(old_ext_path):
+            ext_dir = pathlib.Path(original_full_path).resolve().parent / self.distribution.get_name()
+        old_ext_path = ext_dir / os.path.basename(original_full_path)
+        if old_ext_path.exists():
             os.remove(old_ext_path)
-        build_temp = os.path.join(build_dir, ext.name)
-        if os.path.exists(build_temp) and clean_before_build:
+        build_temp = build_dir / ext.name
+        if build_temp.exists() and clean_before_build:
             shutil.rmtree(build_temp)
         os.makedirs(build_temp, exist_ok=True)
         os.makedirs(ext_dir, exist_ok=True)
-        if not os.path.exists(os.path.join(build_temp, "CMakeCache.txt")):
+        if not (build_temp / "CMakeCache.txt").exists():
             cmake_args = [
-                f"-DPython3_ROOT_DIR:PATH={os.path.dirname(os.path.dirname(sys.executable))}",
+                f"-DPython3_ROOT_DIR:PATH={pathlib.Path(sys.executable).parent.parent}",
                 f"-DCMAKE_BUILD_TYPE={cmake_build_type}",
                 f"-DCMAKE_INSTALL_PREFIX:PATH={ext_dir}",  # used to install the package
                 f"-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON",
@@ -164,6 +173,8 @@ class CMakeBuild(build_ext):
                 f"-DERL_BUILD_TEST:BOOL={cmake_build_test}",
                 f"-DPIP_LIB_DIR:PATH={ext_dir}",
             ]
+            if torch_dir is not None:
+                cmake_args.append(f"-DTorch_DIR:PATH={torch_dir}")
             # add dependencies
             site_packages_dir = site.getsitepackages()[0]
             user_site_packages_dir = site.getusersitepackages()

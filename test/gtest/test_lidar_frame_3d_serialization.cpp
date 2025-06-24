@@ -1,4 +1,5 @@
 #include "erl_common/angle_utils.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/lidar_3d.hpp"
 #include "erl_geometry/lidar_frame_3d.hpp"

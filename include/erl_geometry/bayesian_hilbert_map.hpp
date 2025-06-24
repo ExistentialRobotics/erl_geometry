@@ -110,11 +110,20 @@ namespace erl::geometry {
         [[nodiscard]] std::shared_ptr<const BayesianHilbertMapSetting>
         GetSetting() const;
 
+        [[nodiscard]] MatrixDX &
+        GetHingedPoints();
+
         [[nodiscard]] const MatrixDX &
         GetHingedPoints() const;
 
+        [[nodiscard]] VectorX &
+        GetWeights();
+
         [[nodiscard]] const VectorX &
         GetWeights() const;
+
+        [[nodiscard]] MatrixX &
+        GetWeightsCovariance();
 
         [[nodiscard]] const MatrixX &
         GetWeightsCovariance() const;
@@ -124,6 +133,9 @@ namespace erl::geometry {
 
         [[nodiscard]] uint64_t
         GetIterationCount() const;
+
+        void
+        UpdateWithNewWeightCovariance();
 
         /**
          * Generate a dataset of {x, y} where x is the position and y is the occupancy label (1 for

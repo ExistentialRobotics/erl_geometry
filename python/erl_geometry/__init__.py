@@ -1,4 +1,5 @@
 # import pybind dependencies
+import torch
 import erl_common as common
 
 # import package modules

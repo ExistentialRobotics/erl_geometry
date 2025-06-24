@@ -86,7 +86,9 @@ namespace erl::geometry {
          */
         template<typename T>
         std::shared_ptr<T>
-        GetSetting() const;
+        GetSetting() const {
+            return std::reinterpret_pointer_cast<T>(m_setting_);
+        }
 
         /**
          * This function should be called when the setting is changed.

@@ -97,6 +97,8 @@ TEST(MarchingCubes, Sphere) {
         ERL_BLOCK_TIMER_MSG("compute sdf");
         sdf_values = sdf(positions);
     }
+    const double mean_sdf_error = (sdf_values - sdf_gt_values).array().abs().mean();
+    std::cout << "Mean SDF error: " << mean_sdf_error << std::endl;
 
     using MC = erl::geometry::MarchingCubes;
     constexpr bool parallel = true;
@@ -145,7 +147,7 @@ TEST(MarchingCubes, Sphere) {
     // pcd->PaintUniformColor({0.0, 1.0, 0.0});
     // open3d::visualization::DrawGeometries({pcd});
     // open3d::io::WritePointCloud(test_output_dir / "vertices.ply", *pcd, {true});
-    // open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
+    open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
     // open3d::visualization::DrawGeometries({extracted_mesh});
 
     constexpr std::size_t num_points = 1000000;
@@ -165,4 +167,76 @@ TEST(MarchingCubes, Sphere) {
     EXPECT_LE(scores[0], 0.004);
     EXPECT_LE(scores[1], 0.0085);
     EXPECT_GE(scores[2], 99);
+}
+
+TEST(MarchingCubes, HouseExpo) {
+    std::filesystem::path kProjectDir = ERL_GEOMETRY_ROOT_DIR;
+    std::filesystem::path kDataDir = kProjectDir / "data";
+    std::filesystem::path kMeshFile = kDataDir / "house_expo_room_0000_water_tight.ply";
+    // std::filesystem::path kMeshFile = kDataDir / "house_expo_room_1451_water_tight.ply";
+    // std::filesystem::path kMeshFile = kDataDir / "Stage_v3_sc0_staging.ply";
+    GTEST_PREPARE_OUTPUT_DIR();
+    constexpr int n = 401;
+    auto mesh = open3d::io::CreateMeshFromFile(kMeshFile);
+    ASSERT_TRUE(mesh != nullptr);
+    // for (auto &triangle: mesh->triangles_) { std::swap(triangle[1], triangle[2]); }
+
+    // scale mesh to [-1.2, 1.2]
+    // auto aabb = mesh->GetAxisAlignedBoundingBox();
+    // mesh->Translate(-aabb.GetCenter(), true);
+    // const double scale_org = (aabb.GetExtent() / 2).maxCoeff();
+    // mesh->Scale(1.2 / scale_org, Eigen::Vector3d::Zero());
+    mesh->ComputeTriangleNormals();
+    mesh->ComputeVertexNormals();
+    open3d::io::WriteTriangleMesh(test_output_dir / "house_expo.ply", *mesh, true);
+    // open3d::visualization::DrawGeometries({mesh}, "House Expo", 640, 480, 50, 50, true);
+
+    // generate test data
+    erl::common::GridMapInfo3Dd grid_map_info(
+        Eigen::Vector3i(n, n, n),
+        mesh->GetMinBound().array() - 0.2,
+        mesh->GetMaxBound().array() + 0.2);
+
+    constexpr bool c_stride = false;  // if false, axis varying order: x, y, z. Otherwise, z, y, x
+    Eigen::Matrix3Xd positions = grid_map_info.GenerateMeterCoordinates(c_stride);
+
+    // test
+    Eigen::VectorXd sdf_gt_values =
+        erl::geometry::MeshSdf(mesh->vertices_, mesh->triangles_, true)(positions);
+
+    auto extracted_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
+    using MC = erl::geometry::MarchingCubes;
+    MC::Run(
+        grid_map_info.Min(),
+        grid_map_info.Resolution(),
+        grid_map_info.Shape(),
+        sdf_gt_values,
+        c_stride,
+        extracted_mesh->vertices_,
+        extracted_mesh->triangles_,
+        extracted_mesh->triangle_normals_,
+        true);
+    open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
+}
+
+TEST(MarchingCubes, FromArray) {
+    GTEST_PREPARE_OUTPUT_DIR();
+    std::filesystem::path kProjectDir = ERL_GEOMETRY_ROOT_DIR;
+    std::filesystem::path kDataDir = kProjectDir / "data";
+    std::filesystem::path kArrayFile = kDataDir / "sdf_array.dat";
+
+    auto extracted_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
+    Eigen::VectorXd sdf_values =
+        erl::common::LoadEigenMatrixFromBinaryFile<float>(kArrayFile).cast<double>();
+    erl::geometry::MarchingCubes::Run(
+        Eigen::Vector3d(-1, -1, -1),
+        Eigen::Vector3d(2.0 / 256, 2.0 / 256, 2.0 / 256),
+        Eigen::Vector3i(256, 256, 256),
+        sdf_values,
+        true,
+        extracted_mesh->vertices_,
+        extracted_mesh->triangles_,
+        extracted_mesh->triangle_normals_,
+        true);
+    open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
 }

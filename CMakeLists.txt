@@ -21,7 +21,6 @@ erl_config_nanoflann()
 erl_config_qhull()
 erl_config_absl()
 erl_config_open3d()
-
 if (ROS1_ACTIVATED)
     erl_config_qt5(Core Widgets)
     erl_config_ogre()
@@ -67,6 +66,10 @@ target_link_libraries(${PROJECT_NAME}
         PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
         PUBLIC absl::flat_hash_map absl::flat_hash_set
 )
+if (ERL_USE_LIBTORCH)
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
+endif ()
 set(libs ${PROJECT_NAME})
 
 if (ROS1_ACTIVATED)

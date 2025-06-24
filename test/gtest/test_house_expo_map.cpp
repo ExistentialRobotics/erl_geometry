@@ -8,8 +8,8 @@ TEST(HouseExpoMap, ExtrudeTo3D) {
     using namespace erl::geometry;
 
     std::filesystem::path path = ERL_GEOMETRY_ROOT_DIR;
-    path /= "data/house_expo_room_1451.json";
-    const HouseExpoMap house_expo_map(path.string().c_str());
+    path /= "data/house_expo_room_0000.json";
+    const HouseExpoMap house_expo_map(path);
     const std::shared_ptr<open3d::geometry::TriangleMesh> mesh = house_expo_map.ExtrudeTo3D(3);
     constexpr bool write_ascii = false;
     constexpr bool compressed = false;
@@ -18,7 +18,7 @@ TEST(HouseExpoMap, ExtrudeTo3D) {
     constexpr bool write_triangle_uvs = true;
     constexpr bool print_progress = false;
     open3d::io::WriteTriangleMesh(
-        (path.parent_path() / "house_expo_room_1451.ply").string(),
+        (path.parent_path() / "house_expo_room_0000.ply").string(),
         *mesh,
         write_ascii,
         compressed,

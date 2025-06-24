@@ -2,13 +2,14 @@
 
 #include "erl_geometry/sdf/mesh_sdf.hpp"
 
+#include "erl_geometry/kdtree_eigen_adaptor.hpp"
 #include "erl_geometry/RTree.h"
 #include "erl_geometry/sdf/sdf_util.hpp"
 
-#include <nanoflann.hpp>
+#include <open3d/io/TriangleMeshIO.h>
+#include <open3d/t/geometry/RaycastingScene.h>
 
 #include <algorithm>
-#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <random>
@@ -17,8 +18,8 @@
 namespace erl::geometry {
     using namespace sdf_util;
 
-    struct MeshSdf::Impl {
-        Impl(
+    struct MeshSdf::PySdfImpl {
+        PySdfImpl(
             const Eigen::Ref<const Points>& verts,
             const Eigen::Ref<const Triangles>& faces,
             const bool robust)
@@ -79,7 +80,7 @@ namespace erl::geometry {
         Eigen::VectorXi
         NearestNeighbor(
             const Eigen::Ref<const Points>& points,
-            std::size_t n_threads = std::thread::hardware_concurrency()) const {
+            const std::size_t n_threads = std::thread::hardware_concurrency()) const {
             Eigen::VectorXi result(points.rows());
             maybe_parallel_for(
                 [&, this](const int i) {
@@ -188,14 +189,13 @@ namespace erl::geometry {
                     static_cast<int>(points.rows()),
                     n_threads);
                 return result;
-            } else {
-                Vector vals = Calc(points, true, n_threads);
-                return vals.array() >= 0;
             }
+            Vector vals = Calc(points, true, n_threads);
+            return vals.array() >= 0;
         }
 
         Points
-        sample_surface(int num_points) const {
+        SampleSurface(const int num_points) const {
             if (face_area.rows() == 0) {
                 std::cerr << "ERROR: No faces, can't sample surface.\n";
                 return {};
@@ -340,19 +340,138 @@ namespace erl::geometry {
         }
     };
 
+    struct MeshSdf::Open3dImpl {
+
+        KdTree3f kd_tree;
+        open3d::t::geometry::RaycastingScene scene;
+        open3d::geometry::TriangleMesh mesh;
+        std::vector<std::vector<int>> adj_faces;
+        Vector face_area;
+        Points face_normal;
+        Eigen::Matrix<float, 6, 1> aabb;
+        bool flip_sign = false;
+
+        Open3dImpl(
+            const Eigen::Ref<const Eigen::Matrix3Xd>& verts,
+            const Eigen::Ref<const Eigen::Matrix3Xi>& faces)
+            : kd_tree(verts.cast<float>()) {
+            mesh.vertices_.resize(verts.cols());
+            mesh.triangles_.resize(faces.cols());
+            std::memcpy(mesh.vertices_.data()->data(), verts.data(), verts.size() * sizeof(double));
+            std::memcpy(mesh.triangles_.data()->data(), faces.data(), faces.size() * sizeof(int));
+            mesh.ComputeTriangleNormals();
+            mesh.ComputeVertexNormals();
+            scene.AddTriangles(open3d::t::geometry::TriangleMesh::FromLegacy(mesh));
+
+            // Open3D determines the sign by checking if the point is inside the closed surface.
+            // If inside the closed surface, the returned sign is -1.
+            // However, the mesh may have flipped normals. We need to check this.
+            auto pcd = mesh.SamplePointsUniformly(100, true);
+            Points points(static_cast<long>(pcd->points_.size()), 3);
+            for (long i = 0; i < points.rows(); ++i) {
+                points.row(i) =
+                    (pcd->points_[i] + 0.01f * pcd->normals_[i]).cast<float>().transpose();
+            }
+            flip_sign = Calc(points)
+                            .unaryExpr([](const float val) { return val < 0 ? -1.f : 1.f; })
+                            .mean() < 0.0f;
+
+            adj_faces.resize(verts.cols());
+            for (int i = 0; i < faces.rows(); ++i) {
+                for (int j = 0; j < Triangles::ColsAtCompileTime; ++j) {
+                    adj_faces[faces(i, j)].push_back(i);
+                }
+            }
+
+            face_area.resize(faces.cols());
+#pragma omp parallel for default(none)
+            for (long i = 0; i < face_area.size(); ++i) {
+                face_area[i] = static_cast<float>(mesh.GetTriangleArea(i));
+            }
+
+            mesh.ComputeTriangleNormals();
+            face_normal.resize(faces.cols(), Points::ColsAtCompileTime);
+            for (long i = 0; i < faces.cols(); ++i) {
+                face_normal.row(i) <<  //
+                    static_cast<float>(mesh.triangle_normals_[static_cast<size_t>(i)][0]),
+                    static_cast<float>(mesh.triangle_normals_[static_cast<size_t>(i)][1]),
+                    static_cast<float>(mesh.triangle_normals_[static_cast<size_t>(i)][2]);
+            }
+
+            aabb.head<3>() = mesh.GetMinBound().cast<float>();
+            aabb.tail<3>() = mesh.GetMaxBound().cast<float>();
+        }
+
+        [[nodiscard]] Vector
+        Calc(
+            const Eigen::Ref<const Points>& points,
+            const int n_threads = static_cast<int>(std::thread::hardware_concurrency())) const {
+            open3d::core::Tensor positions_tensor({points.rows(), 3}, open3d::core::Dtype::Float32);
+            Eigen::Map<Points>(
+                static_cast<float*>(positions_tensor.GetDataPtr()),
+                points.rows(),
+                3) = points;
+            auto sdf_gt_tensor = const_cast<open3d::t::geometry::RaycastingScene*>(&scene)
+                                     ->ComputeSignedDistance(positions_tensor, n_threads, 3);
+            Vector sdf =
+                Eigen::Map<Vector>(static_cast<float*>(sdf_gt_tensor.GetDataPtr()), points.rows());
+            if (flip_sign) { sdf = -sdf; }
+            return sdf;
+        }
+
+        [[nodiscard]] Eigen::VectorXi
+        NearestNeighbor(
+            const Eigen::Ref<const Points>& points,
+            const std::size_t n_threads = std::thread::hardware_concurrency()) const {
+            Eigen::VectorXi result(points.rows());
+            maybe_parallel_for(
+                [&, this](const int i) {
+                    Eigen::Vector3f point = points.row(i).transpose().cast<float>();
+                    long index;
+                    float dist;
+                    kd_tree.Nearest(point, index, dist);
+                    // the original code uses eps=10 for nanoflann::SearchParameters.
+                    // this makes the SDF result inaccurate.
+                    result[i] = static_cast<int>(index);
+                },
+                static_cast<int>(points.rows()),
+                n_threads);
+            return result;
+        }
+
+        [[nodiscard]] Eigen::Matrix<bool, Eigen::Dynamic, 1>
+        Contains(
+            const Eigen::Ref<const Points>& points,
+            const std::size_t n_threads = std::thread::hardware_concurrency()) const {
+            Vector vals = Calc(points, static_cast<int>(n_threads));
+            return vals.array() >= 0;
+        }
+    };
+
     MeshSdf::MeshSdf(
         const Eigen::Ref<const Points>& verts,
         const Eigen::Ref<const Triangles>& faces,
-        bool robust,
-        bool copy)
-        : robust(robust),
-          own_data(copy) {
+        const bool use_open3d,
+        const bool robust,
+        const bool copy)
+        : use_open3d(use_open3d),
+          robust(robust),
+          own_data(copy || use_open3d) {
+        if (use_open3d) {
+            owned_verts = verts;
+            owned_faces = faces;
+            open3d_impl = std::make_unique<Open3dImpl>(
+                verts.cast<double>().transpose(),
+                faces.cast<int>().transpose());
+            return;
+        }
+
         if (copy) {
             owned_verts = verts;
             owned_faces = faces;
-            p_impl = std::make_unique<Impl>(owned_verts, owned_faces, robust);
+            pysdf_impl = std::make_unique<PySdfImpl>(owned_verts, owned_faces, robust);
         } else {
-            p_impl = std::make_unique<Impl>(verts, faces, robust);
+            pysdf_impl = std::make_unique<PySdfImpl>(verts, faces, robust);
         }
     }
 
@@ -360,32 +479,38 @@ namespace erl::geometry {
 
     const std::vector<int>&
     MeshSdf::GetAdjFaces(const int point_id) const {
-        return p_impl->adj_faces[point_id];
+        if (use_open3d) { return open3d_impl->adj_faces[point_id]; }
+        return pysdf_impl->adj_faces[point_id];
     }
 
     float
     MeshSdf::GetSurfaceArea() const {
-        return p_impl->total_area;
+        if (use_open3d) { return static_cast<float>(open3d_impl->mesh.GetSurfaceArea()); }
+        return pysdf_impl->total_area;
     }
 
     const MeshSdf::Vector&
     MeshSdf::GetFaceAreas() const {
-        return p_impl->face_area;
+        if (use_open3d) { return open3d_impl->face_area; }
+        return pysdf_impl->face_area;
     }
 
     const MeshSdf::Points&
     MeshSdf::GetFaceNormals() const {
-        return p_impl->face_normal;
+        if (use_open3d) { return open3d_impl->face_normal; }
+        return pysdf_impl->face_normal;
     }
 
     Eigen::Ref<const Eigen::Matrix<float, 6, 1>>
     MeshSdf::GetAabb() const {
-        return p_impl->aabb.transpose();
+        if (use_open3d) { return open3d_impl->aabb; }
+        return pysdf_impl->aabb.transpose();
     }
 
     Eigen::Ref<const MeshSdf::Triangles>
     MeshSdf::GetFaces() const {
-        return p_impl->faces;
+        if (use_open3d) { return owned_faces; }
+        return pysdf_impl->faces;
     }
 
     Eigen::Ref<MeshSdf::Triangles>
@@ -396,7 +521,8 @@ namespace erl::geometry {
 
     Eigen::Ref<const MeshSdf::Points>
     MeshSdf::GetVertices() const {
-        return p_impl->verts;
+        if (use_open3d) { return owned_verts; }
+        return pysdf_impl->verts;
     }
 
     Eigen::Ref<MeshSdf::Points>
@@ -410,27 +536,43 @@ namespace erl::geometry {
         const Eigen::Ref<const Points>& points,
         const bool trunc_aabb,
         const std::size_t n_threads) const {
-        return p_impl->Calc(points, trunc_aabb, n_threads);
+        if (use_open3d) { return open3d_impl->Calc(points, static_cast<int>(n_threads)); }
+        return pysdf_impl->Calc(points, trunc_aabb, n_threads);
     }
 
     Eigen::VectorXi
     MeshSdf::NearestNeighbor(const Eigen::Ref<const Points>& points, const std::size_t n_threads)
         const {
-        return p_impl->NearestNeighbor(points, n_threads);
+        if (use_open3d) { return open3d_impl->NearestNeighbor(points, n_threads); }
+        return pysdf_impl->NearestNeighbor(points, n_threads);
     }
 
     Eigen::Matrix<bool, Eigen::Dynamic, 1>
     MeshSdf::Contains(const Eigen::Ref<const Points>& points, const std::size_t n_threads) const {
-        return p_impl->Contains(points, n_threads);
+        if (use_open3d) { return open3d_impl->Contains(points, n_threads); }
+        return pysdf_impl->Contains(points, n_threads);
     }
 
     void
-    MeshSdf::Update() {
-        p_impl->Update();
+    MeshSdf::Update() const {
+        if (use_open3d) {
+            ERL_WARN(
+                "Open3D backend does not support Update, rebuild the MeshSdf object to update.");
+            return;
+        }
+        pysdf_impl->Update();
     }
 
     MeshSdf::Points
-    MeshSdf::SampleSurface(int num_points) const {
-        return p_impl->sample_surface(num_points);
+    MeshSdf::SampleSurface(const int num_points) const {
+        if (use_open3d) {
+            const auto pcd = open3d_impl->mesh.SamplePointsUniformly(num_points);
+            return Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>(
+                       pcd->points_.data()->data(),
+                       num_points,
+                       3)
+                .cast<float>();
+        }
+        return pysdf_impl->SampleSurface(num_points);
     }
 }  // namespace erl::geometry

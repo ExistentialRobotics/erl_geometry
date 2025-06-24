@@ -28,12 +28,8 @@ namespace erl::geometry {
         const Dtype sigma = m_setting_->init_sigma;
         const Dtype sigma_inv = 1.0f / sigma;
         if (m_setting_->diagonal_sigma) {
-            m_sigma_ = VectorX::Zero(m);
-            m_sigma_inv_ = VectorX::Zero(m);
-            for (long i = 0; i < m; ++i) {
-                m_sigma_(i, 0) = sigma;          // initialize the diagonal of the covariance matrix
-                m_sigma_inv_(i, 0) = sigma_inv;  // initialize the inverse covariance matrix
-            }
+            m_sigma_ = VectorX::Constant(m, sigma);
+            m_sigma_inv_ = VectorX::Constant(m, sigma_inv);
         } else {
             m_sigma_ = MatrixX::Zero(m, m);
             m_sigma_inv_ = MatrixX::Zero(m, m);
@@ -43,7 +39,7 @@ namespace erl::geometry {
             }
         }
         m_mu_ = VectorX::Constant(m, m_setting_->init_mu);
-        m_alpha_ = VectorX::Zero(m);
+        m_alpha_ = VectorX::Constant(m, m_setting_->init_mu * sigma_inv);
     }
 
     template<typename Dtype, int Dim>
@@ -53,15 +49,33 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, int Dim>
+    typename BayesianHilbertMap<Dtype, Dim>::MatrixDX &
+    BayesianHilbertMap<Dtype, Dim>::GetHingedPoints() {
+        return m_hinged_points_;
+    }
+
+    template<typename Dtype, int Dim>
     const typename BayesianHilbertMap<Dtype, Dim>::MatrixDX &
     BayesianHilbertMap<Dtype, Dim>::GetHingedPoints() const {
         return m_hinged_points_;
     }
 
     template<typename Dtype, int Dim>
+    typename BayesianHilbertMap<Dtype, Dim>::VectorX &
+    BayesianHilbertMap<Dtype, Dim>::GetWeights() {
+        return m_mu_;
+    }
+
+    template<typename Dtype, int Dim>
     const typename BayesianHilbertMap<Dtype, Dim>::VectorX &
     BayesianHilbertMap<Dtype, Dim>::GetWeights() const {
         return m_mu_;
+    }
+
+    template<typename Dtype, int Dim>
+    typename BayesianHilbertMap<Dtype, Dim>::MatrixX &
+    BayesianHilbertMap<Dtype, Dim>::GetWeightsCovariance() {
+        return m_sigma_;
     }
 
     template<typename Dtype, int Dim>
@@ -80,6 +94,15 @@ namespace erl::geometry {
     uint64_t
     BayesianHilbertMap<Dtype, Dim>::GetIterationCount() const {
         return m_iteration_cnt_;
+    }
+
+    template<typename Dtype, int Dim>
+    void
+    BayesianHilbertMap<Dtype, Dim>::UpdateWithNewWeightCovariance() {
+        m_sigma_inv_mat_l_ = m_sigma_.llt().matrixL();
+        m_sigma_inv_mat_l_ =
+            m_sigma_inv_mat_l_.transpose().template triangularView<Eigen::Upper>().solve(
+                MatrixX::Identity(m_sigma_.rows(), m_sigma_.cols()));
     }
 
     template<typename Dtype, int Dim>
@@ -109,6 +132,7 @@ namespace erl::geometry {
             infos,
             max_num_free_points,
             max_num_hit_points);
+        if (infos.empty()) { return; }
 
         // check if the dataset size limit is exceeded.
         // if exceeded, adjust the number of points to sample.
@@ -245,7 +269,11 @@ namespace erl::geometry {
 
         // calculate 2 * lambda(xi) = (sigmoid(xi) - 0.5) / xi
         for (long j = 0; j < n_points; ++j) {
-            lam_ptr[j] = (1.0f / (1.0f + std::exp(-xi_ptr[j])) - 0.5f) / xi_ptr[j];
+            if (xi_ptr[j] < 1.0e-6f) {
+                lam_ptr[j] = 0.25f;
+            } else {
+                lam_ptr[j] = (1.0f / (1.0f + std::exp(-xi_ptr[j])) - 0.5f) / xi_ptr[j];
+            }
         }
 
         if (m_setting_->diagonal_sigma) {  // diagonal sigma
@@ -271,39 +299,40 @@ namespace erl::geometry {
                 // xi = sqrt(phi.T @ sigma @ phi + (phi.T @ mu) ** 2)
                 xi_ptr[j] = std::sqrt(xi_ptr[j]);
             }
-        } else {
-            // non-diagonal sigma
-            // E-Step: calculate the posterior
-            // sigma_inv' = sigma_inv + 2 * (phi.T * lams) @ phi
-            // mu' = sigma' @ (sigma_inv @ mu + phi.T @ (labels - 0.5))
-            // alpha = sigma_inv @ mu
+            return;
+        }
+
+        // non-diagonal sigma
+        // E-Step: calculate the posterior
+        // sigma_inv' = sigma_inv + 2 * (phi.T * lams) @ phi
+        // mu' = sigma' @ (sigma_inv @ mu + phi.T @ (labels - 0.5))
+        // alpha = sigma_inv @ mu
 #pragma omp parallel for default(none) shared(num_feat, n_points, alpha_ptr)
-            for (long c = 0; c < num_feat; ++c) {  // loop over cols
-                auto phi_c = m_phi_.col(c).head(n_points);
-                VectorX lam_phi = m_lambda_.head(n_points).cwiseProduct(phi_c);
-                alpha_ptr[c] += m_labels_.head(n_points).dot(phi_c);
-                Dtype *sigma_inv_ptr = m_sigma_inv_.col(c).data();
-                sigma_inv_ptr[c] += lam_phi.dot(phi_c);
-                for (long r = c + 1; r < num_feat; ++r) {
-                    sigma_inv_ptr[r] += lam_phi.dot(m_phi_.col(r).head(n_points));
-                    // copy the lower triangular part to the upper triangular part
-                    m_sigma_inv_(c, r) = sigma_inv_ptr[r];
-                }
+        for (long c = 0; c < num_feat; ++c) {  // loop over cols
+            auto phi_c = m_phi_.col(c).head(n_points);
+            VectorX lam_phi = m_lambda_.head(n_points).cwiseProduct(phi_c);
+            alpha_ptr[c] += m_labels_.head(n_points).dot(phi_c);
+            Dtype *sigma_inv_ptr = m_sigma_inv_.col(c).data();
+            sigma_inv_ptr[c] += lam_phi.dot(phi_c);
+            for (long r = c + 1; r < num_feat; ++r) {
+                sigma_inv_ptr[r] += lam_phi.dot(m_phi_.col(r).head(n_points));
+                // copy the lower triangular part to the upper triangular part
+                m_sigma_inv_(c, r) = sigma_inv_ptr[r];
             }
-            m_sigma_inv_mat_l_ = m_sigma_inv_.llt().matrixL();  // Cholesky decomposition
-            m_mu_ = m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solve(m_alpha_);
-            m_sigma_inv_mat_l_.transpose()
-                .template triangularView<Eigen::Upper>()  //
-                .solveInPlace(m_mu_);
-            // M-Step: update xi
+        }
+        m_sigma_inv_mat_l_ = m_sigma_inv_.llt().matrixL();  // Cholesky decomposition
+        m_mu_ = m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solve(m_alpha_);
+        m_sigma_inv_mat_l_.transpose()
+            .template triangularView<Eigen::Upper>()  //
+            .solveInPlace(m_mu_);
+        // M-Step: update xi
 #pragma omp parallel for default(none) shared(n_points, num_feat, xi_ptr)
-            for (long j = 0; j < n_points; ++j) {
-                auto phi_j = m_phi_transpose_.col(j).head(num_feat);
-                const Dtype a = phi_j.dot(m_mu_);
-                VectorX phi = phi_j;
-                m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solveInPlace(phi);
-                xi_ptr[j] = std::sqrt(phi.squaredNorm() + a * a);
-            }
+        for (long j = 0; j < n_points; ++j) {
+            auto phi_j = m_phi_transpose_.col(j).head(num_feat);
+            VectorX phi = phi_j;
+            const Dtype a = phi.dot(m_mu_);
+            m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solveInPlace(phi);
+            xi_ptr[j] = std::sqrt(phi.squaredNorm() + a * a);
         }
     }
 
@@ -318,7 +347,11 @@ namespace erl::geometry {
 
         // calculate 2 * lambda(xi) = (sigmoid(xi) - 0.5) / xi
         for (long j = 0; j < num_points; ++j) {
-            lam_ptr[j] = (1.0f / (1.0f + std::exp(-xi_ptr[j])) - 0.5f) / xi_ptr[j];
+            if (xi_ptr[j] < 1.0e-6f) {
+                lam_ptr[j] = 0.25f;
+            } else {
+                lam_ptr[j] = (1.0f / (1.0f + std::exp(-xi_ptr[j])) - 0.5f) / xi_ptr[j];
+            }
         }
 
         if (m_setting_->diagonal_sigma) {
@@ -506,14 +539,12 @@ namespace erl::geometry {
                     const Dtype *sigma_ptr = m_sigma_.data();
                     grad_ptr[d] = 0;
                     for (long k = 0; k < n_hinged; ++k) {
-                        Dtype tmp = mu_ptr[k] * t2 - kPI * t1 * sigma_ptr[k] * phi_ptr[k];
-                        grad_ptr[d] += tmp * grad_phi_x[k];
+                        Dtype tmp = mu_ptr[k] - 0.125f * kPI * t1 * sigma_ptr[k] * phi_ptr[k] / t2;
+                        grad_ptr[d] += tmp * grad_phi_x[k] / t3;
                     }
                     if (gradient_with_sigmoid) {
                         Dtype p = logodd ? 1.0f / (1.0f + std::exp(-h)) : prob_occupied_ptr[i];
-                        grad_ptr[d] *= p * (1.0f - p) / (8.0f * t2 * t3);
-                    } else {
-                        grad_ptr[d] /= 8.0f * t2 * t3;
+                        grad_ptr[d] *= p * (1.0f - p);
                     }
                 }
             }
@@ -553,14 +584,13 @@ namespace erl::geometry {
                 grad_ptr[d] = 0;
                 Dtype *grad_phi_x = phi.col(j).data();
                 for (long k = 0; k < n_hinged; ++k) {
-                    grad_ptr[d] += (mu_ptr[k] * t2 - kPI * t1 * beta_ptr[k]) * grad_phi_x[k];
+                    const Dtype tmp = 0.125f * kPI * t1 * beta_ptr[k] / t2;
+                    grad_ptr[d] += grad_phi_x[k] * (mu_ptr[k] - tmp) / t3;
                 }
 
                 if (gradient_with_sigmoid) {
                     const Dtype p = logodd ? 1.0f / (1.0f + std::exp(-h)) : prob_occupied_ptr[i];
-                    grad_ptr[d] *= p * (1.0f - p) / (8.0f * t2 * t3);
-                } else {
-                    grad_ptr[d] /= 8.0f * t2 * t3;
+                    grad_ptr[d] *= p * (1.0f - p);
                 }
             }
         }
@@ -1388,13 +1418,6 @@ namespace erl::geometry {
             d2 /= v_norm;
             infos.emplace_back(idx, hit_flag, n, d1, d2);
         }
-
-        // ERL_DEBUG_ASSERT(
-        //     (max_num_hit_points == 0 && max_num_free_points == 0) ||
-        //         (max_num_hit_points > 0 && max_num_free_points > 0),
-        //     "max_num_hit_points = {}, max_num_free_points = {}.",
-        //     max_num_hit_points,
-        //     max_num_free_points);
     }
 
     template<typename Dtype, int Dim>

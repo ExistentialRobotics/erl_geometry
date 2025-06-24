@@ -1,17 +1,17 @@
 #include "erl_geometry/house_expo_map.hpp"
 
+#include "erl_common/plplot_fig.hpp"
 #include "erl_geometry/polygon_to_mesh.hpp"
+#include "erl_geometry/winding_number.hpp"
 
 #include <open3d/core/Tensor.h>
 #include <open3d/geometry/LineSet.h>
-#include <open3d/t/geometry/LineSet.h>
-#include <open3d/t/geometry/TriangleMesh.h>
 
 namespace erl::geometry {
 
     HouseExpoMap::HouseExpoMap(std::string file)
         : m_file_(std::move(file)) {
-        std::cout << "Loading " << m_file_ << "..." << std::flush;
+        ERL_INFO("Loading {}...", m_file_);
         std::ifstream ifs;
         ifs.open(m_file_);
         if (!ifs.is_open()) {
@@ -23,7 +23,7 @@ namespace erl::geometry {
         nlohmann::json data = nlohmann::json::parse(ifs);
         FromJson(data, *this);
         ifs.close();
-        std::cout << "Done." << std::endl;
+        ERL_INFO("Done.");
     }
 
     HouseExpoMap::HouseExpoMap(const std::string &file, double wall_thickness)
@@ -31,10 +31,9 @@ namespace erl::geometry {
         ERL_ASSERTM(wall_thickness >= 0.1f, "Wall thickness must be >= 0.1.");
         ERL_INFO("Changing wall thickness to {:f} ...", wall_thickness);
 #if defined(NDEBUG)
-        double free_threshold =
-            (wall_thickness - 0.1f) / 2;  // 0.1 is the default thickness of the wall
+        double free_threshold = (wall_thickness - 0.1f) / 2;
         if (std::abs(free_threshold) < 1.e-6) {
-            std::cout << "Done." << std::endl << std::flush;
+            ERL_INFO("Done.");
             return;
         }
         const auto &kSurface = m_meter_space_->GetSurface();
@@ -58,7 +57,7 @@ namespace erl::geometry {
             true);
         ERL_INFO("Done.");
 #else
-        std::cout << "Debug mode, no wall thickness change." << std::endl;
+        ERL_INFO("Debug mode, no wall thickness change.");
 #endif
     }
 
@@ -79,24 +78,46 @@ namespace erl::geometry {
             wall_line_set.lines_.emplace_back(surface_2d->lines_to_vertices.col(i));
         }
 
-        // generate wall mesh
-        const auto wall_line_set_t = open3d::t::geometry::LineSet::FromLegacy(wall_line_set);
-        const open3d::core::Tensor z_dir(std::vector<double>{0.0, 0.0, room_height});
-        auto wall_mesh = wall_line_set_t.ExtrudeLinear(z_dir).ToLegacy();
-        wall_mesh.PaintUniformColor({0.5, 0.5, 0.5});  // gray
-        wall_mesh.ComputeVertexNormals();
-
-        // generate ground mesh and ceiling mesh
+        // generate ground mesh
         const std::shared_ptr<open3d::geometry::TriangleMesh> ground_mesh =
             PolygonToMesh(polygon, 0.0, true);
-        const std::shared_ptr<open3d::geometry::TriangleMesh> ceiling_mesh =
-            PolygonToMesh(polygon, room_height, false);
-        ground_mesh->PaintUniformColor({0.67, 0.33, 0.0});  // brown
-        ceiling_mesh->PaintUniformColor({1.0, 1.0, 0.67});  // light yellow
 
-        auto room_mesh = std::make_shared<open3d::geometry::TriangleMesh>(wall_mesh);
-        *room_mesh += *ground_mesh;
-        *room_mesh += *ceiling_mesh;
+        auto room_mesh = std::make_shared<open3d::geometry::TriangleMesh>(*ground_mesh);
+        room_mesh->PaintUniformColor({0.67, 0.33, 0.0});  // brown
+        for (auto &vertex: ground_mesh->vertices_) {
+            room_mesh->vertices_.emplace_back(vertex[0], vertex[1], room_height);
+            room_mesh->vertex_colors_.emplace_back(1.0, 1.0, 0.67);  // light yellow
+        }
+
+        for (long i = 0; i < num_lines; ++i) {
+            const long i0 = surface_2d->lines_to_vertices(0, i);
+            const long i1 = surface_2d->lines_to_vertices(1, i);
+            const long j0 = i0 + num_vertices;
+            const long j1 = i1 + num_vertices;
+
+            // check if the line is clockwise relative to the polygon
+            Eigen::Vector3d v01 = ground_mesh->vertices_[i1] - ground_mesh->vertices_[i0];
+            Eigen::Vector2d p(v01[1], -v01[0]);
+            p /= p.norm() * 10;
+            p[0] += (room_mesh->vertices_[i0][0] + room_mesh->vertices_[i1][0]) / 2;
+            p[1] += (room_mesh->vertices_[i0][1] + room_mesh->vertices_[i1][1]) / 2;
+
+            if (WindingNumber<double>(p, surface_2d->vertices)) {  // inside the polygon
+                // the line is clockwise relative to the polygon
+                room_mesh->triangles_.emplace_back(i0, i1, j0);
+                room_mesh->triangles_.emplace_back(i1, j1, j0);
+            } else {
+                room_mesh->triangles_.emplace_back(i0, j0, i1);
+                room_mesh->triangles_.emplace_back(i1, j0, j1);
+            }
+        }
+
+        for (auto &triangle: ground_mesh->triangles_) {
+            room_mesh->triangles_.emplace_back(
+                triangle[0] + num_vertices,
+                triangle[2] + num_vertices,
+                triangle[1] + num_vertices);
+        }
 
         return room_mesh;
     }
@@ -114,14 +135,14 @@ namespace erl::geometry {
     void
     HouseExpoMap::FromJson(const nlohmann::json &json_data, HouseExpoMap &map) {
         json_data.at("id").get_to(map.m_room_id_);
-        double xmin, ymin, xmax, ymax;
-        json_data.at("bbox").at("min").at(0).get_to(xmin);
-        json_data.at("bbox").at("min").at(1).get_to(ymin);
-        json_data.at("bbox").at("max").at(0).get_to(xmax);
-        json_data.at("bbox").at("max").at(1).get_to(ymax);
+        double x_min, y_min, x_max, y_max;
+        json_data.at("bbox").at("min").at(0).get_to(x_min);
+        json_data.at("bbox").at("min").at(1).get_to(y_min);
+        json_data.at("bbox").at("max").at(0).get_to(x_max);
+        json_data.at("bbox").at("max").at(1).get_to(y_max);
         // clang-format off
-        map.m_bbox_ << xmin, ymin,
-                       xmax, ymax;
+        map.m_bbox_ << x_min, y_min,
+                       x_max, y_max;
         // clang-format on
 
         auto verts = json_data.at("verts").get<Eigen::Matrix2Xd>();

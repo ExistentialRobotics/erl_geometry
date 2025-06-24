@@ -27,13 +27,6 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    template<typename T>
-    std::shared_ptr<T>
-    AbstractQuadtree<Dtype>::GetSetting() const {
-        return std::reinterpret_pointer_cast<T>(m_setting_);
-    }
-
-    template<typename Dtype>
     bool
     AbstractQuadtree<Dtype>::ReadSetting(std::istream &s) const {
         std::streamsize len;

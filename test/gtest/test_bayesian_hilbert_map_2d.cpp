@@ -1,5 +1,7 @@
+#include "erl_common/block_timer.hpp"
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/opencv.hpp"
+#include "erl_common/serialization.hpp"
 #include "erl_common/test_helper.hpp"
 #include "erl_covariance/radial_bias_function.hpp"
 #include "erl_geometry/bayesian_hilbert_map.hpp"
@@ -183,7 +185,7 @@ VisualizeResult(
         const cv::Point pt1(px[0], px[1]);
         Eigen::Vector2<Dtype> gradient = gradient_surf.col(i);
         gradient.normalize();
-        px += grid_map_scaled.MeterToPixelForVectors(-gradient * 0.25);
+        px += grid_map_scaled.MeterToPixelForVectors(-gradient * 0.125);
         const cv::Point pt2(px[0], px[1]);
         cv::arrowedLine(img_prob_occupied_rgb, pt1, pt2, cv::Scalar(255, 255, 255), 2);
         cv::arrowedLine(img_gradient_norm_rgb, pt1, pt2, cv::Scalar(255, 255, 255), 2);
@@ -217,7 +219,7 @@ VisualizeResult(
     cv::imshow("Probability Occupied", img_prob_occupied_rgb);
     cv::imshow("Gradient Norm", img_gradient_norm_rgb);
     cv::imshow("BHM Weights", img_bhm_weights);
-    cv::waitKey(100);
+    cv::waitKey(10);
 
     return {img_prob_occupied_rgb, img_gradient_norm_rgb, img_bhm_weights};
 }
@@ -231,7 +233,7 @@ TestIo(
     GTEST_PREPARE_OUTPUT_DIR();
     std::string filename = fmt::format("test_bhm_2d_{}.bin", type_name<Dtype>());
     filename = test_output_dir / filename;
-    using Serializer = Serialization<BayesianHilbertMap<Dtype, 2>>;
+    using Serializer = erl::common::Serialization<BayesianHilbertMap<Dtype, 2>>;
     ASSERT_TRUE(Serializer::Write(filename, &bhm));
     BayesianHilbertMap<Dtype, 2> bhm_read(
         std::make_shared<BayesianHilbertMapSetting>(),
@@ -248,6 +250,7 @@ template<typename Dtype>
 void
 TestImpl2D(
     const int hinged_grid_size,
+    const int max_dataset_size,
     const int test_grid_size,
     const Dtype rbf_gamma,
     const bool diagonal_sigma,
@@ -315,21 +318,11 @@ TestImpl2D(
         Eigen::VectorX<Dtype> dataset_labels;
         std::vector<long> hit_indices;
 
-        bhm.Update(
-            pose.template head<2>(),
-            points,
-            std::vector<long>{},
-            -1l,
-            num_points,
-            dataset_points,
-            dataset_labels,
-            hit_indices);
-
         bhm.GenerateDataset(
             pose.template head<2>(),
             points,
             std::vector<long>{},
-            -1l,
+            max_dataset_size,
             num_points,
             dataset_points,
             dataset_labels,
@@ -342,10 +335,13 @@ TestImpl2D(
 
         bhm.PrepareExpectationMaximization(dataset_points, dataset_labels, num_points);
         for (int itr = 0; itr < bhm_setting->num_em_iterations; ++itr) {
-            if (bhm_setting->use_sparse) {
-                bhm.RunExpectationMaximizationIterationSparse(num_points);
-            } else {
-                bhm.RunExpectationMaximizationIteration(num_points);
+            {
+                ERL_BLOCK_TIMER_MSG("bhm");
+                if (bhm_setting->use_sparse) {
+                    bhm.RunExpectationMaximizationIterationSparse(num_points);
+                } else {
+                    bhm.RunExpectationMaximizationIteration(num_points);
+                }
             }
             // predict and visualize
             constexpr bool with_sigmoid = false;
@@ -389,6 +385,7 @@ TestImpl2D(
 
 struct Options {
     int hinged_grid_size = 31;
+    int max_dataset_size = 2000;
     int test_grid_size = 100;
     float rbf_gamma = 20;
     bool diagonal_sigma = true;
@@ -401,6 +398,7 @@ Options g_options;
 TEST(BayesianHilbertMap, 2Dd) {
     TestImpl2D<double>(
         g_options.hinged_grid_size,
+        g_options.max_dataset_size,
         g_options.test_grid_size,
         g_options.rbf_gamma,
         g_options.diagonal_sigma,
@@ -411,6 +409,7 @@ TEST(BayesianHilbertMap, 2Dd) {
 TEST(BayesianHilbertMap, 2Df) {
     TestImpl2D<float>(
         g_options.hinged_grid_size,
+        g_options.max_dataset_size,
         g_options.test_grid_size,
         g_options.rbf_gamma,
         g_options.diagonal_sigma,
@@ -429,6 +428,7 @@ main(int argc, char *argv[]) {
         desc.add_options()
             ("help,h", "Show help message")
             ("hinged-grid-size", po::value<int>(&g_options.hinged_grid_size)->default_value(g_options.hinged_grid_size), "Size of the hinged grid")
+            ("max-dataset-size", po::value<int>(&g_options.max_dataset_size)->default_value(g_options.max_dataset_size), "Size of the dataset")
             ("test-grid-size", po::value<int>(&g_options.test_grid_size)->default_value(g_options.test_grid_size), "Size of the test grid")
             ("rbf-gamma", po::value<float>(&g_options.rbf_gamma)->default_value(g_options.rbf_gamma), "RBF gamma value")
             ("diagonal-sigma", po::value<bool>(&g_options.diagonal_sigma)->default_value(g_options.diagonal_sigma), "Use diagonal sigma")

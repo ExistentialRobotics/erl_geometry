@@ -42,27 +42,26 @@ namespace erl::geometry {
                 mesh->vertices_.emplace_back(vertex[0], vertex[1], z);
             }
         }
+        const double sign = upward_normal ? 1 : -1;
         for (std::size_t i = 0; i < triangles_vertex_indices.size(); i += 3) {
-            mesh->triangles_.emplace_back(
-                triangles_vertex_indices[i],
-                triangles_vertex_indices[i + 1],
-                triangles_vertex_indices[i + 2]);
-        }
-        mesh->ComputeVertexNormals();
-        mesh->ComputeTriangleNormals();
-        double sign = upward_normal ? 1 : -1;
-        std::for_each(
-            mesh->vertex_normals_.begin(),
-            mesh->vertex_normals_.end(),
-            [sign](auto &vertex_normal) {
-                if (vertex_normal[2] * sign < 0) { vertex_normal *= -1; }
-            });
-        for (std::size_t i = 0; i < mesh->triangles_.size(); ++i) {
-            if (mesh->triangle_normals_[i][2] * sign < 0) {
-                std::swap(mesh->triangles_[i][0], mesh->triangles_[i][1]);
-                mesh->triangle_normals_[i] *= -1;
+            Eigen::Vector3d v01 = mesh->vertices_[triangles_vertex_indices[i + 1]] -
+                                  mesh->vertices_[triangles_vertex_indices[i]];
+            Eigen::Vector3d v02 = mesh->vertices_[triangles_vertex_indices[i + 2]] -
+                                  mesh->vertices_[triangles_vertex_indices[i]];
+            if (Eigen::Vector3d normal = v01.cross(v02); normal[2] * sign < 0) {
+                mesh->triangles_.emplace_back(
+                    triangles_vertex_indices[i],
+                    triangles_vertex_indices[i + 2],
+                    triangles_vertex_indices[i + 1]);
+            } else {
+                mesh->triangles_.emplace_back(
+                    triangles_vertex_indices[i],
+                    triangles_vertex_indices[i + 1],
+                    triangles_vertex_indices[i + 2]);
             }
         }
+        mesh->ComputeTriangleNormals();
+        mesh->ComputeVertexNormals();
         return mesh;
     }
 
