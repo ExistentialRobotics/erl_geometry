@@ -34,13 +34,13 @@ namespace erl::geometry {
         std::shared_ptr<geometry::BayesianHilbertMapSetting> m_setting_ = nullptr;
         // (1, M, Dim) matrix of hinged points
         torch::Tensor m_hinged_points_;
-        // (B, M, M) matrix of the sigma inverse, or (B, M) if diagonal_sigma is true
+        // (B, M + 1, M + 1) matrix of the sigma inverse, or (B, M) if diagonal_sigma is true
         torch::Tensor m_sigma_inv_;
-        // (B, M, M) matrix of sigma
+        // (B, M + 1, M + 1) matrix of sigma
         torch::Tensor m_sigma_;
-        // (B, M, 1) matrix, each row is sigma_inv @ mu
+        // (B, M + 1, 1) matrix, each row is sigma_inv @ mu
         torch::Tensor m_alpha_;
-        // (B, M, 1) matrix of weights
+        // (B, M + 1, 1) matrix of weights
         torch::Tensor m_mu_;
         // (B, 1, Dim) matrix of map centers, each row is the center of the map
         torch::Tensor m_map_centers_;
@@ -54,11 +54,11 @@ namespace erl::geometry {
         torch::Tensor m_labels_;
         // (B, N, 1) matrix of labels, but on CPU, used for loading the dataset
         torch::Tensor m_labels_cpu_;
-        // (B, M, N) matrix of the feature matrix, each row is the feature matrix for each map.
-        // If `use_sparse` is true, this is a sparse matrix of shape (B * M, B * N).
+        // (B, M + 1, N) matrix of the feature matrix, each row is the feature matrix for each map.
+        // If `use_sparse` is true, this is a sparse matrix of shape (B * (M + 1), B * N).
         torch::Tensor m_phi_;
-        // (B, M, N) matrix of the squared feature matrix.
-        // If `use_sparse` is true, this is a sparse matrix of shape (B * M, B * N).
+        // (B, M + 1, N) matrix of the squared feature matrix.
+        // If `use_sparse` is true, this is a sparse matrix of shape (B * (M + 1), B * N).
         torch::Tensor m_phi_sq_;
         // (B, N, 1) matrix of the lower bound parameters xi, each row is the xi vector for each map
         torch::Tensor m_xi_;

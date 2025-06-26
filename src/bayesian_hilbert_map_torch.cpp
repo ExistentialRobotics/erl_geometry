@@ -33,30 +33,29 @@ namespace erl::geometry {
         m_weights_loaded_.resize(m_num_maps_, false);
 
         ERL_ASSERTM(m_hinged_points_.defined(), "Hinged points are not loaded.");
-        long num_hinged_points = m_hinged_points_.size(1);
+        const long num_features = m_hinged_points_.size(1) + 1;
 
         // stay on CPU for now, as we need to load the dataset first, map weights and covariance
         // before moving to GPU.
         if (!m_sigma_.defined() || m_sigma_.size(0) != m_num_maps_ ||
-            m_sigma_.size(1) != num_hinged_points) {
+            m_sigma_.size(1) != num_features) {
             if (m_setting_->diagonal_sigma) {
                 m_sigma_ = torch::zeros(
-                    {m_num_maps_, num_hinged_points, 1},
+                    {m_num_maps_, num_features, 1},
                     torch::TensorOptions()
                         .dtype(sizeof(Dtype) == 4 ? torch::kFloat32 : torch::kFloat64)
                         .device(torch::kCPU));
             } else {
                 m_sigma_ = torch::zeros(
-                    {m_num_maps_, num_hinged_points, num_hinged_points},
+                    {m_num_maps_, num_features, num_features},
                     torch::TensorOptions()
                         .dtype(sizeof(Dtype) == 4 ? torch::kFloat32 : torch::kFloat64)
                         .device(torch::kCPU));
             }
         }
-        if (!m_mu_.defined() || m_mu_.size(0) != m_num_maps_ ||
-            m_mu_.size(1) != num_hinged_points) {
+        if (!m_mu_.defined() || m_mu_.size(0) != m_num_maps_ || m_mu_.size(1) != num_features) {
             m_mu_ = torch::zeros(
-                {m_num_maps_, num_hinged_points, 1},
+                {m_num_maps_, num_features, 1},
                 torch::TensorOptions()
                     .dtype(sizeof(Dtype) == 4 ? torch::kFloat32 : torch::kFloat64)
                     .device(torch::kCPU));
@@ -158,7 +157,7 @@ namespace erl::geometry {
 
         const long sigma_size = m_sigma_.size(1) * m_sigma_.size(2);
         ptr = m_sigma_.data_ptr<Dtype>();
-        ptr += map_idx * sigma_size;  // could be (M, M) or (M, ).
+        ptr += map_idx * sigma_size;  // could be (M + 1, M + 1) or (M + 1, ).
         std::memcpy(cov.data(), ptr, sizeof(Dtype) * sigma_size);
     }
 
@@ -239,8 +238,8 @@ namespace erl::geometry {
                 m_sigma_inv_ = m_sigma_.reciprocal();
                 m_alpha_ = m_sigma_inv_ * m_mu_;
             } else {
-                m_sigma_inv_ = torch::linalg_cholesky(m_sigma_).cholesky_inverse();  // (B, M, M)
-                m_alpha_ = m_sigma_inv_.matmul(m_mu_);                               // (B, M, 1)
+                m_sigma_inv_ = torch::linalg_cholesky(m_sigma_).cholesky_inverse();  // (B,M+1,M+1)
+                m_alpha_ = m_sigma_inv_.matmul(m_mu_);                               // (B,M+1,1)
             }
             m_weights_changed_ = false;
         } else {
@@ -258,6 +257,14 @@ namespace erl::geometry {
         // (1, M, 1) + (B, 1, N) -> (B, M, N)
         m_phi_ = sq_norm_a.unsqueeze(2) + sq_norm_b.unsqueeze(1) -
                  2 * torch::einsum("ij,klj->kil", {m_hinged_points_.squeeze(0), diff});
+        // add the bias term, put it in the last row. put zeros so that they become ones later.
+        // (B, M, N) -> (B, M + 1, N)
+        m_phi_ = torch::cat(
+            {
+                m_phi_,
+                torch::zeros({m_num_maps_, 1, m_num_points_}, m_phi_.options()),
+            },
+            1);
         const Dtype gamma = -0.5f / (m_kernel_scale_ * m_kernel_scale_);
         if (m_setting_->use_sparse) {
             const Dtype threshold = std::log(m_setting_->sparse_zero_threshold) / gamma;
@@ -269,17 +276,7 @@ namespace erl::geometry {
                     threshold);
             }
             const torch::Tensor mask = m_phi_ < threshold;
-            // torch::Tensor indices = mask.nonzero().t();
-            // const torch::Tensor values = torch::exp(m_phi_.masked_select(mask) * gamma);
-            // indices[1] += indices[0] * m_phi_.size(1);
-            // indices[2] += indices[0] * m_phi_.size(2);
-            // indices = indices.index({torch::indexing::Slice(1, 3)});
-            // m_phi_ = torch::sparse_coo_tensor(
-            //     indices,
-            //     values,
-            //     {m_num_maps_ * m_phi_.size(1), m_num_maps_ * m_phi_.size(2)});
-
-            // convert phi from shape (B, M, N) to (B * M, B * N), a block diagonal matrix.
+            // convert phi from shape (B, M+1, N) to (B * (M + 1), B * N), a block diagonal matrix.
             m_phi_ = ToBlockDiagonal(
                 mask.nonzero().t(),
                 torch::exp(m_phi_.masked_select(mask) * gamma),
@@ -308,12 +305,12 @@ namespace erl::geometry {
         m_lambda_ = torch::where(m_xi_ > kEpsilon, (torch::sigmoid(m_xi_) - 0.5f) / m_xi_, 0.25f);
         if (m_setting_->diagonal_sigma) {
             // E-step: calculate the posterior
-            m_sigma_inv_ += m_phi_sq_.matmul(m_lambda_);  // (B, M, N) @ (B, N, 1) -> (B, M, 1)
-            m_alpha_ += m_phi_.matmul(m_labels_);         // (B, M, N) @ (B, N, 1) -> (B, M, 1)
+            m_sigma_inv_ += m_phi_sq_.matmul(m_lambda_);  // (B, M+1, N) @ (B, N, 1) -> (B, M+1, 1)
+            m_alpha_ += m_phi_.matmul(m_labels_);         // (B, M+1, N) @ (B, N, 1) -> (B, M+1, 1)
             m_sigma_ = m_sigma_inv_.reciprocal();
             m_mu_ = m_sigma_ * m_alpha_;
             // M-step: update xi
-            // (B, 1, M) @ (B, M, N) -> (B, 1, N) -> (B, N) -> (B, N, 1)
+            // (B, 1, M+1) @ (B, M+1, N) -> (B, 1, N) -> (B, N) -> (B, N, 1)
             m_xi_ = (m_mu_.squeeze(2).unsqueeze(1).matmul(m_phi_).square().squeeze(1) +
                      m_sigma_.squeeze(2).unsqueeze(1).matmul(m_phi_sq_).squeeze(1))
                         .sqrt()
@@ -321,15 +318,15 @@ namespace erl::geometry {
         } else {
             // non-diagonal sigma
             // E-step: calculate the posterior
-            // (B, M, N) * (B, 1, N) -> (B, M, N)
+            // (B, M+1, N) * (B, 1, N) -> (B, M+1, N)
             torch::Tensor lambda_phi = m_phi_.mul(m_lambda_.squeeze(2).unsqueeze(1));
             m_sigma_inv_ += torch::einsum("ijk,ilk->ijl", {lambda_phi, m_phi_});
-            m_alpha_ += m_phi_.matmul(m_labels_);  // (B, M, N) @ (B, N, 1) -> (B, M, 1)
+            m_alpha_ += m_phi_.matmul(m_labels_);  // (B, M+1, N) @ (B, N, 1) -> (B, M+1, 1)
             m_sigma_ = torch::linalg_cholesky(m_sigma_inv_).cholesky_inverse();
-            m_mu_ = m_sigma_.matmul(m_alpha_);  // (B, M, M) @ (B, M, 1) -> (B, M, 1)
+            m_mu_ = m_sigma_.matmul(m_alpha_);  // (B, M+1, M+1) @ (B, M+1, 1) -> (B, M+1, 1)
             // M-step: update xi
-            // (B, 1, M) @ (B, M, N) -> (B, 1, N) -> (B, N) -> (B, N, 1)
-            // (B, M, M) @ (B, M, N) -> (B, M, N) -> (B, N) -> (B, N, 1)
+            // (B, 1, M+1) @ (B, M+1, N) -> (B, 1, N) -> (B, N) -> (B, N, 1)
+            // (B, M+1, M+1) @ (B, M+1, N) -> (B, M+1, N) -> (B, N) -> (B, N, 1)
             m_xi_ = (m_mu_.squeeze(2).unsqueeze(1).matmul(m_phi_).square().squeeze(1) +
                      m_sigma_.matmul(m_phi_).mul(m_phi_).sum(1))
                         .sqrt()
@@ -353,37 +350,37 @@ namespace erl::geometry {
         m_lambda_ = torch::where(m_xi_ > kEpsilon, (torch::sigmoid(m_xi_) - 0.5f) / m_xi_, 0.25f);
         if (m_setting_->diagonal_sigma) {
             // E-step: calculate the posterior
-            // (BM, BN) @ (BN, 1) -> (BM, 1) -> (B, M, 1)
+            // (B(M+1), BN) @ (BN, 1) -> (B(M+1), 1) -> (B, M+1, 1)
             m_sigma_inv_ += m_phi_sq_.matmul(m_lambda_.view({-1, 1})).view({m_num_maps_, -1, 1});
             m_alpha_ += m_phi_.matmul(m_labels_.view({-1, 1})).view({m_num_maps_, -1, 1});
             m_sigma_ = m_sigma_inv_.reciprocal();
             m_mu_ = m_sigma_ * m_alpha_;
-            // (1, BM) @ (BM, BN) -> (1, BN) -> (B, N, 1)
+            // (1, B(M+1)) @ (B(M+1), BN) -> (1, BN) -> (B, N, 1)
             torch::Tensor t1 = m_mu_.view({1, -1}).matmul(m_phi_).view({m_num_maps_, -1, 1});
             torch::Tensor t2 = m_sigma_.view({1, -1}).matmul(m_phi_sq_).view({m_num_maps_, -1, 1});
             m_xi_ = (t1.square() + t2).sqrt();  // (B, N, 1)
         } else {
             // non-diagonal sigma
             // E-step: calculate the posterior
-            // (BM, BN) * (1, BN) -> (BM, BN), sparse
+            // (B(M+1), BN) * (1, BN) -> (BM, BN), sparse
             const long kB = m_num_maps_;
-            const long kM = m_hinged_points_.size(1);
+            const long kF = m_hinged_points_.size(1) + 1;
             const long kN = m_num_points_;
             torch::Tensor lambda_phi = m_phi_.mul(m_lambda_.view({1, -1}));
-            torch::Tensor sigma_delta = lambda_phi.matmul(m_phi_.t());  // (BM, BM)
-            sigma_delta = ToBatched(sigma_delta.indices(), sigma_delta.values(), kB, kM, kM);
+            torch::Tensor sigma_delta = lambda_phi.matmul(m_phi_.t());  // (B(M+1), B(M+1))
+            sigma_delta = ToBatched(sigma_delta.indices(), sigma_delta.values(), kB, kF, kF);
             // m_sigma_inv_ += sigma_delta;  // batched inplace sparse addition is not supported yet
             m_sigma_inv_ = m_sigma_inv_ + sigma_delta;
-            // (BM, BN) @ (BN, 1) -> (BM, 1) -> (B, M, 1)
-            m_alpha_ += m_phi_.matmul(m_labels_.view({kB * kN, 1})).view({kB, kM, 1});
+            // (B(M+1), BN) @ (BN, 1) -> (B(M+1), 1) -> (B, (M+1), 1)
+            m_alpha_ += m_phi_.matmul(m_labels_.view({kB * kN, 1})).view({kB, kF, 1});
             m_sigma_ = torch::linalg_cholesky(m_sigma_inv_).cholesky_inverse().contiguous();
-            m_mu_ = m_sigma_.matmul(m_alpha_);  // (B, M, M) @ (B, M, 1) -> (B, M, 1)
+            m_mu_ = m_sigma_.matmul(m_alpha_);  // (B, M+1, M+1) @ (B, M+1, 1) -> (B, M+1, 1)
             // M-step: update xi
-            // (B, 1, M) @ (B, M, N) -> (B, 1, N) -> (B, N) -> (B, N, 1)
-            torch::Tensor t1 = m_mu_.view({1, kB * kM}).matmul(m_phi_).view({kB, kN, 1});
-            // (BN, BM) @ (BM, M) -> (BN, M)
-            torch::Tensor t2 = m_phi_.t().matmul(m_sigma_.view({kB * kM, kM})).contiguous();
-            t2 = t2.mul_(CollapseDim(m_phi_.indices(), m_phi_.values(), kB, kM, kN, 0).t())
+            // (B, 1, M+1) @ (B, M+1, N) -> (B, 1, N) -> (B, N) -> (B, N, 1)
+            torch::Tensor t1 = m_mu_.view({1, kB * kF}).matmul(m_phi_).view({kB, kN, 1});
+            // (BN, B(M+1)) @ (B(M+1), M) -> (BN, M+1)
+            torch::Tensor t2 = m_phi_.t().matmul(m_sigma_.view({kB * kF, kF})).contiguous();
+            t2 = t2.mul_(CollapseDim(m_phi_.indices(), m_phi_.values(), kB, kF, kN, 0).t())
                      .sum(1)
                      .view({kB, kN, 1});
             m_xi_ = (t1.square() + t2).sqrt();  // (B, N, 1)
@@ -457,8 +454,8 @@ namespace erl::geometry {
                 .to(m_device_);
 
         torch::Tensor logodd_tensor, t1, t2, t3;
-        const torch::Tensor mu = m_mu_.index({map_idx});        // (M, 1)
-        const torch::Tensor sigma = m_sigma_.index({map_idx});  // (M, M) or (M, 1)
+        const torch::Tensor mu = m_mu_.index({map_idx});        // (M+1, 1)
+        const torch::Tensor sigma = m_sigma_.index({map_idx});  // (M+1, M+1) or (M+1, 1)
         const Dtype gamma = 0.5f / (m_kernel_scale_ * m_kernel_scale_);
         constexpr auto kPI = static_cast<Dtype>(M_PI);
         // compute the feature matrix
@@ -471,6 +468,7 @@ namespace erl::geometry {
         torch::Tensor phi = sq_norm_a + sq_norm_b -
                             2 * torch::einsum("ij,lj->il", {diff, m_hinged_points_.squeeze(0)});
         phi = torch::exp(-gamma * phi);
+        phi = torch::cat({phi, torch::ones({phi.size(0), 1}, phi.options())}, 1);
 
         if (faster) {  // assume sigma is very small; we can use the mean directly
             logodd_tensor = phi.matmul(mu);  // (N, 1)
@@ -501,8 +499,14 @@ namespace erl::geometry {
 
         if (!compute_gradient) { return; }
 
-        torch::Tensor grad_phi_x =  // (N, M, Dim)
-            -2.0f * gamma * (points_tensor.unsqueeze(1) - m_hinged_points_) * phi.unsqueeze(2);
+        diff = diff.unsqueeze(1) - m_hinged_points_;  // (N, 1, Dim) - (1, M, Dim) -> (N, M, Dim)
+        diff = torch::cat(
+            {
+                diff,
+                torch::zeros({n_points, 1, Dim}, diff.options()),
+            },
+            1);
+        torch::Tensor grad_phi_x = -2.0f * gamma * diff * phi.unsqueeze(2);  // (N, M+1, Dim)
         torch::Tensor grads;
         if (faster) {  // (N, Dim)
             grads = torch::einsum("ijk,j->ik", {grad_phi_x, mu.squeeze(1)});
@@ -514,13 +518,13 @@ namespace erl::geometry {
                 }
             }
         } else {
-            torch::Tensor grad_phi;  // (N, M)
+            torch::Tensor grad_phi;  // (N, M+1)
             if (m_setting_->diagonal_sigma) {
-                // (1, M) - (N, 1) * ((1, M) * (N, M)) / (N, 1) -> (N, M)
+                // (1, M+1) - (N, 1) * ((1, M+1) * (N, M+1)) / (N, 1) -> (N, M+1)
                 grad_phi = mu.view({1, -1}) -
                            0.125f * kPI * (logodd_tensor / t2) * (sigma.view({1, -1}) * phi);
             } else {
-                // (1, M) - ((N, 1) / (N, 1)) * ((N, M) @ (M, M)) -> (N, M)
+                // (1, M+1) - ((N, 1) / (N, 1)) * ((N, M+1) @ (M+1, M+1)) -> (N, M+1)
                 grad_phi =
                     mu.view({1, -1}) - 0.125f * kPI * (logodd_tensor / t2) * (phi.matmul(sigma));
             }

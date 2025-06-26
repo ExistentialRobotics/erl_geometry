@@ -24,7 +24,7 @@ namespace erl::geometry {
         ERL_DEBUG_ASSERT(m_setting_ != nullptr, "Setting is null.");
         ERL_DEBUG_ASSERT(m_kernel_ != nullptr, "Kernel is null.");
 
-        const long m = m_hinged_points_.cols();
+        const long m = m_hinged_points_.cols() + 1;
         const Dtype sigma = m_setting_->init_sigma;
         const Dtype sigma_inv = 1.0f / sigma;
         if (m_setting_->diagonal_sigma) {
@@ -205,10 +205,11 @@ namespace erl::geometry {
             "points.cols() = {}, num_points = {}.",
             points.cols(),
             num_points);
+        const long n_hinged = m_hinged_points_.cols();
 
         // prepare memory
         if (m_xi_.rows() < num_points) {
-            if (!m_setting_->use_sparse) { m_phi_.resize(num_points, m_hinged_points_.cols()); }
+            if (!m_setting_->use_sparse) { m_phi_.resize(num_points, n_hinged + 1); }
             m_labels_.resize(num_points);
             m_xi_.resize(num_points);
             m_lambda_.resize(num_points);
@@ -223,13 +224,21 @@ namespace erl::geometry {
 
         // prepare phi
         if (m_setting_->use_sparse) {
+            m_phi_sparse_.setZero();
+            m_phi_sparse_.resize(num_points, n_hinged + 1);  // (N, M + 1)
             m_kernel_->ComputeKtestSparse(
                 points,
                 num_points,
                 m_hinged_points_,
-                m_hinged_points_.cols(),
+                n_hinged,
                 m_setting_->sparse_zero_threshold,
                 m_phi_sparse_);
+            // add the bias term
+            if (m_phi_sparse_.cols() < n_hinged + 1) {
+                m_phi_sparse_.conservativeResize(num_points, n_hinged + 1);
+            }
+            for (long j = 0; j < num_points; ++j) { m_phi_sparse_.insert(j, n_hinged) = 1.0f; }
+            m_phi_sparse_.makeCompressed();  // compress the sparse matrix for better performance
             ERL_DEBUG(
                 "sparse: {}, dense: {}, sparsity score: {:.3f}",
                 m_phi_sparse_.nonZeros(),
@@ -242,12 +251,9 @@ namespace erl::geometry {
                 m_phi_sq_transpose_sparse_ = m_phi_sq_sparse_.transpose();
             }
         } else {
-            m_kernel_->ComputeKtest(
-                points,
-                num_points,
-                m_hinged_points_,
-                m_hinged_points_.cols(),
-                m_phi_);
+            m_kernel_->ComputeKtest(points, num_points, m_hinged_points_, n_hinged, m_phi_);
+            // add the bias term
+            m_phi_.template rightCols<1>().setOnes();
             m_phi_transpose_ = m_phi_.transpose();
             if (m_setting_->diagonal_sigma) {
                 m_phi_sq_ = m_phi_.cwiseAbs2();
@@ -261,7 +267,7 @@ namespace erl::geometry {
     BayesianHilbertMap<Dtype, Dim>::RunExpectationMaximizationIteration(const long n_points) {
         ++m_iteration_cnt_;
 
-        const long num_feat = m_hinged_points_.cols();
+        const long num_feat = m_mu_.rows();
 
         Dtype *xi_ptr = m_xi_.data();
         Dtype *lam_ptr = m_lambda_.data();
@@ -340,7 +346,7 @@ namespace erl::geometry {
     void
     BayesianHilbertMap<Dtype, Dim>::RunExpectationMaximizationIterationSparse(long num_points) {
         ++m_iteration_cnt_;
-        const long num_feat = m_hinged_points_.cols();
+        const long num_feat = m_mu_.rows();
         Dtype *xi_ptr = m_xi_.data();
         Dtype *lam_ptr = m_lambda_.data();
         Dtype *alpha_ptr = m_alpha_.data();
@@ -361,7 +367,7 @@ namespace erl::geometry {
             Dtype *sigma_ptr = m_sigma_.data();
 #pragma omp parallel for default(none) \
     shared(num_feat, num_points, sigma_inv_ptr, alpha_ptr, sigma_ptr, mu_ptr)
-            for (long i = 0; i < num_feat; ++i) {
+            for (long i = 0; i < num_feat - 1; ++i) {
                 sigma_inv_ptr[i] += m_phi_sq_sparse_.col(i)
                                         .head(num_points)  //
                                         .dot(m_lambda_.head(num_points));
@@ -373,6 +379,12 @@ namespace erl::geometry {
                 // mu' = sigma' * (mu / sigma + phi.T @ (labels - 0.5))
                 mu_ptr[i] = sigma_ptr[i] * alpha_ptr[i];
             }
+            // last column is the bias term
+            const long last_col = num_feat - 1;
+            sigma_inv_ptr[last_col] += m_lambda_.head(num_points).sum();
+            alpha_ptr[last_col] += m_labels_.head(num_points).sum();
+            sigma_ptr[last_col] = 1.0f / sigma_inv_ptr[last_col];
+            mu_ptr[last_col] = sigma_ptr[last_col] * alpha_ptr[last_col];
             // M-Step: update xi
 #pragma omp parallel for default(none) shared(num_points, xi_ptr)
             for (long j = 0; j < num_points; ++j) {
@@ -453,20 +465,29 @@ namespace erl::geometry {
         VectorX &prob_occupied,
         MatrixDX &gradient) const {
 
-        // sparsity does not improve the performance of the prediction
+        // // sparsity does not improve the performance of the prediction
         // if (m_setting_->use_sparse) {
-        //     PredictSparse(points, logodd, faster, compute_gradient, gradient_with_sigmoid,
-        //     parallel, prob_occupied, gradient); return;
+        //     PredictSparse(
+        //         points,
+        //         logodd,
+        //         faster,
+        //         compute_gradient,
+        //         gradient_with_sigmoid,
+        //         parallel,
+        //         prob_occupied,
+        //         gradient);
+        //     return;
         // }
 
         constexpr auto kPI = static_cast<Dtype>(M_PI);
         (void) parallel;
         const long n_hinged = m_hinged_points_.cols();
+        const long n_feats = n_hinged + 1;
         const long n_points = points.cols();
         const long phi_cols = compute_gradient ? n_points * (Dim + 1) : n_points;
 
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
-        MatrixX phi(n_hinged, phi_cols);
+        MatrixX phi(n_feats, phi_cols);
         if (compute_gradient) {
             m_kernel_->ComputeKtestWithGradient(
                 m_hinged_points_,
@@ -476,9 +497,12 @@ namespace erl::geometry {
                 n_points,
                 true,
                 phi);
+            phi.template bottomRows<1>().head(n_points).setOnes();
+            phi.template bottomRows<1>().tail(Dim * n_points).setZero();
             if (gradient.cols() < n_points) { gradient.resize(Dim, n_points); }
         } else {
             m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, points, n_points, phi);
+            phi.template bottomRows<1>().head(n_points).setOnes();
         }
 
         prob_occupied.resize(n_points);
@@ -607,10 +631,17 @@ namespace erl::geometry {
         Dtype &prob_occupied,
         VectorD &gradient) const {
 
-        // sparsity does not improve the performance of the prediction
+        // // sparsity does not improve the performance of the prediction
         // if (m_setting_->use_sparse) {
-        //     PredictSparse(points, logodd, faster, compute_gradient, gradient_with_sigmoid,
-        //     parallel, prob_occupied, gradient); return;
+        //     PredictSparse(
+        //         point,
+        //         logodd,
+        //         faster,
+        //         compute_gradient,
+        //         gradient_with_sigmoid,
+        //         prob_occupied,
+        //         gradient);
+        //     return;
         // }
 
         constexpr auto kPI = static_cast<Dtype>(M_PI);
@@ -618,7 +649,7 @@ namespace erl::geometry {
         const long phi_cols = compute_gradient ? (Dim + 1) : 1;
 
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
-        MatrixX phi(n_hinged, phi_cols);
+        MatrixX phi(n_hinged + 1, phi_cols);
         if (compute_gradient) {
             m_kernel_->ComputeKtestWithGradient(
                 m_hinged_points_,
@@ -628,8 +659,11 @@ namespace erl::geometry {
                 1,
                 true,
                 phi);
+            phi(n_hinged, 0) = 1.0f;  // add the bias term
+            for (int i = 1; i <= Dim; ++i) { phi(n_hinged, i) = 0.0f; }
         } else {
             m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, point, 1, phi);
+            phi(n_hinged, 0) = 1.0f;  // add the bias term
         }
 
         if (faster) {  // assume sigma is very small; we can use the mean directly
@@ -728,7 +762,7 @@ namespace erl::geometry {
         const long phi_cols = compute_gradient ? n_points * (Dim + 1) : n_points;
 
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
-        SparseMatrix phi(n_hinged, phi_cols);
+        SparseMatrix phi(n_hinged + 1, phi_cols);
         if (compute_gradient) {
             m_kernel_->ComputeKtestWithGradientSparse(
                 m_hinged_points_,
@@ -739,6 +773,13 @@ namespace erl::geometry {
                 compute_gradient,
                 m_setting_->sparse_zero_threshold,
                 phi);
+            if (phi.rows() < n_hinged + 1) { phi.conservativeResize(n_hinged + 1, phi.cols()); }
+            for (long i = 0; i < n_points; ++i) {
+                phi.insert(n_hinged, i) = 1.0f;
+                for (long d = 0; d < Dim; ++d) {
+                    phi.insert(n_hinged, n_points * (d + 1) + i) = 0.0f;
+                }
+            }
             if (gradient.cols() < n_points) { gradient.resize(Dim, n_points); }
         } else {
             m_kernel_->ComputeKtestSparse(
@@ -748,7 +789,10 @@ namespace erl::geometry {
                 n_points,
                 m_setting_->sparse_zero_threshold,
                 phi);
+            if (phi.rows() < n_hinged + 1) { phi.conservativeResize(n_hinged + 1, phi.cols()); }
+            for (long i = 0; i < n_points; ++i) { phi.insert(n_hinged, i) = 1.0f; }
         }
+        phi.makeCompressed();
 
         prob_occupied.resize(n_points);
         Dtype *prob_occupied_ptr = prob_occupied.data();
@@ -868,6 +912,127 @@ namespace erl::geometry {
 
     template<typename Dtype, int Dim>
     void
+    BayesianHilbertMap<Dtype, Dim>::PredictSparse(
+        const VectorD &point,
+        const bool logodd,
+        const bool faster,
+        const bool compute_gradient,
+        const bool gradient_with_sigmoid,
+        Dtype &prob_occupied,
+        VectorD &gradient) const {
+
+        constexpr auto kPI = static_cast<Dtype>(M_PI);
+        const long n_hinged = m_hinged_points_.cols();
+        const long phi_cols = compute_gradient ? (Dim + 1) : 1;
+
+        const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
+        SparseMatrix phi(n_hinged + 1, phi_cols);
+        if (compute_gradient) {
+            m_kernel_->ComputeKtestWithGradientSparse(
+                m_hinged_points_,
+                n_hinged,
+                grad_flags,
+                point,
+                1,
+                true,
+                m_setting_->sparse_zero_threshold,
+                phi);
+            if (phi.rows() < n_hinged + 1) { phi.conservativeResize(n_hinged + 1, phi_cols); }
+            phi.insert(n_hinged, 0) = 1.0f;  // add the bias term
+            for (long d = 0; d < Dim; ++d) { phi.insert(n_hinged, d + 1) = 0.0f; }
+        } else {
+            m_kernel_->ComputeKtestSparse(
+                m_hinged_points_,
+                n_hinged,
+                point,
+                1,
+                m_setting_->sparse_zero_threshold,
+                phi);
+            if (phi.rows() < n_hinged + 1) { phi.conservativeResize(n_hinged + 1, phi_cols); }
+            phi.insert(n_hinged, 0) = 1.0f;
+        }
+        phi.makeCompressed();
+
+        if (faster) {  // assume sigma is very small; we can use the mean directly
+            const Dtype t1 = phi.col(0).dot(m_mu_);
+            prob_occupied = logodd ? t1 : 1.0f / (1.0f + std::exp(-t1));
+
+            if (!compute_gradient) { return; }
+
+            for (long d = 0, j = 1; d < Dim; ++d, ++j) {
+                gradient[d] = phi.col(j).dot(m_mu_);
+                if (gradient_with_sigmoid) {
+                    Dtype p = logodd ? 1.0f / (1.0f + std::exp(-t1)) : prob_occupied;
+                    gradient[d] *= p * (1.0f - p);
+                }
+            }
+
+            return;
+        }
+
+        const Dtype *mu_ptr = m_mu_.data();
+        if (m_setting_->diagonal_sigma) {
+            // assume sigma is diagonal, i.e. element of mu is independent
+            Dtype t1 = phi.col(0).dot(m_mu_);
+            Dtype t2 = 1.0f + phi.col(0).cwiseAbs2().dot(m_sigma_.col(0)) * (kPI / 8.0f);
+            Dtype t3 = std::sqrt(t2);
+            Dtype h = t1 / t3;
+            prob_occupied = logodd ? h : 1.0f / (1.0f + std::exp(-h));
+
+            if (!compute_gradient) { return; }
+
+            for (long d = 0, j = 1; d < Dim; ++d, ++j) {
+                const Dtype *sigma_ptr = m_sigma_.data();
+                gradient[d] = 0;
+                for (typename SparseMatrix::InnerIterator it(phi, j); it; ++it) {
+                    const long k = it.row();
+                    Dtype tmp = mu_ptr[k] * t2 - kPI * t1 * sigma_ptr[k] * phi.coeff(k, 0);
+                    gradient[d] += tmp * it.value();
+                }
+                if (gradient_with_sigmoid) {
+                    Dtype p = logodd ? 1.0f / (1.0f + std::exp(-h)) : prob_occupied;
+                    gradient[d] *= p * (1.0f - p) / (8.0f * t2 * t3);
+                } else {
+                    gradient[d] /= 8.0f * t2 * t3;
+                }
+            }
+            return;
+        }
+
+        Dtype t1 = phi.col(0).dot(m_mu_);
+        VectorX beta = m_sigma_inv_mat_l_  //
+                           .template triangularView<Eigen::Lower>()
+                           .solve(phi.col(0).toDense());
+        // 1 + phi^T @ sigma @ phi * (kPI / 8.0)
+        Dtype t2 = 1.0f + beta.squaredNorm() * (kPI / 8.0f);
+        Dtype t3 = std::sqrt(t2);
+        Dtype h = t1 / t3;
+        prob_occupied = logodd ? h : 1.0f / (1.0f + std::exp(-h));  // sigmoid function
+
+        if (!compute_gradient) { return; }
+
+        // beta = sigma @ phi
+        m_sigma_inv_mat_l_.template triangularView<Eigen::Upper>().solveInPlace(beta);
+        const Dtype *beta_ptr = beta.data();
+        for (long d = 0, j = 1; d < Dim; ++d, ++j) {
+            // grad = grad_phi_x @ grad_phi_h @ grad_prob_h
+            // phi: n x (n * (Dim + 1))
+            gradient[d] = 0;
+            for (typename SparseMatrix::InnerIterator it(phi, j); it; ++it) {
+                const long k = it.row();
+                gradient[d] += (mu_ptr[k] * t2 - kPI * t1 * beta_ptr[k]) * it.value();
+            }
+            if (gradient_with_sigmoid) {
+                const Dtype p = logodd ? 1.0f / (1.0f + std::exp(-h)) : prob_occupied;
+                gradient[d] *= p * (1.0f - p) / (8.0f * t2 * t3);
+            } else {
+                gradient[d] /= 8.0f * t2 * t3;
+            }
+        }
+    }
+
+    template<typename Dtype, int Dim>
+    void
     BayesianHilbertMap<Dtype, Dim>::PredictGradient(
         const Eigen::Ref<const MatrixDX> &points,
         const bool faster,
@@ -882,7 +1047,7 @@ namespace erl::geometry {
         const long phi_cols = n_points * (Dim + 1);
 
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
-        MatrixX phi(n_hinged, phi_cols);
+        MatrixX phi(n_hinged + 1, phi_cols);
         m_kernel_->ComputeKtestWithGradient(
             m_hinged_points_,
             n_hinged,
@@ -891,6 +1056,8 @@ namespace erl::geometry {
             n_points,
             true,
             phi);
+        phi.template bottomRows<1>().head(n_points).setOnes();
+        phi.template bottomRows<1>().tail(Dim * n_points).setZero();
         if (gradient.cols() < n_points) { gradient.resize(Dim, n_points); }
 
         if (faster) {  // assume sigma is very small, we can use the mean directly

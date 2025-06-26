@@ -65,21 +65,21 @@ namespace erl::geometry {
         VectorX m_labels_{};
         // posterior mean vector of weights
         VectorX m_mu_{};
-        // [N, M] feature matrix for training
+        // [N, M + 1] feature matrix for training
         MatrixX m_phi_{};
-        // [N, M] squared feature matrix for training
+        // [N, M + 1] squared feature matrix for training
         MatrixX m_phi_sq_{};
         // [M, N] transpose of the feature matrix
         MatrixX m_phi_transpose_{};
         // [M, N] transpose of the squared feature matrix
         MatrixX m_phi_sq_transpose_{};
-        // [N, M] sparse feature matrix for training
+        // [N, M + 1] sparse feature matrix for training
         SparseMatrix m_phi_sparse_{};
-        // [N, M] sparse squared feature matrix for training
+        // [N, M + 1] sparse squared feature matrix for training
         SparseMatrix m_phi_sq_sparse_{};
-        // [M, N] sparse transpose of the feature matrix
+        // [M + 1, N] sparse transpose of the feature matrix
         SparseMatrix m_phi_transpose_sparse_{};
-        // [M, N] sparse transpose of the squared feature matrix
+        // [M + 1, N] sparse transpose of the squared feature matrix
         SparseMatrix m_phi_sq_transpose_sparse_{};
         // EM xi vector
         VectorX m_xi_{};
@@ -232,6 +232,16 @@ namespace erl::geometry {
             bool parallel,
             VectorX &prob_occupied,
             MatrixDX &gradient) const;
+
+        void
+        PredictSparse(
+            const VectorD &point,
+            bool logodd,
+            bool faster,
+            bool compute_gradient,
+            bool gradient_with_sigmoid,
+            Dtype &prob_occupied,
+            VectorD &gradient) const;
 
         void
         PredictGradient(
