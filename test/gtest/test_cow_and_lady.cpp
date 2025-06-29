@@ -14,6 +14,8 @@ struct Options {
     std::string directory = fmt::format("{}/data/cow_and_lady", ERL_GEOMETRY_ROOT_DIR);
     double valid_range_min = 0.0;
     double valid_range_max = 1000;
+    int frame_depth = 0;
+    int frame_rgb = 0;
     bool show_gt = false;
     bool use_icp = false;
     bool hold = false;
@@ -115,6 +117,41 @@ TEST(CowAndLady, Load) {
     std::cout << "Global ICP result: " << std::endl << result.transformation_ << std::endl;
 }
 
+TEST(CowAndLady, Align) {
+    GTEST_PREPARE_OUTPUT_DIR();
+    erl::geometry::CowAndLady cow_and_lady(g_options.directory, false);
+
+    auto depth = cow_and_lady[g_options.frame_depth].depth_jet;
+    auto color = cow_and_lady[g_options.frame_rgb].color;
+
+    cv::Mat overlap;
+    cv::addWeighted(depth, 0.5, color, 0.5, 0, overlap);
+    cv::imshow("overlap", overlap);
+    cv::waitKey(0);
+
+    for (long i = 0; i < cow_and_lady.Size(); ++i) {
+        depth = cow_and_lady[i].depth_jet;
+        color = cow_and_lady[i].color;
+        cv::addWeighted(depth, 0.5, color, 0.5, 0, overlap);
+        cv::imshow("overlap", overlap);
+
+        cv::Mat depth_edge, color_edge;
+        cv::Canny(depth, depth_edge, 100, 200);  // use as the red channel
+        cv::Canny(color, color_edge, 100, 200);  // use as the green channel
+
+        cv::Mat overlap_edge;
+        cv::merge(
+            std::vector<cv::Mat>{
+                cv::Mat::zeros(depth_edge.size(), CV_8UC1),
+                color_edge,
+                depth_edge},
+            overlap_edge);
+        cv::imshow("overlap_edge", overlap_edge);
+
+        cv::waitKey(10);
+    }
+}
+
 int
 main(int argc, char *argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
@@ -127,6 +164,8 @@ main(int argc, char *argv[]) {
             ("directory", po::value<std::string>(&g_options.directory), "Cow and lady dataset directory")
             ("valid-range-min", po::value<double>(&g_options.valid_range_min)->default_value(0.0), "Minimum valid range for depth")
             ("valid-range-max", po::value<double>(&g_options.valid_range_max)->default_value(1000.0), "Maximum valid range for depth")
+            ("frame-depth", po::value<int>(&g_options.frame_depth)->default_value(0), "Depth frame index")
+            ("frame-rgb", po::value<int>(&g_options.frame_rgb)->default_value(0), "RGB frame index")
             ("show-gt", po::bool_switch(&g_options.show_gt)->default_value(false), "Show ground truth point cloud")
             ("use-icp", po::bool_switch(&g_options.use_icp)->default_value(false), "Use ICP for registration")
             ("hold", po::bool_switch(&g_options.hold)->default_value(false), "Hold the visualization window");
