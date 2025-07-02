@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aabb.hpp"
+#include "occupancy_map.hpp"
 
 #include "erl_common/random.hpp"
 #include "erl_common/yaml.hpp"
@@ -34,9 +35,10 @@ namespace erl::geometry {
     };
 
     template<typename Dtype, int Dim>
-    class BayesianHilbertMap {
+    class BayesianHilbertMap : OccupancyMap<Dtype, Dim> {
     public:
         using Covariance = covariance::Covariance<Dtype>;
+        using AabbD = Aabb<Dtype, Dim>;
         using MatrixDX = Eigen::Matrix<Dtype, Dim, Eigen::Dynamic>;
         using MatrixX = Eigen::MatrixX<Dtype>;
         using VectorD = Eigen::Vector<Dtype, Dim>;
@@ -47,9 +49,9 @@ namespace erl::geometry {
         // settings for the Bayesian Hilbert Map
         std::shared_ptr<BayesianHilbertMapSetting> m_setting_ = nullptr;
         std::shared_ptr<Covariance> m_kernel_ = nullptr;
-        // [Dim, N] hinged points for computing the hilbert space features
+        // [Dim, M] hinged points for computing the hilbert space features
         MatrixDX m_hinged_points_{};
-        Aabb<Dtype, Dim> m_map_boundary_{};
+        AabbD m_map_boundary_{};
         std::mt19937_64 m_generator_;
         // iteration count for the EM algorithm (just for statistics)
         uint64_t m_iteration_cnt_ = 0;
@@ -104,7 +106,7 @@ namespace erl::geometry {
             std::shared_ptr<BayesianHilbertMapSetting> setting,
             std::shared_ptr<Covariance> kernel,
             MatrixDX hinged_points,
-            Aabb<Dtype, Dim> map_boundary,
+            AabbD map_boundary,
             uint64_t seed);
 
         [[nodiscard]] std::shared_ptr<const BayesianHilbertMapSetting>
@@ -128,7 +130,7 @@ namespace erl::geometry {
         [[nodiscard]] const MatrixX &
         GetWeightsCovariance() const;
 
-        [[nodiscard]] const Aabb<Dtype, Dim> &
+        [[nodiscard]] const AabbD &
         GetMapBoundary() const;
 
         [[nodiscard]] uint64_t
@@ -183,7 +185,7 @@ namespace erl::geometry {
             const Eigen::Ref<const MatrixDX> &points,
             const std::vector<long> &point_indices,
             long max_dataset_size,
-            long &num_points,
+            long &num_samples,
             MatrixDX &dataset_points,
             VectorX &dataset_labels,
             std::vector<long> &hit_indices);
@@ -262,29 +264,6 @@ namespace erl::geometry {
 
         [[nodiscard]] bool
         operator!=(const BayesianHilbertMap &other) const;
-
-    private:
-        void
-        GenerateRayInfos(
-            const Eigen::Ref<const VectorD> &sensor_position,
-            const Eigen::Ref<const MatrixDX> &points,
-            const std::vector<long> &point_indices,
-            std::vector<std::tuple<long, bool, long, Dtype, Dtype>> &infos,
-            long &max_num_free_points,
-            long &max_num_hit_points);
-
-        void
-        GenerateSamples(
-            const Eigen::Ref<const VectorD> &sensor_position,
-            const Eigen::Ref<const MatrixDX> &points,
-            const std::vector<std::tuple<long, bool, long, Dtype, Dtype>> &infos,
-            bool random_infos,
-            long num_hit_to_sample,
-            long num_free_to_sample,
-            long &num_samples,
-            MatrixDX &dataset_points,
-            VectorX &dataset_labels,
-            std::vector<long> &hit_indices);
     };
 
     using BayesianHilbertMap2Df = BayesianHilbertMap<float, 2>;

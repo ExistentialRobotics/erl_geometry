@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <stdexcept>
+#include <string>
 
 namespace erl::geometry {
 
@@ -24,5 +24,4 @@ namespace erl::geometry {
             throw std::runtime_error("Unknown cell type: " + name);
         }
     };
-
-}
+}  // namespace erl::geometry
