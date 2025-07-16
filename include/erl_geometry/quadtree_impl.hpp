@@ -300,6 +300,48 @@ namespace erl::geometry {
             const;
 
         /**
+         * Convert 1-dim key to vertex coordinate.
+         * @param key
+         * @return
+         */
+        [[nodiscard]] Dtype
+        KeyToVertexCoord(QuadtreeKey::KeyType key) const;
+
+        /**
+         * Convert a 1-dim key to vertex coordinate at a given depth.
+         * @param key
+         * @param depth
+         * @return
+         */
+        [[nodiscard]] Dtype
+        KeyToVertexCoord(QuadtreeKey::KeyType key, uint32_t depth) const;
+
+        /**
+         * Convert 2-dim key to vertex coordinate.
+         * @param key
+         * @param x
+         * @param y
+         */
+        void
+        KeyToVertexCoord(const QuadtreeKey &key, Dtype &x, Dtype &y) const;
+
+        /**
+         * Convert a 2-dim key to vertex coordinate at a given depth.
+         * @param key
+         * @param depth
+         * @param x
+         * @param y
+         */
+        void
+        KeyToVertexCoord(const QuadtreeKey &key, uint32_t depth, Dtype &x, Dtype &y) const;
+
+        void
+        KeyToVertexCoord(const QuadtreeKey &key, uint32_t depth, Vector2 &vertex_coord) const;
+
+        [[nodiscard]] Vector2
+        KeyToVertexCoord(const QuadtreeKey &key, uint32_t depth) const;
+
+        /**
          * Convert 1-dim key to coordinate.
          * @param key
          * @return

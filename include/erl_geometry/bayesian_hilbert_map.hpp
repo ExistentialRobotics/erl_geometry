@@ -3,7 +3,6 @@
 #include "aabb.hpp"
 #include "occupancy_map.hpp"
 
-#include "erl_common/random.hpp"
 #include "erl_common/yaml.hpp"
 #include "erl_covariance/covariance.hpp"
 

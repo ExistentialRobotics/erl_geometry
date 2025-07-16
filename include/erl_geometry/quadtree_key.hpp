@@ -148,6 +148,16 @@ namespace erl::geometry {
             }
         }
 
+        static void
+        ComputeVertexKey(
+            const uint32_t vertex_index,
+            const KeyType voxel_size_key,
+            const QuadtreeKey& voxel_key,
+            QuadtreeKey& vertex_key) {
+            vertex_key.m_k_[0] = voxel_key.m_k_[0] + ((vertex_index & 0b01) ? voxel_size_key : 0);
+            vertex_key.m_k_[1] = voxel_key.m_k_[1] + ((vertex_index & 0b10) ? voxel_size_key : 0);
+        }
+
         /**
          * Compute child index (0..3) from the key at a given level.
          * @param key

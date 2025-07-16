@@ -42,10 +42,11 @@ namespace erl::geometry {
             std::numeric_limits<Dtype>::lowest(),
             std::numeric_limits<Dtype>::lowest(),
             std::numeric_limits<Dtype>::lowest()};
-        Dtype m_metric_min_[3] = {// min metric coordinate of x, y and z
-                                  std::numeric_limits<Dtype>::max(),
-                                  std::numeric_limits<Dtype>::max(),
-                                  std::numeric_limits<Dtype>::max()};
+        // min metric coordinate of x, y and z
+        Dtype m_metric_min_[3] = {
+            std::numeric_limits<Dtype>::max(),
+            std::numeric_limits<Dtype>::max(),
+            std::numeric_limits<Dtype>::max()};
         // the size of a quadrant at depth i (0: root node, tree_depth: smallest leaf node)
         std::vector<Dtype> m_size_lookup_table_;
         // data structure for parallel ray casting

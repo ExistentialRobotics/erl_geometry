@@ -4,6 +4,8 @@
 
 #include "erl_common/eigen.hpp"
 
+#include <random>
+
 namespace erl::geometry {
     template<typename Dtype, int Dim>
     struct OccupancyMap {

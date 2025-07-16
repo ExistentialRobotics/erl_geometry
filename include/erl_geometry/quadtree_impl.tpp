@@ -598,10 +598,82 @@ namespace erl::geometry {
 
     template<class Node, class Interface, class InterfaceSetting>
     typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Dtype
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const QuadtreeKey::KeyType key) const {
+        return static_cast<Dtype>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) *
+               m_setting_->resolution;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Dtype
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const QuadtreeKey::KeyType key,
+        const uint32_t depth) const {
+        const uint32_t tree_depth = m_setting_->tree_depth;
+        if (depth == 0) { return 0.0; }
+        if (depth == tree_depth) { return KeyToCoord(key); }
+        uint32_t &&diff = tree_depth - depth;
+        Dtype &&r = this->GetNodeSize(depth);
+        return std::floor(
+                   (static_cast<Dtype>(key) - static_cast<Dtype>(m_tree_key_offset_)) /
+                   static_cast<Dtype>(1 << diff)) *
+               r;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    void
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const QuadtreeKey &key,
+        Dtype &x,
+        Dtype &y) const {
+        x = KeyToVertexCoord(key[0]);
+        y = KeyToVertexCoord(key[1]);
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    void
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const QuadtreeKey &key,
+        uint32_t depth,
+        Dtype &x,
+        Dtype &y) const {
+        if (depth == 0) {
+            x = y = 0.0;
+            return;
+        }
+        if (depth == m_setting_->tree_depth) {
+            KeyToCoord(key, x, y);
+            return;
+        }
+        x = KeyToVertexCoord(key[0], depth);
+        y = KeyToVertexCoord(key[1], depth);
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    void
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const QuadtreeKey &key,
+        const uint32_t depth,
+        Vector2 &vertex_coord) const {
+        KeyToVertexCoord(key, depth, vertex_coord.x(), vertex_coord.y());
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Vector2
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const QuadtreeKey &key,
+        const uint32_t depth) const {
+        Vector2 vertex_coord;
+        KeyToVertexCoord(key, depth, vertex_coord.x(), vertex_coord.y());
+        return vertex_coord;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Dtype
     QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToCoord(
         const QuadtreeKey::KeyType key) const {
         return (static_cast<Dtype>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) +
-                0.5) *
+                0.5f) *
                m_setting_->resolution;
     }
 
@@ -618,7 +690,7 @@ namespace erl::geometry {
         return (std::floor(
                     (static_cast<Dtype>(key) - static_cast<Dtype>(m_tree_key_offset_)) /
                     static_cast<Dtype>(1 << diff)) +
-                0.5) *
+                0.5f) *
                r;
     }
 

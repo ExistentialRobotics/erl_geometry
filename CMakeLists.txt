@@ -11,41 +11,28 @@ if (NOT COMMAND erl_project_setup)
 endif ()
 
 erl_project_setup(
-        ${PROJECT_NAME}
         ERL_PACKAGES erl_common erl_covariance
-        CATKIN_COMPONENTS roscpp std_msgs nav_msgs geometry_msgs message_generation rviz tf2_ros
-        CATKIN_DEPENDS roscpp std_msgs nav_msgs geometry_msgs message_runtime rviz tf2_ros
 )
-
-erl_config_nanoflann()
-erl_config_qhull()
-erl_config_absl()
-erl_config_open3d()
-if (ROS1_ACTIVATED)
-    erl_config_qt5(Core Widgets)
-    erl_config_ogre()
-endif ()
-
-if (ERL_BUILD_TEST_${PROJECT_NAME})
-    add_subdirectory(deps/octomap) # test_occupancy_octree_impls depends on octomap
-    erl_config_cgal()
-
-    if (NOT CGAL_FOUND)
-        list(APPEND ignore_tests test_convex_hull_3d_impls.cpp) # CGAL is not found, ignore the test
-        message(WARNING "CGAL not found, ignoring test_convex_hull_3d_impls")
-    endif ()
-endif ()
-
+include(cmake/erl_geometry_dependencies.cmake)
 erl_setup_ros(
-        CATKIN_COMPONENTS ${${PROJECT_NAME}_CATKIN_COMPONENTS}
-        MSG_FILES OccupancyTreeMsg.msg
-        MSG_DEPENDENCIES std_msgs
+        CATKIN_COMPONENTS
+        roscpp std_msgs nav_msgs geometry_msgs message_generation rviz tf2_ros
+
+        CATKIN_DEPENDS
+        roscpp std_msgs nav_msgs geometry_msgs message_runtime rviz tf2_ros
+
+        LIBRARIES
+        ${PROJECT_NAME}
+
+        MSG_FILES
+        OccupancyTreeMsg.msg
+
+        MSG_DEPENDENCIES
+        std_msgs
+
+        CFG_EXTRAS
+        erl_geometry_dependencies.cmake
 )
-erl_catkin_package(
-        INCLUDE_DIRS include
-        LIBRARIES ${PROJECT_NAME} py${PROJECT_NAME}
-        CATKIN_DEPENDS ${${PROJECT_NAME}_CATKIN_DEPENDS}
-        DEPENDS ${${PROJECT_NAME}_DEPENDS}) # non-catkin dependencies are collected via erl_find_package
 
 # ###################################################################################################
 # BUILD
@@ -57,11 +44,13 @@ erl_catkin_package(
 file(GLOB SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES} src/sdf/mesh_sdf.cpp src/sdf/sdf_util.cpp)
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+erl_collect_targets(LIBRARIES ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME}
         PUBLIC
         $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
         $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
-target_link_libraries(${PROJECT_NAME}
+erl_target_dependencies(
+        ${PROJECT_NAME}
         PUBLIC nanoflann::nanoflann
         PUBLIC Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D
         PUBLIC absl::flat_hash_map absl::flat_hash_set
@@ -70,41 +59,8 @@ if (ERL_USE_LIBTORCH)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
 endif ()
-set(libs ${PROJECT_NAME})
 
-if (ROS1_ACTIVATED)
-    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${catkin_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${catkin_LIBRARIES})
-
-    # library: erl_geometry_rviz_plugin
-    file(GLOB RVIZ_PLUGIN_INCLUDE_FILES include/erl_geometry/rviz_plugin/*.hpp)
-    file(GLOB RVIZ_PLUGIN_SRC_FILES src/rviz_plugin/*.cpp)
-    add_library(${PROJECT_NAME}_rviz_plugin MODULE
-            ${RVIZ_PLUGIN_INCLUDE_FILES} ${RVIZ_PLUGIN_SRC_FILES})
-    target_include_directories(${PROJECT_NAME}_rviz_plugin
-            PRIVATE ${Qt5_INCLUDE_DIRS} ${OGRE_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME}_rviz_plugin
-            ${PROJECT_NAME} ${Qt5_LIBRARIES} ${OGRE_LIBRARIES})
-    target_compile_definitions(${PROJECT_NAME}_rviz_plugin PRIVATE QT_NO_KEYWORDS)
-    set_target_properties(${PROJECT_NAME}_rviz_plugin PROPERTIES AUTOMOC ON)
-
-    # Avoid OGRE deprecation warnings under C++17
-    target_compile_options(${PROJECT_NAME}_rviz_plugin PUBLIC "-Wno-register")
-    list(APPEND libs ${PROJECT_NAME}_rviz_plugin)
-
-    # node: gazebo_room_2d_node
-    add_executable(gazebo_room_2d_node src/ros1/gazebo_room_2d_node.cpp)
-    target_include_directories(gazebo_room_2d_node PRIVATE ${catkin_INCLUDE_DIRS})
-    target_link_libraries(gazebo_room_2d_node PRIVATE ${PROJECT_NAME} ${catkin_LIBRARIES})
-
-    # node: point_cloud_node
-    add_executable(point_cloud_node src/ros1/point_cloud_node.cpp)
-    target_include_directories(point_cloud_node PRIVATE ${catkin_INCLUDE_DIRS})
-    target_link_libraries(point_cloud_node PRIVATE ${PROJECT_NAME} ${catkin_LIBRARIES})
-
-else ()
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_ERL_PACKAGES})
-endif ()
+add_subdirectory(src/ros)
 
 # ##################
 # Python bindings #
@@ -112,26 +68,21 @@ endif ()
 erl_add_pybind_module(
         PYBIND_MODULE_NAME py${PROJECT_NAME}
         PYBIND_SRC_DIR ${${PROJECT_NAME}_PYTHON_BINDING_DIR}
-        PYTHON_PKG_DIR ${${PROJECT_NAME}_PYTHON_DIR}/${PROJECT_NAME}
         LIBRARIES ${PROJECT_NAME}
 )
-erl_add_python_package(
-        PYTHON_PKG_DIR ${${PROJECT_NAME}_PYTHON_DIR}/${PROJECT_NAME}
-        DEPENDS_PYTHON_PKGS ${${PROJECT_NAME}_ERL_PACKAGES})
+erl_add_python_package()
 
 # ###################################################################################################
 # INSTALL
 # ###################################################################################################
 erl_install(
-        LIBRARIES ${libs}
+        LIBRARIES ${${PROJECT_NAME}_COLLECTED_LIBRARIES}
         PYBIND_MODULES py${PROJECT_NAME}
         OTHER_FILES plugin_description.xml)
 
 # ###################################################################################################
 # TEST
 # ###################################################################################################
-erl_set_gtest_extra_libraries(test_convex_hull_3d_impls CGAL::CGAL)
-erl_set_gtest_extra_libraries(test_occupancy_octree_impls octomap)
 erl_add_tests(
         LIBRARIES ${PROJECT_NAME}
         EXCLUDE_FROM_ALL
@@ -153,23 +104,9 @@ erl_add_tests(
         test_occupancy_quadtree_leaf_of_node
         test_occupancy_quadtree_leaf_on_ray
         test_occupancy_quadtree_ray_casting
-        IGNORE_FILES ${ignore_tests}
 )
-
-if (ROS1_ACTIVATED)
-    add_executable(test_rviz_plugin_occupancy_tree_display
-            test/ros1/test_rviz_plugin_occupancy_tree_display.cpp)
-    target_link_libraries(test_rviz_plugin_occupancy_tree_display
-            PUBLIC ${PROJECT_NAME}
-            PUBLIC ${catkin_LIBRARIES})
-    add_executable(test_rviz_plugin_better_point_cloud2_display
-            test/ros1/test_rviz_plugin_better_point_cloud2_display.cpp)
-    target_link_libraries(test_rviz_plugin_better_point_cloud2_display
-            PUBLIC ${PROJECT_NAME}
-            PUBLIC ${catkin_LIBRARIES})
-endif ()
 
 # ###################################################################################################
 # export variables
 # ###################################################################################################
-erl_mark_project_found(${PROJECT_NAME})
+erl_mark_project_found()
