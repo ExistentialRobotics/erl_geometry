@@ -12,16 +12,6 @@ static const std::filesystem::path kDataDir = kProjectRootDir / "data";
 
 class GazeboRoom2dNode {
 
-    struct Setting {
-        std::string laser_frame = "front_laser";
-        std::string map_frame = "map";
-        std::string laser_topic_name = "scan";
-        std::string pose_topic_name = "pose";
-        std::string path_topic_name = "path";
-        double publish_rate = 10.0;  // Hz
-    };
-
-    Setting m_setting_;
     erl::geometry::GazeboRoom2D::TrainDataLoader m_data_loader_;
     ros::NodeHandle m_nh_;
     ros::Publisher m_pub_scan_;
@@ -45,22 +35,33 @@ public:
             erl::geometry::GazeboRoom2D::kMapMin[1],
             erl::geometry::GazeboRoom2D::kMapMax[0],
             erl::geometry::GazeboRoom2D::kMapMax[1]);
+
+        std::string laser_frame = "front_laser";
+        std::string map_frame = "map";
+        std::string laser_topic_name = "scan";
+        std::string pose_topic_name = "pose";
+        std::string path_topic_name = "path";
+        double publish_rate = 10.0;  // Hz
+
         // Initialize the settings
-        m_nh_.param("laser_frame", m_setting_.laser_frame, m_setting_.laser_frame);
-        m_nh_.param("map_frame", m_setting_.map_frame, m_setting_.map_frame);
-        m_nh_.param("publish_rate", m_setting_.publish_rate, m_setting_.publish_rate);
-        m_msg_scan_.header.frame_id = m_setting_.laser_frame;      // reference frame for the scan
-        m_msg_pose_.header.frame_id = m_setting_.map_frame;        // reference frame for the pose
-        m_msg_transform_.header.frame_id = m_setting_.map_frame;   // parent frame for the transform
-        m_msg_transform_.child_frame_id = m_setting_.laser_frame;  // child frame for the transform
-        m_msg_path_.header.frame_id = m_setting_.map_frame;        // reference frame for the path
+        m_nh_.param("laser_frame", laser_frame, laser_frame);
+        m_nh_.param("map_frame", map_frame, map_frame);
+        m_nh_.param("laser_topic_name", laser_topic_name, laser_topic_name);
+        m_nh_.param("pose_topic_name", pose_topic_name, pose_topic_name);
+        m_nh_.param("path_topic_name", path_topic_name, path_topic_name);
+        m_nh_.param("publish_rate", publish_rate, publish_rate);
+        m_msg_scan_.header.frame_id = laser_frame;      // reference frame for the scan
+        m_msg_pose_.header.frame_id = map_frame;        // reference frame for the pose
+        m_msg_transform_.header.frame_id = map_frame;   // parent frame for the transform
+        m_msg_transform_.child_frame_id = laser_frame;  // child frame for the transform
+        m_msg_path_.header.frame_id = map_frame;        // reference frame for the path
         m_msg_path_.poses.reserve(m_data_loader_.size());
         // Initialize the node
-        m_pub_scan_ = m_nh_.advertise<sensor_msgs::LaserScan>(m_setting_.laser_topic_name, 1);
-        m_pub_pose_ = m_nh_.advertise<geometry_msgs::PoseStamped>(m_setting_.pose_topic_name, 1);
-        m_pub_path_ = m_nh_.advertise<nav_msgs::Path>(m_setting_.path_topic_name, 1);
+        m_pub_scan_ = m_nh_.advertise<sensor_msgs::LaserScan>(laser_topic_name, 1);
+        m_pub_pose_ = m_nh_.advertise<geometry_msgs::PoseStamped>(pose_topic_name, 1);
+        m_pub_path_ = m_nh_.advertise<nav_msgs::Path>(path_topic_name, 1);
         m_timer_ = m_nh_.createTimer(
-            ros::Duration(1.0 / m_setting_.publish_rate),
+            ros::Duration(1.0 / publish_rate),
             &GazeboRoom2dNode::CallbackTimer,
             this);
         ROS_INFO("Gazebo Room 2D Node started.");

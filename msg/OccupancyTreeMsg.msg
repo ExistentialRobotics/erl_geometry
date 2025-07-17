@@ -1,5 +1,5 @@
 # Occupancy Quadtree/Octree Message
-Header   header
+std_msgs/Header   header
 uint8    dim
 string   tree_type
 bool     is_double

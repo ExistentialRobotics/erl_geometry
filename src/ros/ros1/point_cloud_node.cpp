@@ -86,7 +86,7 @@ main(int argc, char** argv) {
         sensor_msgs::PointField field = msg_pcd.fields.back();
         field.datatype = sensor_msgs::PointField::FLOAT32;
 
-        msg_pcd.fields.resize(msg_pcd.fields.size() + 3);
+        msg_pcd.fields.reserve(msg_pcd.fields.size() + 3);
 
         field.name = "normal_x";
         field.offset = offset;

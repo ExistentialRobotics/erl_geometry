@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(erl_geometry
-        LANGUAGES CXX
+        LANGUAGES CXX C
         VERSION 0.1.0
         DESCRIPTION "erl_geometry is a C++ library of geometry data structures, algorithms and datasets.")
 message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
@@ -16,10 +16,10 @@ erl_project_setup(
 include(cmake/erl_geometry_dependencies.cmake)
 erl_setup_ros(
         CATKIN_COMPONENTS
-        roscpp std_msgs nav_msgs geometry_msgs message_generation rviz tf2_ros
+        roscpp std_msgs nav_msgs geometry_msgs sensor_msgs message_generation rviz tf2_ros
 
         CATKIN_DEPENDS
-        roscpp std_msgs nav_msgs geometry_msgs message_runtime rviz tf2_ros
+        roscpp std_msgs nav_msgs geometry_msgs sensor_msgs message_runtime rviz tf2_ros
 
         LIBRARIES
         ${PROJECT_NAME}
@@ -32,6 +32,10 @@ erl_setup_ros(
 
         CFG_EXTRAS
         erl_geometry_dependencies.cmake
+
+        ROS2_COMPONENTS
+        rclcpp std_msgs nav_msgs geometry_msgs sensor_msgs tf2_ros pluginlib
+        rviz_common rviz_rendering rviz_default_plugins
 )
 
 # ###################################################################################################
@@ -60,7 +64,7 @@ if (ERL_USE_LIBTORCH)
     target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
 endif ()
 
-add_subdirectory(src/ros)
+include(src/ros/ros.cmake)
 
 # ##################
 # Python bindings #
@@ -76,6 +80,7 @@ erl_add_python_package()
 # INSTALL
 # ###################################################################################################
 erl_install(
+        EXECUTABLES ${${PROJECT_NAME}_COLLECTED_EXECUTABLES}
         LIBRARIES ${${PROJECT_NAME}_COLLECTED_LIBRARIES}
         PYBIND_MODULES py${PROJECT_NAME}
         OTHER_FILES plugin_description.xml)

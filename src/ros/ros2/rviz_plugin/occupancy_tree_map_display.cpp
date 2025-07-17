@@ -1,137 +1,159 @@
-#include "erl_geometry/rviz_plugin/occupancy_tree_map_display.hpp"
+#include "erl_geometry/ros/ros2/rviz_plugin/occupancy_tree_map_display.hpp"
 
 #include "erl_geometry/occupancy_octree_base.hpp"
 #include "erl_geometry/occupancy_quadtree_base.hpp"
 
-#include <rviz/default_plugin/map_display.h>
-#include <rviz/properties/ros_topic_property.h>
-#include <rviz/visualization_manager.h>
+#include <rosidl_runtime_cpp/traits.hpp>
+#include <rviz_common/properties/ros_topic_property.hpp>
+#include <rviz_common/visualization_manager.hpp>
+#include <rviz_default_plugins/displays/map/map_display.hpp>
 
 namespace erl::geometry::rviz_plugin {
 
     static const std::size_t kMaxTreeDepth = 16;
 
     OccupancyTreeMapDisplay::OccupancyTreeMapDisplay()
-        : rviz::MapDisplay() {
+        : rviz_default_plugins::displays::MapDisplay() {
 
+        // change the msg type from nav_msgs::msg::OccupancyGrid to
+        // erl_geometry::msg::OccupancyTreeMsg
+        QString message_type = rosidl_generator_traits::name<erl_geometry::msg::OccupancyTreeMsg>();
         topic_property_->setName("Tree Topic");
-        topic_property_->setMessageType(
-            QString::fromStdString(
-                ros::message_traits::datatype<erl_geometry::OccupancyTreeMsg>()));
-        topic_property_->setDescription("erl_geometry::OccupancyTreeMsg topic to subscribe to.");
+        topic_property_->setMessageType(message_type);
+        topic_property_->setDescription(message_type + " topic to subscribe to.");
 
-        m_tree_depth_property_ = new rviz::IntProperty(
+        m_tree_depth_property_ = new rviz_common::properties::IntProperty(
             "Max. Octree Depth",
             kMaxTreeDepth,
             "Defines the maximum tree depth to display.",
             this,
             SLOT(UpdateTreeDepth()));
 
-        m_max_height_property_ = new rviz::FloatProperty(
+        m_max_height_property_ = new rviz_common::properties::FloatProperty(
             "Max. Height",
             std::numeric_limits<float>::infinity(),
             "Defines the maximum height to display",
             this,
             SLOT(UpdateMaxHeight()));
 
-        m_min_height_property_ = new rviz::FloatProperty(
+        m_min_height_property_ = new rviz_common::properties::FloatProperty(
             "Min. Height",
             -std::numeric_limits<float>::infinity(),
             "Defines the minimum height to display",
             this,
             SLOT(UpdateMinHeight()));
 
-        m_occupancy_map_.reset(new nav_msgs::OccupancyGrid());
+        m_occupancy_map_.reset(new nav_msgs::msg::OccupancyGrid());
     }
 
     OccupancyTreeMapDisplay::~OccupancyTreeMapDisplay() { unsubscribe(); }
 
     void
     OccupancyTreeMapDisplay::onInitialize() {
-        rviz::MapDisplay::onInitialize();
+        rviz_default_plugins::displays::MapDisplay::onInitialize();
     }
 
     void
     OccupancyTreeMapDisplay::UpdateTreeDepth() {
-        UpdateTopic();  // trigger a redraw
+        updateTopic();  // trigger a redraw
     }
 
     void
     OccupancyTreeMapDisplay::UpdateMaxHeight() {
-        UpdateTopic();
+        updateTopic();
     }
 
     void
     OccupancyTreeMapDisplay::UpdateMinHeight() {
-        UpdateTopic();
-    }
-
-    void
-    OccupancyTreeMapDisplay::UpdateTopic() {
-        unsubscribe();
-        reset();
-        subscribe();
-        context_->queueRender();
+        updateTopic();
     }
 
     void
     OccupancyTreeMapDisplay::subscribe() {
         if (!isEnabled()) { return; }
 
+        if (topic_property_->isEmpty()) {
+            setStatus(
+                rviz_common::properties::StatusProperty::Error,
+                "Topic",
+                QString("Error subscribing: Empty topic name"));
+            return;
+        }
+
         try {
             unsubscribe();
-            const std::string& topicStr = topic_property_->getStdString();
-            if (!topicStr.empty()) {
-                m_sub_.reset(new message_filters::Subscriber<erl_geometry::OccupancyTreeMsg>());
-                m_sub_->subscribe(threaded_nh_, topicStr, 5);
-                m_sub_->registerCallback(
-                    boost::bind(&OccupancyTreeMapDisplay::HandleMessage, this, _1));
-            }
-        } catch (ros::Exception& e) {
+
+            rclcpp::SubscriptionOptions sub_opts;
+            sub_opts.event_callbacks.message_lost_callback = [&](rclcpp::QOSMessageLostInfo& info) {
+                setStatus(
+                    rviz_common::properties::StatusProperty::Warn,
+                    "Topic",
+                    QString(
+                        fmt::format(
+                            "Some messages were lost:\n>\tNumber of new lost messages: "
+                            "{}\n>\tTotal number of messages lost: {}",
+                            info.total_count_change,
+                            info.total_count)
+                            .c_str()));
+            };
+
+            rclcpp::Node::SharedPtr node = rviz_ros_node_.lock()->get_raw_node();
+            m_sub_ = node->template create_subscription<erl_geometry::msg::OccupancyTreeMsg>(
+                topic_property_->getTopicStd(),
+                qos_profile,
+                [this](const typename erl_geometry::msg::OccupancyTreeMsg::ConstSharedPtr message) {
+                    HandleMessage(message);
+                },
+                sub_opts);
+            subscription_start_time_ = node->now();
+            setStatus(rviz_common::properties::StatusProperty::Ok, "Topic", "OK");
+        } catch (std::exception& e) {
             setStatus(
-                rviz::StatusProperty::Error,
+                rviz_common::properties::StatusProperty::Error,
                 "Topic",
-                (std::string("Error subscribing: ") + e.what()).c_str());
+                QString("Error subscribing: ") + e.what());
         }
     }
 
     void
     OccupancyTreeMapDisplay::unsubscribe() {
-        clear();
+        clear();  // clear the map
 
         try {
-            // reset filters
-            m_sub_.reset();
-        } catch (ros::Exception& e) {
+            m_sub_.reset();  // reset filters
+        } catch (std::exception& e) {
             setStatus(
-                rviz::StatusProperty::Error,
+                rviz_common::properties::StatusProperty::Error,
                 "Topic",
-                (std::string("Error unsubscribing: ") + e.what()).c_str());
+                QString("Error unsubscribing: ") + e.what());
         }
     }
 
     template<typename Dtype>
     void
     OccupancyTreeMapDisplay::HandleMessageForQuadtree(
-        const erl_geometry::OccupancyTreeMsgConstPtr& msg) {
+        const erl_geometry::msg::OccupancyTreeMsg::ConstSharedPtr& msg) {
 
         auto tree_setting = std::make_shared<OccupancyQuadtreeBaseSetting>();
         auto abstract_tree = AbstractQuadtree<Dtype>::CreateTree(msg->tree_type, tree_setting);
         auto tree = std::dynamic_pointer_cast<AbstractOccupancyQuadtree<Dtype>>(abstract_tree);
         if (tree == nullptr) {
             setStatusStd(
-                rviz::StatusProperty::Error,
+                rviz_common::properties::StatusProperty::Error,
                 "Message",
                 fmt::format(
                     "Wrong occupancy tree type %s. Use a different display type.",
                     msg->tree_type));
             return;
         }
-        ROS_DEBUG("Received OccupancyTreeMsg (size: %d bytes)", static_cast<int>(msg->data.size()));
+        RCLCPP_DEBUG(
+            rviz_ros_node_.lock()->get_raw_node()->get_logger(),
+            "Received OccupancyTreeMsg (size: %d bytes)",
+            static_cast<int>(msg->data.size()));
 
         if (!LoadFromOccupancyTreeMsg<Dtype>(*msg, tree)) {
             setStatusStd(
-                rviz::StatusProperty::Error,
+                rviz_common::properties::StatusProperty::Error,
                 "Message",
                 "Failed to load occupancy tree from message.");
             return;
@@ -174,7 +196,10 @@ namespace erl::geometry::rviz_plugin {
         for (auto it = tree->GetTreeIterator(selected_depth); it->IsValid(); it->Next()) {
             const auto* node = static_cast<const OccupancyQuadtreeNode*>(it->GetNode());
             if (node == nullptr) {
-                setStatusStd(rviz::StatusProperty::Error, "Message", "Failed to get node.");
+                setStatusStd(
+                    rviz_common::properties::StatusProperty::Error,
+                    "Message",
+                    "Failed to get node.");
                 return;
             }
             if (node->HasAnyChild()) { continue; }  // skip inner nodes
@@ -217,31 +242,34 @@ namespace erl::geometry::rviz_plugin {
                 }
             }
         }
-        this->incomingMap(m_occupancy_map_);
+        this->processMessage(m_occupancy_map_);
     }
 
     template<typename Dtype>
     void
     OccupancyTreeMapDisplay::HandleMessageForOctree(
-        const erl_geometry::OccupancyTreeMsgConstPtr& msg) {
+        const erl_geometry::msg::OccupancyTreeMsg::ConstSharedPtr& msg) {
 
         auto tree_setting = std::make_shared<OccupancyOctreeBaseSetting>();
         auto abstract_tree = AbstractOctree<Dtype>::CreateTree(msg->tree_type, tree_setting);
         auto tree = std::dynamic_pointer_cast<AbstractOccupancyOctree<Dtype>>(abstract_tree);
         if (tree == nullptr) {
             setStatusStd(
-                rviz::StatusProperty::Error,
+                rviz_common::properties::StatusProperty::Error,
                 "Message",
                 fmt::format(
                     "Wrong occupancy tree type %s. Use a different display type.",
                     msg->tree_type));
             return;
         }
-        ROS_DEBUG("Received OccupancyTreeMsg (size: %d bytes)", static_cast<int>(msg->data.size()));
+        RCLCPP_DEBUG(
+            rviz_ros_node_.lock()->get_raw_node()->get_logger(),
+            "Received OccupancyTreeMsg (size: %d bytes)",
+            static_cast<int>(msg->data.size()));
 
         if (!LoadFromOccupancyTreeMsg<Dtype>(*msg, tree)) {
             setStatusStd(
-                rviz::StatusProperty::Error,
+                rviz_common::properties::StatusProperty::Error,
                 "Message",
                 "Failed to load occupancy tree from message.");
             return;
@@ -288,7 +316,10 @@ namespace erl::geometry::rviz_plugin {
         for (auto it = tree->GetTreeIterator(selected_depth); it->IsValid(); it->Next()) {
             const auto* node = static_cast<const OccupancyOctreeNode*>(it->GetNode());
             if (node == nullptr) {
-                setStatusStd(rviz::StatusProperty::Error, "Message", "Failed to get node.");
+                setStatusStd(
+                    rviz_common::properties::StatusProperty::Error,
+                    "Message",
+                    "Failed to get node.");
                 return;
             }
             if (node->HasAnyChild()) { continue; }  // skip inner nodes
@@ -331,11 +362,12 @@ namespace erl::geometry::rviz_plugin {
                 }
             }
         }
-        this->incomingMap(m_occupancy_map_);
+        this->processMessage(m_occupancy_map_);
     }
 
     void
-    OccupancyTreeMapDisplay::HandleMessage(const erl_geometry::OccupancyTreeMsgConstPtr& msg) {
+    OccupancyTreeMapDisplay::HandleMessage(
+        const erl_geometry::msg::OccupancyTreeMsg::ConstSharedPtr& msg) {
         if (msg->dim == 2) {
             if (msg->is_double) {
                 HandleMessageForQuadtree<double>(msg);
@@ -350,9 +382,9 @@ namespace erl::geometry::rviz_plugin {
             }
         } else {
             setStatusStd(
-                rviz::StatusProperty::Error,
+                rviz_common::properties::StatusProperty::Error,
                 "Message",
-                fmt::format("Unsupported dimension %d.", msg->dim));
+                fmt::format("Unsupported dimension {}.", msg->dim));
         }
     }
 
@@ -477,20 +509,7 @@ namespace erl::geometry::rviz_plugin {
         x = (std::floor(diff_x / dsize) + 0.5) * r;
         y = (std::floor(diff_y / dsize) + 0.5) * r;
     }
-
-    // template<typename OcTreeType>
-    // void
-    // TemplatedOccupancyMapDisplay<OcTreeType>::HandleMessage(
-    //     const erl_geometry::OccupancyTreeMsgConstPtr& msg) {
-    // }
-
 }  // namespace erl::geometry::rviz_plugin
 
-#include <pluginlib/class_list_macros.h>
-// typedef octomap_rviz_plugin::TemplatedOccupancyMapDisplay<octomap::OcTree> OcTreeMapDisplay;
-// typedef octomap_rviz_plugin::TemplatedOccupancyMapDisplay<octomap::OcTreeStamped>
-//     OcTreeStampedMapDisplay;
-
-// PLUGINLIB_EXPORT_CLASS(OcTreeMapDisplay, rviz::Display)
-// PLUGINLIB_EXPORT_CLASS(OcTreeStampedMapDisplay, rviz::Display)
-PLUGINLIB_EXPORT_CLASS(erl::geometry::rviz_plugin::OccupancyTreeMapDisplay, rviz::Display)
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(erl::geometry::rviz_plugin::OccupancyTreeMapDisplay, rviz_common::Display)

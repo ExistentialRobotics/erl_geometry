@@ -1,4 +1,4 @@
-#include "erl_geometry/rviz_plugin/better_point_cloud2_display.hpp"
+#include "erl_geometry/ros/ros1/rviz_plugin/better_point_cloud2_display.hpp"
 
 #include "erl_common/fmt.hpp"
 
@@ -188,7 +188,7 @@ namespace erl::geometry::rviz_plugin {
             setStatusStd(
                 rviz::StatusProperty::Error,
                 "Topic",
-                fmt::format("Error subscribing: ", e.what()));
+                fmt::format("Error subscribing: {}", e.what()));
             return;
         }
     }
@@ -203,7 +203,7 @@ namespace erl::geometry::rviz_plugin {
                 setStatusStd(
                     rviz::StatusProperty::Error,
                     "Topic",
-                    fmt::format("Error unsubscribing: ", e.what()));
+                    fmt::format("Error unsubscribing: {}", e.what()));
             }
         }
     }
