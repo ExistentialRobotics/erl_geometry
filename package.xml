@@ -11,38 +11,18 @@
 
     <buildtool_depend condition="$ROS_VERSION == 1">catkin</buildtool_depend>
     <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake</buildtool_depend>
+    <buildtool_depend>erl_cmake_tools</buildtool_depend>    <!-- required -->
 
-    <depend condition="$ROS_VERSION == 1">roscpp</depend>
-    <depend condition="$ROS_VERSION == 2">rclcpp</depend>
-
-    <depend>std_msgs</depend>
-    <depend>nav_msgs</depend>
-    <depend>geometry_msgs</depend>
-    <depend>sensor_msgs</depend>
-    <depend>tf2_ros</depend>
-
-    <depend>rviz</depend>
-    <depend>OGRE</depend>
-    <depend>qtbase5-dev</depend>
-    <depend>libqt5-core</depend>
-    <depend>libqt5-widgets</depend>
-
+    <!-- ERL dependencies -->
     <depend>erl_common</depend>
     <depend>erl_covariance</depend>
 
+    <!-- other dependencies -->
     <depend>absl</depend>
     <depend>Qhull</depend>
     <depend>Open3D</depend>
 
-    <build_depend>message_generation</build_depend>
-    <exec_depend>message_runtime</exec_depend>
-
-    <build_depend condition="$ROS_VERSION == 2">rosidl_default_generators</build_depend>
-    <exec_depend condition="$ROS_VERSION == 2">rosidl_default_runtime</exec_depend>
-    <member_of_group condition="$ROS_VERSION == 2">rosidl_interface_packages</member_of_group>
-
     <export>
-        <rviz condition="$ROS_VERSION == 1" plugin="${prefix}/plugin_description.xml" />
         <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
     </export>
 
