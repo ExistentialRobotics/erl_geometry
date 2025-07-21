@@ -9,13 +9,15 @@
 #include <open3d/t/geometry/RaycastingScene.h>
 
 TEST(MeshSdf, Sphere) {
+    using namespace erl::common;
+
     GTEST_PREPARE_OUTPUT_DIR();
     constexpr double radius = 1.0;
     constexpr int n = 41;
     constexpr int resolution = 100;
     auto mesh = open3d::geometry::TriangleMesh::CreateSphere(radius, resolution);
     // generate test data
-    erl::common::GridMapInfo3Dd grid_map_info(
+    GridMapInfo3Dd grid_map_info(
         Eigen::Vector3i(n, n, n),
         Eigen::Vector3d(-2, -2, -2),
         Eigen::Vector3d(2, 2, 2));
@@ -43,7 +45,6 @@ TEST(MeshSdf, Sphere) {
     const double ymin = positions_xy.row(1).minCoeff();
     const double ymax = positions_xy.row(1).maxCoeff();
 
-    using namespace erl::common;
     PlplotFig fig(640, 640, true);
     PlplotFig::ShadesOpt shades_opt;
     shades_opt.SetColorLevels(sdf_gt_values_xy.data(), n, n, 127)

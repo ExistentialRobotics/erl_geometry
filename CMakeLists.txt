@@ -45,7 +45,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${${PROJECT_
 erl_target_dependencies(
     ${PROJECT_NAME} PUBLIC #
     nanoflann::nanoflann Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D absl::flat_hash_map absl::flat_hash_set)
-target_compile_definitions(${PROJECT_NAME} PUBLIC -D${PROJECT_NAME_UPPER}_ROOT_DIR="${${PROJECT_NAME}_ROOT_DIR}")
 if (ERL_USE_LIBTORCH)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
@@ -72,26 +71,12 @@ erl_install(
 # TEST
 # ######################################################################################################################
 erl_add_tests(
-    LIBRARIES
-    ${PROJECT_NAME}
-    EXCLUDE_FROM_ALL
-    test_depth_frame_3d_basic
-    test_convex_hull
-    test_convex_hull_3d_impls
-    test_depth_frame_3d_basic
-    test_hidden_point_removal
-    test_lidar_frame_2d_basic
-    test_lidar_frame_3d_basic
-    test_occupancy_octree_build
-    test_occupancy_octree_ray_casting
-    test_occupancy_quadtree_batch_ray_casting
-    test_occupancy_quadtree_build
-    test_occupancy_quadtree_build_from_image
-    test_occupancy_quadtree_find_neighbors
-    test_occupancy_quadtree_house_expo
-    test_occupancy_quadtree_leaf_in_aabb
-    test_occupancy_quadtree_leaf_of_node
-    test_occupancy_quadtree_leaf_on_ray
+    LIBRARIES ${PROJECT_NAME} #
+    EXCLUDE_FROM_ALL test_depth_frame_3d_basic test_convex_hull test_convex_hull_3d_impls test_depth_frame_3d_basic
+    test_hidden_point_removal test_lidar_frame_2d_basic test_lidar_frame_3d_basic test_occupancy_octree_build
+    test_occupancy_octree_ray_casting test_occupancy_quadtree_batch_ray_casting test_occupancy_quadtree_build
+    test_occupancy_quadtree_build_from_image test_occupancy_quadtree_find_neighbors test_occupancy_quadtree_house_expo
+    test_occupancy_quadtree_leaf_in_aabb test_occupancy_quadtree_leaf_of_node test_occupancy_quadtree_leaf_on_ray
     test_occupancy_quadtree_ray_casting)
 
 # ######################################################################################################################

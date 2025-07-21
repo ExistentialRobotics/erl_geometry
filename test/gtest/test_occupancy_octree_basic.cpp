@@ -555,8 +555,8 @@ TEST(OccupancyOctree, CopyTree) {  // shallow copy
     OccupancyOctree tree1;
     EXPECT_TRUE(TreeSerializer::Read("prune.ot", &tree1));
     const OccupancyOctree tree2 = tree1;
-    EXPECT_EQ(  // the setting pointers should be the same
-        tree1.GetSetting<OccupancyOctree::Setting>(),
+    EXPECT_TRUE(  // the setting pointers should be the same
+        tree1.GetSetting<OccupancyOctree::Setting>() ==
         tree2.GetSetting<OccupancyOctree::Setting>());
     EXPECT_TRUE(tree1 == tree2);  // the content should be the same
     auto itr_tree1 = tree1.BeginTree();
@@ -571,8 +571,8 @@ TEST(OccupancyOctree, CloneTree) {  // deep copy
     OccupancyOctree tree1;
     EXPECT_TRUE(TreeSerializer::Read("prune.ot", &tree1));
     const auto tree2 = std::reinterpret_pointer_cast<OccupancyOctree>(tree1.Clone());
-    EXPECT_NE(
-        tree1.GetSetting<OccupancyOctree::Setting>(),
+    EXPECT_TRUE(
+        tree1.GetSetting<OccupancyOctree::Setting>() !=
         tree2->GetSetting<OccupancyOctree::Setting>());  // the setting pointers should be different
     EXPECT_TRUE(tree1 == *tree2);                        // the content should be the same
     auto itr_tree1 = tree1.BeginTree();
