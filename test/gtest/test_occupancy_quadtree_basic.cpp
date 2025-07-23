@@ -52,12 +52,20 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
                          std::sin(angles[i]) * 2 + sensor_origin.y();
         // clang-format on
     }
-    Dtype max_range = -1.;
-    bool parallel = false;
-    bool lazy_eval = false;
-    bool discretize = false;
+    constexpr Dtype min_range = 0.0;
+    constexpr Dtype max_range = -1.;
+    constexpr bool parallel = false;
+    constexpr bool lazy_eval = false;
+    constexpr bool discretize = false;
     erl::common::ReportTime<std::chrono::milliseconds>("InsertPointCloud", 1, true, [&] {
-        tree->InsertPointCloud(points, sensor_origin, max_range, parallel, lazy_eval, discretize);
+        tree->InsertPointCloud(
+            points,
+            sensor_origin,
+            min_range,
+            max_range,
+            parallel,
+            lazy_eval,
+            discretize);
     });
 
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
@@ -106,8 +114,9 @@ TEST(OccupancyQuadtree, InsertRay) {
     points.row(1).segment(3 * n, n) = a;
     Eigen::Vector2d sensor_origin(0., 0);
 
-    Dtype max_range = -1;
-    bool lazy_eval = false;
+    constexpr Dtype min_range = 0.0;
+    constexpr Dtype max_range = -1;
+    constexpr bool lazy_eval = false;
     erl::common::ReportTime<std::chrono::milliseconds>("InsertRay", 1, true, [&] {
         for (int i = 0; i < points.cols(); ++i) {
             tree->InsertRay(
@@ -115,6 +124,7 @@ TEST(OccupancyQuadtree, InsertRay) {
                 sensor_origin[1],
                 points(0, i),
                 points(1, i),
+                min_range,
                 max_range,
                 lazy_eval);
         }

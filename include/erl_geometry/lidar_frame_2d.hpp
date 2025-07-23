@@ -193,6 +193,9 @@ namespace erl::geometry {
         GetHitPointsWorld() const;
 
         [[nodiscard]] Dtype
+        GetMinValidRange() const;
+
+        [[nodiscard]] Dtype
         GetMaxValidRange() const;
 
         [[nodiscard]] const std::vector<Partition> &

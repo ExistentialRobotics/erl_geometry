@@ -40,7 +40,8 @@ namespace erl::geometry {
          * @param points the point cloud in the world frame of the sensor measurement.
          * @param point_indices the indices of the points in the point cloud to sample.
          * @param map_boundary map boundary in the world frame.
-         * @param max_distance maximum distance to sample free points from the sensor.
+         * @param min_distance minimum distance to collect samples from the sensor.
+         * @param max_distance maximum distance to collect samples from the sensor.
          * @param free_sampling_margin margin between free samples and hit samples.
          * @param free_points_per_meter number of free points to sample per meter.
          * @param infos information of rays to sample.
@@ -53,6 +54,7 @@ namespace erl::geometry {
             const Eigen::Ref<const MatrixDX> &points,
             const std::vector<long> &point_indices,
             const AabbD &map_boundary,
+            Dtype min_distance,
             Dtype max_distance,
             Dtype free_sampling_margin,
             Dtype free_points_per_meter,
@@ -97,7 +99,8 @@ namespace erl::geometry {
          * If empty, all points will be used.
          * @param map_boundary the boundary of the map in the world frame.
          * @param generator random number generator.
-         * @param max_distance maximum distance to sample free points from the sensor.
+         * @param min_distance minimum distance to collect samples from the sensor.
+         * @param max_distance maximum distance to collect samples from the sensor.
          * @param free_sampling_margin margin between free samples and hit samples.
          * @param free_points_per_meter number of free points to sample per meter.
          * @param max_dataset_size maximum number of points in the dataset. -1 means no limit.
@@ -114,6 +117,7 @@ namespace erl::geometry {
             const std::vector<long> &point_indices,
             const AabbD &map_boundary,
             std::mt19937_64 &generator,
+            Dtype min_distance,
             Dtype max_distance,
             Dtype free_sampling_margin,
             Dtype free_points_per_meter,

@@ -98,7 +98,7 @@ TEST(OccupancyOctree, BuildProfiling) {
         constexpr bool parallel = true;
         constexpr bool lazy_eval = true;
         constexpr bool discrete = true;
-        octree->InsertPointCloud(points, sensor_origin, -1, parallel, lazy_eval, discrete);
+        octree->InsertPointCloud(points, sensor_origin, 0, -1, parallel, lazy_eval, discrete);
         if (lazy_eval) {
             octree->UpdateInnerOccupancy();
             octree->Prune();

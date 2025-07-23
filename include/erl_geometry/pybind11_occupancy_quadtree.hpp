@@ -101,6 +101,7 @@ BindOccupancyQuadtree(
             &Quadtree::InsertPointCloud,
             py::arg("points"),
             py::arg("sensor_origin"),
+            py::arg("min_range"),
             py::arg("max_range"),
             py::arg("parallel"),
             py::arg("lazy_eval"),
@@ -110,6 +111,7 @@ BindOccupancyQuadtree(
             &Quadtree::InsertPointCloudRays,
             py::arg("points"),
             py::arg("sensor_origin"),
+            py::arg("min_range"),
             py::arg("max_range"),
             py::arg("parallel"),
             py::arg("lazy_eval"))
@@ -120,6 +122,7 @@ BindOccupancyQuadtree(
             py::arg("sy"),
             py::arg("ex"),
             py::arg("ey"),
+            py::arg("min_range"),
             py::arg("max_range"),
             py::arg("lazy_eval"))
         .def(

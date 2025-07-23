@@ -10,6 +10,7 @@ namespace erl::geometry {
         const Eigen::Ref<const MatrixDX> &points,
         const std::vector<long> &point_indices,
         const AabbD &map_boundary,
+        const Dtype min_distance,
         const Dtype max_distance,
         const Dtype free_sampling_margin,
         const Dtype free_points_per_meter,
@@ -50,7 +51,8 @@ namespace erl::geometry {
             // the ray hits a point outside the map, v points toward the map.
             if (!intersected || (d1 < 0 && d2 < 0) || (v_norm <= d1 && d1 <= d2)) { continue; }
             // check if the point is inside the map
-            hit_flag = map_boundary.contains(point) && (v_norm < max_distance);
+            hit_flag =
+                map_boundary.contains(point) && (v_norm < max_distance) && (v_norm > min_distance);
             if (is_inside) {  // the ray hits a point inside the map, d2 < 0 is useless
                 d2 = std::min((1.0f - free_sampling_margin) * v_norm, d1);
                 d1 = free_sampling_margin * v_norm;
@@ -63,6 +65,8 @@ namespace erl::geometry {
             if (n == 0 && !hit_flag) { continue; }  // no free points and the point is not hit
             total_num_free_points += n;             // count the number of free points to sample
             total_num_hit_points += static_cast<long>(hit_flag);  // count the number of hit points
+            d1 = std::min(std::max(d1, min_distance), max_distance);
+            d2 = std::min(std::max(d2, min_distance), max_distance);
             d1 /= v_norm;
             d2 /= v_norm;
             infos.emplace_back(idx, hit_flag, n, d1, d2);
@@ -145,6 +149,7 @@ namespace erl::geometry {
         const std::vector<long> &point_indices,
         const AabbD &map_boundary,
         std::mt19937_64 &generator,
+        const Dtype min_distance,
         const Dtype max_distance,
         const Dtype free_sampling_margin,
         const Dtype free_points_per_meter,
@@ -167,6 +172,7 @@ namespace erl::geometry {
             points,
             point_indices,
             map_boundary,
+            min_distance,
             max_distance,
             free_sampling_margin,
             free_points_per_meter,

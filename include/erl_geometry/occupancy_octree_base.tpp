@@ -65,6 +65,7 @@ namespace erl::geometry {
     OccupancyOctreeBase<Dtype, Node, Setting>::InsertPointCloud(
         const Eigen::Ref<const Matrix3X> &points,
         const Eigen::Ref<const Vector3> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         const bool parallel,
         const bool lazy_eval,
@@ -76,6 +77,7 @@ namespace erl::geometry {
             this->ComputeDiscreteUpdateForPointCloud(
                 points,
                 sensor_origin,
+                min_range,
                 max_range,
                 parallel,
                 free_cells,
@@ -84,6 +86,7 @@ namespace erl::geometry {
             this->ComputeUpdateForPointCloud(
                 points,
                 sensor_origin,
+                min_range,
                 max_range,
                 parallel,
                 free_cells,
@@ -103,6 +106,7 @@ namespace erl::geometry {
     OccupancyOctreeBase<Dtype, Node, Setting>::ComputeDiscreteUpdateForPointCloud(
         const Eigen::Ref<const Matrix3X> &points,
         const Eigen::Ref<const Vector3> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         const bool parallel,
         OctreeKeyVector &free_cells,
@@ -127,6 +131,7 @@ namespace erl::geometry {
         this->ComputeUpdateForPointCloud(
             new_points,
             sensor_origin,
+            min_range,
             max_range,
             parallel,
             free_cells,
@@ -138,6 +143,7 @@ namespace erl::geometry {
     OccupancyOctreeBase<Dtype, Node, Setting>::ComputeUpdateForPointCloud(
         const Eigen::Ref<const Matrix3X> &points,
         const Eigen::Ref<const Vector3> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         bool parallel,
         OctreeKeyVector &free_cells,
@@ -176,7 +182,8 @@ namespace erl::geometry {
 
             OctreeKey key;
             if (aabb_limit) {  // bounding box is specified
-                if ((aabb.contains(point) && (max_range < 0. || range <= max_range)) &&
+                if ((aabb.contains(point) && (max_range < 0.0f || range <= max_range)) &&
+                    (range > min_range) &&
                     this->CoordToKeyChecked(point[0], point[1], point[2], key)) {
                     // 1. inside bounding box and range limit
                     // 2. key is valid
@@ -185,7 +192,7 @@ namespace erl::geometry {
                     indices.push_back(i);
                 }
             } else {
-                if ((max_range < 0. || (range <= max_range)) &&                    // range limit
+                if ((max_range < 0.0f || (range <= max_range)) && (range > min_range) &&
                     this->CoordToKeyChecked(point[0], point[1], point[2], key)) {  // key is valid
                     auto &indices = m_end_point_mapping_[key];
                     if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
@@ -314,6 +321,7 @@ namespace erl::geometry {
     OccupancyOctreeBase<Dtype, Node, Setting>::InsertPointCloudRays(
         const Eigen::Ref<const Matrix3X> &points,
         const Eigen::Ref<const Vector3> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         bool parallel,
         const bool lazy_eval) {
@@ -323,7 +331,7 @@ namespace erl::geometry {
 
         omp_set_num_threads(this->m_key_rays_.size());
 #pragma omp parallel for if (parallel) default(none) \
-    shared(num_points, points, sensor_origin, max_range, lazy_eval) schedule(guided)
+    shared(num_points, points, sensor_origin, min_range, max_range, lazy_eval) schedule(guided)
         for (long i = 0; i < num_points; ++i) {
             const auto point = points.col(i);
             uint32_t thread_idx = omp_get_thread_num();
@@ -342,7 +350,8 @@ namespace erl::geometry {
 #pragma omp critical
             {
                 for (auto &key: key_ray) { this->UpdateNode(key, false, lazy_eval); }
-                if (max_range <= 0. || (point - sensor_origin).norm() <= max_range) {
+                if (const Dtype range = (point - sensor_origin).norm();
+                    (max_range <= 0.0f || range <= max_range) && (range > min_range)) {
                     this->UpdateNode(point[0], point[1], point[2], true, lazy_eval);
                 }
             }
@@ -358,6 +367,7 @@ namespace erl::geometry {
         Dtype ex,
         Dtype ey,
         Dtype ez,
+        const Dtype min_range,
         const Dtype max_range,
         bool lazy_eval) {
         const Dtype dx = ex - sx;
@@ -365,18 +375,21 @@ namespace erl::geometry {
         const Dtype dz = ez - sz;
         const Dtype range = std::sqrt(dx * dx + dy * dy + dz * dz);
         auto &key_ray = this->m_key_rays_[0];
-        if (max_range > 0 && range > max_range) {  // cut ray at max_range
+
+        bool hit = max_range <= 0.0f || range <= max_range;
+        if (!hit) {  // cut ray at max_range
             const Dtype r = max_range / range;
             ex = sx + dx * r;
             ey = sy + dy * r;
             ez = sz + dz * r;
-            if (!this->ComputeRayKeys(sx, sy, sz, ex, ey, ez, key_ray)) { return false; }
-            for (auto &key: key_ray) { this->UpdateNode(key, false, lazy_eval); }
-            return true;
         }
 
         if (!this->ComputeRayKeys(sx, sy, sz, ex, ey, ez, key_ray)) { return false; }
         for (auto &key: key_ray) { this->UpdateNode(key, false, lazy_eval); }
+
+        hit = hit && (range > min_range);
+        if (!hit) { return true; }  // finished
+
         this->UpdateNode(ex, ey, ez, true, lazy_eval);
         return true;
     }
@@ -670,7 +683,7 @@ namespace erl::geometry {
         vx /= v_norm;
         vy /= v_norm;
         vz /= v_norm;
-        const bool max_range_set = max_range > 0.;
+        const bool max_range_set = max_range > 0.0f;
 
         // compute step direction
         int step[3];

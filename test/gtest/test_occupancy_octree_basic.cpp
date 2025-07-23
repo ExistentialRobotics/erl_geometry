@@ -69,10 +69,11 @@ TEST(OccupancyOctree, InsertPointCloud) {
         }
     }
 
-    Dtype max_range = -1.;
-    bool parallel = false;
-    bool lazy_eval = false;
-    bool discretize = false;
+    constexpr Dtype min_range = 0.0;
+    constexpr Dtype max_range = -1.;
+    constexpr bool parallel = false;
+    constexpr bool lazy_eval = false;
+    constexpr bool discretize = false;
 
     {
         std::size_t node_cnt = 0;
@@ -82,7 +83,14 @@ TEST(OccupancyOctree, InsertPointCloud) {
     }
 
     erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&] {
-        tree->InsertPointCloud(points, sensor_origin, max_range, parallel, lazy_eval, discretize);
+        tree->InsertPointCloud(
+            points,
+            sensor_origin,
+            min_range,
+            max_range,
+            parallel,
+            lazy_eval,
+            discretize);
     });
 
     {
@@ -157,11 +165,18 @@ TEST(OccupancyOctree, InsertPointCloudRays) {
         }
     }
 
-    Dtype max_range = -1.;
-    bool parallel = false;
-    bool lazy_eval = false;
+    constexpr Dtype min_range = 0.0;
+    constexpr Dtype max_range = -1.;
+    constexpr bool parallel = false;
+    constexpr bool lazy_eval = false;
     erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&] {
-        tree->InsertPointCloudRays(points, sensor_origin, max_range, parallel, lazy_eval);
+        tree->InsertPointCloudRays(
+            points,
+            sensor_origin,
+            min_range,
+            max_range,
+            parallel,
+            lazy_eval);
     });
 
     EXPECT_TRUE(TreeSerializer::Write("sphere.ot", tree));
@@ -214,8 +229,9 @@ TEST(OccupancyOctree, InsertRay) {
         }
     }
 
-    Dtype max_range = -1.;
-    bool lazy_eval = false;
+    constexpr Dtype min_range = 0.0;
+    constexpr Dtype max_range = -1.;
+    constexpr bool lazy_eval = false;
     erl::common::ReportTime<std::chrono::milliseconds>(test_info->name(), 1, true, [&] {
         for (int i = 0; i < points.cols(); ++i) {
             tree->InsertRay(
@@ -225,6 +241,7 @@ TEST(OccupancyOctree, InsertRay) {
                 points(0, i),
                 points(1, i),
                 points(2, i),
+                min_range,
                 max_range,
                 lazy_eval);
         }

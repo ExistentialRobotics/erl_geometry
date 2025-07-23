@@ -378,6 +378,12 @@ namespace erl::geometry {
 
     template<typename Dtype>
     Dtype
+    LidarFrame2D<Dtype>::GetMinValidRange() const {
+        return m_setting_->valid_range_min;
+    }
+
+    template<typename Dtype>
+    Dtype
     LidarFrame2D<Dtype>::GetMaxValidRange() const {
         return m_max_valid_range_;
     }

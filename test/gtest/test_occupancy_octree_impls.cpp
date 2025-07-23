@@ -15,12 +15,11 @@ static std::filesystem::path g_test_data_dir =
 struct Options {
     std::string mesh_file = (g_test_data_dir / "house_expo_room_1451.ply").string();
     std::string traj_file = (g_test_data_dir / "house_expo_room_1451.csv").string();
-    std::shared_ptr<erl::geometry::OccupancyOctreeD::Setting> octree_setting =
-        [] {
-            auto setting = std::make_shared<erl::geometry::OccupancyOctreeD::Setting>();
-            setting->resolution = 0.01;
-            return setting;
-        }();
+    std::shared_ptr<erl::geometry::OccupancyOctreeD::Setting> octree_setting = [] {
+        auto setting = std::make_shared<erl::geometry::OccupancyOctreeD::Setting>();
+        setting->resolution = 0.01;
+        return setting;
+    }();
 };
 
 static Options g_options;
@@ -72,14 +71,14 @@ TEST(OccupancyOctree, ErlImpl) {
         points.conservativeResize(3, cnt_points);
 
         t0 = std::chrono::high_resolution_clock::now();
-        erl_octree->InsertPointCloud(points, sensor_origin, -1, false, false, false);
+        erl_octree->InsertPointCloud(points, sensor_origin, 0, -1, false, false, false);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL insert time: " << duration << " ms." << std::endl;
         dt_erl += duration;
 
         t0 = std::chrono::high_resolution_clock::now();
-        erl_octree->InsertPointCloud(points, sensor_origin, -1, false, false, true);
+        erl_octree->InsertPointCloud(points, sensor_origin, 0, -1, false, false, true);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL discrete insert time: " << duration << " ms." << std::endl;
@@ -145,6 +144,7 @@ TEST(OccupancyOctree, ErlComputeUpdate) {
         erl_octree->ComputeUpdateForPointCloud(
             points,
             sensor_origin,
+            0,
             -1,
             false,
             free_cells,
@@ -158,6 +158,7 @@ TEST(OccupancyOctree, ErlComputeUpdate) {
         erl_octree->ComputeUpdateForPointCloud(
             points,
             sensor_origin,
+            0,
             -1,
             true,
             free_cells,
@@ -171,6 +172,7 @@ TEST(OccupancyOctree, ErlComputeUpdate) {
         erl_octree->ComputeDiscreteUpdateForPointCloud(
             points,
             sensor_origin,
+            0,
             -1,
             true,
             free_cells,

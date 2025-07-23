@@ -61,9 +61,8 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
             })
         .def_property_readonly("hit_ray_indices", &T::GetHitRayIndices)
         .def_property_readonly("hit_points_world", &T::GetHitPointsWorld)
-        .def_property_readonly(
-            "max_valid_range",
-            [](const T &self) { return self.GetMaxValidRange(); })
+        .def_property_readonly("min_valid_range", &T::GetMinValidRange)
+        .def_property_readonly("max_valid_range", &T::GetMaxValidRange)
         .def_property_readonly("hit_mask", [](const T &self) { return self.GetHitMask(); })
         .def_property_readonly("is_valid", [](const T &self) { return self.IsValid(); })
         .def("point_is_in_frame", &T::PointIsInFrame, py::arg("xyz_frame"))

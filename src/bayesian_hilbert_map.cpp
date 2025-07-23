@@ -120,6 +120,7 @@ namespace erl::geometry {
             point_indices,
             m_map_boundary_,
             m_generator_,
+            m_setting_->min_distance,
             m_setting_->max_distance,
             m_setting_->free_sampling_margin,
             m_setting_->free_points_per_meter,
@@ -436,18 +437,18 @@ namespace erl::geometry {
         MatrixDX &gradient) const {
 
         // // sparsity does not improve the performance of the prediction
-        // if (m_setting_->use_sparse) {
-        //     PredictSparse(
-        //         points,
-        //         logodd,
-        //         faster,
-        //         compute_gradient,
-        //         gradient_with_sigmoid,
-        //         parallel,
-        //         prob_occupied,
-        //         gradient);
-        //     return;
-        // }
+        if (m_setting_->use_sparse) {
+            PredictSparse(
+                points,
+                logodd,
+                faster,
+                compute_gradient,
+                gradient_with_sigmoid,
+                parallel,
+                prob_occupied,
+                gradient);
+            return;
+        }
 
         constexpr auto kPI = static_cast<Dtype>(M_PI);
         (void) parallel;
@@ -618,8 +619,8 @@ namespace erl::geometry {
         const long n_hinged = m_hinged_points_.cols();
         const long phi_cols = compute_gradient ? (Dim + 1) : 1;
 
-        const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
-        MatrixX phi(n_hinged + 1, phi_cols);
+        const Eigen::VectorXl grad_flags = Eigen::VectorXl::Zero(n_hinged);
+        MatrixX phi = MatrixX::Zero(n_hinged + 1, phi_cols);
         if (compute_gradient) {
             m_kernel_->ComputeKtestWithGradient(
                 m_hinged_points_,
@@ -629,11 +630,11 @@ namespace erl::geometry {
                 1,
                 true,
                 phi);
-            phi(n_hinged, 0) = 1.0f;  // add the bias term
-            for (int i = 1; i <= Dim; ++i) { phi(n_hinged, i) = 0.0f; }
+            phi.data()[n_hinged] = 1.0f;  // add the bias term
+            // for (int i = 1; i <= Dim; ++i) { phi(n_hinged, i) = 0.0f; }
         } else {
             m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, point, 1, phi);
-            phi(n_hinged, 0) = 1.0f;  // add the bias term
+            phi.data()[n_hinged] = 1.0f;  // add the bias term
         }
 
         if (faster) {  // assume sigma is very small; we can use the mean directly
@@ -1503,6 +1504,7 @@ YAML::convert<erl::geometry::BayesianHilbertMapSetting>::encode(
     const erl::geometry::BayesianHilbertMapSetting &setting) {
     Node node;
     ERL_YAML_SAVE_ATTR(node, setting, diagonal_sigma);
+    ERL_YAML_SAVE_ATTR(node, setting, min_distance);
     ERL_YAML_SAVE_ATTR(node, setting, max_distance);
     ERL_YAML_SAVE_ATTR(node, setting, free_points_per_meter);
     ERL_YAML_SAVE_ATTR(node, setting, free_sampling_margin);
@@ -1520,6 +1522,7 @@ YAML::convert<erl::geometry::BayesianHilbertMapSetting>::decode(
     erl::geometry::BayesianHilbertMapSetting &setting) {
     if (!node.IsMap()) { return false; }
     ERL_YAML_LOAD_ATTR(node, setting, diagonal_sigma);
+    ERL_YAML_LOAD_ATTR(node, setting, min_distance);
     ERL_YAML_LOAD_ATTR(node, setting, max_distance);
     ERL_YAML_LOAD_ATTR(node, setting, free_points_per_meter);
     ERL_YAML_LOAD_ATTR(node, setting, free_sampling_margin);

@@ -73,6 +73,7 @@ namespace erl::geometry {
          * is more efficient than the plain ray insertion of InsertPointCloudRays().
          * @param points 3xN matrix of points in the world frame
          * @param sensor_origin 3D vector of the sensor origin in the world frame
+         * @param min_range Minimum range of the sensor. Points closer than this range are ignored.
          * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
          * Non-positive value means no limit.
          * @param parallel whether to use parallel computation
@@ -84,6 +85,7 @@ namespace erl::geometry {
         InsertPointCloud(
             const Eigen::Ref<const Matrix3X>& points,
             const Eigen::Ref<const Vector3>& sensor_origin,
+            Dtype min_range,
             Dtype max_range,
             bool parallel,
             bool lazy_eval,
@@ -93,7 +95,8 @@ namespace erl::geometry {
          * Compute keys of the cells to update for a point cloud up to the resolution.
          * @param points 3xN matrix of points in the world frame, points falling into the same voxel
          * are merged to the first appearance.
-         * @param sensor_origin 3D vector of the sensor origin in the world frame
+         * @param sensor_origin 3D vector of the sensor origin in the world frame.
+         * @param min_range Minimum range of the sensor. Points closer than this range are ignored.
          * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
          * Non-positive value means no limit.
          * @param parallel whether to use parallel computation
@@ -104,6 +107,7 @@ namespace erl::geometry {
         ComputeDiscreteUpdateForPointCloud(
             const Eigen::Ref<const Matrix3X>& points,
             const Eigen::Ref<const Vector3>& sensor_origin,
+            Dtype min_range,
             Dtype max_range,
             bool parallel,
             OctreeKeyVector& free_cells,
@@ -113,6 +117,7 @@ namespace erl::geometry {
         ComputeUpdateForPointCloud(
             const Eigen::Ref<const Matrix3X>& points,
             const Eigen::Ref<const Vector3>& sensor_origin,
+            Dtype min_range,
             Dtype max_range,
             bool parallel,
             OctreeKeyVector& free_cells,
@@ -123,6 +128,7 @@ namespace erl::geometry {
          * shows that this is slower and less accurate than InsertPointCloud.
          * @param points 3xN matrix of ray end points in the world frame.
          * @param sensor_origin 3D vector of the sensor origin in the world frame.
+         * @param min_range Minimum range of the sensor. Points closer than this range are ignored.
          * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
          * Non-positive value means no limit.
          * @param parallel whether to use parallel computation
@@ -133,6 +139,7 @@ namespace erl::geometry {
         InsertPointCloudRays(
             const Eigen::Ref<const Matrix3X>& points,
             const Eigen::Ref<const Vector3>& sensor_origin,
+            Dtype min_range,
             Dtype max_range,
             bool parallel,
             bool lazy_eval);
@@ -141,12 +148,13 @@ namespace erl::geometry {
         /**
          * Insert a ray from (sx, sy) to (ex, ey) into the tree. The ray is cut at max_range if it
          * is positive.
-         * @param sx metric x coordinate of the start point
-         * @param sy metric y coordinate of the start point
-         * @param sz metric z coordinate of the start point
-         * @param ex metric x coordinate of the end point
-         * @param ey metric y coordinate of the end point
-         * @param ez metric z coordinate of the end point
+         * @param sx metric x coordinate of the start point.
+         * @param sy metric y coordinate of the start point.
+         * @param sz metric z coordinate of the start point.
+         * @param ex metric x coordinate of the end point.
+         * @param ey metric y coordinate of the end point.
+         * @param ez metric z coordinate of the end point.
+         * @param min_range Minimum range to consider a hit.
          * @param max_range Maximum range after which the ray is cut. Non-positive value means no
          * limit.
          * @param lazy_eval Whether to update the occupancy of the nodes immediately. If true, the
@@ -161,6 +169,7 @@ namespace erl::geometry {
             Dtype ex,
             Dtype ey,
             Dtype ez,
+            Dtype min_range,
             Dtype max_range,
             bool lazy_eval);
 

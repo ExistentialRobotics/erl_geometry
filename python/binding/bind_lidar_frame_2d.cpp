@@ -62,6 +62,7 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
         .def_property_readonly("end_points_in_world", &Frame::GetEndPointsInWorld)
         .def_property_readonly("hit_ray_indices", &Frame::GetHitRayIndices)
         .def_property_readonly("hit_points_world", &Frame::GetHitPointsWorld)
+        .def_property_readonly("min_valid_range", &Frame::GetMinValidRange)
         .def_property_readonly("max_valid_range", &Frame::GetMaxValidRange)
         .def_property_readonly("partitions", &Frame::GetPartitions)
         .def_property_readonly("is_partitioned", &Frame::IsPartitioned)

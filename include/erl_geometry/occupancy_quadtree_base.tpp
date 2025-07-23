@@ -128,6 +128,7 @@ namespace erl::geometry {
     OccupancyQuadtreeBase<Dtype, Node, Setting>::InsertPointCloud(
         const Eigen::Ref<const Matrix2X> &points,
         const Eigen::Ref<const Vector2> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         const bool parallel,
         const bool lazy_eval,
@@ -138,6 +139,7 @@ namespace erl::geometry {
             ComputeDiscreteUpdateForPointCloud(
                 points,
                 sensor_origin,
+                min_range,
                 max_range,
                 parallel,
                 free_cells,
@@ -146,6 +148,7 @@ namespace erl::geometry {
             ComputeUpdateForPointCloud(
                 points,
                 sensor_origin,
+                min_range,
                 max_range,
                 parallel,
                 free_cells,
@@ -165,6 +168,7 @@ namespace erl::geometry {
     OccupancyQuadtreeBase<Dtype, Node, Setting>::ComputeDiscreteUpdateForPointCloud(
         const Eigen::Ref<const Matrix2X> &points,
         const Eigen::Ref<const Vector2> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         const bool parallel,
         QuadtreeKeyVector &free_cells,
@@ -189,6 +193,7 @@ namespace erl::geometry {
         this->ComputeUpdateForPointCloud(
             new_points,
             sensor_origin,
+            min_range,
             max_range,
             parallel,
             free_cells,
@@ -200,6 +205,7 @@ namespace erl::geometry {
     OccupancyQuadtreeBase<Dtype, Node, Setting>::ComputeUpdateForPointCloud(
         const Eigen::Ref<const Matrix2X> &points,
         const Eigen::Ref<const Vector2> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         bool parallel,
         QuadtreeKeyVector &free_cells,
@@ -221,7 +227,7 @@ namespace erl::geometry {
 
         // insert occupied endpoint
         const bool aabb_limit = m_setting_->use_aabb_limit;
-        const auto &aabb = m_setting_->aabb;
+        const auto &aabb = m_setting_->aabb.cast<Dtype>();
         for (long i = 0; i < num_points; ++i) {
             const auto &p = points.col(i);
 
@@ -235,9 +241,8 @@ namespace erl::geometry {
 
             QuadtreeKey key;
             if (aabb_limit) {
-                if (aabb.contains(p.template cast<double>()) &&
-                    (max_range < 0. || range <= max_range) &&
-                    this->CoordToKeyChecked(p[0], p[1], key)) {
+                if (aabb.contains(p) && (max_range < 0.0f || range <= max_range) &&
+                    (range > min_range) && this->CoordToKeyChecked(p[0], p[1], key)) {
                     // 1. inside bounding box and range limit
                     // 2. key is valid
                     auto &indices = m_end_point_mapping_[key];
@@ -245,7 +250,7 @@ namespace erl::geometry {
                     indices.push_back(i);
                 }
             } else {
-                if ((max_range < 0. || range <= max_range) &&    // range limit
+                if ((max_range < 0.0f || range <= max_range) && (range > min_range) &&
                     this->CoordToKeyChecked(p[0], p[1], key)) {  // key is valid
                     auto &indices = m_end_point_mapping_[key];
                     if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
@@ -368,6 +373,7 @@ namespace erl::geometry {
     OccupancyQuadtreeBase<Dtype, Node, Setting>::InsertPointCloudRays(
         const Eigen::Ref<const Matrix2X> &points,
         const Eigen::Ref<const Vector2> &sensor_origin,
+        const Dtype min_range,
         const Dtype max_range,
         const bool parallel,
         const bool lazy_eval) {
@@ -377,7 +383,7 @@ namespace erl::geometry {
 
         omp_set_num_threads(this->m_key_rays_.size());
 #pragma omp parallel for if (parallel) default(none) \
-    shared(num_points, points, sensor_origin, max_range, lazy_eval) schedule(guided)
+    shared(num_points, points, sensor_origin, min_range, max_range, lazy_eval) schedule(guided)
         for (long i = 0; i < num_points; ++i) {
             const auto &point = points.col(i);
             uint32_t thread_idx = omp_get_thread_num();
@@ -394,7 +400,8 @@ namespace erl::geometry {
 #pragma omp critical
             {
                 for (auto &key: key_ray) { UpdateNode(key, false, lazy_eval); }
-                if (max_range <= 0. || (point - sensor_origin).norm() <= max_range) {
+                if (const Dtype range = (point - sensor_origin).norm();
+                    (max_range <= 0.0f || range <= max_range) && (range > min_range)) {
                     UpdateNode(point[0], point[1], true, lazy_eval);
                 }
             }
@@ -408,23 +415,27 @@ namespace erl::geometry {
         Dtype sy,
         Dtype ex,
         Dtype ey,
+        const Dtype min_range,
         const Dtype max_range,
         const bool lazy_eval) {
         const Dtype dx = ex - sx;
         const Dtype dy = ey - sy;
         const Dtype range = std::sqrt(dx * dx + dy * dy);
         auto &key_ray = this->m_key_rays_[0];
-        if (max_range > 0 && range > max_range) {  // cut ray at max_range
+
+        bool hit = max_range <= 0.0f || range <= max_range;
+        if (!hit) {  // cut ray at max_range
             const Dtype r = max_range / range;
             ex = sx + dx * r;
             ey = sy + dy * r;
-            if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { return false; }
-            for (auto &key: key_ray) { this->UpdateNode(key, false, lazy_eval); }
-            return true;
         }
 
         if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { return false; }
         for (auto &key: key_ray) { this->UpdateNode(key, false, lazy_eval); }
+
+        hit = hit && (range > min_range);
+        if (!hit) { return true; }  // finished
+
         this->UpdateNode(ex, ey, true, lazy_eval);
         return true;
     }
@@ -673,7 +684,7 @@ namespace erl::geometry {
         const Dtype v_norm = std::sqrt(vx * vx + vy * vy);
         vx /= v_norm;
         vy /= v_norm;
-        const bool max_range_set = max_range > 0.;
+        const bool max_range_set = max_range > 0.0f;
 
         // compute step direction
         int step[2];
@@ -705,7 +716,7 @@ namespace erl::geometry {
             t_delta[0] = std::numeric_limits<Dtype>::infinity();
         } else {
             const Dtype voxel_border =
-                this->KeyToCoord(current_key[0]) + static_cast<Dtype>(step[0]) * 0.5 * resolution;
+                this->KeyToCoord(current_key[0]) + static_cast<Dtype>(step[0]) * 0.5f * resolution;
             t_max[0] = (voxel_border - px) / vx;
             t_delta[0] = resolution / std::abs(vx);
         }
@@ -714,7 +725,7 @@ namespace erl::geometry {
             t_delta[1] = std::numeric_limits<Dtype>::infinity();
         } else {
             const Dtype voxel_border =
-                this->KeyToCoord(current_key[1]) + static_cast<Dtype>(step[1]) * 0.5 * resolution;
+                this->KeyToCoord(current_key[1]) + static_cast<Dtype>(step[1]) * 0.5f * resolution;
             t_max[1] = (voxel_border - py) / vy;
             t_delta[1] = resolution / std::abs(vy);
         }

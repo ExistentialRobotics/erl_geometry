@@ -12,6 +12,8 @@ namespace erl::geometry {
         // if true, the covariance matrix will be assumed to be diagonal to speed up the
         // computation.
         bool diagonal_sigma = false;
+        // minimum distance from the sensor to consider a point as occupied.
+        float min_distance = 0.5f;
         // maximum distance from the sensor to consider a point as occupied.
         float max_distance = 30.0f;
         // number of free points to sample per meter from the sensor.

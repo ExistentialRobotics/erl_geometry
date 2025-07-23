@@ -98,6 +98,7 @@ BindOccupancyOctree(
             &Octree::InsertPointCloud,
             py::arg("points"),
             py::arg("sensor_origin"),
+            py::arg("min_range"),
             py::arg("max_range"),
             py::arg("parallel"),
             py::arg("lazy_eval"),
@@ -107,6 +108,7 @@ BindOccupancyOctree(
             &Octree::InsertPointCloudRays,
             py::arg("points"),
             py::arg("sensor_origin"),
+            py::arg("min_range"),
             py::arg("max_range"),
             py::arg("parallel"),
             py::arg("lazy_eval"))
@@ -119,6 +121,7 @@ BindOccupancyOctree(
             py::arg("ex"),
             py::arg("ey"),
             py::arg("ez"),
+            py::arg("min_range"),
             py::arg("max_range"),
             py::arg("lazy_eval"))
         .def(
