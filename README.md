@@ -149,6 +149,7 @@
       UCSD.
     - [CowAndLady](include/erl_geometry/cow_and_lady.hpp): a real 3D RGBD sequence provided
       by [ETH Zurich ASL](https://projects.asl.ethz.ch/datasets/doku.php?id=iros2017).
+    - [NewerCollege](include/erl_geometry/newer_college.hpp): a real 3D LiDAR dataset by [Oxford Robotics Institute](https://ori-drs.github.io/newer-college-dataset/).
 - Others
     - [Compute Intersections](include/erl_geometry/utils.hpp): utility functions for geometric computations.
     - [Euler Angle](include/erl_geometry/euler_angle.hpp): Euler angle conversions and utilities.
