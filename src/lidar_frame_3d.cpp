@@ -138,7 +138,7 @@ namespace erl::geometry {
         const Dtype valid_range_min = m_setting_->valid_range_min;
         const Dtype valid_range_max = m_setting_->valid_range_max;
 
-#pragma omp parallel for default(none) \
+#pragma omp parallel for default(none) schedule(static) \
     shared(num_azimuths, num_elevations, valid_range_min, valid_range_max, Eigen::Dynamic)
         for (long elevation_idx = 0; elevation_idx < num_elevations; ++elevation_idx) {
             for (long azimuth_idx = 0; azimuth_idx < num_azimuths; ++azimuth_idx) {

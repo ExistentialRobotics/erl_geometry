@@ -1,32 +1,27 @@
-import sys
-
-python_minor_version = sys.version_info.minor
-for path in [
-    f"/opt/ros/noetic/lib/python3.{python_minor_version}/site-packages",
-    "/opt/ros/noetic/lib/python3/dist-packages",
-    f"/usr/lib/python3.{python_minor_version}/site-packages",
-    "/usr/lib/python3/dist-packages",
-]:
-    if path not in sys.path:
-        sys.path.append(path)
-
 import argparse
-import rospy
-import rosbag
-import tf2_py as tf2
-import geometry_msgs
-import std_msgs
-import numpy as np
-import tf_conversions
-from sensor_msgs import point_cloud2
-from tqdm import tqdm
 import os
+
 import cv2
+import numpy as np
+import open3d as o3d
+import rosbag
+import rospy
+import tf2_py as tf2
+import tf_conversions
+from geometry_msgs.msg import TransformStamped
+from sensor_msgs import point_cloud2
+from sensor_msgs.msg import PointCloud2
+from std_msgs.msg import Header
+from tqdm import tqdm
+
+# map <--> vicon: identity
+# vicon <--> kinect: /kinect/vrpn_client/estimated_transform
+# kinect <--> camera_rgb_optical_frame: T_V_C
 
 
 def get_transform_map(seq, time_stamp):
-    msg_tf = geometry_msgs.msg.TransformStamped()
-    msg_tf.header = std_msgs.msg.Header()
+    msg_tf = TransformStamped()
+    msg_tf.header = Header()
     msg_tf.header.frame_id = "map"
     msg_tf.header.seq = seq
     msg_tf.header.stamp = time_stamp
@@ -50,11 +45,18 @@ T_V_C = np.array(
     ]
 )
 quaternion = tf_conversions.toTf(tf_conversions.fromMatrix(T_V_C))[1]
+translation = (T_V_C[0, 3], T_V_C[1, 3], T_V_C[2, 3])
+
+print(f"{'Frame Transformations':=^160}")
+print(f"                      map <--> vicon: identity")
+print(f"                   vicon <--> kinect: /kinect/vrpn_client/estimated_transform")
+print(f"kinect <--> camera_rgb_optical_frame: {translation}, {quaternion}")
+print(f"{'='*160}")
 
 
 def get_transform_camera(seq, time_stamp):
-    msg_tf = geometry_msgs.msg.TransformStamped()
-    msg_tf.header = std_msgs.msg.Header()
+    msg_tf = TransformStamped()
+    msg_tf.header = Header()
     msg_tf.header.frame_id = "kinect"
     msg_tf.header.seq = seq
     msg_tf.header.stamp = time_stamp
@@ -69,9 +71,9 @@ def get_transform_camera(seq, time_stamp):
     return msg_tf
 
 
-def load_transform_stamped(msg_tf_raw):
-    msg_tf = geometry_msgs.msg.TransformStamped()
-    msg_tf.header = std_msgs.msg.Header()
+def load_transform_stamped(msg_tf_raw: TransformStamped) -> TransformStamped:
+    msg_tf = TransformStamped()
+    msg_tf.header = Header()
     msg_tf.header.frame_id = msg_tf_raw.header.frame_id
     msg_tf.header.seq = msg_tf_raw.header.seq
     msg_tf.header.stamp = msg_tf_raw.header.stamp
@@ -88,7 +90,7 @@ def load_transform_stamped(msg_tf_raw):
     return msg_tf
 
 
-def transform_to_matrix(msg_tf):
+def transform_to_matrix(msg_tf: TransformStamped) -> np.ndarray:
     position = (
         msg_tf.transform.translation.x,
         msg_tf.transform.translation.y,
@@ -116,10 +118,13 @@ def main():
     output_dir = os.path.realpath(args.output_dir)
     color_output_dir = os.path.join(output_dir, "color")
     pcd_output_dir = os.path.join(output_dir, "pcd")
+    ply_output_dir = os.path.join(output_dir, "ply")
     if not os.path.exists(color_output_dir):
         os.makedirs(color_output_dir, exist_ok=True)
     if not os.path.exists(pcd_output_dir):
         os.makedirs(pcd_output_dir, exist_ok=True)
+    if not os.path.exists(ply_output_dir):
+        os.makedirs(ply_output_dir, exist_ok=True)
 
     bag = rosbag.Bag(filename, "r")
     # list all topics
@@ -132,29 +137,34 @@ def main():
 
     # print example frame_ids
     tf_topic = "/kinect/vrpn_client/estimated_transform"
-    tf_msg = next(bag.read_messages(topics=[tf_topic]))[1]
+    tf_msg: TransformStamped = next(bag.read_messages(topics=[tf_topic]))[1]
     print(f"tf frame_id: {tf_msg.header.frame_id} child_frame_id: {tf_msg.child_frame_id}")
     pc_topic = "/camera/depth_registered/points"
-    pc_msg = next(bag.read_messages(topics=[pc_topic]))[1]
+    pc_msg: PointCloud2 = next(bag.read_messages(topics=[pc_topic]))[1]
     print(f"pc frame_id: {pc_msg.header.frame_id}")
 
     # extract data
     # get transform
+    # build tf2 buffer
     tf_buffer = tf2.BufferCore(rospy.Duration(1000000000))
     time_stamps = []
     header_time_stamps = []
     seqs = []
     poses = []
     cnt = 0
-    for topic, msg, time_stamp in tqdm(
+    for topic, msg_tf, time_stamp in tqdm(
         bag.read_messages(topics=[tf_topic]),
         total=bag.get_message_count(tf_topic),
         ncols=120,
     ):
-        msg_tf = load_transform_stamped(msg)
+        topic: str
+        msg_tf: TransformStamped
+        time_stamp: rospy.Time
+
+        msg_tf = load_transform_stamped(msg_tf)
         time_stamps.append(time_stamp.to_nsec())
-        header_time_stamps.append(msg.header.stamp.to_nsec())
-        seqs.append(msg.header.seq)
+        header_time_stamps.append(msg_tf.header.stamp.to_nsec())
+        seqs.append(msg_tf.header.seq)
         poses.append(
             [
                 msg_tf.transform.translation.x,
@@ -196,13 +206,15 @@ def main():
     header_time_stamps = []
     seqs = []
     poses = []
-    for topic, msg, time_stamp in tqdm(
+    for topic, msg_pc, time_stamp in tqdm(
         bag.read_messages(topics=[pc_topic]),
         total=bag.get_message_count(pc_topic),
         ncols=120,
     ):
+        msg_pc: PointCloud2
+
         try:
-            pose = tf_buffer.lookup_transform_core("vicon", "kinect", msg.header.stamp)
+            pose: TransformStamped = tf_buffer.lookup_transform_core("vicon", "kinect", msg_pc.header.stamp)
             poses.append(
                 [
                     pose.transform.translation.x,
@@ -218,29 +230,41 @@ def main():
             tqdm.write(f"Error: {e}")
             continue
 
-        img_height = msg.height
-        img_width = msg.width
+        height = msg_pc.height
+        width = msg_pc.width
         time_stamps.append(time_stamp.to_nsec())
-        header_time_stamps.append(msg.header.stamp.to_nsec())
-        seqs.append(msg.header.seq)
+        header_time_stamps.append(msg_pc.header.stamp.to_nsec())
+        seqs.append(msg_pc.header.seq)
 
         # data_float32 = np.array(np.frombuffer(msg.data, dtype=np.float32).reshape((img_height, img_width, 8)))
-        data_uint8 = np.array(np.frombuffer(msg.data, dtype=np.uint8).reshape((img_height, img_width, 32)))
+        data_uint8 = np.array(np.frombuffer(msg_pc.data, dtype=np.uint8).reshape((height, width, 32)))
 
         # follow erl::common Eigen::MatrixX<Eigen::Vector3f> format
-        pts = point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=False)
-        # pts = np.ascontiguousarray(data_float32[:, :, :3].transpose((1, 0, 2)))
-        pcd_file = os.path.join(pcd_output_dir, f"{msg.header.seq}.pcd")
+        pts = list(point_cloud2.read_points(msg_pc, field_names=("x", "y", "z"), skip_nans=False))
+        pts = np.array(pts, dtype=np.float32)
+        pcd_file = os.path.join(pcd_output_dir, f"{msg_pc.header.seq}.pcd")
         with open(pcd_file, "wb") as f:
             f.write(
                 np.array(
-                    [pts.shape[1], pts.shape[0], pts.size, 3, pts.shape[1] * pts.shape[0]], dtype=np.int64
+                    # ros: width, height, number of points * 3, 3, height * width (row-major)
+                    # erl::common: rows, cols, mat size, 3, rows * cols (column-major)
+                    [width, height, pts.size, 3, width * height],
+                    dtype=np.int64,
                 ).tobytes()
             )
             f.write(pts.tobytes("C"))
 
         rgb = np.ascontiguousarray(data_uint8[:, :, 16:19])
-        cv2.imwrite(os.path.join(color_output_dir, f"{msg.header.seq}.png"), rgb)
+        cv2.imwrite(os.path.join(color_output_dir, f"{msg_pc.header.seq}.png"), rgb)
+
+        mask = np.isfinite(pts).all(axis=1)
+        pts_valid = pts[mask].astype(np.float64)
+        rgb_valid = rgb.reshape(-1, 3)[mask].astype(np.float64) / 255.0
+        ply_file = os.path.join(ply_output_dir, f"{msg_pc.header.seq}.ply")
+        pcd_o3d = o3d.geometry.PointCloud()
+        pcd_o3d.points = o3d.utility.Vector3dVector(pts_valid)
+        pcd_o3d.colors = o3d.utility.Vector3dVector(rgb_valid)
+        o3d.io.write_point_cloud(ply_file, pcd_o3d, write_ascii=True)
 
     data = np.concatenate(
         [
