@@ -419,6 +419,9 @@ namespace erl::geometry {
             [[nodiscard]] Dtype
             GetZ() const override;
 
+            [[nodiscard]] Vector3
+            GetCenter() const override;
+
             [[nodiscard]] Dtype
             GetNodeSize() const override;
 

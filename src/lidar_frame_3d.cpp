@@ -81,20 +81,20 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    LidarFrame3D<Dtype>::PointIsInFrame(const Vector3 &xyz_frame) const {
-        if (const Dtype range = xyz_frame.norm();
-            range < m_setting_->valid_range_min || range > m_setting_->valid_range_max) {
+    LidarFrame3D<Dtype>::ComputeFrameCoords(
+        const Vector3 &xyz_frame,
+        Dtype &dist,
+        typename LidarFrame3D<Dtype>::Vector2 &frame_coords) const {
+        dist = xyz_frame.norm();
+        if (dist < 0 || !std::isfinite(dist) || dist < m_setting_->valid_range_min ||
+            dist > m_setting_->valid_range_max) {
             return false;
         }
-        return Super::CoordsIsInFrame(ComputeFrameCoords(xyz_frame.normalized()));
-    }
-
-    template<typename Dtype>
-    typename LidarFrame3D<Dtype>::Vector2
-    LidarFrame3D<Dtype>::ComputeFrameCoords(const Vector3 &dir_frame) const {
-        Vector2 frame_coords;
-        common::DirectionToAzimuthElevation<Dtype>(dir_frame, frame_coords[0], frame_coords[1]);
-        return frame_coords;
+        common::DirectionToAzimuthElevation<Dtype>(
+            xyz_frame / dist,
+            frame_coords[0],
+            frame_coords[1]);
+        return true;
     }
 
     template<typename Dtype>

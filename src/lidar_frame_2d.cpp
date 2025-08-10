@@ -99,17 +99,17 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    LidarFrame2D<Dtype>::AngleIsInFrame(const Dtype angle_frame) const {
+    LidarFrame2D<Dtype>::CoordsIsInFrame(const Dtype angle_frame) const {
         return angle_frame >= m_angles_frame_[0] &&
                angle_frame <= m_angles_frame_[m_angles_frame_.size() - 1];
     }
 
     template<typename Dtype>
     bool
-    LidarFrame2D<Dtype>::PointIsInFrame(const Vector2 &xy_frame) const {
+    LidarFrame2D<Dtype>::PosIsInFrame(const Vector2 &xy_frame) const {
         if (xy_frame.norm() > m_max_valid_range_) { return false; }
         const Dtype angle_frame = std::atan2(xy_frame[1], xy_frame[0]);
-        return AngleIsInFrame(angle_frame);
+        return CoordsIsInFrame(angle_frame);
     }
 
     template<typename Dtype>

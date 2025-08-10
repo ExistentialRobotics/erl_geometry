@@ -860,6 +860,16 @@ namespace erl::geometry {
     }
 
     template<class Node, class Interface, class InterfaceSetting>
+    typename OctreeImpl<Node, Interface, InterfaceSetting>::Vector3
+    OctreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::GetCenter() const {
+        const StackElement &top = m_stack_.back();
+        return {
+            m_tree_->KeyToCoord(top.key[0], top.node->GetDepth()),
+            m_tree_->KeyToCoord(top.key[1], top.node->GetDepth()),
+            m_tree_->KeyToCoord(top.key[2], top.node->GetDepth())};
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
     typename OctreeImpl<Node, Interface, InterfaceSetting>::Dtype
     OctreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::GetNodeSize() const {
         return m_tree_->GetNodeSize(m_stack_.back().node->GetDepth());

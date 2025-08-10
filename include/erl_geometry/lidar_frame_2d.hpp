@@ -97,10 +97,10 @@ namespace erl::geometry {
         explicit LidarFrame2D(std::shared_ptr<Setting> setting);
 
         [[nodiscard]] bool
-        AngleIsInFrame(Dtype angle_frame) const;
+        CoordsIsInFrame(Dtype angle_frame) const;
 
         [[nodiscard]] bool
-        PointIsInFrame(const Vector2 &xy_frame) const;
+        PosIsInFrame(const Vector2 &xy_frame) const;
 
         [[nodiscard]] Vector2
         DirWorldToFrame(const Vector2 &dir_world) const;

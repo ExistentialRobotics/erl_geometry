@@ -131,14 +131,14 @@ namespace erl::geometry {
         [[nodiscard]] virtual std::pair<long, long>
         GetFrameShape() const = 0;
 
-        [[nodiscard]] virtual bool
-        PointIsInFrame(const Vector3 &xyz_frame) const = 0;
+        [[nodiscard]] bool
+        PosIsInFrame(const Vector3 &xyz_frame) const;
 
         [[nodiscard]] bool
         CoordsIsInFrame(const Vector2 &frame_coords) const;
 
-        [[nodiscard]] virtual Vector2
-        ComputeFrameCoords(const Vector3 &xyz_frame) const = 0;
+        [[nodiscard]] virtual bool
+        ComputeFrameCoords(const Vector3 &xyz_frame, Dtype &dist, Vector2 &frame_coords) const = 0;
 
         [[nodiscard]] virtual Vector3
         DirWorldToFrame(const Vector3 &dir_world) const;

@@ -59,10 +59,8 @@ namespace erl::geometry {
         GetFrameShape() const override;
 
         [[nodiscard]] bool
-        PointIsInFrame(const Vector3 &xyz_frame) const override;
-
-        [[nodiscard]] Vector2
-        ComputeFrameCoords(const Vector3 &dir_frame) const override;
+        ComputeFrameCoords(const Vector3 &xyz_frame, Dtype &dist, Vector2 &frame_coords)
+            const override;
 
         [[nodiscard]] static MatrixX
         DepthImageToDepth(const MatrixX &depth_img, double depth_scale);

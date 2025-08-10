@@ -63,15 +63,19 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    DepthFrame3D<Dtype>::PointIsInFrame(const Vector3 &xyz_frame) const {
-        if (xyz_frame[2] < 0) { return false; }  // behind the camera
-        return this->CoordsIsInFrame(ComputeFrameCoords(xyz_frame));
-    }
-
-    template<typename Dtype>
-    typename DepthFrame3D<Dtype>::Vector2
-    DepthFrame3D<Dtype>::ComputeFrameCoords(const Vector3 &dir_frame) const {
-        return {dir_frame[1] / dir_frame[2], dir_frame[0] / dir_frame[2]};
+    DepthFrame3D<Dtype>::ComputeFrameCoords(
+        const Vector3 &xyz_frame,
+        Dtype &dist,
+        typename DepthFrame3D<Dtype>::Vector2 &frame_coords) const {
+        if (xyz_frame[2] <= 0) { return false; }  // behind the camera
+        dist = xyz_frame.norm();
+        if (dist < 0 || !std::isfinite(dist) || dist < m_setting_->valid_range_min ||
+            dist > m_setting_->valid_range_max) {
+            return false;
+        }
+        frame_coords[0] = xyz_frame[0] / xyz_frame[2];
+        frame_coords[1] = xyz_frame[1] / xyz_frame[2];
+        return true;
     }
 
     template<typename Dtype>

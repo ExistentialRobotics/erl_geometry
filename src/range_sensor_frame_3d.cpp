@@ -85,6 +85,15 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
+    RangeSensorFrame3D<Dtype>::PosIsInFrame(const Vector3 &xyz_frame) const {
+        Vector2 frame_coords;
+        Dtype dist;
+        if (!ComputeFrameCoords(xyz_frame, dist, frame_coords)) { return false; }
+        return CoordsIsInFrame(frame_coords);
+    }
+
+    template<typename Dtype>
+    bool
     RangeSensorFrame3D<Dtype>::CoordsIsInFrame(const Vector2 &frame_coords) const {
         const Vector2 &top_left = m_frame_coords_(m_setting_->row_margin, m_setting_->col_margin);
         const Vector2 &bottom_right = m_frame_coords_(  //

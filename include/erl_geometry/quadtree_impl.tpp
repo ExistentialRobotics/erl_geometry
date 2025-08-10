@@ -842,6 +842,15 @@ namespace erl::geometry {
     }
 
     template<class Node, class Interface, class InterfaceSetting>
+    typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Vector2
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::GetCenter() const {
+        const StackElement &top = m_stack_.back();
+        return {
+            m_tree_->KeyToCoord(top.key[0], top.node->GetDepth()),
+            m_tree_->KeyToCoord(top.key[1], top.node->GetDepth())};
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
     typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Dtype
     QuadtreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::GetNodeSize() const {
         return m_tree_->GetNodeSize(m_stack_.back().node->GetDepth());

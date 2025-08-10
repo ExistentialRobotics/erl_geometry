@@ -272,6 +272,8 @@ namespace erl::geometry {
             GetY() const = 0;
             [[nodiscard]] virtual Dtype
             GetZ() const = 0;
+            [[nodiscard]] virtual Vector3
+            GetCenter() const = 0;
             [[nodiscard]] virtual Dtype
             GetNodeSize() const = 0;
             [[nodiscard]] virtual uint32_t
