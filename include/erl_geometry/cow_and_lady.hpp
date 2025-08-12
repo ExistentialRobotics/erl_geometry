@@ -126,14 +126,6 @@ namespace erl::geometry {
 
     private:
         [[nodiscard]] bool
-        LoadData(
-            long index,
-            long &sequence_number,
-            long &time_stamp,
-            long &header_time_stamp,
-            Eigen::Matrix3d &rotation,
-            Eigen::Vector3d &translation,
-            Eigen::MatrixX<Eigen::Vector3f> &points,
-            cv::Mat &color) const;
+        LoadData(long index, Frame& frame) const;
     };
 }  // namespace erl::geometry

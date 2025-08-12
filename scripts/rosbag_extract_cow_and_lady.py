@@ -19,7 +19,7 @@ from tqdm import tqdm
 # kinect <--> camera_rgb_optical_frame: T_V_C
 
 
-def get_transform_map(seq, time_stamp):
+def get_transform_map(seq: int, time_stamp: rospy.Time):
     msg_tf = TransformStamped()
     msg_tf.header = Header()
     msg_tf.header.frame_id = "map"
@@ -117,10 +117,13 @@ def main():
     filename = args.filename
     output_dir = os.path.realpath(args.output_dir)
     color_output_dir = os.path.join(output_dir, "color")
+    depth_output_dir = os.path.join(output_dir, "depth")
     pcd_output_dir = os.path.join(output_dir, "pcd")
     ply_output_dir = os.path.join(output_dir, "ply")
     if not os.path.exists(color_output_dir):
         os.makedirs(color_output_dir, exist_ok=True)
+    if not os.path.exists(depth_output_dir):
+        os.makedirs(depth_output_dir, exist_ok=True)
     if not os.path.exists(pcd_output_dir):
         os.makedirs(pcd_output_dir, exist_ok=True)
     if not os.path.exists(ply_output_dir):
@@ -151,55 +154,88 @@ def main():
     header_time_stamps = []
     seqs = []
     poses = []
-    cnt = 0
-    for topic, msg_tf, time_stamp in tqdm(
-        bag.read_messages(topics=[tf_topic]),
-        total=bag.get_message_count(tf_topic),
-        ncols=120,
-    ):
-        topic: str
-        msg_tf: TransformStamped
-        time_stamp: rospy.Time
+    if os.path.exists(os.path.join(output_dir, "tf.csv")):
+        data_float32 = np.loadtxt(os.path.join(output_dir, "tf.csv"), delimiter=",")
+        time_stamps = data_float32[:, 0].tolist()
+        header_time_stamps = data_float32[:, 1].tolist()
+        seqs: list[int] = data_float32[:, 2].astype(np.int64).tolist()
+        poses = data_float32[:, 3:].tolist()
 
-        msg_tf = load_transform_stamped(msg_tf)
-        time_stamps.append(time_stamp.to_nsec())
-        header_time_stamps.append(msg_tf.header.stamp.to_nsec())
-        seqs.append(msg_tf.header.seq)
-        poses.append(
-            [
-                msg_tf.transform.translation.x,
-                msg_tf.transform.translation.y,
-                msg_tf.transform.translation.z,
-                msg_tf.transform.rotation.x,
-                msg_tf.transform.rotation.y,
-                msg_tf.transform.rotation.z,
-                msg_tf.transform.rotation.w,
-            ]
+        tf_buffer.set_transform_static(
+            get_transform_map(seqs[0], rospy.Time.from_sec(time_stamps[0] / 1e9)),
+            "default_authority",
         )
-        tf_buffer.set_transform(msg_tf, "default_authority")
-        if cnt == 0:  # for static transform, only set once
-            tf_buffer.set_transform_static(
-                get_transform_map(msg_tf.header.seq, time_stamp),
-                "default_authority",
-            )
-            tf_buffer.set_transform_static(
-                get_transform_camera(msg_tf.header.seq, time_stamp),
-                "default_authority",
-            )
-        cnt += 1
+        tf_buffer.set_transform_static(
+            get_transform_camera(seqs[0], rospy.Time.from_sec(time_stamps[0] / 1e9)),
+            "default_authority",
+        )
 
-    data_float32 = np.concatenate(
-        [
-            np.array(time_stamps).reshape(-1, 1).astype(np.float64),
-            np.array(header_time_stamps).reshape(-1, 1).astype(np.float64),
-            np.array(seqs).reshape(-1, 1).astype(np.float64),
-            np.array(poses).reshape(-1, 7).astype(np.float64),
-        ],
-        axis=1,
-    )
-    order = np.argsort(data_float32[:, 1])  # sort by seq
-    data_float32 = np.ascontiguousarray(data_float32[order, :])
-    np.savetxt(os.path.join(output_dir, "tf.csv"), data_float32, delimiter=",")
+        for time_stamp, header_time_stamp, seq, pose in tqdm(
+            zip(time_stamps, header_time_stamps, seqs, poses), total=len(time_stamps), ncols=120
+        ):
+            msg_tf = TransformStamped()
+            msg_tf.header = Header()
+            msg_tf.header.frame_id = tf_msg.header.frame_id
+            msg_tf.header.seq = seq
+            msg_tf.header.stamp = rospy.Time.from_sec(header_time_stamp / 1e9)
+            msg_tf.child_frame_id = tf_msg.child_frame_id
+            msg_tf.transform.translation.x = pose[0]
+            msg_tf.transform.translation.y = pose[1]
+            msg_tf.transform.translation.z = pose[2]
+            msg_tf.transform.rotation.x = pose[3]
+            msg_tf.transform.rotation.y = pose[4]
+            msg_tf.transform.rotation.z = pose[5]
+            msg_tf.transform.rotation.w = pose[6]
+            tf_buffer.set_transform(msg_tf, "default_authority")
+
+    else:
+        tf_buffer.set_transform_static(
+            get_transform_map(tf_msg.header.seq, tf_msg.header.stamp),
+            "default_authority",
+        )
+        tf_buffer.set_transform_static(
+            get_transform_camera(tf_msg.header.seq, tf_msg.header.stamp),
+            "default_authority",
+        )
+
+        for topic, msg_tf, time_stamp in tqdm(
+            bag.read_messages(topics=[tf_topic]),
+            total=bag.get_message_count(tf_topic),
+            ncols=120,
+        ):
+            topic: str
+            msg_tf: TransformStamped
+            time_stamp: rospy.Time
+
+            msg_tf = load_transform_stamped(msg_tf)
+            time_stamps.append(time_stamp.to_nsec())
+            header_time_stamps.append(msg_tf.header.stamp.to_nsec())
+            seqs.append(msg_tf.header.seq)
+            poses.append(
+                [
+                    msg_tf.transform.translation.x,
+                    msg_tf.transform.translation.y,
+                    msg_tf.transform.translation.z,
+                    msg_tf.transform.rotation.x,
+                    msg_tf.transform.rotation.y,
+                    msg_tf.transform.rotation.z,
+                    msg_tf.transform.rotation.w,
+                ]
+            )
+            tf_buffer.set_transform(msg_tf, "default_authority")
+
+        data_float32 = np.concatenate(
+            [
+                np.array(time_stamps).reshape(-1, 1).astype(np.float64),
+                np.array(header_time_stamps).reshape(-1, 1).astype(np.float64),
+                np.array(seqs).reshape(-1, 1).astype(np.float64),
+                np.array(poses).reshape(-1, 7).astype(np.float64),
+            ],
+            axis=1,
+        )
+        order = np.argsort(data_float32[:, 1])  # sort by seq
+        data_float32 = np.ascontiguousarray(data_float32[order, :])
+        np.savetxt(os.path.join(output_dir, "tf.csv"), data_float32, delimiter=",")
 
     # get point cloud
     time_stamps = []
@@ -236,27 +272,20 @@ def main():
         header_time_stamps.append(msg_pc.header.stamp.to_nsec())
         seqs.append(msg_pc.header.seq)
 
-        # data_float32 = np.array(np.frombuffer(msg.data, dtype=np.float32).reshape((img_height, img_width, 8)))
         data_uint8 = np.array(np.frombuffer(msg_pc.data, dtype=np.uint8).reshape((height, width, 32)))
 
-        # follow erl::common Eigen::MatrixX<Eigen::Vector3f> format
-        pts = list(point_cloud2.read_points(msg_pc, field_names=("x", "y", "z"), skip_nans=False))
-        pts = np.array(pts, dtype=np.float32)
-        pcd_file = os.path.join(pcd_output_dir, f"{msg_pc.header.seq}.pcd")
-        with open(pcd_file, "wb") as f:
-            f.write(
-                np.array(
-                    # ros: width, height, number of points * 3, 3, height * width (row-major)
-                    # erl::common: rows, cols, mat size, 3, rows * cols (column-major)
-                    [width, height, pts.size, 3, width * height],
-                    dtype=np.int64,
-                ).tobytes()
-            )
-            f.write(pts.tobytes("C"))
+        depth = list(point_cloud2.read_points(msg_pc, field_names=("z"), skip_nans=False))
+        depth = np.array(depth, dtype=np.float32)
+        depth = depth.reshape((height, width))
+        depth[~np.isfinite(depth)] = 0.0
+        depth = (depth * 1000.0).astype(np.uint16)  # convert to mm
+        cv2.imwrite(os.path.join(depth_output_dir, f"{msg_pc.header.seq}.png"), depth)
 
         rgb = np.ascontiguousarray(data_uint8[:, :, 16:19])
         cv2.imwrite(os.path.join(color_output_dir, f"{msg_pc.header.seq}.png"), rgb)
 
+        pts = list(point_cloud2.read_points(msg_pc, field_names=("x", "y", "z"), skip_nans=False))
+        pts = np.array(pts, dtype=np.float32)
         mask = np.isfinite(pts).all(axis=1)
         pts_valid = pts[mask].astype(np.float64)
         rgb_valid = rgb.reshape(-1, 3)[mask].astype(np.float64) / 255.0
@@ -264,7 +293,7 @@ def main():
         pcd_o3d = o3d.geometry.PointCloud()
         pcd_o3d.points = o3d.utility.Vector3dVector(pts_valid)
         pcd_o3d.colors = o3d.utility.Vector3dVector(rgb_valid)
-        o3d.io.write_point_cloud(ply_file, pcd_o3d, write_ascii=True)
+        o3d.io.write_point_cloud(ply_file, pcd_o3d, write_ascii=False)
 
     data = np.concatenate(
         [

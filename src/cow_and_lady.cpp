@@ -41,41 +41,7 @@ namespace erl::geometry {
     CowAndLady::Frame
     CowAndLady::operator[](const long index) const {
         Frame frame;
-        Eigen::MatrixX<Eigen::Vector3f> points;
-
-        if (frame.valid = LoadData(
-                index,
-                frame.sequence_number,
-                frame.time_stamp,
-                frame.header_time_stamp,
-                frame.rotation,
-                frame.translation,
-                points,
-                frame.color);
-            !frame.valid) {
-            return frame;
-        }
-
-        frame.depth.resize(kImageHeight, kImageWidth);
-        double max_depth = 0;
-        for (long j = 0; j < kImageWidth; ++j) {
-            double *depth_ptr = frame.depth.col(j).data();
-            const Eigen::Vector3f *point_ptr = points.col(j).data();
-            for (long i = 0; i < kImageHeight; ++i) {
-                if (const Eigen::Vector3f &point = point_ptr[i]; point.hasNaN()) {
-                    depth_ptr[i] = -1;
-                } else {
-                    depth_ptr[i] = point[2];  // z is depth
-                    max_depth = std::max(max_depth, depth_ptr[i]);
-                }
-            }
-        }
-
-        const Eigen::MatrixX8U depth_img =
-            ((frame.depth.array() + 1) / (max_depth + 1) * 255.0).cast<uint8_t>();
-        cv::eigen2cv(depth_img, frame.depth_jet);
-        cv::cvtColor(frame.depth_jet, frame.depth_jet, cv::COLOR_GRAY2BGR);
-        cv::applyColorMap(frame.depth_jet, frame.depth_jet, cv::COLORMAP_JET);
+        (void) LoadData(index, frame);
         return frame;
     }
 
@@ -98,34 +64,25 @@ namespace erl::geometry {
 
 #pragma omp parallel for default(none) shared(icp_pose_data, error_data, progress_bar)
         for (long i = 0; i < icp_pose_data.cols(); ++i) {
-            Eigen::Matrix3d rotation;
-            Eigen::Vector3d translation;
-            Eigen::MatrixX<Eigen::Vector3f> points;
-            cv::Mat color;
+            Frame frame;
 
-            if (long sequence_number, time_stamp, header_time_stamp; !LoadData(
-                    i,
-                    sequence_number,
-                    time_stamp,
-                    header_time_stamp,
-                    rotation,
-                    translation,
-                    points,
-                    color)) {
-                continue;
-            }
+            if (!LoadData(i, frame)) { continue; }
 
             const auto pcd = std::make_shared<open3d::geometry::PointCloud>();
             pcd->points_.reserve(kImageHeight * kImageWidth);
             pcd->colors_.reserve(kImageHeight * kImageWidth);
             for (long u = 0; u < kImageWidth; ++u) {
-                const Eigen::Vector3f *point_ptr = points.col(u).data();
+                const double *depth_ptr = frame.depth.col(u).data();
                 for (long v = 0; v < kImageHeight; ++v) {
-                    const Eigen::Vector3f &point = point_ptr[v];
-                    if (point.hasNaN()) { continue; }
-                    pcd->points_.emplace_back(point.cast<double>());
+                    if (depth_ptr[v] <= 0 || !std::isfinite(depth_ptr[v])) { continue; }
+
+                    pcd->points_.emplace_back(
+                        (u - kCameraCx) * depth_ptr[v] / kCameraFx,
+                        (v - kCameraCy) * depth_ptr[v] / kCameraFy,
+                        depth_ptr[v]);
+
                     const cv::Vec3b &pixel =
-                        color.at<cv::Vec3b>(static_cast<int>(v), static_cast<int>(u));
+                        frame.color.at<cv::Vec3b>(static_cast<int>(v), static_cast<int>(u));
                     pcd->colors_.emplace_back(pixel[2] / 255.0, pixel[1] / 255.0, pixel[0] / 255.0);
                 }
             }
@@ -139,8 +96,8 @@ namespace erl::geometry {
             //     open3d::pipelines::registration::TransformationEstimationForColoredICP(),
             //     open3d::pipelines::registration::ICPConvergenceCriteria(1e-6, 1e-6, 40));
             Eigen::Matrix4d pose = Eigen::Matrix4d::Identity();
-            pose.topLeftCorner<3, 3>() = rotation;
-            pose.topRightCorner<3, 1>() = translation;
+            pose.topLeftCorner<3, 3>() = frame.rotation;
+            pose.topRightCorner<3, 1>() = frame.translation;
             auto result = open3d::pipelines::registration::RegistrationICP(
                 *pcd,
                 *m_pcd_gt_,
@@ -186,17 +143,22 @@ namespace erl::geometry {
     }
 
     bool
-    CowAndLady::LoadData(
-        long index,
-        long &sequence_number,
-        long &time_stamp,
-        long &header_time_stamp,
-        Eigen::Matrix3d &rotation,
-        Eigen::Vector3d &translation,
-        Eigen::MatrixX<Eigen::Vector3f> &points,
-        cv::Mat &color) const {
+    CowAndLady::LoadData(long index, Frame &frame) const {
 
         index = m_start_idx + index;
+
+        auto
+            &[valid,
+              sequence_number,
+              time_stamp,
+              header_time_stamp,
+              rotation,
+              translation,
+              depth,
+              color,
+              depth_jet] = frame;
+
+        valid = false;
 
         const double *data = m_pose_data_.col(index).data();
         sequence_number = static_cast<long>(data[0]);
@@ -210,18 +172,15 @@ namespace erl::geometry {
         translation = rotation * sk_Transform_.topRightCorner<3, 1>() + translation;
         rotation = rotation * sk_Transform_.topLeftCorner<3, 3>();
 
-        const std::string pcd_filename =
-            m_directory_ / "pcd" / fmt::format("{}.pcd", sequence_number);
-        if (!std::filesystem::exists(pcd_filename)) {
-            ERL_WARN("{} does not exist", pcd_filename);
+        const std::string depth_filename =
+            m_directory_ / "depth" / fmt::format("{}.png", sequence_number);
+        if (!std::filesystem::exists(depth_filename)) {
+            ERL_WARN("{} does not exist", depth_filename);
             return false;
         }
-        std::ifstream ifs(pcd_filename, std::ios::binary);
-        if (!common::LoadEigenMatrixOfEigenMatricesFromBinaryStream(ifs, points)) {
-            ERL_WARN("Failed to load point cloud data from {}", pcd_filename);
-            return false;
-        }
-        ifs.close();
+        cv::Mat depth_img = cv::imread(depth_filename, cv::IMREAD_UNCHANGED);
+        depth_img.convertTo(depth_img, CV_64FC1, 0.001);  // mm to m
+        cv::cv2eigen(depth_img, depth);
 
         const std::string color_filename =
             m_directory_ / "color" / fmt::format("{}.png", sequence_number);
@@ -230,6 +189,14 @@ namespace erl::geometry {
             return false;
         }
         color = cv::imread(color_filename);
+
+        cv::normalize(depth_img, depth_img, 0, 255, cv::NORM_MINMAX);
+        depth_img.convertTo(depth_img, CV_8UC1);
+        cv::cvtColor(depth_img, depth_jet, cv::COLOR_GRAY2BGR);
+        cv::applyColorMap(depth_jet, depth_jet, cv::COLORMAP_JET);
+
+        valid = true;
+
         return true;
     }
 
