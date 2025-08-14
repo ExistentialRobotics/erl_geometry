@@ -48,6 +48,7 @@ YAML::Node
 YAML::convert<erl::geometry::AbstractOctreeDrawer::Setting>::encode(
     const erl::geometry::AbstractOctreeDrawer::Setting &setting) {
     Node node;
+    ERL_YAML_SAVE_ATTR(node, setting, scaling);
     ERL_YAML_SAVE_ATTR(node, setting, area_min);
     ERL_YAML_SAVE_ATTR(node, setting, area_max);
     ERL_YAML_SAVE_ATTR(node, setting, border_color);
@@ -59,6 +60,7 @@ YAML::convert<erl::geometry::AbstractOctreeDrawer::Setting>::decode(
     const Node &node,
     erl::geometry::AbstractOctreeDrawer::Setting &setting) {
     if (!node.IsMap()) { return false; }
+    ERL_YAML_LOAD_ATTR(node, setting, scaling);
     ERL_YAML_LOAD_ATTR(node, setting, area_min);
     ERL_YAML_LOAD_ATTR(node, setting, area_max);
     ERL_YAML_LOAD_ATTR(node, setting, border_color);

@@ -11,6 +11,7 @@ namespace erl::geometry {
     class AbstractOctreeDrawer {
     public:
         struct Setting : public common::Yamlable<Setting> {
+            double scaling = 1.0f;
             Eigen::Vector3d area_min = {-1.0, -1.0, -1.0};
             Eigen::Vector3d area_max = {1.0, 1.0, 1.0};
             Eigen::Vector3d border_color = {0.0, 0.0, 0.0};  // black

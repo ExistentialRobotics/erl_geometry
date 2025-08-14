@@ -63,10 +63,11 @@ namespace erl::geometry {
         }
 
         // draw
+        const double scaling = m_setting_->scaling;
         boxes->Clear();
         node_border->Clear();
-        boxes->voxel_size_ = m_octree_->GetResolution();
-        boxes->origin_ = (m_setting_->area_max + m_setting_->area_min) / 2.0;
+        boxes->voxel_size_ = m_octree_->GetResolution() * scaling;
+        boxes->origin_ = (m_setting_->area_max + m_setting_->area_min) / 2.0 * scaling;
         auto it = m_octree_->BeginTreeInAabb(
             m_setting_->area_min[0],
             m_setting_->area_min[1],
@@ -81,10 +82,10 @@ namespace erl::geometry {
         for (; it != end; ++it) {
             const double node_size = it.GetNodeSize();
             if (node_size > area_size) { continue; }  // skip nodes that are too large
-            const double half_size = node_size / 2.0;
-            const double x = it.GetX();
-            const double y = it.GetY();
-            const double z = it.GetZ();
+            const double half_size = node_size / 2.0 * scaling;
+            const double x = it.GetX() * scaling;
+            const double y = it.GetY() * scaling;
+            const double z = it.GetZ() * scaling;
             bool occupied = m_octree_->IsNodeOccupied(*it);
 
             if (!it->HasAnyChild() && occupied &&
@@ -163,18 +164,18 @@ namespace erl::geometry {
             m_setting_->area_max[2]);
         auto end = octree->EndLeafInAabb();
 
+        const double scaling = m_setting_->scaling;
         boxes->Clear();
-        boxes->voxel_size_ = octree->GetResolution();
+        boxes->voxel_size_ = octree->GetResolution() * scaling;
         boxes->origin_.setZero();
         node_border->Clear();
         for (; it != end; ++it) {
             ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!");
 
-            const double node_size = it.GetNodeSize();
-            const double half_size = node_size / 2.0;
-            const double x = it.GetX();
-            const double y = it.GetY();
-            const double z = it.GetZ();
+            const double half_size = it.GetNodeSize() / 2.0 * scaling;
+            const double x = it.GetX() * scaling;
+            const double y = it.GetY() * scaling;
+            const double z = it.GetZ() * scaling;
             bool occupied = octree->IsNodeOccupied(*it);
 
             if (m_setting_->occupied_only && !occupied) { continue; }

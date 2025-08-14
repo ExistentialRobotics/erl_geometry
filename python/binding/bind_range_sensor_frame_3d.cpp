@@ -65,9 +65,20 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
         .def_property_readonly("max_valid_range", &T::GetMaxValidRange)
         .def_property_readonly("hit_mask", [](const T &self) { return self.GetHitMask(); })
         .def_property_readonly("is_valid", [](const T &self) { return self.IsValid(); })
-        .def("point_is_in_frame", &T::PointIsInFrame, py::arg("xyz_frame"))
+        .def("position_is_in_frame", &T::PosIsInFrame, py::arg("xyz_frame"))
         .def("coords_is_in_frame", &T::CoordsIsInFrame, py::arg("frame_coords"))
-        .def("compute_frame_coords", &T::ComputeFrameCoords, py::arg("xyz_frame"))
+        .def(
+            "compute_frame_coords",
+            [](T &self, const Vector3 &xyz_frame) {
+                Dtype dist;
+                Vector2 frame_coords;
+                self.ComputeFrameCoords(xyz_frame, dist, frame_coords);
+                py::dict out;
+                out["distance"] = dist;
+                out["frame_coords"] = frame_coords;
+                return out;
+            },
+            py::arg("xyz_frame"))
         .def("dir_world_to_frame", &T::DirWorldToFrame, py::arg("dir_world"))
         .def("dir_frame_to_world", &T::DirFrameToWorld, py::arg("dir_frame"))
         .def("pos_world_to_frame", &T::PosWorldToFrame, py::arg("pos_world"))

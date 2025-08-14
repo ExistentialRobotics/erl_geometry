@@ -34,8 +34,8 @@ BindLidarFrame2DImpl(const py::module &m, const char *name) {
         .def_readwrite("min_partition_size", &Frame::Setting::min_partition_size);
 
     lidar_frame_2d.def(py::init<std::shared_ptr<typename Frame::Setting>>(), py::arg("setting"))
-        .def("angle_is_in_frame", &Frame::AngleIsInFrame, py::arg("angle_frame"))
-        .def("point_is_in_frame", &Frame::PointIsInFrame, py::arg("xy_frame"))
+        .def("coords_is_in_frame", &Frame::CoordsIsInFrame, py::arg("angle_frame"))
+        .def("position_is_in_frame", &Frame::PosIsInFrame, py::arg("xy_frame"))
         .def("dir_world_to_frame", &Frame::DirWorldToFrame, py::arg("dir_world"))
         .def("dir_frame_to_world", &Frame::DirFrameToWorld, py::arg("dir_frame"))
         .def("pos_world_to_frame", &Frame::PosWorldToFrame, py::arg("xy_world"))
