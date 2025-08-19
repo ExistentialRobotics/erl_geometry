@@ -18,8 +18,8 @@ namespace erl::geometry {
         std::shared_ptr<open3d::geometry::PointCloud> m_pcd_gt_;
         Eigen::MatrixXd m_pose_data_;
         bool m_use_icp_poses_ = false;
-        long m_start_idx = 0;
-        long m_end_idx = 0;
+        long m_start_idx = kStartIdx;
+        long m_end_idx = kEndIdx;
 
     public:
         static constexpr long kImageWidth = 640;

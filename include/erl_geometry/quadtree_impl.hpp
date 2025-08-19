@@ -49,7 +49,7 @@ namespace erl::geometry {
         std::vector<Dtype> m_size_lookup_table_;
         // data structure for parallel ray casting
         std::vector<QuadtreeKeyRay> m_key_rays_;
-        std::vector<QuadtreeKeySet> m_key_sets_;
+        std::vector<QuadtreeKeyLongMap> m_key_long_maps_;
         std::vector<QuadtreeKeyVector> m_key_vectors_;
 
         // taking one dimension, tree_depth = 3 as an example:

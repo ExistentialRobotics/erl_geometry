@@ -51,7 +51,7 @@ namespace erl::geometry {
         std::vector<Dtype> m_size_lookup_table_;
         // data structure for parallel ray casting
         std::vector<OctreeKeyRay> m_key_rays_;
-        std::vector<OctreeKeySet> m_key_sets_;
+        std::vector<OctreeKeyLongMap> m_key_long_maps_;
         std::vector<OctreeKeyVector> m_key_vectors_;
 
     public:

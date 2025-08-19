@@ -209,7 +209,9 @@ TEST(OccupancyQuadtree, Build) {
         tree->InsertPointCloud(
             buf_points[i],
             trajectory.col(i).cast<Dtype>(),
+            /*min_range*/ 0.0,
             /*max_range*/ 100,
+            /*with_count*/ false,
             /*parallel*/ false,
             g_options.quadtree_lazy_eval,
             /*discrete*/ false);
@@ -232,12 +234,14 @@ TEST(OccupancyQuadtree, Build) {
         cv::imshow(g_window_name, img);
         cv::waitKey(10);
     }
-    EXPECT_TRUE(erl::common::Serialization<OccupancyQuadtree>::Write(
-        test_output_dir / fmt::format("{}_{}.ot", tree_name, type_name<Dtype>()),
-        tree));
-    EXPECT_TRUE(erl::common::Serialization<OccupancyQuadtree>::Write(
-        test_output_dir / fmt::format("{}_{}.bt", tree_name, type_name<Dtype>()),
-        [&](std::ostream &s) -> bool { return tree->WriteBinary(s, true); }));
+    EXPECT_TRUE(
+        erl::common::Serialization<OccupancyQuadtree>::Write(
+            test_output_dir / fmt::format("{}_{}.ot", tree_name, type_name<Dtype>()),
+            tree));
+    EXPECT_TRUE(
+        erl::common::Serialization<OccupancyQuadtree>::Write(
+            test_output_dir / fmt::format("{}_{}.bt", tree_name, type_name<Dtype>()),
+            [&](std::ostream &s) -> bool { return tree->WriteBinary(s, true); }));
     if (g_options.hold) {
         std::cout << "Press any key to exit." << std::endl;
         cv::waitKey(0);

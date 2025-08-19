@@ -1,6 +1,6 @@
 #include "erl_geometry/marching_squares.hpp"
 
-#include <unordered_map>
+#include <absl/container/flat_hash_map.h>
 
 /**
  * @brief Implementation of Marching Square Algorithm.
@@ -16,11 +16,11 @@
  *
  * The edge of a cell is
  * -------------------------> U
- * | (0, 0)   1    (1, 0)
- * |       #######
- * |     0 #     # 2
- * |       #######
- * | (0, 1)   3    (1, 1)
+ * | 3:(0, 0)  1   2:(1, 0)
+ * |       ########
+ * |     0 #      # 2
+ * |       ########
+ * | 0:(0, 1)  3   1:(1, 1)
  * V
  *
  * There are 16 kinds of contour lines. For each case, we need to consider different edges to do
@@ -73,6 +73,190 @@ namespace erl::geometry {
         kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
     };  // 16 x 4 Edge, 16 x 16 long
 
+    const int MarchingSquares::kUniqueEdgeIndexTable[16][5] = {
+        {-1, -1, -1, -1, -1},  // 0
+        {0, 3, -1, -1, -1},    // 1
+        {2, 3, -1, -1, -1},    // 2
+        {0, 2, -1, -1, -1},    // 3
+        {1, 2, -1, -1, -1},    // 4
+        {0, 3, 1, 2, -1},      // 5
+        {1, 3, -1, -1, -1},    // 6
+        {0, 1, -1, -1, -1},    // 7
+        {0, 1, -1, -1, -1},    // 8
+        {1, 3, -1, -1, -1},    // 9
+        {0, 1, 2, 3, -1},      // 10
+        {1, 2, -1, -1, -1},    // 11
+        {0, 2, -1, -1, -1},    // 12
+        {2, 3, -1, -1, -1},    // 13
+        {0, 3, -1, -1, -1},    // 14
+        {-1, -1, -1, -1, -1}   // 15
+    };
+
+    const int MarchingSquares::kEdgeVertexIndexTable[4][2] = {
+        {0, 3},  // edge 0
+        {3, 2},  // edge 1
+        {2, 1},  // edge 2
+        {1, 0}   // edge 3
+    };
+
+    const int MarchingSquares::kSquareVertexCodes[4][2] = {
+        {0, 1},  // vertex 0
+        {1, 1},  // vertex 1
+        {1, 0},  // vertex 2
+        {0, 0}   // vertex 3
+    };
+
+    const int MarchingSquares::kSquareEdgeCodes[4][3] = {
+        {0, 0, 2},  // edge 0, (u, v, 0), where 2 means v
+        {0, 0, 1},  // edge 1, (u, v, 1), where 1 means u
+        {1, 0, 2},  // edge 2, (u + 1, v, 0), where 2 means v
+        {0, 1, 1}   // edge 3, (u, v + 1, 1), where 1 means u
+    };
+
+    template<typename Dtype>
+    int
+    CalculateVertexConfigIndexImpl(const Dtype *vertex_values, Dtype iso_value) {
+        return (vertex_values[0] <= iso_value ? 1 : 0) | (vertex_values[1] <= iso_value ? 2 : 0) |
+               (vertex_values[2] <= iso_value ? 4 : 0) | (vertex_values[3] <= iso_value ? 8 : 0);
+    }
+
+    template<typename Dtype>
+    void
+    MarchingSingleSquareImpl(
+        const Eigen::Ref<const Eigen::Matrix<Dtype, 2, 4>> &vertex_coords,
+        const Eigen::Ref<const Eigen::Vector<Dtype, 4>> &values,
+        const Dtype iso_value,
+        std::vector<Eigen::Vector2<Dtype>> &vertices,
+        std::vector<Eigen::Vector2i> &lines) {
+
+        vertices.clear();
+        lines.clear();
+
+        const int config = CalculateVertexConfigIndexImpl<Dtype>(values.data(), iso_value);
+        if (config <= 0 || config >= 15) { return; }
+
+        auto interpolate = [&](const MarchingSquares::Edge &e) -> Eigen::Vector2<Dtype> {
+            constexpr Dtype kEpsilon = 1e-6f;
+            long idx1 = e.v1x | (e.v1y << 1);
+            long idx2 = e.v2x | (e.v2y << 1);
+
+            const Dtype *v1 = vertex_coords.col(idx1).data();
+            const Dtype *v2 = vertex_coords.col(idx2).data();
+
+            const Dtype val_diff = values[idx1] - values[idx2];
+            if (std::abs(val_diff) >= kEpsilon) {
+                const Dtype t = (values[idx1] - iso_value) / val_diff;
+                return {v1[0] + (v2[0] - v1[0]) * t, v1[1] + (v2[1] - v1[1]) * t};
+            }
+            return {(v1[0] + v2[0]) * 0.5f, (v1[1] + v2[1]) * 0.5f};
+        };
+
+        // compute edge intersections
+        vertices.emplace_back(interpolate(MarchingSquares::kEdgePairTable[config][0]));
+        vertices.emplace_back(interpolate(MarchingSquares::kEdgePairTable[config][1]));
+        lines.emplace_back(0, 1);
+        if (config == 5 || config == 10) {
+            vertices.emplace_back(interpolate(MarchingSquares::kEdgePairTable[config][2]));
+            vertices.emplace_back(interpolate(MarchingSquares::kEdgePairTable[config][3]));
+            lines.emplace_back(2, 3);
+        }
+    }
+
+    static void
+    SortLinesToObjects(Eigen::Matrix2Xi &lines_to_vertices, Eigen::Matrix2Xi &objects_to_lines) {
+        const long num_lines = lines_to_vertices.cols();
+        // estimated maximum number of objects
+        objects_to_lines.setConstant(2, num_lines + 1, -1);
+        objects_to_lines(0, 0) = 0;
+
+        bool reverse = false;
+        int num_objects = 0;
+        for (int line_idx = 0; line_idx < num_lines; ++line_idx) {
+            int vertex_idx = lines_to_vertices(1, line_idx);
+            const int next_line_idx = line_idx + 1;
+
+            // find the next line that is connected to the current line.
+            int next_connected_line_idx = next_line_idx;
+            for (; next_connected_line_idx < num_lines; ++next_connected_line_idx) {
+                if (lines_to_vertices(0, next_connected_line_idx) == vertex_idx ||
+                    lines_to_vertices(1, next_connected_line_idx) == vertex_idx) {
+                    break;
+                }
+            }
+
+            if (next_connected_line_idx != num_lines) {
+                // find a line.
+                // extend: swap the found line to the next_line position.
+                lines_to_vertices.col(next_line_idx)
+                    .swap(lines_to_vertices.col(next_connected_line_idx));
+                if (lines_to_vertices(1, next_line_idx) == vertex_idx) {
+                    std::swap(
+                        lines_to_vertices(0, next_line_idx),
+                        lines_to_vertices(1, next_line_idx));
+                }
+            } else {
+                // reverse the line sequence of the current object, try to extend it from the
+                // other end
+                const int obj_begin_line_idx = objects_to_lines(0, num_objects);
+                vertex_idx = lines_to_vertices(0, obj_begin_line_idx);
+
+                // find the next line that is connected to the current line.
+                next_connected_line_idx = next_line_idx;
+                for (; next_connected_line_idx < num_lines; ++next_connected_line_idx) {
+                    if (lines_to_vertices(0, next_connected_line_idx) == vertex_idx ||
+                        lines_to_vertices(1, next_connected_line_idx) == vertex_idx) {
+                        break;
+                    }
+                }
+
+                if (next_connected_line_idx != num_lines) {
+                    // reverse the sequence of object's vertices
+                    reverse = true;
+                    auto block = lines_to_vertices.block(
+                        0,
+                        obj_begin_line_idx,
+                        2,
+                        next_line_idx - obj_begin_line_idx);
+                    // reverse each column: swap line start and end
+                    block.colwise().reverseInPlace();
+                    // reverse each row: reverse line order
+                    block.rowwise().reverseInPlace();
+
+                    // extend: swap the found line to the next_line position.
+                    lines_to_vertices.col(next_line_idx)
+                        .swap(lines_to_vertices.col(next_connected_line_idx));
+                    if (lines_to_vertices(1, next_line_idx) == vertex_idx) {
+                        // reverse the vertex order of the line.
+                        std::swap(
+                            lines_to_vertices(0, next_line_idx),
+                            lines_to_vertices(1, next_line_idx));
+                    }
+                } else {  // both ends cannot be extended anymore
+                    if (reverse) {
+                        // recover the original vertex order
+                        auto block = lines_to_vertices.block(
+                            0,
+                            obj_begin_line_idx,
+                            2,
+                            next_line_idx - obj_begin_line_idx);
+                        // reverse each column: swap line start and end
+                        block.colwise().reverseInPlace();
+                        // reverse each row: reverse line order
+                        block.rowwise().reverseInPlace();
+                        reverse = false;
+                    }
+                    objects_to_lines(1, num_objects++) = next_line_idx;
+                    objects_to_lines(0, num_objects) = next_line_idx;
+                }
+            }
+        }
+
+        if (objects_to_lines(0, num_objects) == -1) {
+            objects_to_lines(1, num_objects++) = static_cast<int>(num_lines);
+        }
+        objects_to_lines.conservativeResize(2, num_objects);
+    }
+
     template<typename Dtype>
     void
     MarchingSquareImpl(
@@ -82,100 +266,13 @@ namespace erl::geometry {
         Eigen::Matrix2Xi &lines_to_vertices,
         Eigen::Matrix2Xi &objects_to_lines) {
 
-        static auto sort_lines_to_objects = [](Eigen::Matrix2Xi &lines_to_vertices_,
-                                               Eigen::Matrix2Xi &objects_to_lines_) {
-            const long num_lines = lines_to_vertices_.cols();
-            // estimated maximum number of objects
-            objects_to_lines_.setConstant(2, num_lines + 1, -1);
-            objects_to_lines_(0, 0) = 0;
-
-            bool reverse = false;
-            int num_objects = 0;
-            for (int line_idx = 0; line_idx < num_lines; ++line_idx) {
-                int vertex_idx = lines_to_vertices_(1, line_idx);
-                const int next_line_idx = line_idx + 1;
-
-                int next_connected_line_idx = next_line_idx;
-                for (; next_connected_line_idx < num_lines; ++next_connected_line_idx) {
-                    if (lines_to_vertices_(0, next_connected_line_idx) == vertex_idx ||
-                        lines_to_vertices_(1, next_connected_line_idx) == vertex_idx) {
-                        break;
-                    }
-                }
-
-                if (next_connected_line_idx != num_lines) {
-                    lines_to_vertices_.col(next_line_idx)
-                        .swap(lines_to_vertices_.col(next_connected_line_idx));
-                    if (lines_to_vertices_(1, next_line_idx) == vertex_idx) {
-                        std::swap(
-                            lines_to_vertices_(0, next_line_idx),
-                            lines_to_vertices_(1, next_line_idx));
-                    }
-                } else {
-                    // reverse the line sequence of the current object, try to extend it from the
-                    // other end
-                    const int obj_begin_line_idx = objects_to_lines_(0, num_objects);
-                    vertex_idx = lines_to_vertices_(0, obj_begin_line_idx);
-
-                    next_connected_line_idx = next_line_idx;
-                    for (; next_connected_line_idx < num_lines; ++next_connected_line_idx) {
-                        if (lines_to_vertices_(0, next_connected_line_idx) == vertex_idx ||
-                            lines_to_vertices_(1, next_connected_line_idx) == vertex_idx) {
-                            break;
-                        }
-                    }
-
-                    if (next_connected_line_idx != num_lines) {
-                        // reverse the sequence from beginIdx to i (included)
-                        reverse = true;
-                        auto block = lines_to_vertices_.block(
-                            0,
-                            obj_begin_line_idx,
-                            2,
-                            next_line_idx - obj_begin_line_idx);
-                        // reverse each column: swap line start and end
-                        block.colwise().reverseInPlace();
-                        block.rowwise().reverseInPlace();  // reverse each row: reverse line order
-
-                        lines_to_vertices_.col(next_line_idx)
-                            .swap(lines_to_vertices_.col(next_connected_line_idx));
-                        if (lines_to_vertices_(1, next_line_idx) == vertex_idx) {
-                            std::swap(
-                                lines_to_vertices_(0, next_line_idx),
-                                lines_to_vertices_(1, next_line_idx));
-                        }
-                    } else {  // both ends cannot be extended anymore
-                        if (reverse) {
-                            auto block = lines_to_vertices_.block(
-                                0,
-                                obj_begin_line_idx,
-                                2,
-                                next_line_idx - obj_begin_line_idx);
-                            // reverse each column: swap line start and end
-                            block.colwise().reverseInPlace();
-                            // reverse each row: reverse line order
-                            block.rowwise().reverseInPlace();
-                            reverse = false;
-                        }
-                        objects_to_lines_(1, num_objects++) = next_line_idx;
-                        objects_to_lines_(0, num_objects) = next_line_idx;
-                    }
-                }
-            }
-
-            if (objects_to_lines_(0, num_objects) == -1) {
-                objects_to_lines_(1, num_objects++) = static_cast<int>(num_lines);
-            }
-            objects_to_lines_.conservativeResize(2, num_objects);
-        };
-
         const long img_height = img.rows();
         const long img_width = img.cols();
         // binary mGoalMask of img <= iso_value
-        auto b_mat = Eigen::MatrixX<bool>(img_height, img_width);
-
-        std::vector<MarchingSquares::Edge> edges;
-        std::unordered_map<MarchingSquares::Edge, int, MarchingSquares::HashEdge> unique_edges;
+        auto b_mat = Eigen::MatrixXb(img_height, img_width);
+        using MS = MarchingSquares;
+        std::vector<MS::Edge> edges;
+        absl::flat_hash_map<MS::Edge, int> unique_edges;
         edges.reserve(img_height * img_width);
         unique_edges.reserve(img_height * img_width);
 
@@ -185,16 +282,13 @@ namespace erl::geometry {
         // 2. compute vMat
         //      a. compute x+1 row of b_mat
         //      b. compute v, Update edges, unique_edges and lines_to_vertices
-        int idx_3, idx_4;
-        auto get_edge_index = [&](const MarchingSquares::Edge &e) -> int {
+        auto get_edge_index = [&](const MS::Edge &e) -> int {
             // assign value to `e` only when it is a new key
             auto [map_pair, is_new_edge] = unique_edges.try_emplace(e, edges.size());
             if (is_new_edge) { edges.push_back(e); }
             auto &[edge, edge_index] = *map_pair;
             return edge_index;
         };
-
-        auto &edge_pair_table = MarchingSquares::kEdgePairTable;
 
         int num_lines = 0;
         for (long v = 0; v < img_height - 1; v++) {
@@ -205,10 +299,10 @@ namespace erl::geometry {
                 if (const int val = b_mat(v, u) << 3 | b_mat(v, u + 1) << 2 |
                                     b_mat(v + 1, u + 1) << 1 | b_mat(v + 1, u);
                     val > 0 && val < 15) {
-                    const auto &[e1v1x, e1v1y, e1v2x, e1v2y] = edge_pair_table[val][0];
+                    const auto &[e1v1x, e1v1y, e1v2x, e1v2y] = MS::kEdgePairTable[val][0];
                     int idx_1 = get_edge_index({u + e1v1x, v + e1v1y, u + e1v2x, v + e1v2y});
 
-                    const auto &[e2v1x, e2v1y, e2v2x, e2v2y] = edge_pair_table[val][1];
+                    const auto &[e2v1x, e2v1y, e2v2x, e2v2y] = MS::kEdgePairTable[val][1];
                     int idx_2 = get_edge_index({u + e2v1x, v + e2v1y, u + e2v2x, v + e2v2y});
 
                     if (lines_to_vertices.cols() == num_lines) {
@@ -216,24 +310,12 @@ namespace erl::geometry {
                     }
                     lines_to_vertices.col(num_lines++) << idx_1, idx_2;
 
-                    if (val == 5) {
-                        const auto &[e3v1x, e3v1y, e3v2x, e3v2y] = edge_pair_table[val][2];
-                        idx_3 = get_edge_index({u + e3v1x, v + e3v1y, u + e3v2x, v + e3v2y});
+                    if (val == 5 || val == 10) {
+                        const auto &[e3v1x, e3v1y, e3v2x, e3v2y] = MS::kEdgePairTable[val][2];
+                        int idx_3 = get_edge_index({u + e3v1x, v + e3v1y, u + e3v2x, v + e3v2y});
 
-                        const auto &[e4v1x, e4v1y, e4v2x, e4v2y] = edge_pair_table[val][3];
-                        idx_4 = get_edge_index({u + e4v1x, v + e4v1y, u + e4v2x, v + e4v2y});
-
-                        if (lines_to_vertices.cols() == num_lines) {
-                            lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
-                        }
-                        lines_to_vertices.col(num_lines++) << idx_3, idx_4;
-
-                    } else if (val == 10) {
-                        const auto &[e3v1x, e3v1y, e3v2x, e3v2y] = edge_pair_table[val][2];
-                        idx_3 = get_edge_index({u + e3v1x, v + e3v1y, u + e3v2x, v + e3v2y});
-
-                        const auto &[e4v1x, e4v1y, e4v2x, e4v2y] = edge_pair_table[val][3];
-                        idx_4 = get_edge_index({u + e4v1x, v + e4v1y, u + e4v2x, v + e4v2y});
+                        const auto &[e4v1x, e4v1y, e4v2x, e4v2y] = MS::kEdgePairTable[val][3];
+                        int idx_4 = get_edge_index({u + e4v1x, v + e4v1y, u + e4v2x, v + e4v2y});
 
                         if (lines_to_vertices.cols() == num_lines) {
                             lines_to_vertices.conservativeResize(2, 2 * num_lines + 1);
@@ -259,7 +341,39 @@ namespace erl::geometry {
         }
 
         // 4. find objects
-        sort_lines_to_objects(lines_to_vertices, objects_to_lines);
+        SortLinesToObjects(lines_to_vertices, objects_to_lines);
+    }
+
+    int
+    MarchingSquares::CalculateVertexConfigIndex(
+        const double *vertex_values,
+        const double iso_value) {
+        return CalculateVertexConfigIndexImpl<double>(vertex_values, iso_value);
+    }
+
+    int
+    MarchingSquares::CalculateVertexConfigIndex(const float *vertex_values, const float iso_value) {
+        return CalculateVertexConfigIndexImpl<float>(vertex_values, iso_value);
+    }
+
+    void
+    MarchingSquares::SingleSquare(
+        const Eigen::Ref<const Eigen::Matrix<double, 2, 4>> &vertex_coords,
+        const Eigen::Ref<const Eigen::Vector<double, 4>> &values,
+        const double iso_value,
+        std::vector<Eigen::Vector2d> &vertices,
+        std::vector<Eigen::Vector2i> &lines) {
+        MarchingSingleSquareImpl<double>(vertex_coords, values, iso_value, vertices, lines);
+    }
+
+    void
+    MarchingSquares::SingleSquare(
+        const Eigen::Ref<const Eigen::Matrix<float, 2, 4>> &vertex_coords,
+        const Eigen::Ref<const Eigen::Vector<float, 4>> &values,
+        const float iso_value,
+        std::vector<Eigen::Vector2f> &vertices,
+        std::vector<Eigen::Vector2i> &lines) {
+        MarchingSingleSquareImpl<float>(vertex_coords, values, iso_value, vertices, lines);
     }
 
     void

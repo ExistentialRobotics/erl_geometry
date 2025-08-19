@@ -15,7 +15,7 @@ namespace erl::geometry {
         Aabb2Dd aabb = {};
 
         bool
-        operator==(const NdTreeSetting& rhs) const override;
+        operator==(const NdTreeSetting& other) const override;
     };
 
     template<typename Dtype, class Node, class Setting>
@@ -29,16 +29,14 @@ namespace erl::geometry {
     protected:
         QuadtreeKeyBoolMap m_changed_keys_ = {};
         // buffer used for inserting point cloud to track the end points
-        QuadtreeKeyVectorMap m_discrete_end_point_mapping_ = {};
-        // buffer used for inserting point cloud to track the end points
         QuadtreeKeyVectorMap m_end_point_mapping_ = {};
 
     public:
-        typedef Dtype DataType;
-        typedef Eigen::Matrix<Dtype, 2, Eigen::Dynamic> Matrix2X;
-        typedef Eigen::Matrix<Dtype, 2, 2> Matrix2;
-        typedef Eigen::Vector<Dtype, 2> Vector2;
-        typedef Eigen::Vector<Dtype, Eigen::Dynamic> VectorX;
+        using Super = QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting>;
+        using Matrix2X = Eigen::Matrix2X<Dtype>;
+        using Matrix2 = Eigen::Matrix2<Dtype>;
+        using Vector2 = Eigen::Vector2<Dtype>;
+        using VectorX = Eigen::VectorX<Dtype>;
 
         OccupancyQuadtreeBase() = delete;  // no default constructor
 
@@ -73,6 +71,46 @@ namespace erl::geometry {
         SamplePositions(std::size_t num_positions, std::vector<Vector2>& positions) const;
 
         //-- insert point cloud
+    private:
+        /**
+         * Compute the end point mapping for a point cloud.
+         * This function maps each point in the point cloud to its corresponding quadtree cell.
+         * It also computes the range and difference vectors for each point.
+         * The results are stored in the provided output parameters.
+         * @param points 2xN matrix of points in the world frame.
+         * @param sensor_origin 2D vector of the sensor origin in the world frame.
+         * @param min_range Minimum range of the sensor. Points closer than this range are ignored.
+         * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
+         * Non-positive value means no limit.
+         * @param discrete Whether to discretize the points. i.e. merge points of the same key
+         * @param ranges Output vector of ranges for each filtered point.
+         * @param diffs Output vector of difference vectors for each filtered point.
+         * @param filtered_points Output matrix of filtered points. If discrete is true, this
+         * matrix contains the points for each quadtree cell. Otherwise, it is the same as points.
+         * @param occupied_cells Output vector of occupied cells.
+         */
+        void
+        ComputeOccupiedCells(
+            const Eigen::Ref<const Matrix2X>& points,
+            const Eigen::Ref<const Vector2>& sensor_origin,
+            Dtype min_range,
+            Dtype max_range,
+            bool discrete,
+            std::vector<Dtype>& ranges,
+            std::vector<std::array<Dtype, 2>>& diffs,
+            Matrix2X& filtered_points,
+            QuadtreeKeyVector& occupied_cells);
+
+        void
+        ComputeFreeCells(
+            const Eigen::Ref<const Matrix2X>& points,
+            const Eigen::Ref<const Vector2>& sensor_origin,
+            const std::vector<Dtype>& ranges,
+            const std::vector<std::array<Dtype, 2>>& diffs,
+            Dtype max_range,
+            bool parallel);
+
+    public:
         /**
          * Insert a point cloud in the world frame. Multiple points may fall into the same voxel
          * updated only once, and occupied nodes are preferred than free ones. This avoids
@@ -82,10 +120,12 @@ namespace erl::geometry {
          * @param min_range Minimum range of the sensor. Points closer than this range are ignored.
          * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
          * Non-positive value means no limit.
+         * @param with_count whether to update nodes with consideration of the number of rays that
+         * pass through or hit the node.
          * @param parallel whether to use parallel computation
          * @param lazy_eval Whether to update the occupancy of the nodes later. If true, the
          * occupancy is not updated until UpdateInnerOccupancy() is called.
-         * @param discretize
+         * @param discrete
          */
         virtual void
         InsertPointCloud(
@@ -93,41 +133,10 @@ namespace erl::geometry {
             const Eigen::Ref<const Vector2>& sensor_origin,
             Dtype min_range,
             Dtype max_range,
+            bool with_count,
             bool parallel,
             bool lazy_eval,
-            bool discretize);
-
-        /**
-         * Compute keys of the cells to update for a point cloud up to the resolution.
-         * @param points 2xN matrix of points in the world frame, points falling into the same voxel
-         * are merged to the first appearance.
-         * @param sensor_origin 2D vector of the sensor origin in the world frame
-         * @param min_range Minimum range of the sensor. Points closer than this range are ignored.
-         * @param max_range Maximum range of the sensor. Points beyond this range are ignored.
-         * Non-positive value means no limit.
-         * @param parallel whether to use parallel computation
-         * @param free_cells keys of the free cells to update
-         * @param occupied_cells keys of the occupied cells to update
-         */
-        void
-        ComputeDiscreteUpdateForPointCloud(
-            const Eigen::Ref<const Matrix2X>& points,
-            const Eigen::Ref<const Vector2>& sensor_origin,
-            Dtype min_range,
-            Dtype max_range,
-            bool parallel,
-            QuadtreeKeyVector& free_cells,
-            QuadtreeKeyVector& occupied_cells);
-
-        void
-        ComputeUpdateForPointCloud(
-            const Eigen::Ref<const Matrix2X>& points,
-            const Eigen::Ref<const Vector2>& sensor_origin,
-            Dtype min_range,
-            Dtype max_range,
-            bool parallel,
-            QuadtreeKeyVector& free_cells,
-            QuadtreeKeyVector& occupied_cells);
+            bool discrete);
 
         /**
          * Insert a point cloud ray by ray. Some cells may be updated multiple times. Benchmark
@@ -258,9 +267,6 @@ namespace erl::geometry {
 
         [[nodiscard]] const QuadtreeKeyVectorMap&
         GetEndPointMaps() const;
-
-        [[nodiscard]] const QuadtreeKeyVectorMap&
-        GetDiscreteEndPointMaps() const;
 
         //-- update nodes' occupancy
         /**

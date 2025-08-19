@@ -13,7 +13,7 @@ namespace erl::geometry {
     template<typename Dtype, class Node, class Setting>
     OccupancyQuadtreeBase<Dtype, Node, Setting>::OccupancyQuadtreeBase(
         const std::shared_ptr<Setting> &setting)
-        : QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting>(setting),
+        : Super(setting),
           m_setting_(std::static_pointer_cast<OccupancyQuadtreeBaseSetting>(setting)) {}
 
     template<typename Dtype, class Node, class Setting>
@@ -23,15 +23,14 @@ namespace erl::geometry {
         const cv::Mat &image_map,
         const Dtype occupied_threshold,
         const int padding)
-        : QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting>(
-              [&map_info, &setting]() -> std::shared_ptr<Setting> {
-                  if (setting == nullptr) { setting = std::make_shared<Setting>(); }
-                  setting->resolution = map_info->Resolution().mean();
-                  setting->log_odd_max = 10.0f;
-                  setting->SetProbabilityHit(0.95f);   // log_odd_hit = 3
-                  setting->SetProbabilityMiss(0.49f);  // log_odd_miss = 0
-                  return setting;
-              }()),
+        : Super([&map_info, &setting]() -> std::shared_ptr<Setting> {
+              if (setting == nullptr) { setting = std::make_shared<Setting>(); }
+              setting->resolution = map_info->Resolution().mean();
+              setting->log_odd_max = 10.0f;
+              setting->SetProbabilityHit(0.95f);   // log_odd_hit = 3
+              setting->SetProbabilityMiss(0.49f);  // log_odd_miss = 0
+              return setting;
+          }()),
           m_setting_(std::static_pointer_cast<OccupancyQuadtreeBaseSetting>(std::move(setting))) {
         ERL_ASSERTM(image_map.channels() == 1, "Image map must be a single channel image.");
         cv::Mat obstacle_map;
@@ -82,12 +81,10 @@ namespace erl::geometry {
     template<typename Dtype, class Node, class Setting>
     std::shared_ptr<AbstractQuadtree<Dtype>>
     OccupancyQuadtreeBase<Dtype, Node, Setting>::Clone() const {
-        std::shared_ptr<AbstractQuadtree<Dtype>> tree =
-            QuadtreeImpl<Node, AbstractOccupancyQuadtree<Dtype>, Setting>::Clone();
+        std::shared_ptr<AbstractQuadtree<Dtype>> tree = Super::Clone();
         std::shared_ptr<OccupancyQuadtreeBase> occupancy_tree =
             std::dynamic_pointer_cast<OccupancyQuadtreeBase>(tree);
         occupancy_tree->m_changed_keys_ = m_changed_keys_;
-        occupancy_tree->m_discrete_end_point_mapping_ = m_discrete_end_point_mapping_;
         occupancy_tree->m_end_point_mapping_ = m_end_point_mapping_;
         return tree;
     }
@@ -125,141 +122,98 @@ namespace erl::geometry {
 
     template<typename Dtype, class Node, class Setting>
     void
-    OccupancyQuadtreeBase<Dtype, Node, Setting>::InsertPointCloud(
+    OccupancyQuadtreeBase<Dtype, Node, Setting>::ComputeOccupiedCells(
         const Eigen::Ref<const Matrix2X> &points,
         const Eigen::Ref<const Vector2> &sensor_origin,
         const Dtype min_range,
         const Dtype max_range,
-        const bool parallel,
-        const bool lazy_eval,
-        const bool discretize) {
-        static QuadtreeKeyVector free_cells, occupied_cells;  // static to avoid memory allocation
-        // compute cells to update
-        if (discretize) {
-            ComputeDiscreteUpdateForPointCloud(
-                points,
-                sensor_origin,
-                min_range,
-                max_range,
-                parallel,
-                free_cells,
-                occupied_cells);
-        } else {
-            ComputeUpdateForPointCloud(
-                points,
-                sensor_origin,
-                min_range,
-                max_range,
-                parallel,
-                free_cells,
-                occupied_cells);
-        }
-        // insert data into the tree
-        for (const QuadtreeKey &free_cell: free_cells) {
-            this->UpdateNode(free_cell, false, lazy_eval);
-        }
-        for (const QuadtreeKey &occupied_cell: occupied_cells) {
-            this->UpdateNode(occupied_cell, true, lazy_eval);
-        }
-    }
-
-    template<typename Dtype, class Node, class Setting>
-    void
-    OccupancyQuadtreeBase<Dtype, Node, Setting>::ComputeDiscreteUpdateForPointCloud(
-        const Eigen::Ref<const Matrix2X> &points,
-        const Eigen::Ref<const Vector2> &sensor_origin,
-        const Dtype min_range,
-        const Dtype max_range,
-        const bool parallel,
-        QuadtreeKeyVector &free_cells,
+        const bool discretize,
+        std::vector<Dtype> &ranges,
+        std::vector<std::array<Dtype, 2>> &diffs,
+        Matrix2X &filtered_points,
         QuadtreeKeyVector &occupied_cells) {
 
         const long num_points = points.cols();
         if (num_points == 0) { return; }
 
-        Matrix2X new_points(2, num_points);
-        m_discrete_end_point_mapping_.clear();
-        for (long i = 0; i < num_points; ++i) {
-            const auto &point = points.col(i);
-            QuadtreeKey key = this->CoordToKey(point[0], point[1]);
-            auto &indices = m_discrete_end_point_mapping_[key];
-            if (indices.empty()) {
-                new_points.col(static_cast<long>(m_discrete_end_point_mapping_.size()) - 1)
-                    << point;
-            }
-            indices.push_back(i);
-        }
-        new_points.conservativeResize(2, static_cast<long>(m_discrete_end_point_mapping_.size()));
-        this->ComputeUpdateForPointCloud(
-            new_points,
-            sensor_origin,
-            min_range,
-            max_range,
-            parallel,
-            free_cells,
-            occupied_cells);
-    }
-
-    template<typename Dtype, class Node, class Setting>
-    void
-    OccupancyQuadtreeBase<Dtype, Node, Setting>::ComputeUpdateForPointCloud(
-        const Eigen::Ref<const Matrix2X> &points,
-        const Eigen::Ref<const Vector2> &sensor_origin,
-        const Dtype min_range,
-        const Dtype max_range,
-        bool parallel,
-        QuadtreeKeyVector &free_cells,
-        QuadtreeKeyVector &occupied_cells) {
-
-        const long num_points = points.cols();
-        if (num_points == 0) { return; }
-
-        QuadtreeKeySet &free_cells_set = this->m_key_sets_[0];
-
-        free_cells_set.clear();
-        m_end_point_mapping_.clear();
-        free_cells.clear();
-        occupied_cells.clear();
-
-        std::vector<Dtype> ranges(num_points);
-        std::vector<std::array<Dtype, 2>> diffs(num_points);
-        omp_set_num_threads(this->m_key_rays_.size());
-
-        // insert occupied endpoint
         const bool aabb_limit = m_setting_->use_aabb_limit;
         const auto &aabb = m_setting_->aabb.cast<Dtype>();
+
+        ranges.resize(num_points);
+        diffs.resize(num_points);
+        m_end_point_mapping_.clear();
+        occupied_cells.clear();
+
+        if (discretize) {
+            filtered_points.resize(2, num_points);
+
+            long cnt = 0;
+            for (long i = 0; i < num_points; ++i) {
+                const auto &point = points.col(i);
+
+                Dtype &dx = diffs[cnt][0];
+                Dtype &dy = diffs[cnt][1];
+                Dtype &r = ranges[cnt];
+
+                dx = point[0] - sensor_origin[0];
+                dy = point[1] - sensor_origin[1];
+                r = std::sqrt(dx * dx + dy * dy);
+
+                QuadtreeKey key;
+                const bool key_valid = this->CoordToKeyChecked(point[0], point[1], key);
+
+                if (!m_end_point_mapping_.contains(key)) { filtered_points.col(cnt++) << point; }
+                auto &indices = m_end_point_mapping_[key];  // insert
+
+                if (!key_valid) { continue; }
+                if (((max_range > 0.0f) && (r > max_range)) || (r <= min_range)) { continue; }
+                if (aabb_limit && !aabb.contains(point)) { continue; }
+                indices.push_back(i);
+                if (indices.size() == 1) { occupied_cells.push_back(key); }  // first time seen
+            }
+            filtered_points.conservativeResize(2, cnt);
+            ranges.resize(cnt);
+            diffs.resize(cnt);
+            return;
+        }
+
+        filtered_points = points;
         for (long i = 0; i < num_points; ++i) {
-            const auto &p = points.col(i);
+            const auto &point = points.col(i);
 
             Dtype &dx = diffs[i][0];
             Dtype &dy = diffs[i][1];
-            Dtype &range = ranges[i];
+            Dtype &r = ranges[i];
 
-            dx = p[0] - sensor_origin[0];
-            dy = p[1] - sensor_origin[1];
-            range = std::sqrt(dx * dx + dy * dy);
+            dx = point[0] - sensor_origin[0];
+            dy = point[1] - sensor_origin[1];
+            r = std::sqrt(dx * dx + dy * dy);
 
             QuadtreeKey key;
-            if (aabb_limit) {
-                if (aabb.contains(p) && (max_range < 0.0f || range <= max_range) &&
-                    (range > min_range) && this->CoordToKeyChecked(p[0], p[1], key)) {
-                    // 1. inside bounding box and range limit
-                    // 2. key is valid
-                    auto &indices = m_end_point_mapping_[key];
-                    if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
-                    indices.push_back(i);
-                }
-            } else {
-                if ((max_range < 0.0f || range <= max_range) && (range > min_range) &&
-                    this->CoordToKeyChecked(p[0], p[1], key)) {  // key is valid
-                    auto &indices = m_end_point_mapping_[key];
-                    if (indices.empty()) { occupied_cells.push_back(key); }  // new key!
-                    indices.push_back(i);
-                }
-            }
+            if (!this->CoordToKeyChecked(point[0], point[1], key)) { continue; }
+            if (((max_range > 0.0f) && (r > max_range)) || (r <= min_range)) { continue; }
+            if (aabb_limit && !aabb.contains(point)) { continue; }
+            auto indices = m_end_point_mapping_[key];
+            indices.push_back(i);
+            if (indices.size() == 1) { occupied_cells.push_back(key); }
         }
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    void
+    OccupancyQuadtreeBase<Dtype, Node, Setting>::ComputeFreeCells(
+        const Eigen::Ref<const Matrix2X> &points,
+        const Eigen::Ref<const Vector2> &sensor_origin,
+        const std::vector<Dtype> &ranges,
+        const std::vector<std::array<Dtype, 2>> &diffs,
+        const Dtype max_range,
+        bool parallel) {
+
+        const long num_points = points.cols();
+        if (num_points == 0) { return; }
 
         const auto num_threads = static_cast<long>(this->m_key_rays_.size());
+        // single-threaded or too few points to parallelize
         if (num_threads <= 1 || num_points < 100 * num_threads) { parallel = false; }
         if (parallel) {
             const auto batch_size = num_points / num_threads + 1;
@@ -269,11 +223,10 @@ namespace erl::geometry {
                 const long start_idx = tid * batch_size;
                 const long end_idx = std::min(start_idx + batch_size, num_points);
                 QuadtreeKeyRay &key_ray = this->m_key_rays_[tid];
-                QuadtreeKeySet &key_set = this->m_key_sets_[tid];
-                QuadtreeKeyVector &free_cells_tid = this->m_key_vectors_[tid];
-                key_set.clear();
-                free_cells_tid.clear();
-                // clear key_set and free_cells_tid before checking if this thread is used.
+                QuadtreeKeyLongMap &key_map = this->m_key_long_maps_[tid];  // keep the count
+                QuadtreeKeyVector &free_cells = this->m_key_vectors_[tid];  // keep the order
+                key_map.clear();
+                free_cells.clear();
                 if (start_idx >= num_points) { continue; }
                 const Dtype sx = sensor_origin[0];
                 const Dtype sy = sensor_origin[1];
@@ -289,54 +242,69 @@ namespace erl::geometry {
                     }
                     if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { continue; }
                     for (auto &key: key_ray) {
-                        // skip keys marked as occupied or already inserted
-                        if (m_end_point_mapping_.contains(key)) { continue; }
-                        if (!key_set.emplace(key).second) { continue; }
-                        free_cells_tid.push_back(key);
+                        // skip keys marked as occupied: exist in m_end_point_mapping_ and not empty
+                        if (auto it = m_end_point_mapping_.find(key);
+                            it != m_end_point_mapping_.end() && !it->second.empty()) {
+                            continue;
+                        }
+                        auto [it, inserted] = key_map.try_emplace(key, 1);
+                        if (inserted) {
+                            free_cells.push_back(key);
+                        } else {
+                            ++it->second;
+                        }
                     }
                 }
             }
 
-            // we do a stride-2 merge in advance with the following benefits:
-            // 1. we can parallelize it;
-            // 2. we don't need to do any set insertion so that rehashing and memory reallocation
-            // are avoided;
-            // 3. we can avoid the overhead of the critical section.
-            // this part may be less helpful when chunks have small overlaps between each other
-            // because it saves few insertion tries in the final merge step.
+            // merge thread-local maps into the main free_cells map
+            // step 1: do stride-2 merge to combine pairs of thread-local maps
 #pragma omp parallel for default(none) shared(num_threads)
             for (long i = 1; i < num_threads; i += 2) {  // 1, 3, 5, ...
                 if (i + 1 >= num_threads) { continue; }
-                QuadtreeKeySet &key_set0 = this->m_key_sets_[i];
+                QuadtreeKeyLongMap &key_map0 = this->m_key_long_maps_[i];
+                QuadtreeKeyLongMap &key_map1 = this->m_key_long_maps_[i + 1];
                 QuadtreeKeyVector &free_cells0 = this->m_key_vectors_[i];
                 QuadtreeKeyVector &free_cells1 = this->m_key_vectors_[i + 1];
-                if (free_cells1.empty()) { continue; }
+                if (key_map1.empty()) { continue; }
+                // merge
+                key_map0.reserve(key_map0.size() + key_map1.size());
                 free_cells0.reserve(free_cells0.size() + free_cells1.size());
                 for (auto &key: free_cells1) {
-                    if (key_set0.contains(key)) { continue; }  // no insertion is needed
-                    free_cells0.push_back(key);
+                    const long cnt1 = key_map1[key];
+                    auto [it, inserted] = key_map0.try_emplace(key, cnt1);
+                    if (inserted) {
+                        free_cells0.push_back(key);
+                    } else {
+                        it->second += cnt1;
+                    }
                 }
+                key_map1.clear();
                 free_cells1.clear();
             }
 
+            // step 2: merge all remaining maps into the final result
+            // start with thread 0's map
+            QuadtreeKeyLongMap &key_map = this->m_key_long_maps_[0];
+            QuadtreeKeyVector &free_cells = this->m_key_vectors_[0];
             const std::size_t max_num_free_cells = std::accumulate(
-                this->m_key_vectors_.begin(),
-                this->m_key_vectors_.end(),
+                this->m_key_long_maps_.begin(),
+                this->m_key_long_maps_.end(),
                 0,
-                [](const std::size_t sum, const QuadtreeKeyVector &vec) {
-                    return sum + vec.size();
+                [](const std::size_t sum, const QuadtreeKeyLongMap &map) {
+                    return sum + map.size();
                 });
+            key_map.reserve(max_num_free_cells);
             free_cells.reserve(max_num_free_cells);
-            free_cells_set.reserve(max_num_free_cells);
-            free_cells.insert(
-                free_cells.end(),
-                this->m_key_vectors_[0].begin(),
-                this->m_key_vectors_[0].end());
-            // free_cells_set is the reference of m_key_sets_[0]
+            // merge odd-indexed maps (which now contain accumulated counts)
             for (long i = 1; i < num_threads; i += 2) {
-                for (auto &key: this->m_key_vectors_[i]) {
-                    if (!free_cells_set.emplace(key).second) { continue; }
-                    free_cells.push_back(key);
+                for (const auto &[key, count]: this->m_key_long_maps_[i]) {
+                    auto [it, inserted] = key_map.try_emplace(key, count);
+                    if (inserted) {
+                        free_cells.push_back(key);
+                    } else {
+                        it->second += count;
+                    }
                 }
             }
             return;  // done.
@@ -344,27 +312,97 @@ namespace erl::geometry {
 
         const Dtype sx = sensor_origin[0];
         const Dtype sy = sensor_origin[1];
+        const uint32_t thread_idx = omp_get_thread_num();
+        QuadtreeKeyLongMap &key_map = this->m_key_long_maps_[0];
+        QuadtreeKeyVector &free_cells = this->m_key_vectors_[0];
+        QuadtreeKeyRay &key_ray = this->m_key_rays_[thread_idx];
+        key_map.clear();
+        free_cells.clear();
+        key_ray.clear();
         for (long i = 0; i < num_points; ++i) {
-            const auto &p = points.col(i);
-            uint32_t thread_idx = omp_get_thread_num();
-            QuadtreeKeyRay &key_ray = this->m_key_rays_[thread_idx];
+            const auto &point = points.col(i);
 
             const Dtype &range = ranges[i];
-            Dtype ex = p[0];
-            Dtype ey = p[1];
-            if (max_range >= 0.0f && range > max_range) {  // crop ray at max_range
+            Dtype ex = point[0];
+            Dtype ey = point[1];
+            if ((max_range >= 0.0f) && (range > max_range)) {  // crop ray at max_range
                 const Dtype r = max_range / range;
                 ex = sx + diffs[i][0] * r;
                 ey = sy + diffs[i][1] * r;
             }
-
+            // key is invalid
             if (!this->ComputeRayKeys(sx, sy, ex, ey, key_ray)) { continue; }
             for (auto &key: key_ray) {
-                // skip keys marked as occupied or already inserted
-                if (m_end_point_mapping_.find(key) != m_end_point_mapping_.end()) { continue; }
-                if (!free_cells_set.emplace(key).second) { continue; }
-                free_cells.push_back(key);
+                // skip keys marked as occupied: exist in m_end_point_mapping_ and not empty
+                if (auto it = m_end_point_mapping_.find(key);
+                    it != m_end_point_mapping_.end() && !it->second.empty()) {
+                    continue;
+                }
+                auto [it, inserted] = key_map.try_emplace(key, 1);
+                if (inserted) {
+                    free_cells.push_back(key);
+                } else {
+                    ++it->second;
+                }
             }
+        }
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    void
+    OccupancyQuadtreeBase<Dtype, Node, Setting>::InsertPointCloud(
+        const Eigen::Ref<const Matrix2X> &points,
+        const Eigen::Ref<const Vector2> &sensor_origin,
+        const Dtype min_range,
+        const Dtype max_range,
+        const bool with_count,
+        const bool parallel,
+        const bool lazy_eval,
+        const bool discrete) {
+
+        if (points.cols() == 0) { return; }
+
+        std::vector<Dtype> ranges;
+        std::vector<std::array<Dtype, 2>> diffs;
+        Matrix2X new_points;
+        QuadtreeKeyVector occupied_cells;
+        occupied_cells.reserve(points.cols());
+        ComputeOccupiedCells(
+            points,
+            sensor_origin,
+            min_range,
+            max_range,
+            discrete,
+            ranges,
+            diffs,
+            new_points,
+            occupied_cells);
+        ComputeFreeCells(new_points, sensor_origin, ranges, diffs, max_range, parallel);
+
+        // insert data into the tree
+        if (with_count) {
+            for (const QuadtreeKey &free_cell: this->m_key_vectors_[0]) {
+                const long cnt = this->m_key_long_maps_[0][free_cell];
+                if (cnt <= 0) { continue; }  // should not happen
+                float log_odds_delta = m_setting_->log_odd_miss * static_cast<float>(cnt);
+                this->UpdateNode(free_cell, log_odds_delta, lazy_eval);
+            }
+            for (const QuadtreeKey &occupied_cell: occupied_cells) {
+                const auto &indices = m_end_point_mapping_[occupied_cell];
+                if (indices.empty()) { continue; }  // should not happen
+                float log_odds_delta = m_setting_->log_odd_hit * static_cast<float>(indices.size());
+                this->UpdateNode(occupied_cell, log_odds_delta, lazy_eval);
+            }
+            return;
+        }
+
+        // update free cells
+        for (const QuadtreeKey &free_cell: this->m_key_vectors_[0]) {
+            this->UpdateNode(free_cell, false, lazy_eval);
+        }
+        // update occupied cells
+        for (const QuadtreeKey &occupied_cell: occupied_cells) {
+            this->UpdateNode(occupied_cell, true, lazy_eval);
         }
     }
 
@@ -385,7 +423,7 @@ namespace erl::geometry {
 #pragma omp parallel for if (parallel) default(none) \
     shared(num_points, points, sensor_origin, min_range, max_range, lazy_eval) schedule(guided)
         for (long i = 0; i < num_points; ++i) {
-            const auto &point = points.col(i);
+            const auto point = points.col(i);
             uint32_t thread_idx = omp_get_thread_num();
             QuadtreeKeyRay &key_ray = this->m_key_rays_[thread_idx];
             if (!this->ComputeRayKeys(
@@ -399,10 +437,10 @@ namespace erl::geometry {
 
 #pragma omp critical
             {
-                for (auto &key: key_ray) { UpdateNode(key, false, lazy_eval); }
+                for (auto &key: key_ray) { this->UpdateNode(key, false, lazy_eval); }
                 if (const Dtype range = (point - sensor_origin).norm();
                     (max_range <= 0.0f || range <= max_range) && (range > min_range)) {
-                    UpdateNode(point[0], point[1], true, lazy_eval);
+                    this->UpdateNode(point[0], point[1], true, lazy_eval);
                 }
             }
         }
@@ -797,12 +835,6 @@ namespace erl::geometry {
     const QuadtreeKeyVectorMap &
     OccupancyQuadtreeBase<Dtype, Node, Setting>::GetEndPointMaps() const {
         return m_end_point_mapping_;
-    }
-
-    template<typename Dtype, class Node, class Setting>
-    const QuadtreeKeyVectorMap &
-    OccupancyQuadtreeBase<Dtype, Node, Setting>::GetDiscreteEndPointMaps() const {
-        return m_discrete_end_point_mapping_;
     }
 
     template<typename Dtype, class Node, class Setting>

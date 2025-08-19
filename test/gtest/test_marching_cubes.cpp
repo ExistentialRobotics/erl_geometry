@@ -42,6 +42,7 @@ TEST(MarchingCubes, SingleCube) {
         MC::SingleCube(
             vertex_coords,
             sdf_values,
+            0.0,
             extracted_mesh->vertices_,
             extracted_mesh->triangles_,
             extracted_mesh->triangle_normals_);
@@ -105,7 +106,8 @@ TEST(MarchingCubes, Sphere) {
     std::vector<std::vector<MC::ValidCube>> cubes_vec;
     {
         ERL_BLOCK_TIMER_MSG("collect valid cubes");
-        cubes_vec = MC::CollectValidCubes(grid_map_info.Shape(), sdf_values, row_major, parallel);
+        cubes_vec =
+            MC::CollectValidCubes(grid_map_info.Shape(), sdf_values, 0.0f, row_major, parallel);
     }
 
     // check by visualizing the valid cubes
@@ -135,11 +137,12 @@ TEST(MarchingCubes, Sphere) {
             grid_map_info.Resolution(),
             grid_map_info.Shape(),
             sdf_values,
+            0.0,
             row_major,
+            parallel,
             extracted_mesh->vertices_,
             extracted_mesh->triangles_,
-            extracted_mesh->triangle_normals_,
-            parallel);
+            extracted_mesh->triangle_normals_);
     }
     extracted_mesh->PaintUniformColor({0.0, 0.0, 1.0});
     // auto pcd = std::make_shared<open3d::geometry::PointCloud>();
@@ -211,11 +214,12 @@ TEST(MarchingCubes, HouseExpo) {
         grid_map_info.Resolution(),
         grid_map_info.Shape(),
         sdf_gt_values,
+        0.0,
         c_stride,
+        true,
         extracted_mesh->vertices_,
         extracted_mesh->triangles_,
-        extracted_mesh->triangle_normals_,
-        true);
+        extracted_mesh->triangle_normals_);
     open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
 }
 
@@ -233,10 +237,11 @@ TEST(MarchingCubes, FromArray) {
         Eigen::Vector3d(2.0 / 256, 2.0 / 256, 2.0 / 256),
         Eigen::Vector3i(256, 256, 256),
         sdf_values,
-        true,
+        0.0 /* iso_value */,
+        true /* row_major */,
+        true /* parallel */,
         extracted_mesh->vertices_,
         extracted_mesh->triangles_,
-        extracted_mesh->triangle_normals_,
-        true);
+        extracted_mesh->triangle_normals_);
     open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
 }

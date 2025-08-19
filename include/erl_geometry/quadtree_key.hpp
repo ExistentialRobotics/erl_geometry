@@ -198,5 +198,6 @@ namespace erl::geometry {
      * Data structure to efficiently track changed nodes.
      */
     using QuadtreeKeyBoolMap = absl::flat_hash_map<QuadtreeKey, bool>;
+    using QuadtreeKeyLongMap = absl::flat_hash_map<QuadtreeKey, long>;
     using QuadtreeKeyRay = std::vector<QuadtreeKey>;
 }  // namespace erl::geometry

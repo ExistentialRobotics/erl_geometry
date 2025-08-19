@@ -54,18 +54,24 @@ TEST(OccupancyQuadtree, InsertPointCloud) {
     }
     constexpr Dtype min_range = 0.0;
     constexpr Dtype max_range = -1.;
+    constexpr bool with_count = false;
     constexpr bool parallel = false;
     constexpr bool lazy_eval = false;
-    constexpr bool discretize = false;
+    constexpr bool discrete = false;
     erl::common::ReportTime<std::chrono::milliseconds>("InsertPointCloud", 1, true, [&] {
         tree->InsertPointCloud(
             points,
             sensor_origin,
             min_range,
             max_range,
+            with_count,
             parallel,
             lazy_eval,
-            discretize);
+            discrete);
+        if (lazy_eval) {
+            tree->UpdateInnerOccupancy();
+            tree->Prune();
+        }
     });
 
     auto setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();

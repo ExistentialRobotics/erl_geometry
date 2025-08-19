@@ -113,10 +113,10 @@ namespace erl::geometry {
         {
             if (omp_get_thread_num() == 0) {
                 m_key_rays_.resize(omp_get_num_threads());
-                m_key_sets_.resize(omp_get_num_threads());
+                m_key_long_maps_.resize(omp_get_num_threads());
                 m_key_vectors_.resize(omp_get_num_threads());
                 for (auto &key_ray: m_key_rays_) { key_ray.reserve(100000); }
-                for (auto &key_set: m_key_sets_) { key_set.reserve(100000); }
+                for (auto &key_long_map: m_key_long_maps_) { key_long_map.reserve(100000); }
                 for (auto &key_vector: m_key_vectors_) { key_vector.reserve(100000); }
             }
         }

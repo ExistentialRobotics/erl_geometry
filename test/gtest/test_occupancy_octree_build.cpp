@@ -66,9 +66,11 @@ TEST(OccupancyOctree, Build) {
 
     auto octree_setting = std::make_shared<OccupancyOctree::Setting>();
     octree_setting->resolution = OCTREE_RESOLUTION;
-    octree_setting->log_odd_max = 10.0;
-    octree_setting->SetProbabilityHit(0.95);   // log_odd_hit = 3
-    octree_setting->SetProbabilityMiss(0.49);  // log_odd_miss = 0
+    octree_setting->log_odd_max = 1000.0;
+    octree_setting->log_odd_miss = 0;
+    octree_setting->log_odd_hit = 1;
+    // octree_setting->SetProbabilityHit(0.999);   // log_odd_hit
+    // octree_setting->SetProbabilityMiss(0.499);  // log_odd_miss
     octree_setting->use_change_detection = true;
     // once hit, the cell will be occupied almost forever
     auto octree = std::make_shared<OccupancyOctree>(octree_setting);
@@ -83,7 +85,7 @@ TEST(OccupancyOctree, Build) {
         OccupancyOctreeDrawer::GetBlankGeometries();
     geometries.push_back(point_cloud);
     geometries.push_back(line_set_traj);
-    geometries.push_back(line_set_rays);
+    // geometries.push_back(line_set_rays);
     visualizer.AddGeometries(geometries);
 
     auto drawer_setting = std::make_shared<OccupancyOctreeDrawer::Setting>();
@@ -171,8 +173,21 @@ TEST(OccupancyOctree, Build) {
         octree->ClearChangedKeys();
         {
             ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
-            // octree->InsertPointCloud(points, sensor_origin, -1, -1, false, false, true);
-            octree->InsertPointCloud(points, sensor_origin, -1, -1, false, true, true);
+            constexpr Dtype min_range = 0.0;
+            constexpr Dtype max_range = -1.0;
+            constexpr bool with_count = false;
+            constexpr bool parallel = true;
+            constexpr bool lazy_eval = true;
+            constexpr bool discrete = true;
+            octree->InsertPointCloud(
+                points,
+                sensor_origin,
+                min_range,
+                max_range,
+                with_count,
+                parallel,
+                lazy_eval,
+                discrete);
             octree->UpdateInnerOccupancy();
             octree->Prune();
         }

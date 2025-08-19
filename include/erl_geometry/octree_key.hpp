@@ -202,5 +202,6 @@ namespace erl::geometry {
      * Data structure to efficiently track changed nodes.
      */
     using OctreeKeyBoolMap = absl::flat_hash_map<OctreeKey, bool>;
+    using OctreeKeyLongMap = absl::flat_hash_map<OctreeKey, long>;
     using OctreeKeyRay = std::vector<OctreeKey>;
 }  // namespace erl::geometry

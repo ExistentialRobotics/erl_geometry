@@ -4,7 +4,6 @@
 #include "erl_geometry/occupancy_octree.hpp"
 #include "erl_geometry/occupancy_octree_drawer.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
-#include "erl_geometry/utils.hpp"
 
 #include <open3d/geometry/VoxelGrid.h>
 #include <open3d/io/TriangleMeshIO.h>
@@ -13,10 +12,10 @@
 
 // parameters
 #define WINDOW_NAME          "OccupancyOctree_Build"
-#define OCTREE_RESOLUTION    0.1
 #define ANIMATION_INTERVAL   2
 #define MAX_POINT_CLOUD_SIZE 1000000
 #define STRIDE               1
+#define SCALING              1
 
 using Dtype = float;
 using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
@@ -41,6 +40,7 @@ TEST(OccupancyOctree, BuildNewerCollege) {
     ASSERT_TRUE(
         octree_setting->FromYamlFile(ERL_GEOMETRY_ROOT_DIR "/data/octree_newer_college.yaml"));
     octree_setting->use_change_detection = true;
+    octree_setting->resolution *= SCALING;
 
     auto octree = std::make_shared<OccupancyOctree>(octree_setting);
     const auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
@@ -97,15 +97,17 @@ TEST(OccupancyOctree, BuildNewerCollege) {
         idx += STRIDE;
 
         std::cout << "==== " << idx << " ====" << std::endl;
+        Eigen::Matrix3Xd points_in_world = frame.GetPointsInWorldFrame().array() * SCALING;
+        Eigen::Vector3d sensor_origin = frame.translation.array() * SCALING;
+
         double dt = 0;
-        line_set_traj->points_.emplace_back(frame.translation.cast<double>());
+        line_set_traj->points_.emplace_back(sensor_origin);
         if (line_set_traj->points_.size() > 1) {
             line_set_traj->lines_.emplace_back(
                 line_set_traj->points_.size() - 2,
                 line_set_traj->points_.size() - 1);
         }
 
-        Eigen::Matrix3Xd points_in_world = frame.GetPointsInWorldFrame();
         point_cloud->points_.clear();
         point_cloud->points_.reserve(points_in_world.cols());
         for (int i = 0; i < points_in_world.cols(); ++i) {
@@ -115,14 +117,21 @@ TEST(OccupancyOctree, BuildNewerCollege) {
         octree->ClearChangedKeys();
         {
             ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
+            constexpr Dtype min_range = 0.6 * SCALING;
+            constexpr Dtype max_range = 50.0 * SCALING;
+            constexpr bool with_count = false;
+            constexpr bool parallel = true;
+            constexpr bool lazy_eval = true;
+            constexpr bool discrete = true;
             octree->InsertPointCloud(
                 points_in_world.cast<Dtype>(),
-                frame.translation.cast<Dtype>(),
-                0.6,
-                50.0,
-                false,
-                true,
-                true);
+                sensor_origin.cast<Dtype>(),
+                min_range,
+                max_range,
+                with_count,
+                parallel,
+                lazy_eval,
+                discrete);
             octree->UpdateInnerOccupancy();
             octree->Prune();
         }

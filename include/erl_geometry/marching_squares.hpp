@@ -12,6 +12,12 @@ namespace erl::geometry {
             operator==(const Edge &other) const {
                 return v1x == other.v1x && v1y == other.v1y && v2x == other.v2x && v2y == other.v2y;
             }
+
+            template<typename H>
+            friend H
+            AbslHashValue(H h, const Edge &e) {
+                return H::combine(std::move(h), e.v1x, e.v1y, e.v2x, e.v2y);
+            }
         };
 
         struct HashEdge {
@@ -28,6 +34,62 @@ namespace erl::geometry {
 
         static const std::array<Edge, 5> kBaseEdgeTable;
         static const std::array<std::array<Edge, 4>, 16> kEdgePairTable;
+        static const int kUniqueEdgeIndexTable[16][5];
+        static const int kEdgeVertexIndexTable[4][2];
+        static const int kSquareVertexCodes[4][2];
+        static const int kSquareEdgeCodes[4][3];
+
+        static const int *
+        GetEdgeIndices(int config) {
+            if (config <= 0 || config >= 15) { return nullptr; }
+            return kUniqueEdgeIndexTable[config];
+        }
+
+        static const int *
+        GetUniqueEdgeIndices(int config) {
+            if (config <= 0 || config >= 15) { return nullptr; }
+            return kUniqueEdgeIndexTable[config];
+        }
+
+        static const int *
+        GetEdgeVertexIndices(int edge_index) {
+            if (edge_index < 0 || edge_index >= 4) { return nullptr; }
+            return kEdgeVertexIndexTable[edge_index];
+        }
+
+        static const int *
+        GetVertexCode(int vertex_index) {
+            if (vertex_index < 0 || vertex_index >= 4) { return nullptr; }
+            return kSquareVertexCodes[vertex_index];
+        }
+
+        static const int *
+        GetEdgeCode(int edge_index) {
+            if (edge_index < 0 || edge_index >= 4) { return nullptr; }
+            return kSquareEdgeCodes[edge_index];
+        }
+
+        static int
+        CalculateVertexConfigIndex(const double *vertex_values, double iso_value);
+
+        static int
+        CalculateVertexConfigIndex(const float *vertex_values, float iso_value);
+
+        static void
+        SingleSquare(
+            const Eigen::Ref<const Eigen::Matrix<double, 2, 4>> &vertex_coords,
+            const Eigen::Ref<const Eigen::Vector<double, 4>> &values,
+            double iso_value,
+            std::vector<Eigen::Vector2d> &vertices,
+            std::vector<Eigen::Vector2i> &lines);
+
+        static void
+        SingleSquare(
+            const Eigen::Ref<const Eigen::Matrix<float, 2, 4>> &vertex_coords,
+            const Eigen::Ref<const Eigen::Vector<float, 4>> &values,
+            float iso_value,
+            std::vector<Eigen::Vector2f> &vertices,
+            std::vector<Eigen::Vector2i> &lines);
 
         static void
         Run(const Eigen::Ref<const Eigen::MatrixXd> &img,
