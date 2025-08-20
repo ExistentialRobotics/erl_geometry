@@ -207,6 +207,7 @@ namespace erl::geometry {
         const std::vector<Dtype> &ranges,
         const std::vector<std::array<Dtype, 2>> &diffs,
         const Dtype max_range,
+        const bool with_count,
         bool parallel) {
 
         const long num_points = points.cols();
@@ -218,7 +219,15 @@ namespace erl::geometry {
         if (parallel) {
             const auto batch_size = num_points / num_threads + 1;
 #pragma omp parallel for default(none) \
-    shared(num_threads, batch_size, num_points, points, ranges, diffs, sensor_origin, max_range)
+    shared(num_threads,                \
+               batch_size,             \
+               num_points,             \
+               points,                 \
+               ranges,                 \
+               diffs,                  \
+               sensor_origin,          \
+               max_range,              \
+               with_count)
             for (long tid = 0; tid < num_threads; ++tid) {
                 const long start_idx = tid * batch_size;
                 const long end_idx = std::min(start_idx + batch_size, num_points);
@@ -259,7 +268,7 @@ namespace erl::geometry {
 
             // merge thread-local maps into the main free_cells map
             // step 1: do stride-2 merge to combine pairs of thread-local maps
-#pragma omp parallel for default(none) shared(num_threads)
+#pragma omp parallel for default(none) shared(num_threads, with_count)
             for (long i = 1; i < num_threads; i += 2) {  // 1, 3, 5, ...
                 if (i + 1 >= num_threads) { continue; }
                 QuadtreeKeyLongMap &key_map0 = this->m_key_long_maps_[i];
@@ -272,11 +281,16 @@ namespace erl::geometry {
                 free_cells0.reserve(free_cells0.size() + free_cells1.size());
                 for (auto &key: free_cells1) {
                     const long cnt1 = key_map1[key];
-                    auto [it, inserted] = key_map0.try_emplace(key, cnt1);
-                    if (inserted) {
-                        free_cells0.push_back(key);
+                    if (with_count) {
+                        auto [it, inserted] = key_map0.try_emplace(key, cnt1);
+                        if (inserted) {
+                            free_cells0.push_back(key);
+                        } else {
+                            it->second += cnt1;
+                        }
                     } else {
-                        it->second += cnt1;
+                        // count will be inaccurate, but faster
+                        if (!key_map0.contains(key)) { free_cells0.push_back(key); }
                     }
                 }
                 key_map1.clear();
@@ -377,7 +391,7 @@ namespace erl::geometry {
             diffs,
             new_points,
             occupied_cells);
-        ComputeFreeCells(new_points, sensor_origin, ranges, diffs, max_range, parallel);
+        ComputeFreeCells(new_points, sensor_origin, ranges, diffs, max_range, with_count, parallel);
 
         // insert data into the tree
         if (with_count) {

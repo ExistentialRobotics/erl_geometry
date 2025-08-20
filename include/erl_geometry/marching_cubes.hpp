@@ -27,6 +27,12 @@ namespace erl::geometry {
         }
 
         static const int *
+        GetVertexIndices(int config) {
+            if (config <= 0 || config >= 255) { return nullptr; }
+            return kTriangleVertexIndexTable[config];
+        }
+
+        static const int *
         GetUniqueEdgeIndices(int config) {
             if (config <= 0 || config >= 255) { return nullptr; }
             return kTriangleUniqueEdgeIndexTable[config];

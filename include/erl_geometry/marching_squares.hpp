@@ -35,6 +35,7 @@ namespace erl::geometry {
         static const std::array<Edge, 5> kBaseEdgeTable;
         static const std::array<std::array<Edge, 4>, 16> kEdgePairTable;
         static const int kUniqueEdgeIndexTable[16][5];
+        static const int kLineVertexIndexTable[16][5];
         static const int kEdgeVertexIndexTable[4][2];
         static const int kSquareVertexCodes[4][2];
         static const int kSquareEdgeCodes[4][3];
@@ -43,6 +44,12 @@ namespace erl::geometry {
         GetEdgeIndices(int config) {
             if (config <= 0 || config >= 15) { return nullptr; }
             return kUniqueEdgeIndexTable[config];
+        }
+
+        static const int *
+        GetVertexIndices(int config) {
+            if (config <= 0 || config >= 15) { return nullptr; }
+            return kLineVertexIndexTable[config];
         }
 
         static const int *

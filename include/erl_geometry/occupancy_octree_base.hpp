@@ -100,6 +100,7 @@ namespace erl::geometry {
             const std::vector<Dtype>& ranges,
             const std::vector<std::array<Dtype, 3>>& diffs,
             Dtype max_range,
+            bool with_count,
             bool parallel);
 
     public:
