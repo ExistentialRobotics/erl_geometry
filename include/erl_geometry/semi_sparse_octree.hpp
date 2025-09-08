@@ -1,5 +1,6 @@
 #pragma once
 
+#include "semi_sparse_nd_tree_setting.hpp"
 #include "semi_sparse_octree_base.hpp"
 
 #include "erl_common/serialization.hpp"

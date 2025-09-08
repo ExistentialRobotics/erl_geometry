@@ -14,6 +14,9 @@ void
 BindNdTreeSetting(const py::module &m);
 
 void
+BindSemiSparseNdTreeSetting(const py::module &m);
+
+void
 BindOccupancyNdTreeSetting(const py::module &m);
 
 void
@@ -38,6 +41,9 @@ void
 BindPyObjectOccupancyQuadtreeNode(const py::module &m);
 
 void
+BindSemiSparseQuadtreeNode(const py::module &m);
+
+void
 BindOccupancyQuadtreeBaseSetting(const py::module &m);
 
 void
@@ -45,6 +51,9 @@ BindAbstractOccupancyQuadtree(const py::module &m);
 
 void
 BindOccupancyQuadtree(const py::module &m);
+
+void
+BindSemiSparseQuadtree(const py::module &m);
 
 void
 BindPyObjectOccupancyQuadtree(const py::module &m);
@@ -62,6 +71,9 @@ void
 BindOccupancyOctreeNode(const py::module &m);
 
 void
+BindSemiSparseOctreeNode(const py::module &m);
+
+void
 BindPyObjectOccupancyOctreeNode(const py::module &m);
 
 void
@@ -72,6 +84,9 @@ BindAbstractOccupancyOctree(const py::module &m);
 
 void
 BindOccupancyOctree(const py::module &m);
+
+void
+BindSemiSparseOctree(const py::module &m);
 
 void
 BindPyObjectOccupancyOctree(const py::module &m);
@@ -171,6 +186,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindCityStreetMap(m);
 
     BindNdTreeSetting(m);
+    BindSemiSparseNdTreeSetting(m);
     BindOccupancyNdTreeSetting(m);
     BindOccupancyQuadtreeBaseSetting(m);
     BindOccupancyOctreeBaseSetting(m);
@@ -182,22 +198,26 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
 
     BindAbstractQuadtreeNode(m);
     BindOccupancyQuadtreeNode(m);
+    BindSemiSparseQuadtreeNode(m);
     BindPyObjectOccupancyQuadtreeNode(m);
 
     BindAbstractQuadtree(m);
     BindAbstractOccupancyQuadtree(m);
     BindOccupancyQuadtree(m);
+    BindSemiSparseQuadtree(m);
     BindPyObjectOccupancyQuadtree(m);
 
     BindOctreeKey(m);
 
     BindAbstractOctreeNode(m);
     BindOccupancyOctreeNode(m);
+    BindSemiSparseOctreeNode(m);
     BindPyObjectOccupancyOctreeNode(m);
 
     BindAbstractOctree(m);
     BindAbstractOccupancyOctree(m);
     BindOccupancyOctree(m);
+    BindSemiSparseOctree(m);
     BindPyObjectOccupancyOctree(m);
 
     BindSurface2D(m);

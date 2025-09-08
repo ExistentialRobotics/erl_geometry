@@ -1284,8 +1284,9 @@ namespace erl::geometry {
         // start searching from the smallest neighbor in the bottom-left corner
         this->m_neighbor_key_[unchanged_dim] = key_unchanged;
         this->m_neighbor_key_[changing_dim] = key[changing_dim] - half_offset;
-        this->m_max_key_changing_dim_ =
-            std::min(key[changing_dim] + (level == 0 ? 1 : half_offset), 1 << max_depth);
+        this->m_max_key_changing_dim_ = std::min(
+            key[changing_dim] + (level == 0 ? 1 : half_offset),
+            static_cast<QuadtreeKey::KeyType>(1 << max_depth));
         this->m_stack_.resize(1);
         this->SingleIncrementOf(changing_dim);
     }

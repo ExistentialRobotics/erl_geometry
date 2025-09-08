@@ -11,12 +11,12 @@ namespace erl::geometry {
 
     /**
      * QuadtreeKey is a simple class that represents a key for a quadtree node. It is a 2D vector of
-     * uint16_t. Each element counts the number of cells from the origin as a discrete address of a
+     * uint32_t. Each element counts the number of cells from the origin as a discrete address of a
      * voxel.
      */
     class QuadtreeKey {
     public:
-        using KeyType = uint16_t;
+        using KeyType = uint32_t;
 
     private:
         KeyType m_k_[2] = {0, 0};
@@ -114,7 +114,7 @@ namespace erl::geometry {
 
         [[nodiscard]] explicit
         operator std::string() const {
-            return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]);
+            return fmt::format("[{}, {}]", m_k_[0], m_k_[1]);
         }
 
         [[nodiscard]] uint64_t

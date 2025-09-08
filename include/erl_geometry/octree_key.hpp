@@ -11,12 +11,12 @@ namespace erl::geometry {
 
     /**
      * OctreeKey is a simple class that represents a key for an octree node. It is a 3D vector of
-     * uint16_t. Each element counts the number of cells from the origin as a discrete address of a
+     * uint32_t. Each element counts the number of cells from the origin as a discrete address of a
      * voxel.
      */
     class OctreeKey {
     public:
-        using KeyType = uint16_t;
+        using KeyType = uint32_t;
 
     private:
         KeyType m_k_[3] = {0, 0, 0};
@@ -121,8 +121,7 @@ namespace erl::geometry {
 
         [[nodiscard]] explicit
         operator std::string() const {
-            return std::to_string(m_k_[0]) + "," + std::to_string(m_k_[1]) + "," +
-                   std::to_string(m_k_[2]);
+            return fmt::format("[{}, {}, {}]", m_k_[0], m_k_[1], m_k_[2]);
         }
 
         [[nodiscard]] uint64_t

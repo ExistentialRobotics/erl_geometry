@@ -7,7 +7,12 @@ BindOctreeKey(const py::module &m) {
 
     py::class_<OctreeKey>(m, "OctreeKey")
         .def(py::init<>())
-        .def(py::init<OctreeKey::KeyType, OctreeKey::KeyType, OctreeKey::KeyType>(), py::arg("a"), py::arg("b"), py::arg("c"))
+        .def(
+            py::init<OctreeKey::KeyType, OctreeKey::KeyType, OctreeKey::KeyType>(),
+            py::arg("a"),
+            py::arg("b"),
+            py::arg("c"))
+        .def("__repr__", [](const OctreeKey &self) { return std::string(self); })
         .def("__eq__", [](const OctreeKey &self, const OctreeKey &other) { return self == other; })
         .def("__ne__", [](const OctreeKey &self, const OctreeKey &other) { return self != other; })
         .def("__getitem__", [](const OctreeKey &self, const int idx) { return self[idx]; })

@@ -1406,11 +1406,13 @@ namespace erl::geometry {
         this->m_neighbor_key_[unchanged_dim] = key_unchanged;
         this->m_neighbor_key_[changing_dim1] = key[changing_dim1] - half_offset;
         this->m_neighbor_key_[changing_dim2] = key[changing_dim2] - half_offset;
-        this->m_max_key_changing_dim1_ =
-            std::min(key[changing_dim1] + (level == 0 ? 1 : half_offset), 1 << max_depth);
+        this->m_max_key_changing_dim1_ = std::min(
+            key[changing_dim1] + (level == 0 ? 1 : half_offset),
+            static_cast<OctreeKey::KeyType>(1 << max_depth));
         this->m_min_key_changing_dim2_ = this->m_neighbor_key_[changing_dim2];
-        this->m_max_key_changing_dim2_ =
-            std::min(key[changing_dim2] + (level == 0 ? 1 : half_offset), 1 << max_depth);
+        this->m_max_key_changing_dim2_ = std::min(
+            key[changing_dim2] + (level == 0 ? 1 : half_offset),
+            static_cast<OctreeKey::KeyType>(1 << max_depth));
         this->m_stack_.resize(1);
         this->SingleIncrementOf(changing_dim1, changing_dim2);
     }

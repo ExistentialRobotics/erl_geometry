@@ -76,6 +76,12 @@ namespace erl::geometry {
 
     template<typename Dtype, class Node, class Setting>
     std::vector<typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex>
+    SemiSparseQuadtreeBase<Dtype, Node, Setting>::InsertPoints(const Matrix2X &points) {
+        return InsertPoints(points.data(), points.cols());
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::vector<typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex>
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::InsertPoints(
         const Dtype *points,
         const std::size_t num_points) {
@@ -141,6 +147,14 @@ namespace erl::geometry {
         }
 
         return node_index;
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::vector<typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex>
+    SemiSparseQuadtreeBase<Dtype, Node, Setting>::FindVoxelIndices(
+        const Matrix2X &points,
+        bool parallel) const {
+        return FindVoxelIndices(points.data(), points.cols(), parallel);
     }
 
     template<typename Dtype, class Node, class Setting>

@@ -9,7 +9,8 @@ BindAbstractOctreeImpl(const py::module& m, const char* name) {
     using T = AbstractOctree<Dtype>;
 
     py::class_<T, std::shared_ptr<T>> tree(m, name);
-    tree.def("apply_setting", &T::ApplySetting)
+    tree.def_property_readonly("tree_type", &T::GetTreeType)
+        .def("apply_setting", &T::ApplySetting)
         .def("read_setting", &T::ReadSetting)
         .def("write_setting", &T::WriteSetting)
         .def(

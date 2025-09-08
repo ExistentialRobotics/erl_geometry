@@ -22,6 +22,7 @@ namespace erl::geometry {
     protected:
         using Super = OctreeImpl<Node, AbstractOctree<Dtype>, Setting>;
         using NodeIndex = int64_t;
+        using Matrix3X = Eigen::Matrix3X<Dtype>;
 
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
@@ -68,6 +69,9 @@ namespace erl::geometry {
         [[nodiscard]] const OctreeKeyVector &
         GetVertexKeys() const;
 
+        std::vector<NodeIndex>
+        InsertPoints(const Matrix3X &points);
+
         /**
          * Insert multiple points into the octree and return the indices of the voxels containing
          * the points. The octree will be expanded if necessary.
@@ -82,6 +86,9 @@ namespace erl::geometry {
 
         NodeIndex
         InsertPoint(const OctreeKey &key, uint32_t max_depth);
+
+        [[nodiscard]] std::vector<NodeIndex>
+        FindVoxelIndices(const Matrix3X &points, bool parallel) const;
 
         [[nodiscard]] std::vector<NodeIndex>
         FindVoxelIndices(const Dtype *points, std::size_t num_points, bool parallel) const;

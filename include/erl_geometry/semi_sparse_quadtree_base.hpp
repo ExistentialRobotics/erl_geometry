@@ -22,6 +22,7 @@ namespace erl::geometry {
     protected:
         using Super = QuadtreeImpl<Node, AbstractQuadtree<Dtype>, Setting>;
         using NodeIndex = int64_t;
+        using Matrix2X = Eigen::Matrix2X<Dtype>;
 
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
@@ -68,6 +69,9 @@ namespace erl::geometry {
         [[nodiscard]] const QuadtreeKeyVector &
         GetVertexKeys() const;
 
+        std::vector<NodeIndex>
+        InsertPoints(const Matrix2X &points);
+
         /**
          * Insert multiple points into the quadtree and return the indices of the voxels containing
          * the points. The quadtree will be expanded if necessary.
@@ -82,6 +86,9 @@ namespace erl::geometry {
 
         NodeIndex
         InsertPoint(const QuadtreeKey &key, uint32_t max_depth);
+
+        [[nodiscard]] std::vector<NodeIndex>
+        FindVoxelIndices(const Matrix2X &points, bool parallel) const;
 
         [[nodiscard]] std::vector<NodeIndex>
         FindVoxelIndices(const Dtype *points, std::size_t num_points, bool parallel) const;
