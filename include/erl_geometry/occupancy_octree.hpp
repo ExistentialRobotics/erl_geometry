@@ -31,9 +31,9 @@ namespace erl::geometry {
         OccupancyOctree(const OccupancyOctree &other) = default;
         OccupancyOctree &
         operator=(const OccupancyOctree &other) = default;
-        OccupancyOctree(OccupancyOctree &&other) = default;
+        OccupancyOctree(OccupancyOctree &&other) noexcept = default;
         OccupancyOctree &
-        operator=(OccupancyOctree &&other) = default;
+        operator=(OccupancyOctree &&other) noexcept = default;
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractOctree<Dtype>>

@@ -118,7 +118,7 @@ TEST(OccupancyOctree, BuildNewerCollege) {
         {
             ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
             constexpr Dtype min_range = 0.6 * SCALING;
-            constexpr Dtype max_range = 50.0 * SCALING;
+            constexpr Dtype max_range = 35.0 * SCALING;
             constexpr bool with_count = false;
             constexpr bool parallel = true;
             constexpr bool lazy_eval = true;

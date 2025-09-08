@@ -5,7 +5,6 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
-#include <cstdint>
 #include <vector>
 
 namespace erl::geometry {
@@ -157,6 +156,40 @@ namespace erl::geometry {
                 child_key.m_k_[2] =
                     parent_key.m_k_[2] + ((pos & 4) ? center_offset_key : -center_offset_key);
             }
+        }
+
+        static KeyType
+        AdjustKeyToLevel(const KeyType key, const uint32_t level) {
+            if (level == 0) { return key; }
+            return ((key >> level) << level) + (1 << (level - 1));
+        }
+
+        [[nodiscard]] OctreeKey
+        AdjustToLevel(const uint32_t level) const {
+            if (level == 0) { return *this; }
+            return {
+                AdjustKeyToLevel(m_k_[0], level),
+                AdjustKeyToLevel(m_k_[1], level),
+                AdjustKeyToLevel(m_k_[2], level)};
+        }
+
+        static void
+        ComputeVertexKey(
+            const uint32_t vertex_index,
+            const uint32_t level,
+            const OctreeKey& voxel_key,
+            OctreeKey& vertex_key) {
+
+            const KeyType voxel_size = 1 << level;
+
+            vertex_key.m_k_[0] = (voxel_key.m_k_[0] >> level) << level;
+            vertex_key.m_k_[0] += ((vertex_index & 0b001) ? voxel_size : 0);
+
+            vertex_key.m_k_[1] = (voxel_key.m_k_[1] >> level) << level;
+            vertex_key.m_k_[1] += ((vertex_index & 0b010) ? voxel_size : 0);
+
+            vertex_key.m_k_[2] = (voxel_key.m_k_[2] >> level) << level;
+            vertex_key.m_k_[2] += ((vertex_index & 0b100) ? voxel_size : 0);
         }
 
         /**

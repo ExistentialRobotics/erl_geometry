@@ -9,9 +9,6 @@ namespace erl::geometry {
     OccupancyQuadtreeDrawerSetting<Dtype>::YamlConvertImpl::encode(
         const OccupancyQuadtreeDrawerSetting &setting) {
         YAML::Node node = YAML::convert<AbstractQuadtreeDrawer::Setting>::encode(setting);
-        ERL_YAML_SAVE_ATTR(node, setting, area_min);
-        ERL_YAML_SAVE_ATTR(node, setting, area_max);
-        ERL_YAML_SAVE_ATTR(node, setting, resolution);
         ERL_YAML_SAVE_ATTR(node, setting, occupied_color);
         ERL_YAML_SAVE_ATTR(node, setting, free_color);
         return node;
@@ -26,9 +23,6 @@ namespace erl::geometry {
         if (!YAML::convert<AbstractQuadtreeDrawer::Setting>::decode(node, setting)) {
             return false;
         }
-        ERL_YAML_LOAD_ATTR(node, setting, area_min);
-        ERL_YAML_LOAD_ATTR(node, setting, area_max);
-        ERL_YAML_LOAD_ATTR(node, setting, resolution);
         ERL_YAML_LOAD_ATTR(node, setting, occupied_color);
         ERL_YAML_LOAD_ATTR(node, setting, free_color);
         return true;
@@ -43,11 +37,6 @@ namespace erl::geometry {
           m_setting_(std::move(setting)),
           m_quadtree_(std::move(quadtree)) {
         ERL_ASSERTM(m_setting_, "setting is nullptr.");
-        m_grid_map_info_ = std::make_shared<common::GridMapInfo2D<Dtype>>(
-            m_setting_->area_min,
-            m_setting_->area_max,
-            Eigen::Vector2<Dtype>(m_setting_->resolution, m_setting_->resolution),
-            Eigen::Vector2i(m_setting_->padding, m_setting_->padding));
     }
 
     template<typename OccupancyQuadtreeType>
@@ -67,13 +56,6 @@ namespace erl::geometry {
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::SetQuadtree(
         std::shared_ptr<const OccupancyQuadtreeType> quadtree) {
         m_quadtree_ = std::move(quadtree);
-    }
-
-    template<typename OccupancyQuadtreeType>
-    std::shared_ptr<
-        const common::GridMapInfo2D<typename OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::Dtype>>
-    OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::GetGridMapInfo() const {
-        return m_grid_map_info_;
     }
 
     template<typename OccupancyQuadtreeType>
@@ -106,23 +88,17 @@ namespace erl::geometry {
                 m_setting_->bg_color);
         }
         if (m_quadtree_ == nullptr) { return; }
-        std::shared_ptr<const OccupancyQuadtreeType> quadtree =
-            std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
-        if (quadtree == nullptr) {
-            ERL_WARN("quadtree is not an occupancy quadtree.");
-            return;
-        }
 
         const bool draw_border = (m_setting_->border_thickness > 0) &&
                                  (m_setting_->border_color != m_setting_->occupied_color);
-        auto it = quadtree->BeginTree();
-        auto end = quadtree->EndTree();
-        Eigen::Matrix2<Dtype> area;
+        auto it = m_quadtree_->BeginTree();
+        auto end = m_quadtree_->EndTree();
+        Eigen::Matrix2f area;
         for (; it != end; ++it) {
-            const Dtype node_size = it.GetNodeSize();
-            const Dtype half_size = node_size * 0.5f;
-            const Dtype x = it.GetX();
-            const Dtype y = it.GetY();
+            const auto node_size = static_cast<float>(it.GetNodeSize());
+            const float half_size = node_size * 0.5f;
+            const auto x = static_cast<float>(it.GetX());
+            const auto y = static_cast<float>(it.GetY());
 
             area << x - half_size, x + half_size, y - half_size, y + half_size;
             Eigen::Matrix2i area_px = GetPixelCoordsForPositions(area, true);
@@ -132,8 +108,8 @@ namespace erl::geometry {
                     mat,
                     cv::Point(area_px(0, 0), area_px(1, 0)),  // min
                     cv::Point(area_px(0, 1), area_px(1, 1)),  // max
-                    quadtree->IsNodeOccupied(*it) ? m_setting_->occupied_color
-                                                  : m_setting_->free_color,
+                    m_quadtree_->IsNodeOccupied(*it) ? m_setting_->occupied_color
+                                                     : m_setting_->free_color,
                     -1);
             }
 
@@ -160,26 +136,20 @@ namespace erl::geometry {
                 m_setting_->bg_color);
         }
         if (m_quadtree_ == nullptr) { return; }
-        std::shared_ptr<const OccupancyQuadtreeType> quadtree =
-            std::dynamic_pointer_cast<const OccupancyQuadtreeType>(m_quadtree_);
-        if (quadtree == nullptr) {
-            ERL_WARN("quadtree is not an occupancy quadtree.");
-            return;
-        }
 
         const bool draw_border = (m_setting_->border_thickness > 0) &&
                                  (m_setting_->border_color != m_setting_->occupied_color);
-        auto it = quadtree->BeginLeaf();
-        auto end = quadtree->EndLeaf();
-        Eigen::Matrix2<Dtype> area;
+        auto it = m_quadtree_->BeginLeaf();
+        auto end = m_quadtree_->EndLeaf();
+        Eigen::Matrix2f area;
         for (; it != end; ++it) {
 
             ERL_DEBUG_ASSERT(!it->HasAnyChild(), "the iterator visits an inner node!");
 
-            const Dtype node_size = it.GetNodeSize();
-            const Dtype half_size = node_size * 0.5f;
-            const Dtype x = it.GetX();
-            const Dtype y = it.GetY();
+            const auto node_size = static_cast<float>(it.GetNodeSize());
+            const float half_size = node_size * 0.5f;
+            const auto x = static_cast<float>(it.GetX());
+            const auto y = static_cast<float>(it.GetY());
 
             area << x - half_size, x + half_size, y - half_size, y + half_size;
             Eigen::Matrix2i area_px = GetPixelCoordsForPositions(area, true);
@@ -188,7 +158,8 @@ namespace erl::geometry {
                 mat,
                 cv::Point(area_px(0, 0), area_px(1, 0)),  // min
                 cv::Point(area_px(0, 1), area_px(1, 1)),  // max
-                quadtree->IsNodeOccupied(*it) ? m_setting_->occupied_color : m_setting_->free_color,
+                m_quadtree_->IsNodeOccupied(*it) ? m_setting_->occupied_color
+                                                 : m_setting_->free_color,
                 -1);
 
             if (draw_border) {

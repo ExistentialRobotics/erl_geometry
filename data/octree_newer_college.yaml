@@ -4,9 +4,9 @@ log_odd_max: 20
 log_odd_hit: 0.8
 log_odd_miss: -0.05
 log_odd_occ_threshold: 0
-resolution: 0.75
+resolution: 0.6
 use_change_detection: false
 use_aabb_limit: false
 aabb:
-    center: [0, 0, 0]
-    half_sizes: [0, 0, 0]
+    center: [ 0, 0, 0 ]
+    half_sizes: [ 0, 0, 0 ]

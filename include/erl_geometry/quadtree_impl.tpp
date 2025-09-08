@@ -296,7 +296,7 @@ namespace erl::geometry {
         const uint32_t depth) const {
         Vector2 center;
         KeyToCoord(key, depth, center.x(), center.y());
-        const Dtype half_size = GetNodeSize(depth) * 0.5;
+        const Dtype half_size = GetNodeSize(depth) * 0.5f;
         return {center, half_size};
     }
 
@@ -501,10 +501,10 @@ namespace erl::geometry {
             "Depth must be in [0, %u], but got %u.\n",
             tree_depth,
             depth);
-        const uint32_t diff = tree_depth - depth;
-        if (!diff) { return key; }
+        const uint32_t level = tree_depth - depth;
+        return QuadtreeKey::AdjustKeyToLevel(key, level);
         // (((key - m_tree_key_offset_) >> diff) << diff) + (1 << (diff - 1)) + m_tree_key_offset_;
-        return ((key >> diff) << diff) + (1 << (diff - 1));  // quick version
+        // return ((key >> level) << level) + (1 << (level - 1));  // quick version
     }
 
     template<class Node, class Interface, class InterfaceSetting>
@@ -512,8 +512,15 @@ namespace erl::geometry {
     QuadtreeImpl<Node, Interface, InterfaceSetting>::AdjustKeyToDepth(
         const QuadtreeKey &key,
         const uint32_t depth) const {
-        if (depth == m_setting_->tree_depth) { return key; }
-        return {AdjustKeyToDepth(key[0], depth), AdjustKeyToDepth(key[1], depth)};
+        const uint32_t tree_depth = m_setting_->tree_depth;
+        if (depth == tree_depth) { return key; }
+        ERL_DEBUG_ASSERT(
+            depth <= tree_depth,
+            "Depth must be in [0, %u], but got %u.\n",
+            tree_depth,
+            depth);
+        const uint32_t level = tree_depth - depth;
+        return key.AdjustToLevel(level);
     }
 
     template<class Node, class Interface, class InterfaceSetting>
@@ -605,22 +612,6 @@ namespace erl::geometry {
     }
 
     template<class Node, class Interface, class InterfaceSetting>
-    typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Dtype
-    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
-        const QuadtreeKey::KeyType key,
-        const uint32_t depth) const {
-        const uint32_t tree_depth = m_setting_->tree_depth;
-        if (depth == 0) { return 0.0; }
-        if (depth == tree_depth) { return KeyToCoord(key); }
-        uint32_t &&diff = tree_depth - depth;
-        Dtype &&r = this->GetNodeSize(depth);
-        return std::floor(
-                   (static_cast<Dtype>(key) - static_cast<Dtype>(m_tree_key_offset_)) /
-                   static_cast<Dtype>(1 << diff)) *
-               r;
-    }
-
-    template<class Node, class Interface, class InterfaceSetting>
     void
     QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
         const QuadtreeKey &key,
@@ -634,37 +625,16 @@ namespace erl::geometry {
     void
     QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
         const QuadtreeKey &key,
-        uint32_t depth,
-        Dtype &x,
-        Dtype &y) const {
-        if (depth == 0) {
-            x = y = 0.0;
-            return;
-        }
-        if (depth == m_setting_->tree_depth) {
-            KeyToCoord(key, x, y);
-            return;
-        }
-        x = KeyToVertexCoord(key[0], depth);
-        y = KeyToVertexCoord(key[1], depth);
-    }
-
-    template<class Node, class Interface, class InterfaceSetting>
-    void
-    QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
-        const QuadtreeKey &key,
-        const uint32_t depth,
         Vector2 &vertex_coord) const {
-        KeyToVertexCoord(key, depth, vertex_coord.x(), vertex_coord.y());
+        KeyToVertexCoord(key, vertex_coord.x(), vertex_coord.y());
     }
 
     template<class Node, class Interface, class InterfaceSetting>
     typename QuadtreeImpl<Node, Interface, InterfaceSetting>::Vector2
     QuadtreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
-        const QuadtreeKey &key,
-        const uint32_t depth) const {
+        const QuadtreeKey &key) const {
         Vector2 vertex_coord;
-        KeyToVertexCoord(key, depth, vertex_coord.x(), vertex_coord.y());
+        KeyToVertexCoord(key, vertex_coord.x(), vertex_coord.y());
         return vertex_coord;
     }
 
@@ -712,7 +682,7 @@ namespace erl::geometry {
         Dtype &x,
         Dtype &y) const {
         if (depth == 0) {
-            x = y = 0.0;
+            x = y = 0.0f;
             return;
         }
         if (depth == m_setting_->tree_depth) {
@@ -949,8 +919,8 @@ namespace erl::geometry {
         Dtype &aabb_max_y) const {
         if (m_tree_ == nullptr) { return false; }
 
-        const Dtype center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_);
-        const Dtype half_size = m_tree_->GetNodeSize(0) / 2.0;
+        const Dtype center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_, 0);
+        const Dtype half_size = m_tree_->GetNodeSize(0) * 0.5f;
         const Dtype aabb_min = center - half_size;
         const Dtype aabb_max = center + half_size;
 
@@ -1010,22 +980,23 @@ namespace erl::geometry {
             return;
         }
 
-        if (this->m_tree_->CoordToKeyChecked(aabb_min_x, aabb_min_y, m_aabb_min_key_) &&
-            this->m_tree_->CoordToKeyChecked(aabb_max_x, aabb_max_y, m_aabb_max_key_)) {
-            // check if the root node is in the AABB
-            if (typename IteratorBase::StackElement top = this->m_stack_.back();
-                !QuadtreeKey::KeyInAabb(
-                    top.key,
-                    this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth(),
-                    m_aabb_min_key_,
-                    m_aabb_max_key_)) {
-                this->Terminate();
-                return;
-            }
-        } else {
-            // The AABB is out of the tree, but unlikely to happen here.
-            // We still check it for safety.
+        if (!this->m_tree_->CoordToKeyChecked(aabb_min_x, aabb_min_y, m_aabb_min_key_)) {
+            m_aabb_min_key_ = {0, 0};
+        }
+
+        if (!this->m_tree_->CoordToKeyChecked(aabb_max_x, aabb_max_y, m_aabb_max_key_)) {
+            QuadtreeKey::KeyType k = (this->m_tree_->m_tree_key_offset_ << 1) - 1;
+            m_aabb_max_key_ = {k, k};
+        }
+
+        if (typename IteratorBase::StackElement top = this->m_stack_.back();
+            !QuadtreeKey::KeyInAabb(
+                top.key,
+                this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth(),
+                m_aabb_min_key_,
+                m_aabb_max_key_)) {
             this->Terminate();
+            return;
         }
     }
 
@@ -2038,11 +2009,12 @@ namespace erl::geometry {
         Dtype ey,
         QuadtreeKeyRay &ray) const {
         // See "A Faster Voxel Traversal Algorithm for Ray Tracing" by Amanatides & Woo Digital
-        // Difference Analyzer (DDA) algorithm Note that we cannot use Bresenham's line algorithm
-        // because it may miss some voxels when the ray is not axis-aligned. For example, if the ray
-        // is from (0, 0) to (1, 1), Bresenham's algorithm will miss (1, 0) and (0, 1), but the ray
-        // should traverse them. Also look at https://en.wikipedia.org/wiki/File:Bresenham.svg for
-        // another example of Bresenham's algorithm.
+        // Difference Analyzer (DDA) algorithm Note that we cannot use Bresenham's line
+        // algorithm because it may miss some voxels when the ray is not axis-aligned. For
+        // example, if the ray is from (0, 0) to (1, 1), Bresenham's algorithm will miss (1, 0)
+        // and (0, 1), but the ray should traverse them. Also look at
+        // https://en.wikipedia.org/wiki/File:Bresenham.svg for another example of Bresenham's
+        // algorithm.
 
         ray.clear();
         QuadtreeKey key_start, key_end;
@@ -2085,7 +2057,7 @@ namespace erl::geometry {
 
         // compute t_max and t_delta
         const auto resolution = static_cast<Dtype>(m_setting_->resolution);
-        const Dtype half_r = resolution * 0.5;
+        const Dtype half_r = resolution * 0.5f;
         Dtype t_max[2];
         Dtype t_delta[2];
         if (step[0] == 0) {
@@ -2214,8 +2186,8 @@ namespace erl::geometry {
         if (node->GetNumChildren() != 4) { return false; }
         // the child should be a leaf node
         // if the child is a leaf node, its data should be equal to the first child
-        // we don't need to check if their depth etc. is the same, because they are all children of
-        // the same node
+        // we don't need to check if their depth etc. is the same, because they are all children
+        // of the same node
         auto child_0 = this->GetNodeChild(node, 0);
         if (!child_0->AllowMerge(this->GetNodeChild(node, 1))) { return false; }
         if (!child_0->AllowMerge(this->GetNodeChild(node, 2))) { return false; }
@@ -2292,9 +2264,9 @@ namespace erl::geometry {
     QuadtreeImpl<Node, Interface, InterfaceSetting>::DeleteNodeRecurs(
         Node *node,
         const QuadtreeKey &key,
-        uint32_t max_depth) {
+        uint32_t min_depth) {
         const uint32_t depth = node->GetDepth();
-        if (depth >= max_depth) { return true; }  // return true to delete this node
+        if (depth >= min_depth) { return true; }  // return true to delete this node
         ERL_DEBUG_ASSERT(node != nullptr, "node should not be nullptr.");
 
         uint32_t child_idx =
@@ -2308,7 +2280,7 @@ namespace erl::geometry {
         }
 
         if (auto child = this->GetNodeChild(node, child_idx);
-            this->DeleteNodeRecurs(child, key, max_depth)) {
+            this->DeleteNodeRecurs(child, key, min_depth)) {
             this->DeleteNodeDescendants(child, key);    // delete the child's children recursively
             this->OnDeleteNodeChild(node, child, key);  // callback before deleting the child
             node->RemoveChild(child_idx);               // remove child

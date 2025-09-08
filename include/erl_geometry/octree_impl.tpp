@@ -1,4 +1,3 @@
-// ReSharper disable CppRedundantParentheses
 #pragma once
 
 #include "intersection.hpp"
@@ -335,7 +334,7 @@ namespace erl::geometry {
         const uint32_t depth) const {
         Vector3 center;
         this->KeyToCoord(key, depth, center.x(), center.y(), center.z());
-        const Dtype half_size = GetNodeSize(depth) * 0.5;
+        const Dtype half_size = GetNodeSize(depth) * 0.5f;
         return {center, half_size};
     }
 
@@ -551,10 +550,10 @@ namespace erl::geometry {
             "Depth must be in [0, %u], but got %u.\n",
             tree_depth,
             depth);
-        const uint32_t diff = tree_depth - depth;
-        if (!diff) { return key; }
+        const uint32_t level = tree_depth - depth;
+        return OctreeKey::AdjustKeyToLevel(key, level);
         // (((key - m_tree_key_offset_) >> diff) << diff) + (1 << (diff - 1)) + m_tree_key_offset_;
-        return ((key >> diff) << diff) + (1 << (diff - 1));  // quick version
+        // return ((key >> level) << level) + (1 << (level - 1));  // quick version
     }
 
     template<class Node, class Interface, class InterfaceSetting>
@@ -562,11 +561,15 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::AdjustKeyToDepth(
         const OctreeKey &key,
         uint32_t depth) const {
-        if (depth == m_setting_->tree_depth) { return key; }
-        return {
-            AdjustKeyToDepth(key[0], depth),
-            AdjustKeyToDepth(key[1], depth),
-            AdjustKeyToDepth(key[2], depth)};
+        const uint32_t tree_depth = m_setting_->tree_depth;
+        if (depth == tree_depth) { return key; }
+        ERL_DEBUG_ASSERT(
+            depth <= tree_depth,
+            "Depth must be in [0, %u], but got %u.\n",
+            tree_depth,
+            depth);
+        const uint32_t level = tree_depth - depth;
+        return key.AdjustToLevel(level);
     }
 
     template<class Node, class Interface, class InterfaceSetting>
@@ -687,9 +690,45 @@ namespace erl::geometry {
 
     template<class Node, class Interface, class InterfaceSetting>
     typename OctreeImpl<Node, Interface, InterfaceSetting>::Dtype
+    OctreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const OctreeKey::KeyType key) const {
+        return static_cast<Dtype>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) *
+               m_setting_->resolution;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    void
+    OctreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const OctreeKey &key,
+        Dtype &x,
+        Dtype &y,
+        Dtype &z) const {
+        x = KeyToVertexCoord(key[0]);
+        y = KeyToVertexCoord(key[1]);
+        z = KeyToVertexCoord(key[2]);
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    void
+    OctreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(
+        const OctreeKey &key,
+        Vector3 &vertex_coord) const {
+        KeyToVertexCoord(key, vertex_coord.x(), vertex_coord.y(), vertex_coord.z());
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    typename OctreeImpl<Node, Interface, InterfaceSetting>::Vector3
+    OctreeImpl<Node, Interface, InterfaceSetting>::KeyToVertexCoord(const OctreeKey &key) const {
+        Vector3 vertex_coord;
+        KeyToVertexCoord(key, vertex_coord.x(), vertex_coord.y(), vertex_coord.z());
+        return vertex_coord;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    typename OctreeImpl<Node, Interface, InterfaceSetting>::Dtype
     OctreeImpl<Node, Interface, InterfaceSetting>::KeyToCoord(const OctreeKey::KeyType key) const {
         return (static_cast<Dtype>(static_cast<int>(key) - static_cast<int>(m_tree_key_offset_)) +
-                0.5) *
+                0.5f) *
                m_setting_->resolution;
     }
 
@@ -706,7 +745,7 @@ namespace erl::geometry {
         return (std::floor(
                     (static_cast<Dtype>(key) - static_cast<Dtype>(m_tree_key_offset_)) /
                     static_cast<Dtype>(1 << diff)) +
-                0.5) *
+                0.5f) *
                r;
     }
 
@@ -731,7 +770,7 @@ namespace erl::geometry {
         Dtype &y,
         Dtype &z) const {
         if (depth == 0) {
-            x = y = z = 0.0;
+            x = y = z = 0.0f;
             return;
         }
         if (depth == m_setting_->tree_depth) {
@@ -970,8 +1009,8 @@ namespace erl::geometry {
         Dtype &aabb_max_z) const {
         if (m_tree_ == nullptr) { return false; }
 
-        const Dtype center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_);
-        const Dtype half_size = m_tree_->GetNodeSize(0) / 2.0;
+        const Dtype center = m_tree_->KeyToCoord(m_tree_->m_tree_key_offset_, 0);
+        const Dtype half_size = m_tree_->GetNodeSize(0) * 0.5f;
         const Dtype aabb_min = center - half_size;
         const Dtype aabb_max = center + half_size;
 
@@ -1042,22 +1081,24 @@ namespace erl::geometry {
             return;
         }
 
-        if (this->m_tree_->CoordToKeyChecked(aabb_min_x, aabb_min_y, aabb_min_z, m_aabb_min_key_) &&
-            this->m_tree_->CoordToKeyChecked(aabb_max_x, aabb_max_y, aabb_max_z, m_aabb_max_key_)) {
-            // check if the root node is in the AABB
-            if (typename IteratorBase::StackElement top = this->m_stack_.back();
-                !OctreeKey::KeyInAabb(
-                    top.key,
-                    this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth(),
-                    m_aabb_min_key_,
-                    m_aabb_max_key_)) {
-                this->Terminate();
-                return;
-            }
-        } else {
-            // The AABB is out of the tree, but unlikely to happen here.
-            // We still check it for safety.
+        if (!this->m_tree_
+                 ->CoordToKeyChecked(aabb_min_x, aabb_min_y, aabb_min_z, m_aabb_min_key_)) {
+            m_aabb_min_key_ = {0, 0, 0};
+        }
+
+        if (!this->m_tree_
+                 ->CoordToKeyChecked(aabb_max_x, aabb_max_y, aabb_max_z, m_aabb_max_key_)) {
+            OctreeKey::KeyType k = (this->m_tree_->m_tree_key_offset_ << 1) - 1;
+            m_aabb_max_key_ = {k, k, k};
+        }
+
+        if (typename IteratorBase::StackElement top = this->m_stack_.back(); !OctreeKey::KeyInAabb(
+                top.key,
+                this->m_tree_->m_tree_key_offset_ >> top.node->GetDepth(),
+                m_aabb_min_key_,
+                m_aabb_max_key_)) {
             this->Terminate();
+            return;
         }
     }
 
@@ -2471,7 +2512,7 @@ namespace erl::geometry {
 
         // compute t_max and t_delta
         const auto resolution = static_cast<Dtype>(m_setting_->resolution);
-        const Dtype half_r = resolution * 0.5;
+        const Dtype half_r = resolution * 0.5f;
         Dtype t_max[3];
         Dtype t_delta[3];
         if (step[0] == 0) {
@@ -2690,9 +2731,9 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::DeleteNodeRecurs(
         Node *node,
         const OctreeKey &key,
-        uint32_t max_depth) {
+        uint32_t min_depth) {
         const uint32_t depth = node->GetDepth();
-        if (depth >= max_depth) { return true; }  // return true to delete this node
+        if (depth >= min_depth) { return true; }  // return true to delete this node
         ERL_DEBUG_ASSERT(node != nullptr, "node should not be nullptr.");
 
         uint32_t child_idx = OctreeKey::ComputeChildIndex(key, m_setting_->tree_depth - depth - 1);
@@ -2705,7 +2746,7 @@ namespace erl::geometry {
         }
 
         if (auto child = this->GetNodeChild(node, child_idx);
-            this->DeleteNodeRecurs(child, key, max_depth)) {
+            this->DeleteNodeRecurs(child, key, min_depth)) {
             this->DeleteNodeDescendants(child, key);    // delete the child's children recursively
             this->OnDeleteNodeChild(node, child, key);  // callback before deleting the child
             node->RemoveChild(child_idx);               // remove child

@@ -5,7 +5,6 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
-#include <cstdint>
 #include <vector>
 
 namespace erl::geometry {
@@ -148,14 +147,32 @@ namespace erl::geometry {
             }
         }
 
+        static KeyType
+        AdjustKeyToLevel(const KeyType key, const uint32_t level) {
+            if (level == 0) { return key; }
+            return ((key >> level) << level) + (1 << (level - 1));
+        }
+
+        [[nodiscard]] QuadtreeKey
+        AdjustToLevel(const uint32_t level) const {
+            if (level == 0) { return *this; }
+            return {AdjustKeyToLevel(m_k_[0], level), AdjustKeyToLevel(m_k_[1], level)};
+        }
+
         static void
         ComputeVertexKey(
             const uint32_t vertex_index,
-            const KeyType voxel_size_key,
+            const uint32_t level,
             const QuadtreeKey& voxel_key,
             QuadtreeKey& vertex_key) {
-            vertex_key.m_k_[0] = voxel_key.m_k_[0] + ((vertex_index & 0b01) ? voxel_size_key : 0);
-            vertex_key.m_k_[1] = voxel_key.m_k_[1] + ((vertex_index & 0b10) ? voxel_size_key : 0);
+
+            const KeyType voxel_size = 1 << level;
+
+            vertex_key.m_k_[0] = (voxel_key.m_k_[0] >> level) << level;
+            vertex_key.m_k_[0] += ((vertex_index & 0b01) ? voxel_size : 0);
+
+            vertex_key.m_k_[1] = (voxel_key.m_k_[1] >> level) << level;
+            vertex_key.m_k_[1] += ((vertex_index & 0b10) ? voxel_size : 0);
         }
 
         /**

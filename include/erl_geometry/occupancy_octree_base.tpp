@@ -66,7 +66,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Vector3> &sensor_origin,
         const Dtype min_range,
         const Dtype max_range,
-        const bool discretize,
+        const bool discrete,
         std::vector<Dtype> &ranges,
         std::vector<std::array<Dtype, 3>> &diffs,
         Matrix3X &filtered_points,
@@ -83,7 +83,7 @@ namespace erl::geometry {
         m_end_point_mapping_.clear();
         occupied_cells.clear();
 
-        if (discretize) {
+        if (discrete) {
             filtered_points.resize(3, num_points);
 
             long cnt = 0;
@@ -943,7 +943,6 @@ namespace erl::geometry {
             // is the deepest or `node` is pruned and has no child. if they are different, the
             // pruning stops somewhere deeper under `node`. we don't need to prune anymore.
             if (will_prune) {
-                // ERL_DEBUG_ASSERT(node == returned_node, "returned node is not leaf.");
                 bool prune_failed = false;
                 for (auto it = nodes.rbegin() + 1; it != nodes.rend(); ++it) {
                     auto cur_node = const_cast<Node *>(*it);

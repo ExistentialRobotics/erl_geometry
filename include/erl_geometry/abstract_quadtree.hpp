@@ -21,6 +21,7 @@ namespace erl::geometry {
         std::shared_ptr<NdTreeSetting> m_setting_ = std::make_shared<NdTreeSetting>();
 
     public:
+        using DataType = Dtype;
         using Factory =
             common::FactoryPattern<AbstractQuadtree, false, false, std::shared_ptr<NdTreeSetting>>;
         using Vector2 = Eigen::Vector2<Dtype>;

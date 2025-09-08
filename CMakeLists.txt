@@ -23,6 +23,7 @@ if (ERL_BUILD_TEST_${PROJECT_NAME})
     endif ()
 
     erl_set_gtest_extra_libraries(test_convex_hull_3d_impls CGAL::CGAL)
+    erl_set_gtest_extra_libraries(test_occupancy_octree_build_profiling octomap)
     erl_set_gtest_extra_libraries(test_occupancy_octree_impls octomap)
 endif ()
 

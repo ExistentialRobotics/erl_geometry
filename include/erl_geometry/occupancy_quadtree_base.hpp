@@ -71,7 +71,6 @@ namespace erl::geometry {
         SamplePositions(std::size_t num_positions, std::vector<Vector2>& positions) const;
 
         //-- insert point cloud
-    private:
         /**
          * Compute the end point mapping for a point cloud.
          * This function maps each point in the point cloud to its corresponding quadtree cell.
@@ -111,7 +110,6 @@ namespace erl::geometry {
             bool with_count,
             bool parallel);
 
-    public:
         /**
          * Insert a point cloud in the world frame. Multiple points may fall into the same voxel
          * updated only once, and occupied nodes are preferred than free ones. This avoids

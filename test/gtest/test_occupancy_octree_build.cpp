@@ -65,6 +65,7 @@ TEST(OccupancyOctree, Build) {
     std::vector<Matrix4> path_3d = erl::geometry::ConvertPath2dTo3d<Dtype>(traj_2d, 1.0);
 
     auto octree_setting = std::make_shared<OccupancyOctree::Setting>();
+    octree_setting->tree_depth = 16;
     octree_setting->resolution = OCTREE_RESOLUTION;
     octree_setting->log_odd_max = 1000.0;
     octree_setting->log_odd_miss = 0;
@@ -118,12 +119,12 @@ TEST(OccupancyOctree, Build) {
                     [&](std::ostream &s) -> bool { return octree->WriteBinary(s); }));
             octree_saved = true;
             wrapper->ClearGeometries();
-            std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries =
+            std::vector<std::shared_ptr<open3d::geometry::Geometry>> new_geometries =
                 OccupancyOctreeDrawer::GetBlankGeometries();
-            drawer.DrawLeaves(geometries);
-            geometries.push_back(point_cloud);
-            geometries.push_back(line_set_traj);
-            wrapper->AddGeometries(geometries);
+            drawer.DrawLeaves(new_geometries);
+            new_geometries.push_back(point_cloud);
+            new_geometries.push_back(line_set_traj);
+            wrapper->AddGeometries(new_geometries);
             vis->UpdateGeometry();
             wrapper->SetAnimationCallback(nullptr);  // stop calling this callback
             return false;

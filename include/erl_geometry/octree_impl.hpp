@@ -317,6 +317,30 @@ namespace erl::geometry {
         ComputeTopNeighborKey(const OctreeKey &key, uint32_t depth, OctreeKey &neighbor_key) const;
 
         /**
+         * Convert 1-dim key to vertex coordinate.
+         * @param key
+         * @return
+         */
+        [[nodiscard]] Dtype
+        KeyToVertexCoord(OctreeKey::KeyType key) const;
+
+        /**
+         * Convert 3-dim key to vertex coordinate.
+         * @param key
+         * @param x
+         * @param y
+         * @param z
+         */
+        void
+        KeyToVertexCoord(const OctreeKey &key, Dtype &x, Dtype &y, Dtype &z) const;
+
+        void
+        KeyToVertexCoord(const OctreeKey &key, Vector3 &vertex_coord) const;
+
+        [[nodiscard]] Vector3
+        KeyToVertexCoord(const OctreeKey &key) const;
+
+        /**
          * Convert 1-dim key to coordinate.
          * @param key
          * @return
@@ -1260,15 +1284,15 @@ namespace erl::geometry {
         OnDeleteNodeChild(Node *node, Node *child, const OctreeKey &key);
 
         /**
-         * Delete child nodes down to max_depth matching the given key of the given node that is at
+         * Delete child nodes down to min_depth matching the given key of the given node that is at
          * the given depth.
          * @param node node at depth, which must not be nullptr, and it will not be deleted
          * @param key
-         * @param max_depth
+         * @param min_depth
          * @return
          */
         bool
-        DeleteNodeRecurs(Node *node, const OctreeKey &key, uint32_t max_depth);
+        DeleteNodeRecurs(Node *node, const OctreeKey &key, uint32_t min_depth);
 
         /**
          * Delete all descendants of the given node.

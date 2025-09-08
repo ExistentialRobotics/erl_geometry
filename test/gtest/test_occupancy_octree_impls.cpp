@@ -48,6 +48,10 @@ TEST(OccupancyOctree, ErlImpl) {
     double dt_erl_discrete = 0;
     std::size_t pose_idx = 0;
     while (pose_idx < 4) {
+        constexpr bool with_count = false;
+        constexpr bool parallel = false;
+        constexpr bool lazy_eval = false;
+
         Eigen::Matrix4d &pose = path_3d[pose_idx++];
         Eigen::Matrix3d orientation = pose.topLeftCorner<3, 3>();
         Eigen::Vector3d sensor_origin = pose.topRightCorner<3, 1>();
@@ -71,14 +75,30 @@ TEST(OccupancyOctree, ErlImpl) {
         points.conservativeResize(3, cnt_points);
 
         t0 = std::chrono::high_resolution_clock::now();
-        erl_octree->InsertPointCloud(points, sensor_origin, 0, -1, false, false, false);
+        erl_octree->InsertPointCloud(
+            points,
+            sensor_origin,
+            0,
+            -1,
+            with_count,
+            parallel,
+            lazy_eval,
+            false /*discrete*/);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL insert time: " << duration << " ms." << std::endl;
         dt_erl += duration;
 
         t0 = std::chrono::high_resolution_clock::now();
-        erl_octree->InsertPointCloud(points, sensor_origin, 0, -1, false, false, true);
+        erl_octree->InsertPointCloud(
+            points,
+            sensor_origin,
+            0,
+            -1,
+            with_count,
+            parallel,
+            lazy_eval,
+            true /*discrete*/);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL discrete insert time: " << duration << " ms." << std::endl;
@@ -139,47 +159,80 @@ TEST(OccupancyOctree, ErlComputeUpdate) {
         }
         points.conservativeResize(3, cnt_points);
 
+        std::vector<double> tmp_ranges;
+        std::vector<std::array<double, 3>> tmp_diffs;
+        Eigen::Matrix3Xd tmp_filtered_points;
         OctreeKeyVector free_cells, occupied_cells;
         t0 = std::chrono::high_resolution_clock::now();
-        erl_octree->ComputeUpdateForPointCloud(
+        erl_octree->ComputeOccupiedCells(
             points,
             sensor_origin,
             0,
             -1,
             false,
-            free_cells,
+            tmp_ranges,
+            tmp_diffs,
+            tmp_filtered_points,
             occupied_cells);
+        erl_octree->ComputeFreeCells(
+            points,
+            sensor_origin,
+            tmp_ranges,
+            tmp_diffs,
+            -1,
+            false /*with_count*/,
+            false /*parallel*/);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL compute update time: " << duration << " ms." << std::endl;
         dt_erl += duration;
 
         t0 = std::chrono::high_resolution_clock::now();
-        erl_octree->ComputeUpdateForPointCloud(
+        erl_octree->ComputeOccupiedCells(
             points,
             sensor_origin,
             0,
             -1,
-            true,
-            free_cells,
+            false /*discrete*/,
+            tmp_ranges,
+            tmp_diffs,
+            tmp_filtered_points,
             occupied_cells);
+        erl_octree->ComputeFreeCells(
+            points,
+            sensor_origin,
+            tmp_ranges,
+            tmp_diffs,
+            -1,
+            false /*with_count*/,
+            true /*parallel*/);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
         std::cout << "ERL parallel compute update time: " << duration << " ms." << std::endl;
         dt_erl_parallel += duration;
 
         t0 = std::chrono::high_resolution_clock::now();
-        erl_octree->ComputeDiscreteUpdateForPointCloud(
+        erl_octree->ComputeOccupiedCells(
             points,
             sensor_origin,
             0,
             -1,
-            true,
-            free_cells,
+            true /*discrete*/,
+            tmp_ranges,
+            tmp_diffs,
+            tmp_filtered_points,
             occupied_cells);
+        erl_octree->ComputeFreeCells(
+            points,
+            sensor_origin,
+            tmp_ranges,
+            tmp_diffs,
+            -1,
+            false /*with_count*/,
+            false /*parallel*/);
         t1 = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
-        std::cout << "ERL parallel compute update time: " << duration << " ms." << std::endl;
+        std::cout << "ERL discrete compute update time: " << duration << " ms." << std::endl;
         dt_erl_parallel_discrete += duration;
     }
     dt_erl /= static_cast<double>(pose_idx);
@@ -187,9 +240,9 @@ TEST(OccupancyOctree, ErlComputeUpdate) {
     dt_erl_parallel_discrete /= static_cast<double>(pose_idx);
     std::cout << "===================\n"  //
               << "Average time\n"         //
-              << "ERL:                   " << dt_erl << " ms.\n"
-              << "ERL parallel:          " << dt_erl_parallel << " ms.\n"
-              << "ERL parallel discrete: " << dt_erl_parallel_discrete << " ms." << std::endl;
+              << "ERL:          " << dt_erl << " ms.\n"
+              << "ERL parallel: " << dt_erl_parallel << " ms.\n"
+              << "ERL discrete: " << dt_erl_parallel_discrete << " ms." << std::endl;
 }
 
 TEST(OccupancyOctree, OctomapImpl) {

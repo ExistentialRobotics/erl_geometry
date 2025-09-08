@@ -24,9 +24,9 @@ namespace erl::geometry {
         OccupancyOctreeNode(const OccupancyOctreeNode &other) = default;
         OccupancyOctreeNode &
         operator=(const OccupancyOctreeNode &other) = default;
-        OccupancyOctreeNode(OccupancyOctreeNode &&other) = default;
+        OccupancyOctreeNode(OccupancyOctreeNode &&other) noexcept = default;
         OccupancyOctreeNode &
-        operator=(OccupancyOctreeNode &&other) = default;
+        operator=(OccupancyOctreeNode &&other) noexcept = default;
 
         bool
         operator==(const AbstractOctreeNode &other) const override {

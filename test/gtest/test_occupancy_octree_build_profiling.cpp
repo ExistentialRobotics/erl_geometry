@@ -6,6 +6,8 @@
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
 #include "erl_geometry/utils.hpp"
 
+#include <octomap/math/Vector3.h>
+#include <octomap/OcTree.h>
 #include <open3d/geometry/VoxelGrid.h>
 #include <open3d/io/TriangleMeshIO.h>
 
@@ -65,6 +67,9 @@ TEST(OccupancyOctree, BuildProfiling) {
     // once hit, the cell will be occupied almost forever
     auto octree = std::make_shared<OccupancyOctree>(octree_setting);
 
+    octomap::OcTree octomap_octree(octree_setting->resolution);
+    octomap_octree.enableChangeDetection(octree_setting->use_change_detection);
+
     std::size_t num_cores = std::thread::hardware_concurrency();
     double max_duration = 800.0 * 32 / static_cast<double>(num_cores);
     double max_mean_duration = 520.0 * 32 / static_cast<double>(num_cores);
@@ -73,6 +78,7 @@ TEST(OccupancyOctree, BuildProfiling) {
     Eigen::MatrixX<Vector3> ray_directions = lidar.GetRayDirectionsInFrame();
     int n = 10;
     double mean_duration = 0;
+    double mean_duration_octomap = 0;
     for (int k = 0; k < 10; ++k) {
         const Matrix4 pose = path_3d[pose_idx].cast<Dtype>();
         pose_idx += 1;
@@ -117,9 +123,29 @@ TEST(OccupancyOctree, BuildProfiling) {
         std::cout << "Insert time: " << duration << " ms." << std::endl;
         EXPECT_LE(duration, max_duration);
         mean_duration += duration;
+
+        t0 = std::chrono::high_resolution_clock::now();
+        octomap::Pointcloud scan;
+        scan.reserve(points.cols());
+        for (long i = 0; i < points.cols(); ++i) {
+            const auto &point = points.col(i);
+            scan.push_back(point[0], point[1], point[2]);
+        }
+        octomap::point3d sensor_origin_octo(sensor_origin[0], sensor_origin[1], sensor_origin[2]);
+        octomap_octree.insertPointCloud(scan, sensor_origin_octo, -1, lazy_eval, discrete);
+        if (lazy_eval) {
+            octomap_octree.updateInnerOccupancy();
+            octomap_octree.prune();
+        }
+        t1 = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        std::cout << "Octomap insert time: " << duration << " ms." << std::endl;
+        mean_duration_octomap += duration;
     }
     mean_duration /= n;
+    mean_duration_octomap /= n;
     std::cout << "Mean Insert time: " << mean_duration << " ms." << std::endl;
+    std::cout << "Mean Octomap Insert time: " << mean_duration_octomap << " ms." << std::endl;
     EXPECT_LE(mean_duration, max_mean_duration);
     // 14900K: ~480ms
     // 13700K: ~550ms

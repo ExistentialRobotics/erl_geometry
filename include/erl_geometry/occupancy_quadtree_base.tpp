@@ -127,7 +127,7 @@ namespace erl::geometry {
         const Eigen::Ref<const Vector2> &sensor_origin,
         const Dtype min_range,
         const Dtype max_range,
-        const bool discretize,
+        const bool discrete,
         std::vector<Dtype> &ranges,
         std::vector<std::array<Dtype, 2>> &diffs,
         Matrix2X &filtered_points,
@@ -144,7 +144,7 @@ namespace erl::geometry {
         m_end_point_mapping_.clear();
         occupied_cells.clear();
 
-        if (discretize) {
+        if (discrete) {
             filtered_points.resize(2, num_points);
 
             long cnt = 0;

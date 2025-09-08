@@ -308,16 +308,7 @@ namespace erl::geometry {
         KeyToVertexCoord(QuadtreeKey::KeyType key) const;
 
         /**
-         * Convert a 1-dim key to vertex coordinate at a given depth.
-         * @param key
-         * @param depth
-         * @return
-         */
-        [[nodiscard]] Dtype
-        KeyToVertexCoord(QuadtreeKey::KeyType key, uint32_t depth) const;
-
-        /**
-         * Convert 2-dim key to vertex coordinate.
+         * Convert a 2-dim key to vertex coordinate at a given depth.
          * @param key
          * @param x
          * @param y
@@ -325,21 +316,11 @@ namespace erl::geometry {
         void
         KeyToVertexCoord(const QuadtreeKey &key, Dtype &x, Dtype &y) const;
 
-        /**
-         * Convert a 2-dim key to vertex coordinate at a given depth.
-         * @param key
-         * @param depth
-         * @param x
-         * @param y
-         */
         void
-        KeyToVertexCoord(const QuadtreeKey &key, uint32_t depth, Dtype &x, Dtype &y) const;
-
-        void
-        KeyToVertexCoord(const QuadtreeKey &key, uint32_t depth, Vector2 &vertex_coord) const;
+        KeyToVertexCoord(const QuadtreeKey &key, Vector2 &vertex_coord) const;
 
         [[nodiscard]] Vector2
-        KeyToVertexCoord(const QuadtreeKey &key, uint32_t depth) const;
+        KeyToVertexCoord(const QuadtreeKey &key) const;
 
         /**
          * Convert 1-dim key to coordinate.
@@ -1141,15 +1122,15 @@ namespace erl::geometry {
         OnDeleteNodeChild(Node *node, Node *child, const QuadtreeKey &key);
 
         /**
-         * Delete child nodes down to max_depth matching the given key of the given node that is at
+         * Delete child nodes down to min_depth matching the given key of the given node that is at
          * the given depth.
          * @param node node at depth, which must not be nullptr, and it will not be deleted
          * @param key
-         * @param max_depth
+         * @param min_depth
          * @return
          */
         bool
-        DeleteNodeRecurs(Node *node, const QuadtreeKey &key, uint32_t max_depth);
+        DeleteNodeRecurs(Node *node, const QuadtreeKey &key, uint32_t min_depth);
 
         /**
          * Delete all descendants of the given node.

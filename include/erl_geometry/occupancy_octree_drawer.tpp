@@ -51,7 +51,6 @@ namespace erl::geometry {
 
         const std::shared_ptr<open3d::geometry::VoxelGrid> boxes =
             std::dynamic_pointer_cast<open3d::geometry::VoxelGrid>(geometries[0]);
-
         ERL_ASSERTM(boxes, "the first element of geometries should be a triangle mesh.");
         const std::shared_ptr<open3d::geometry::LineSet> node_border =
             std::dynamic_pointer_cast<open3d::geometry::LineSet>(geometries[1]);
@@ -65,9 +64,9 @@ namespace erl::geometry {
         // draw
         const double scaling = m_setting_->scaling;
         boxes->Clear();
-        node_border->Clear();
         boxes->voxel_size_ = m_octree_->GetResolution() * scaling;
         boxes->origin_ = (m_setting_->area_max + m_setting_->area_min) / 2.0 * scaling;
+        node_border->Clear();
         auto it = m_octree_->BeginTreeInAabb(
             m_setting_->area_min[0],
             m_setting_->area_min[1],

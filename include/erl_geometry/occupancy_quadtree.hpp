@@ -48,9 +48,9 @@ namespace erl::geometry {
         OccupancyQuadtree(const OccupancyQuadtree &) = default;
         OccupancyQuadtree &
         operator=(const OccupancyQuadtree &) = default;
-        OccupancyQuadtree(OccupancyQuadtree &&) = default;
+        OccupancyQuadtree(OccupancyQuadtree &&) noexcept = default;
         OccupancyQuadtree &
-        operator=(OccupancyQuadtree &&) = default;
+        operator=(OccupancyQuadtree &&) noexcept = default;
 
     protected:
         [[nodiscard]] std::shared_ptr<AbstractQuadtree<Dtype>>
