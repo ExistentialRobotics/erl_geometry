@@ -23,15 +23,19 @@ namespace erl::geometry {
         using Super = OctreeImpl<Node, AbstractOctree<Dtype>, Setting>;
         using NodeIndex = int64_t;
         using Matrix3X = Eigen::Matrix3X<Dtype>;
+        using BufferParents = std::vector<NodeIndex>;
+        using BufferChildren = std::vector<std::array<NodeIndex, 8>>;
+        using BufferVoxels = std::vector<std::array<OctreeKey::KeyType, 4>>;
+        using BufferVertices = std::vector<std::array<NodeIndex, 8>>;
 
         std::shared_ptr<Setting> m_setting_ = nullptr;
 
-        std::vector<NodeIndex> m_parents_ = {};                  // node index -> parent node index
-        std::vector<std::array<NodeIndex, 8>> m_children_ = {};  // node index -> child indices
-        std::vector<std::array<uint16_t, 4>> m_voxels_ = {};     // buffer for voxels (x,y,z,level)
+        BufferParents m_parents_ = {};    // node index -> parent node index
+        BufferChildren m_children_ = {};  // node index -> child indices
+        BufferVoxels m_voxels_ = {};      // voxels (x,y,z,level)
 
-        std::vector<std::array<NodeIndex, 8>> m_vertices_ = {};  // node index -> vertex indices
-        OctreeKeyLongMap m_key_to_vertex_map_ = {};              // map from key to vertex index
+        BufferVertices m_vertices_ = {};             // node index -> vertex indices
+        OctreeKeyLongMap m_key_to_vertex_map_ = {};  // map from key to vertex index
         OctreeKeyVector m_vertex_keys_ = {};
 
         absl::flat_hash_set<NodeIndex> m_recycled_node_indices_ = {};  // indices of recycled nodes
@@ -51,16 +55,16 @@ namespace erl::geometry {
         [[nodiscard]] std::shared_ptr<AbstractOctree<Dtype>>
         Clone() const override;
 
-        [[nodiscard]] const std::vector<NodeIndex> &
+        [[nodiscard]] const BufferParents &
         GetParents() const;
 
-        [[nodiscard]] const std::vector<std::array<NodeIndex, 8>> &
+        [[nodiscard]] const BufferChildren &
         GetChildren() const;
 
-        [[nodiscard]] const std::vector<std::array<uint16_t, 4>> &
+        [[nodiscard]] const BufferVoxels &
         GetVoxels() const;
 
-        [[nodiscard]] const std::vector<std::array<NodeIndex, 8>> &
+        [[nodiscard]] const BufferVertices &
         GetVertices() const;
 
         [[nodiscard]] std::size_t

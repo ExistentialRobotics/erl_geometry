@@ -37,8 +37,15 @@ erl_setup_ros(LIBRARIES ${PROJECT_NAME} #
 # ######################################################################################################################
 # define the libraries #
 # ######################################################################################################################
-file(GLOB SRC_FILES src/*.cpp)
-add_library(${PROJECT_NAME} SHARED ${SRC_FILES} src/sdf/mesh_sdf.cpp src/sdf/sdf_util.cpp)
+file(GLOB_RECURSE SRC_FILES src/*.cpp)
+if (CMAKE_CUDA_COMPILER)
+    file(GLOB_RECURSE CUDA_SRC_FILES src/*.cu)
+    list(APPEND SRC_FILES ${CUDA_SRC_FILES})
+endif ()
+add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
+if (CMAKE_CUDA_COMPILER)
+    set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+endif ()
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 erl_collect_targets(LIBRARIES ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
@@ -58,6 +65,11 @@ erl_add_pybind_module(
     PYBIND_MODULE_NAME py${PROJECT_NAME} #
     PYBIND_SRC_DIR ${${PROJECT_NAME}_PYTHON_BINDING_DIR} #
     LIBRARIES ${PROJECT_NAME})
+if (ERL_USE_LIBTORCH)
+    get_filename_component(TORCH_LIBRARIES_DIR "${Torch_DIR}/../../../lib" ABSOLUTE)
+    target_link_directories(py${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES_DIR})
+    target_link_libraries(py${PROJECT_NAME} PRIVATE torch_python)
+endif ()
 erl_add_python_package()
 
 # ######################################################################################################################

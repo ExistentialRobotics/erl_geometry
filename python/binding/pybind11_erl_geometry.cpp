@@ -2,6 +2,7 @@
 #include "pyobject_occupancy_quadtree.hpp"
 
 #include "erl_common/pybind11.hpp"
+#include "erl_common/pybind11_yaml.hpp"
 #include "erl_geometry/init.hpp"
 
 void
@@ -161,6 +162,12 @@ void
 BindHiddenPointRemoval(py::module &m);
 
 void
+BindFindVoxelIndicesTorch(py::module &m);
+
+void
+BindLibmortonTorch(py::module &m);
+
+void
 PyInit() {
 
 #define REGISTER(x) (void) x::Register<x>()
@@ -180,6 +187,8 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     PyInit();
 
     m.doc() = "Python 3 Interface of erl_geometry";
+
+    BindYamlableBase(m);
 
     BindAabb(m);
 
@@ -243,4 +252,6 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindPrimitives3D(m);
     BindOpen3dHelper(m);
     BindHiddenPointRemoval(m);
+    BindFindVoxelIndicesTorch(m);
+    BindLibmortonTorch(m);
 }

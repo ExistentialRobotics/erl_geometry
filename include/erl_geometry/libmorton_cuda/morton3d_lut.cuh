@@ -2,9 +2,11 @@
 
 #include <cstdint>
 
-namespace libmorton {
-    // LUT for Morton3D encode X
-    static const uint_fast32_t Morton3D_encode_x_256[256] = {
+namespace libmorton_cuda {
+
+    // lookup tables for 3D morton encoding
+
+    __constant__ static const uint32_t Morton3dEncodeX256[256] = {
         0x00000000, 0x00000001, 0x00000008, 0x00000009, 0x00000040, 0x00000041, 0x00000048,
         0x00000049, 0x00000200, 0x00000201, 0x00000208, 0x00000209, 0x00000240, 0x00000241,
         0x00000248, 0x00000249, 0x00001000, 0x00001001, 0x00001008, 0x00001009, 0x00001040,
@@ -43,8 +45,7 @@ namespace libmorton {
         0x00249041, 0x00249048, 0x00249049, 0x00249200, 0x00249201, 0x00249208, 0x00249209,
         0x00249240, 0x00249241, 0x00249248, 0x00249249};
 
-    // LUT for Morton3D encode Y
-    static const uint_fast32_t Morton3D_encode_y_256[256] = {
+    __constant__ static const uint32_t Morton3dEncodeY256[256] = {
         0x00000000, 0x00000002, 0x00000010, 0x00000012, 0x00000080, 0x00000082, 0x00000090,
         0x00000092, 0x00000400, 0x00000402, 0x00000410, 0x00000412, 0x00000480, 0x00000482,
         0x00000490, 0x00000492, 0x00002000, 0x00002002, 0x00002010, 0x00002012, 0x00002080,
@@ -83,8 +84,7 @@ namespace libmorton {
         0x00492082, 0x00492090, 0x00492092, 0x00492400, 0x00492402, 0x00492410, 0x00492412,
         0x00492480, 0x00492482, 0x00492490, 0x00492492};
 
-    // LUT for Morton3D encode Z
-    static const uint_fast32_t Morton3D_encode_z_256[256] = {
+    __constant__ static const uint32_t Morton3dEncodeZ256[256] = {
         0x00000000, 0x00000004, 0x00000020, 0x00000024, 0x00000100, 0x00000104, 0x00000120,
         0x00000124, 0x00000800, 0x00000804, 0x00000820, 0x00000824, 0x00000900, 0x00000904,
         0x00000920, 0x00000924, 0x00004000, 0x00004004, 0x00004020, 0x00004024, 0x00004100,
@@ -123,8 +123,10 @@ namespace libmorton {
         0x00924104, 0x00924120, 0x00924124, 0x00924800, 0x00924804, 0x00924820, 0x00924824,
         0x00924900, 0x00924904, 0x00924920, 0x00924924};
 
-    // LUT for Morton3D decode X
-    static const uint_fast8_t Morton3D_decode_x_512[512] = {
+    // Lookup tables for decoding 3D Morton codes (up to 9 bits per dimension)
+
+    // LUT for extracting the X component from a 3D Morton code
+    __constant__ static const uint8_t Morton3dDecodeX512[512] = {
         0, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 2, 3, 0, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 2,
         3, 0, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3, 2, 3, 0, 1, 0, 1, 0, 1, 0, 1, 2, 3, 2, 3, 2, 3,
         2, 3, 4, 5, 4, 5, 4, 5, 4, 5, 6, 7, 6, 7, 6, 7, 6, 7, 4, 5, 4, 5, 4, 5, 4, 5, 6, 7, 6, 7, 6,
@@ -143,8 +145,8 @@ namespace libmorton {
         5, 4, 5, 4, 5, 4, 5, 6, 7, 6, 7, 6, 7, 6, 7, 4, 5, 4, 5, 4, 5, 4, 5, 6, 7, 6, 7, 6, 7, 6, 7,
         4, 5, 4, 5, 4, 5, 4, 5, 6, 7, 6, 7, 6, 7, 6, 7};
 
-    // LUT for Morton3D decode Y
-    static const uint_fast8_t Morton3D_decode_y_512[512] = {
+    // LUT for extracting the Y component from a 3D Morton code
+    __constant__ static const uint8_t Morton3dDecodeY512[512] = {
         0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3, 2, 2, 3, 3, 2, 2, 3,
         3, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3, 2, 2, 3, 3, 2, 2,
         3, 3, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3, 2, 2, 3, 3, 2,
@@ -163,8 +165,8 @@ namespace libmorton {
         6, 7, 7, 6, 6, 7, 7, 6, 6, 7, 7, 6, 6, 7, 7, 4, 4, 5, 5, 4, 4, 5, 5, 4, 4, 5, 5, 4, 4, 5, 5,
         6, 6, 7, 7, 6, 6, 7, 7, 6, 6, 7, 7, 6, 6, 7, 7};
 
-    // LUT for Morton3D decode Z
-    static const uint_fast8_t Morton3D_decode_z_512[512] = {
+    // LUT for extracting the Z component from a 3D Morton code
+    __constant__ static const uint8_t Morton3dDecodeZ512[512] = {
         0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1,
         1, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 2, 2, 3, 3, 3, 3, 2, 2, 2, 2, 3, 3,
         3, 3, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1,
@@ -182,4 +184,4 @@ namespace libmorton {
         6, 6, 7, 7, 7, 7, 6, 6, 6, 6, 7, 7, 7, 7, 4, 4, 4, 4, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 4,
         4, 4, 4, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 6, 6, 6, 6, 7, 7, 7, 7,
         6, 6, 6, 6, 7, 7, 7, 7, 6, 6, 6, 6, 7, 7, 7, 7};
-}  // namespace libmorton
+}  // namespace libmorton_cuda

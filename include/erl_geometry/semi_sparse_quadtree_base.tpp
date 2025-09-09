@@ -1,5 +1,6 @@
 #pragma once
 
+#include "find_voxel_indices.hpp"
 #include "semi_sparse_quadtree_base.hpp"
 
 namespace erl::geometry {
@@ -37,27 +38,25 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, class Node, class Setting>
-    const std::vector<typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex> &
+    const typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::BufferParents &
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::GetParents() const {
         return m_parents_;
     }
 
     template<typename Dtype, class Node, class Setting>
-    const std::vector<
-        std::array<typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex, 4>> &
+    const typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::BufferChildren &
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::GetChildren() const {
         return m_children_;
     }
 
     template<typename Dtype, class Node, class Setting>
-    const std::vector<std::array<uint16_t, 3>> &
+    const typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::BufferVoxels &
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::GetVoxels() const {
         return m_voxels_;
     }
 
     template<typename Dtype, class Node, class Setting>
-    const std::vector<
-        std::array<typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex, 4>> &
+    const typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::BufferVertices &
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::GetVertices() const {
         return m_vertices_;
     }
@@ -195,25 +194,10 @@ namespace erl::geometry {
     template<typename Dtype, class Node, class Setting>
     typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::FindVoxelIndex(const QuadtreeKey &key) const {
-        int child_level = m_setting_->tree_depth - 1;
-        const uint64_t code = key.ToMortonCode();
-        uint64_t shift = child_level << 1;
-        uint64_t mask = 0b11 << shift;
-        NodeIndex node_index = 0;
-
-        while (child_level >= 0) {
-            if (const auto child_index = static_cast<int>((code & mask) >> shift);
-                m_children_[node_index][child_index] >= 0) {
-                node_index = m_children_[node_index][child_index];
-            } else {
-                return node_index;
-            }
-            --child_level;
-            shift -= 2;
-            mask >>= 2;
-        }
-
-        return node_index;
+        return geometry::FindVoxelIndex<NodeIndex, uint64_t, 2>(
+            key.ToMortonCode(),
+            m_setting_->tree_depth - 1,
+            m_children_[0].data());
     }
 
     template<typename Dtype, class Node, class Setting>

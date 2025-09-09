@@ -34,7 +34,9 @@ CheckTreeStructure(const std::shared_ptr<erl::geometry::SemiSparseOctreeD> &tree
 
         auto child_idx = it->GetChildIndex();
         auto parent_node_index = parents[node_index];
-        ASSERT_EQ(children[parent_node_index][child_idx], node_index);
+        if (parent_node_index >= 0) {
+            ASSERT_EQ(children[parent_node_index][child_idx], node_index);
+        }
 
         OctreeKey vertex_key;
         for (int i = 0; i < 8; ++i) {
@@ -48,6 +50,7 @@ CheckTreeStructure(const std::shared_ptr<erl::geometry::SemiSparseOctreeD> &tree
 }
 
 TEST(SemiSparseOctree, Build) {
+    using namespace erl::common;
     using namespace erl::geometry;
 
     using TreeDrawer = SemiSparseOctreeDrawer<SemiSparseOctreeD>;
@@ -119,11 +122,32 @@ TEST(SemiSparseOctree, Build) {
     auto node_indices = tree->InsertPoints(&points[0][0], points.size());
     CheckTreeStructure(tree);
 
+    // save points
+    SaveBinaryFile(
+        "semi_sparse_octree_points.bin",
+        &points[0][0],
+        static_cast<std::streamsize>(points.size() * 3));
+
+    // save children
+    SaveBinaryFile(
+        "semi_sparse_octree_children.bin",
+        tree->GetChildren().data()->data(),
+        static_cast<std::streamsize>(tree->GetChildren().size() * 8));
+
+    // save node_indices
+    SaveBinaryFile(
+        "semi_sparse_octree_node_indices.bin",
+        node_indices.data(),
+        static_cast<std::streamsize>(node_indices.size()));
+
     std::vector<long> found_node_indices;
+    double dt;
     {
-        ERL_BLOCK_TIMER_MSG("Find voxel indices");
+        ERL_BLOCK_TIMER_MSG_TIME("Find voxel indices", dt);
         found_node_indices = tree->FindVoxelIndices(&points[0][0], points.size(), true);
     }
+    dt /= static_cast<double>(points.size());
+    std::cout << "Average time per query: " << dt * 1e3 << " us." << std::endl;
     for (std::size_t i = 0; i < node_indices.size(); ++i) {
         ASSERT_EQ(node_indices[i], found_node_indices[i]);
     }

@@ -33,7 +33,9 @@ CheckTreeStructure(const std::shared_ptr<erl::geometry::SemiSparseQuadtreeD> &tr
 
         auto child_idx = it->GetChildIndex();
         auto parent_node_index = parents[node_index];
-        ASSERT_EQ(children[parent_node_index][child_idx], node_index);
+        if (parent_node_index >= 0) {
+            ASSERT_EQ(children[parent_node_index][child_idx], node_index);
+        }
 
         QuadtreeKey vertex_key;
         for (int i = 0; i < 4; ++i) {
@@ -50,6 +52,7 @@ CheckTreeStructure(const std::shared_ptr<erl::geometry::SemiSparseQuadtreeD> &tr
 }
 
 TEST(SemiSparseQuadtree, Build) {
+    using namespace erl::common;
     using namespace erl::geometry;
 
     using TreeDrawer = SemiSparseQuadtreeDrawer<SemiSparseQuadtreeD>;
@@ -111,9 +114,28 @@ TEST(SemiSparseQuadtree, Build) {
         double y = radius * std::sin(angles[i]);
         points.emplace_back(x, y);
     }
+    std::cout << points[0] << std::endl;
 
     auto node_indices = tree->InsertPoints(&points[0][0], points.size());
     CheckTreeStructure(tree);
+
+    // save points
+    SaveBinaryFile<double>(
+        "semi_sparse_quadtree_points.bin",
+        points.data()->data(),
+        static_cast<std::streamsize>(points.size() * 2));
+
+    // save children
+    SaveBinaryFile<long>(
+        "semi_sparse_quadtree_children.bin",
+        tree->GetChildren().data()->data(),
+        static_cast<std::streamsize>(tree->GetChildren().size() * 4));
+
+    // save node_indices
+    SaveBinaryFile<long>(
+        "semi_sparse_quadtree_node_indices.bin",
+        node_indices.data(),
+        static_cast<std::streamsize>(node_indices.size()));
 
     std::vector<long> found_node_indices;
     {
