@@ -21,6 +21,8 @@ namespace erl::geometry {
         // percentage margin to use when sampling free points to avoid sampling too close to the
         // surface or the sensor.
         float free_sampling_margin = 0.05f;
+        // scale factor for the sampling area.
+        float sampling_area_scale = 1.5f;
         // initial value for initializing the mean vector. 0.0f means unknown. <0.0f means we
         // assume the point is occupied, >0.0f means we assume the point is free.
         float init_mu = 0.0f;
@@ -125,14 +127,26 @@ namespace erl::geometry {
         [[nodiscard]] const VectorX &
         GetWeights() const;
 
+        [[nodiscard]] Dtype
+        GetWeight(int idx) const;
+
+        void
+        SetWeights(const VectorX &weights);
+
         [[nodiscard]] MatrixX &
         GetWeightsCovariance();
 
         [[nodiscard]] const MatrixX &
         GetWeightsCovariance() const;
 
+        [[nodiscard]] Dtype
+        GetWeightVariance(int idx) const;
+
         [[nodiscard]] const AabbD &
         GetMapBoundary() const;
+
+        [[nodiscard]] AabbD
+        GetSamplingBoundary() const;
 
         [[nodiscard]] uint64_t
         GetIterationCount() const;
@@ -277,8 +291,6 @@ namespace erl::geometry {
     extern template class BayesianHilbertMap<float, 3>;
     extern template class BayesianHilbertMap<double, 3>;
 }  // namespace erl::geometry
-
-// #include "bayesian_hilbert_map.tpp"
 
 template<>
 struct YAML::convert<erl::geometry::BayesianHilbertMapSetting> {

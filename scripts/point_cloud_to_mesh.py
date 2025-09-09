@@ -17,9 +17,11 @@ Reference:
 """
 
 import argparse
-import sys
 import os
+import sys
+
 import numpy as np
+import open3d as o3d
 import pymeshlab
 
 
@@ -150,6 +152,23 @@ def ball_pivoting_reconstruction(ms, radius_multiplier=1.0, clustering=0.1, angl
         raise RuntimeError(f"Ball Pivoting reconstruction failed: {e}")
 
 
+def ball_pivoting_reconstruction_o3d(pcd_file, mesh_file, radius_scale):
+    pcd = o3d.io.read_point_cloud(pcd_file)
+    pcd.estimate_normals()
+
+    # estimate radius for rolling ball
+    distances = pcd.compute_nearest_neighbor_distance()
+    avg_dist = np.mean(distances)
+    radius = radius_scale * avg_dist
+    print(f"Estimated ball radius: {radius:.6f}")
+
+    mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
+        pcd, o3d.utility.DoubleVector([radius, radius * 2])
+    )
+    o3d.io.write_triangle_mesh(mesh_file, mesh)
+    print(f"Mesh saved to: {mesh_file}")
+
+
 def post_process_mesh(
     ms,
     remove_long_edges=1.0,
@@ -259,7 +278,7 @@ Examples:
     # Method selection
     parser.add_argument(
         "--method",
-        choices=["poisson", "ball_pivot"],
+        choices=["poisson", "ball_pivot", "ball_pivot_o3d"],
         default="poisson",
         help="Reconstruction method (default: poisson)",
     )
@@ -349,6 +368,15 @@ Examples:
     parser.add_argument("--pause", action="store_true", help="Pause after each step for debugging")
 
     args = parser.parse_args()
+
+    if args.method == "ball_pivot_o3d":
+        try:
+            ball_pivoting_reconstruction_o3d(args.input, args.output, args.radius)
+            print("Surface reconstruction completed successfully!")
+            return
+        except Exception as e:
+            print(f"Error in Open3D Ball Pivoting reconstruction: {e}", file=sys.stderr)
+            sys.exit(1)
 
     try:
         # Load point cloud

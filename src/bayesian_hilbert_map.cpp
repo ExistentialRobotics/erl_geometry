@@ -71,6 +71,23 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, int Dim>
+    [[nodiscard]] Dtype
+    BayesianHilbertMap<Dtype, Dim>::GetWeight(int idx) const {
+        return m_mu_[idx];
+    }
+
+    template<typename Dtype, int Dim>
+    void
+    BayesianHilbertMap<Dtype, Dim>::SetWeights(const VectorX &weights) {
+        m_mu_ = weights;
+        if (m_setting_->diagonal_sigma) {
+            m_alpha_ = m_mu_.cwiseProduct(m_sigma_inv_);
+        } else {
+            m_alpha_ = m_sigma_inv_ * m_mu_;
+        }
+    }
+
+    template<typename Dtype, int Dim>
     typename BayesianHilbertMap<Dtype, Dim>::MatrixX &
     BayesianHilbertMap<Dtype, Dim>::GetWeightsCovariance() {
         return m_sigma_;
@@ -83,9 +100,27 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, int Dim>
+    [[nodiscard]] Dtype
+    BayesianHilbertMap<Dtype, Dim>::GetWeightVariance(int idx) const {
+        if (m_setting_->diagonal_sigma) {
+            return m_sigma_(idx, 0);
+        } else {
+            return m_sigma_(idx, idx);
+        }
+    }
+
+    template<typename Dtype, int Dim>
     const Aabb<Dtype, Dim> &
     BayesianHilbertMap<Dtype, Dim>::GetMapBoundary() const {
         return m_map_boundary_;
+    }
+
+    template<typename Dtype, int Dim>
+    typename BayesianHilbertMap<Dtype, Dim>::AabbD
+    BayesianHilbertMap<Dtype, Dim>::GetSamplingBoundary() const {
+        return AabbD(
+            m_map_boundary_.center,
+            m_map_boundary_.half_sizes[0] * m_setting_->sampling_area_scale);
     }
 
     template<typename Dtype, int Dim>
@@ -118,7 +153,7 @@ namespace erl::geometry {
             sensor_position,
             points,
             point_indices,
-            m_map_boundary_,
+            GetSamplingBoundary(),
             m_generator_,
             m_setting_->min_distance,
             m_setting_->max_distance,
@@ -1508,6 +1543,7 @@ YAML::convert<erl::geometry::BayesianHilbertMapSetting>::encode(
     ERL_YAML_SAVE_ATTR(node, setting, max_distance);
     ERL_YAML_SAVE_ATTR(node, setting, free_points_per_meter);
     ERL_YAML_SAVE_ATTR(node, setting, free_sampling_margin);
+    ERL_YAML_SAVE_ATTR(node, setting, sampling_area_scale);
     ERL_YAML_SAVE_ATTR(node, setting, init_mu);
     ERL_YAML_SAVE_ATTR(node, setting, init_sigma);
     ERL_YAML_SAVE_ATTR(node, setting, num_em_iterations);
@@ -1526,6 +1562,7 @@ YAML::convert<erl::geometry::BayesianHilbertMapSetting>::decode(
     ERL_YAML_LOAD_ATTR(node, setting, max_distance);
     ERL_YAML_LOAD_ATTR(node, setting, free_points_per_meter);
     ERL_YAML_LOAD_ATTR(node, setting, free_sampling_margin);
+    ERL_YAML_LOAD_ATTR(node, setting, sampling_area_scale);
     ERL_YAML_LOAD_ATTR(node, setting, init_mu);
     ERL_YAML_LOAD_ATTR(node, setting, init_sigma);
     ERL_YAML_LOAD_ATTR(node, setting, num_em_iterations);
