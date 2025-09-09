@@ -241,7 +241,7 @@ See also 🚪[erl_geometry_ros](https://github.com/ExistentialRobotics/erl_geome
 cd <your_workspace>
 for package in erl_cmake_tools erl_common erl_covariance erl_geometry; do
     cd src/$package
-    pip install . --verbose
+    pip install . --verbose --no-build-isolation
     cd ../..
 done
 ```

@@ -2,25 +2,25 @@ import importlib
 import os
 import pathlib
 import shutil
+import site
 import subprocess
 import sys
-import site
 
 if sys.version_info.major == 3 and sys.version_info.minor < 11:
     import toml as tomllib
 else:
     import tomllib
 
-from setuptools import Extension
-from setuptools import find_packages
-from setuptools import setup
+from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
 
-torch_dir = None
+torch_dir = os.environ.get("Torch_DIR", None)
 try:
-    import torch
+    if torch_dir is None:
+        import torch
 
-    torch_dir = pathlib.Path(torch.__file__).parent / "share" / "cmake" / "Torch"
+        torch_dir = pathlib.Path(torch.__file__).parent / "share" / "cmake" / "Torch"
+    print(f"Torch_DIR: {torch_dir}")
 except ImportError:
     print("torch is not installed, the system libtorch will be used if needed.")
     pass
@@ -38,7 +38,11 @@ cmake_use_intel_mkl = config["erl"].get("use_intel_mkl", "ON")
 cmake_use_aocl = config["erl"].get("use_aocl", "OFF")
 cmake_use_single_threaded_blas = config["erl"].get("use_single_threaded_blas", "ON")
 cmake_use_tracy = config["erl"].get("use_tracy", "OFF")
+cmake_use_pangolin = config["erl"].get("use_pangolin", "OFF")
+cmake_use_plplot = config["erl"].get("use_plplot", "ON")
+cmake_use_libtorch = config["erl"].get("use_libtorch", "OFF")
 cmake_build_test = config["erl"].get("build_test", "OFF")
+force_cmake_reconfigure = config["erl"].get("force_cmake_reconfigure", "ON")
 
 erl_dependencies = config["erl"]["erl_dependencies"]
 
@@ -75,7 +79,11 @@ cmake_use_intel_mkl = os.environ.get("USE_INTEL_MKL", cmake_use_intel_mkl)
 cmake_use_aocl = os.environ.get("USE_AOCL", cmake_use_aocl)
 cmake_use_single_threaded_blas = os.environ.get("USE_SINGLE_THREADED_BLAS", cmake_use_single_threaded_blas)
 cmake_use_tracy = os.environ.get("USE_TRACY", cmake_use_tracy)
+cmake_use_pangolin = os.environ.get("USE_PANGOLIN", cmake_use_pangolin)
+cmake_use_plplot = os.environ.get("USE_PLPLOT", cmake_use_plplot)
+cmake_use_libtorch = os.environ.get("USE_LIBTORCH", cmake_use_libtorch)
 cmake_build_test = os.environ.get("BUILD_TEST", cmake_build_test)
+force_cmake_reconfigure = os.environ.get("FORCE_CMAKE_RECONFIGURE", force_cmake_reconfigure)
 
 available_build_types = ["Release", "Debug", "RelWithDebInfo"]
 assert cmake_build_type in available_build_types, f"build type {cmake_build_type} is not in {available_build_types}"
@@ -109,7 +117,11 @@ print(f"ERL_USE_INTEL_MKL: {cmake_use_intel_mkl}")
 print(f"ERL_USE_AOCL: {cmake_use_aocl}")
 print(f"ERL_USE_SINGLE_THREADED_BLAS: {cmake_use_single_threaded_blas}")
 print(f"ERL_USE_TRACY: {cmake_use_tracy}")
+print(f"ERL_USE_PANGOLIN: {cmake_use_pangolin}")
+print(f"ERL_USE_PLPLOT: {cmake_use_plplot}")
+print(f"ERL_USE_LIBTORCH: {cmake_use_libtorch}")
 print(f"ERL_BUILD_TEST: {cmake_build_test}")
+print(f"FORCE_CMAKE_RECONFIGURE: {force_cmake_reconfigure}")
 print("====================================================================================================")
 
 # clean up
@@ -157,6 +169,8 @@ class CMakeBuild(build_ext):
             shutil.rmtree(build_temp)
         os.makedirs(build_temp, exist_ok=True)
         os.makedirs(ext_dir, exist_ok=True)
+        if force_cmake_reconfigure.upper() == "ON" and (build_temp / "CMakeCache.txt").exists():
+            os.remove(build_temp / "CMakeCache.txt")
         if not (build_temp / "CMakeCache.txt").exists():
             cmake_args = [
                 f"-DPython3_ROOT_DIR:PATH={pathlib.Path(sys.executable).parent.parent}",
@@ -170,6 +184,9 @@ class CMakeBuild(build_ext):
                 f"-DERL_USE_AOCL:BOOL={cmake_use_aocl}",
                 f"-DERL_USE_SINGLE_THREADED_BLAS:BOOL={cmake_use_single_threaded_blas}",
                 f"-DERL_USE_TRACY:BOOL={cmake_use_tracy}",
+                f"-DERL_USE_PANGOLIN:BOOL={cmake_use_pangolin}",
+                f"-DERL_USE_PLPLOT:BOOL={cmake_use_plplot}",
+                f"-DERL_USE_LIBTORCH:BOOL={cmake_use_libtorch}",
                 f"-DERL_BUILD_TEST:BOOL={cmake_build_test}",
                 f"-DPIP_LIB_DIR:PATH={ext_dir}",
             ]

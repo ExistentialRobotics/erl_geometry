@@ -67,8 +67,7 @@ erl_add_pybind_module(
     LIBRARIES ${PROJECT_NAME})
 if (ERL_USE_LIBTORCH)
     get_filename_component(TORCH_LIBRARIES_DIR "${Torch_DIR}/../../../lib" ABSOLUTE)
-    target_link_directories(py${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES_DIR})
-    target_link_libraries(py${PROJECT_NAME} PRIVATE torch_python)
+    target_link_libraries(py${PROJECT_NAME} PRIVATE "${TORCH_LIBRARIES_DIR}/libtorch_python.so")
 endif ()
 erl_add_python_package()
 

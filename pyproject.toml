@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "toml", "torch>=2.7"]
+requires = ["setuptools", "wheel", "toml"]
 
 [tool.black]
 line-length = 120
@@ -10,6 +10,7 @@ python_pkg_name = "erl_geometry"
 pybind_module_name = "pyerl_geometry"
 erl_dependencies = ["erl_cmake_tools", "erl_common", "erl_covariance"]
 build_type = "Release"
+use_libtorch = "ON"
 version = "0.1.0"
 author = "Zhirui Dai"
 author_email = "zhdai@ucsd.edu"

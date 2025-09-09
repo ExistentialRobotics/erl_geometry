@@ -1,8 +1,9 @@
+import os
 import time
 
 import torch
-from pyerl_geometry import find_voxel_indices, morton_encode
-import os
+
+from erl_geometry import find_voxel_indices, morton_encode
 
 
 def test_find_voxel_indices(dim: int):
