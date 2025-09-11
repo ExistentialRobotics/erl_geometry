@@ -1888,6 +1888,34 @@ class LogOddMap2Df:
     def unexplored_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
         """(arg0: erl_geometry.pyerl_geometry.LogOddMap2Df) -> numpy.ndarray[numpy.uint8[m, n]]"""
 
+class MarchingCubes:
+    class ValidCube:
+        cfg_index: int
+        coords: numpy.ndarray[numpy.int32[3, 1]]
+        edges: list[numpy.ndarray[numpy.int32[3, 1]]]
+        def __init__(self) -> None:
+            """__init__(self: erl_geometry.pyerl_geometry.MarchingCubes.ValidCube) -> None"""
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize self.  See help(type(self)) for accurate signature."""
+    @staticmethod
+    def calculate_cube_cfg_index(vertex_values: numpy.ndarray[numpy.float64[8, 1]], iso_value: float) -> int:
+        """calculate_cube_cfg_index(vertex_values: numpy.ndarray[numpy.float64[8, 1]], iso_value: float) -> int"""
+    @staticmethod
+    def collect_valid_cubes(grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], iso_value: float, row_major: bool = ..., parallel: bool = ...) -> list[list[MarchingCubes.ValidCube]]:
+        """collect_valid_cubes(grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], iso_value: float, row_major: bool = True, parallel: bool = False) -> list[list[erl_geometry.pyerl_geometry.MarchingCubes.ValidCube]]"""
+    @staticmethod
+    def get_vertex_offsets() -> numpy.ndarray[numpy.int32]:
+        """get_vertex_offsets() -> numpy.ndarray[numpy.int32]"""
+    @staticmethod
+    def process_valid_cubes(valid_cubes: list[list[MarchingCubes.ValidCube]], coords_min: numpy.ndarray[numpy.float64[3, 1]], grid_res: numpy.ndarray[numpy.float64[3, 1]], grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], iso_value: float, row_major: bool = ..., parallel: bool = ...) -> tuple:
+        """process_valid_cubes(valid_cubes: list[list[erl_geometry.pyerl_geometry.MarchingCubes.ValidCube]], coords_min: numpy.ndarray[numpy.float64[3, 1]], grid_res: numpy.ndarray[numpy.float64[3, 1]], grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], iso_value: float, row_major: bool = True, parallel: bool = False) -> tuple"""
+    @staticmethod
+    def run(coords_min: numpy.ndarray[numpy.float64[3, 1]], grid_res: numpy.ndarray[numpy.float64[3, 1]], grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], iso_value: float, row_major: bool = ..., parallel: bool = ...) -> tuple:
+        """run(coords_min: numpy.ndarray[numpy.float64[3, 1]], grid_res: numpy.ndarray[numpy.float64[3, 1]], grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], iso_value: float, row_major: bool = True, parallel: bool = False) -> tuple"""
+    @staticmethod
+    def single_cube(vertex_coords: numpy.ndarray[numpy.float64[3, 8], flags.f_contiguous], grid_values: numpy.ndarray[numpy.float64[8, 1]], iso_value: float) -> tuple:
+        """single_cube(vertex_coords: numpy.ndarray[numpy.float64[3, 8], flags.f_contiguous], grid_values: numpy.ndarray[numpy.float64[8, 1]], iso_value: float) -> tuple"""
+
 class NdTreeSetting(YamlableBase):
     resolution: float
     tree_depth: int

@@ -168,6 +168,9 @@ void
 BindLibmortonTorch(py::module &m);
 
 void
+BindMarchingCubes(const py::module &m);
+
+void
 PyInit() {
 
 #define REGISTER(x) (void) x::Register<x>()
@@ -254,4 +257,5 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindHiddenPointRemoval(m);
     BindFindVoxelIndicesTorch(m);
     BindLibmortonTorch(m);
+    BindMarchingCubes(m);
 }
