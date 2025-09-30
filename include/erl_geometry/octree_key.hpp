@@ -121,7 +121,11 @@ namespace erl::geometry {
 
         [[nodiscard]] explicit
         operator std::string() const {
-            return fmt::format("[{}, {}, {}]", m_k_[0], m_k_[1], m_k_[2]);
+            return "[" +                             //
+                   std::to_string(m_k_[0]) + ", " +  //
+                   std::to_string(m_k_[1]) + ", " +  //
+                   std::to_string(m_k_[2])           //
+                   + "]";
         }
 
         [[nodiscard]] uint64_t

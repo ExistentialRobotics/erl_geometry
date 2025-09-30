@@ -1,9 +1,5 @@
-dash
-plotly
-tqdm
-opencv-python
-pyyaml
-screeninfo
-scipy
+setuptools
+wheel
 numpy
-vedo
+torch
+open3d

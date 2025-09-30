@@ -18,33 +18,30 @@ CheckTreeStructure(const std::shared_ptr<erl::geometry::SemiSparseQuadtreeD> &tr
     for (auto it = tree->BeginTree(), end = tree->EndTree(); it != end; ++it) {
         long node_index = it->GetNodeIndex();
         QuadtreeKey voxel_key = it.GetIndexKey();
-        ASSERT_EQ(voxels[node_index][0], voxel_key[0]);
-        ASSERT_EQ(voxels[node_index][1], voxel_key[1]);
-        ASSERT_EQ(voxels[node_index][2], tree->GetTreeDepth() - it->GetDepth());
+        ASSERT_EQ(voxels(0, node_index), voxel_key[0]);
+        ASSERT_EQ(voxels(1, node_index), voxel_key[1]);
+        ASSERT_EQ(voxels(2, node_index), 1 << (tree->GetTreeDepth() - it->GetDepth()));
 
         if (!it->HasAnyChild()) {
-            for (int i = 0; i < 4; ++i) { ASSERT_EQ(children[node_index][i], -1); }
+            for (int i = 0; i < 4; ++i) { ASSERT_EQ(children(i, node_index), -1); }
         } else {
             for (int i = 0; i < 4; ++i) {
                 auto child = it->GetChild<SemiSparseQuadtreeNode>(i);
-                ASSERT_EQ(children[node_index][i], child == nullptr ? -1 : child->GetNodeIndex());
+                ASSERT_EQ(children(i, node_index), child == nullptr ? -1 : child->GetNodeIndex());
             }
         }
 
         auto child_idx = it->GetChildIndex();
         auto parent_node_index = parents[node_index];
         if (parent_node_index >= 0) {
-            ASSERT_EQ(children[parent_node_index][child_idx], node_index);
+            ASSERT_EQ(children(child_idx, parent_node_index), node_index);
         }
 
         QuadtreeKey vertex_key;
+        const uint32_t level = tree->GetTreeDepth() - it->GetDepth();
         for (int i = 0; i < 4; ++i) {
-            QuadtreeKey::ComputeVertexKey(
-                i,
-                voxels[node_index][2] /*level*/,
-                voxel_key,
-                vertex_key);
-            long vertex_index = vertices[node_index][i];
+            QuadtreeKey::ComputeVertexKey(i, level, voxel_key, vertex_key);
+            long vertex_index = vertices(i, node_index);
             ASSERT_EQ(vertex_keys[vertex_index][0], vertex_key[0]);
             ASSERT_EQ(vertex_keys[vertex_index][1], vertex_key[1]);
         }
@@ -59,7 +56,7 @@ TEST(SemiSparseQuadtree, Build) {
 
     auto setting = std::make_shared<SemiSparseNdTreeSetting>();
     setting->tree_depth = 8;
-    setting->full_depth = 2;
+    setting->semi_sparse_depth = 2;
     setting->resolution = 0.05;
     setting->init_voxel_num = 1000;
     auto tree = std::make_shared<SemiSparseQuadtreeD>(setting);
@@ -78,7 +75,7 @@ TEST(SemiSparseQuadtree, Build) {
     auto drawer_callback =
         [&](const TreeDrawer *self, cv::Mat &mat, SemiSparseQuadtreeD::LeafInAabbIterator &it) {
             long node_index = it->GetNodeIndex();
-            auto &vertex_indices = vertices[node_index];
+            auto &vertex_indices = vertices.col(node_index);
             for (auto &vertex_index: vertex_indices) {
                 ERL_ASSERTM(vertex_index >= 0, "invalid vertex index: {}", vertex_index);
                 auto p = tree->KeyToVertexCoord(vertex_keys[vertex_index]);
@@ -114,9 +111,9 @@ TEST(SemiSparseQuadtree, Build) {
         double y = radius * std::sin(angles[i]);
         points.emplace_back(x, y);
     }
-    std::cout << points[0] << std::endl;
+    // std::cout << points[0] << std::endl;
 
-    auto node_indices = tree->InsertPoints(&points[0][0], points.size());
+    auto node_indices = tree->InsertPoints(&points[0][0], static_cast<long>(points.size()));
     CheckTreeStructure(tree);
 
     // save points
@@ -128,21 +125,21 @@ TEST(SemiSparseQuadtree, Build) {
     // save children
     SaveBinaryFile<long>(
         "semi_sparse_quadtree_children.bin",
-        tree->GetChildren().data()->data(),
-        static_cast<std::streamsize>(tree->GetChildren().size() * 4));
+        tree->GetChildren().data(),
+        tree->GetChildren().size());
 
     // save node_indices
     SaveBinaryFile<long>(
         "semi_sparse_quadtree_node_indices.bin",
         node_indices.data(),
-        static_cast<std::streamsize>(node_indices.size()));
-
-    std::vector<long> found_node_indices;
+        node_indices.size());
+    Eigen::VectorXl found_node_indices;
     {
         ERL_BLOCK_TIMER_MSG("Find voxel indices");
-        found_node_indices = tree->FindVoxelIndices(&points[0][0], points.size(), true);
+        found_node_indices =
+            tree->FindVoxelIndices(&points[0][0], static_cast<long>(points.size()), true);
     }
-    for (std::size_t i = 0; i < node_indices.size(); ++i) {
+    for (long i = 0; i < node_indices.size(); ++i) {
         ASSERT_EQ(node_indices[i], found_node_indices[i]);
     }
 

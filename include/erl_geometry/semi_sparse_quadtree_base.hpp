@@ -19,20 +19,28 @@ namespace erl::geometry {
         static_assert(std::is_base_of_v<SemiSparseQuadtreeNode, Node>);
         static_assert(std::is_base_of_v<SemiSparseNdTreeSetting, Setting>);
 
-    protected:
+    public:
+        using DataType = Dtype;
         using Super = QuadtreeImpl<Node, AbstractQuadtree<Dtype>, Setting>;
-        using NodeIndex = int64_t;
-        using Matrix2X = Eigen::Matrix2X<Dtype>;
-        using BufferParents = std::vector<NodeIndex>;
-        using BufferChildren = std::vector<std::array<NodeIndex, 4>>;
-        using BufferVoxels = std::vector<std::array<QuadtreeKey::KeyType, 3>>;
-        using BufferVertices = std::vector<std::array<NodeIndex, 4>>;
 
+        using NodeIndex = int64_t;
+        using NodeIndices = Eigen::VectorX<NodeIndex>;
+        using Matrix2X = Eigen::Matrix2X<Dtype>;
+
+        using BufferParents = NodeIndices;
+        using BufferChildren = Eigen::Matrix<NodeIndex, 4, Eigen::Dynamic>;
+        using BufferVoxels = Eigen::Matrix<QuadtreeKey::KeyType, 3, Eigen::Dynamic>;
+        using BufferVertices = Eigen::Matrix<NodeIndex, 4, Eigen::Dynamic>;
+
+    protected:
         std::shared_ptr<Setting> m_setting_ = nullptr;
+
+        NodeIndex m_buf_head_ = 0;
 
         BufferParents m_parents_ = {};    // node index -> parent node index
         BufferChildren m_children_ = {};  // node index -> child indices
-        BufferVoxels m_voxels_ = {};      // buffer for voxels (x,y,level)
+        BufferVoxels m_voxels_ = {};      // buffer for voxels (x,y,size)
+        Matrix2X m_voxel_centers_ = {};   // voxel centers, (x, y) is the metric coordinate
 
         BufferVertices m_vertices_ = {};               // node index -> vertex indices
         QuadtreeKeyLongMap m_key_to_vertex_map_ = {};  // map from key to vertex index
@@ -64,6 +72,9 @@ namespace erl::geometry {
         [[nodiscard]] const BufferVoxels &
         GetVoxels() const;
 
+        [[nodiscard]] const Matrix2X &
+        GetVoxelCenters() const;
+
         [[nodiscard]] const BufferVertices &
         GetVertices() const;
 
@@ -73,7 +84,7 @@ namespace erl::geometry {
         [[nodiscard]] const QuadtreeKeyVector &
         GetVertexKeys() const;
 
-        std::vector<NodeIndex>
+        Eigen::VectorX<NodeIndex>
         InsertPoints(const Matrix2X &points);
 
         /**
@@ -82,23 +93,23 @@ namespace erl::geometry {
          * @param points
          * @param num_points
          */
-        std::vector<NodeIndex>
-        InsertPoints(const Dtype *points, std::size_t num_points);
+        NodeIndices
+        InsertPoints(const Dtype *points, long num_points);
 
-        std::vector<NodeIndex>
-        InsertPoints(const QuadtreeKey *keys, std::size_t num_points);
+        NodeIndices
+        InsertKeys(const QuadtreeKey *keys, long num_points);
 
         NodeIndex
-        InsertPoint(const QuadtreeKey &key, uint32_t max_depth);
+        InsertKey(const QuadtreeKey &key, uint32_t max_depth);
 
-        [[nodiscard]] std::vector<NodeIndex>
+        [[nodiscard]] NodeIndices
         FindVoxelIndices(const Matrix2X &points, bool parallel) const;
 
-        [[nodiscard]] std::vector<NodeIndex>
-        FindVoxelIndices(const Dtype *points, std::size_t num_points, bool parallel) const;
+        [[nodiscard]] NodeIndices
+        FindVoxelIndices(const Dtype *points, long num_points, bool parallel) const;
 
-        [[nodiscard]] std::vector<NodeIndex>
-        FindVoxelIndices(const QuadtreeKey *keys, std::size_t num_points, bool parallel) const;
+        [[nodiscard]] NodeIndices
+        FindVoxelIndices(const QuadtreeKey *keys, long num_points, bool parallel) const;
 
         [[nodiscard]] NodeIndex
         FindVoxelIndex(const QuadtreeKey &key) const;

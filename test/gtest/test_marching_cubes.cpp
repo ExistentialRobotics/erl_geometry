@@ -223,7 +223,7 @@ TEST(MarchingCubes, HouseExpo) {
     open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
 }
 
-TEST(MarchingCubes, FromArray) {
+TEST(MarchingCubes, FromArray1) {
     GTEST_PREPARE_OUTPUT_DIR();
     std::filesystem::path kProjectDir = ERL_GEOMETRY_ROOT_DIR;
     std::filesystem::path kDataDir = kProjectDir / "data";
@@ -243,5 +243,39 @@ TEST(MarchingCubes, FromArray) {
         extracted_mesh->vertices_,
         extracted_mesh->triangles_,
         extracted_mesh->triangle_normals_);
+    open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
+}
+
+TEST(MarchingCubes, FromArray2) {
+    GTEST_PREPARE_OUTPUT_DIR();
+    const std::filesystem::path kProjectDir = ERL_GEOMETRY_ROOT_DIR;
+    const std::filesystem::path kDataDir = kProjectDir / "data";
+    const std::filesystem::path kArrayFile = kDataDir / "grid_sdf_720_480_320_0.0125.dat";
+
+    Eigen::VectorXf sdf_values = erl::common::LoadEigenMatrixFromBinaryFile<float>(kArrayFile);
+    constexpr double resolution = 0.0125;
+    std::vector<Eigen::Vector3f> vertices;
+    std::vector<Eigen::Vector3i> triangles;
+    std::vector<Eigen::Vector3f> triangle_normals;
+    {
+        ERL_BLOCK_TIMER_MSG("marching cubes");
+        erl::geometry::MarchingCubes::Run(
+            Eigen::Vector3f(0, 0, 0),
+            Eigen::Vector3f(resolution, resolution, resolution),
+            Eigen::Vector3i(720, 480, 320),
+            sdf_values,
+            0.0f /* iso_value */,
+            true /* row_major */,
+            true /* parallel */,
+            vertices,
+            triangles,
+            triangle_normals);
+    }
+    auto extracted_mesh = std::make_shared<open3d::geometry::TriangleMesh>();
+    for (auto &v: vertices) { extracted_mesh->vertices_.emplace_back(v.cast<double>()); }
+    extracted_mesh->triangles_ = triangles;
+    for (auto &n: triangle_normals) {
+        extracted_mesh->triangle_normals_.emplace_back(n.cast<double>());
+    }
     open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
 }

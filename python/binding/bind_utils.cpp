@@ -1,7 +1,6 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_common/random.hpp"
 #include "erl_geometry/bresenham_2d.hpp"
-#include "erl_geometry/marching_squares.hpp"
 #include "erl_geometry/utils.hpp"
 #include "erl_geometry/winding_number.hpp"
 
@@ -25,18 +24,6 @@ BindUtils(py::module &m) {
             "compute_pixels_of_polygon_contour",
             &ComputePixelsOfPolygonContour,
             py::arg("polygon_vertices"))
-        .def(
-            "marching_square",
-            [](const Eigen::Ref<const Eigen::MatrixXd> &img, const double iso_value) {
-                Eigen::Matrix2Xd vertices;
-                Eigen::Matrix2Xi lines_to_vertices;
-                Eigen::Matrix2Xi objects_to_lines;
-                MarchingSquares::Run(img, iso_value, vertices, lines_to_vertices, objects_to_lines);
-
-                return py::make_tuple(vertices, lines_to_vertices, objects_to_lines);
-            },
-            py::arg("img"),
-            py::arg("iso_value"))
         .def("winding_number", &WindingNumber<double>, py::arg("p"), py::arg("vertices"))
         .def(
             "convert_path_2d_to_3d_float64",

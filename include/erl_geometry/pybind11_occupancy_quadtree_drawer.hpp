@@ -1,7 +1,8 @@
 #pragma once
 
+#include "occupancy_quadtree_drawer.hpp"
+
 #include "erl_common/pybind11.hpp"
-#include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 template<class Tree>
 void

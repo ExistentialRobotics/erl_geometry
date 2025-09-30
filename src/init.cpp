@@ -15,6 +15,8 @@
 #include "erl_geometry/range_sensor_frame_3d.hpp"
 #include "erl_geometry/rgbd_camera_3d.hpp"
 #include "erl_geometry/rgbd_frame_3d.hpp"
+#include "erl_geometry/semi_sparse_octree.hpp"
+#include "erl_geometry/semi_sparse_quadtree.hpp"
 
 namespace erl::geometry {
 
@@ -55,6 +57,7 @@ namespace erl::geometry {
         // REGISTER(RgbdFrame3Df::Setting);  // DepthFrame3Df::Setting
 
         REGISTER(NdTreeSetting);
+        REGISTER(SemiSparseNdTreeSetting);
         REGISTER(OccupancyQuadtreeBaseSetting);
         REGISTER(OccupancyOctreeBaseSetting);
         REGISTER(OccupancyQuadtreeNode);
@@ -63,6 +66,12 @@ namespace erl::geometry {
         REGISTER(OccupancyOctreeF);
         REGISTER(OccupancyQuadtreeD);
         REGISTER(OccupancyQuadtreeF);
+        REGISTER(SemiSparseOctreeNode);
+        REGISTER(SemiSparseQuadtreeNode);
+        REGISTER(SemiSparseOctreeD);
+        REGISTER(SemiSparseOctreeF);
+        REGISTER(SemiSparseQuadtreeD);
+        REGISTER(SemiSparseQuadtreeF);
 
         REGISTER(AbstractQuadtreeDrawer::Setting);
         REGISTER(AbstractOctreeDrawer::Setting);

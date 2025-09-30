@@ -191,15 +191,18 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
                 Matrix3X positions_world;
                 Matrix3X directions_world;
                 VectorX distances;
-                self.SampleInRegionHpr(
-                    num_positions,
-                    num_near_surface_samples_per_ray,
-                    num_along_ray_samples_per_ray,
-                    max_in_obstacle_dist,
-                    positions_world,
-                    directions_world,
-                    distances,
-                    parallel);
+                {
+                    py::gil_scoped_release release;
+                    self.SampleInRegionHpr(
+                       num_positions,
+                       num_near_surface_samples_per_ray,
+                       num_along_ray_samples_per_ray,
+                       max_in_obstacle_dist,
+                       positions_world,
+                       directions_world,
+                       distances,
+                       parallel);
+                }
                 py::dict out;
                 out["positions_world"] = positions_world;
                 out["directions_world"] = directions_world;
@@ -221,14 +224,17 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
                 Matrix3X positions_world;
                 Matrix3X directions_world;
                 VectorX distances;
-                self.SampleInRegionVrs(
-                    num_hit_points,
-                    num_samples_per_azimuth_segment,
-                    num_azimuth_segments,
-                    positions_world,
-                    directions_world,
-                    distances,
-                    parallel);
+                {
+                    py::gil_scoped_release release;
+                    self.SampleInRegionVrs(
+                       num_hit_points,
+                       num_samples_per_azimuth_segment,
+                       num_azimuth_segments,
+                       positions_world,
+                       directions_world,
+                       distances,
+                       parallel);
+                }
 
                 py::dict out;
                 out["positions_world"] = positions_world;

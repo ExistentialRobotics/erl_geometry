@@ -16,7 +16,7 @@ def test_marching_cubes():
     o3d.io.write_triangle_mesh("sphere.ply", sphere)
 
     x = np.linspace(metric_min, metric_max, grid_size)
-    x, y, z = np.meshgrid(x, x, x, indexing="xy")
+    x, y, z = np.meshgrid(x, x, x, indexing="ij")  # row-major
     points = np.stack([x.flatten(), y.flatten(), z.flatten()], axis=0)  # (3, N)
     sdf = np.linalg.norm(points, axis=0) - radius  # (N,)
 

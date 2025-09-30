@@ -168,7 +168,13 @@ void
 BindLibmortonTorch(py::module &m);
 
 void
+BindMarchingSquares(py::module &m);
+
+void
 BindMarchingCubes(const py::module &m);
+
+void
+BindMeshSdf(const py::module &m);
 
 void
 PyInit() {
@@ -257,5 +263,7 @@ PYBIND11_MODULE(PYBIND_MODULE_NAME, m) {
     BindHiddenPointRemoval(m);
     BindFindVoxelIndicesTorch(m);
     BindLibmortonTorch(m);
+    BindMarchingSquares(m);
     BindMarchingCubes(m);
+    BindMeshSdf(m);
 }

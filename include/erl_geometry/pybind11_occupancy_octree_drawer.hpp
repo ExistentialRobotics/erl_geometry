@@ -1,7 +1,8 @@
 #pragma once
 
+#include "occupancy_octree_drawer.hpp"
+
 #include "erl_common/pybind11.hpp"
-#include "erl_geometry/occupancy_octree_drawer.hpp"
 
 template<class Tree>
 void

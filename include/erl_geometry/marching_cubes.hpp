@@ -104,6 +104,15 @@ namespace erl::geometry {
             std::vector<Eigen::Vector3i> edges{};  // global indices of edge, vertex1 and vertex2
         };
 
+        /**
+         * Collect valid cubes from the grid (double precision).
+         * @param grid_shape shape of the grid
+         * @param grid_values values at the grid vertices
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @return a vector of vectors of valid cubes.
+         */
         static std::vector<std::vector<ValidCube>>
         CollectValidCubes(
             const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
@@ -112,6 +121,34 @@ namespace erl::geometry {
             bool row_major,
             bool parallel);
 
+        /**
+         * Collect valid cubes from the grid with a mask (double precision).
+         * @param grid_shape shape of the grid
+         * @param grid_values values at the grid vertices
+         * @param mask mask where true indicates the vertex is valid
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @return a vector of vectors of valid cubes.
+         */
+        static std::vector<std::vector<ValidCube>>
+        CollectValidCubesWithMask(
+            const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+            const Eigen::Ref<const Eigen::VectorXd> &grid_values,
+            const Eigen::Ref<const Eigen::VectorXb> &mask,
+            double iso_value,
+            bool row_major,
+            bool parallel);
+
+        /**
+         * Collect valid cubes from the grid (single precision).
+         * @param grid_shape shape of the grid
+         * @param grid_values values at the grid vertices
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @return a vector of vectors of valid cubes.
+         */
         static std::vector<std::vector<ValidCube>>
         CollectValidCubes(
             const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
@@ -120,6 +157,39 @@ namespace erl::geometry {
             bool row_major,
             bool parallel);
 
+        /**
+         * Collect valid cubes from the grid with a mask (single precision).
+         * @param grid_shape shape of the grid
+         * @param grid_values values at the grid vertices
+         * @param mask mask where true indicates the vertex is valid
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @return a vector of vectors of valid cubes.
+         */
+        static std::vector<std::vector<ValidCube>>
+        CollectValidCubesWithMask(
+            const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+            const Eigen::Ref<const Eigen::VectorXf> &grid_values,
+            const Eigen::Ref<const Eigen::VectorXb> &mask,
+            float iso_value,
+            bool row_major,
+            bool parallel);
+
+        /**
+         * Process valid cubes to extract the mesh (double precision).
+         * @param valid_cubes a vector of vectors of valid cubes
+         * @param coords_min minimum metric coordinates of the grid
+         * @param grid_res grid resolution
+         * @param grid_shape grid shape
+         * @param grid_values values at the grid vertices
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @param vertices output vertices
+         * @param triangles output triangles
+         * @param triangle_normals output triangle normals
+         */
         static void
         ProcessValidCubes(
             const std::vector<std::vector<ValidCube>> &valid_cubes,
@@ -132,8 +202,22 @@ namespace erl::geometry {
             bool parallel,
             std::vector<Eigen::Vector3d> &vertices,
             std::vector<Eigen::Vector3i> &triangles,
-            std::vector<Eigen::Vector3d> &face_normals);
+            std::vector<Eigen::Vector3d> &triangle_normals);
 
+        /**
+         * Process valid cubes to extract the mesh (single precision).
+         * @param valid_cubes a vector of vectors of valid cubes
+         * @param coords_min minimum metric coordinates of the grid
+         * @param grid_res grid resolution
+         * @param grid_shape grid shape
+         * @param grid_values values at the grid vertices
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @param vertices output vertices
+         * @param triangles output triangles
+         * @param triangle_normals output triangle normals
+         */
         static void
         ProcessValidCubes(
             const std::vector<std::vector<ValidCube>> &valid_cubes,
@@ -146,8 +230,21 @@ namespace erl::geometry {
             bool parallel,
             std::vector<Eigen::Vector3f> &vertices,
             std::vector<Eigen::Vector3i> &triangles,
-            std::vector<Eigen::Vector3f> &face_normals);
+            std::vector<Eigen::Vector3f> &triangle_normals);
 
+        /**
+         * Marching cubes algorithm (double precision).
+         * @param coords_min minimum metric coordinates of the grid
+         * @param grid_res grid resolution
+         * @param grid_shape grid shape
+         * @param grid_values values at the grid vertices
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @param vertices output vertices
+         * @param triangles output triangles
+         * @param triangle_normals output face normals
+         */
         static void
         Run(const Eigen::Ref<const Eigen::Vector3d> &coords_min,
             const Eigen::Ref<const Eigen::Vector3d> &grid_res,
@@ -158,8 +255,49 @@ namespace erl::geometry {
             bool parallel,
             std::vector<Eigen::Vector3d> &vertices,
             std::vector<Eigen::Vector3i> &triangles,
-            std::vector<Eigen::Vector3d> &face_normals);
+            std::vector<Eigen::Vector3d> &triangle_normals);
 
+        /**
+         * Marching cubes algorithm with a mask (double precision).
+         * @param coords_min minimum metric coordinates of the grid
+         * @param grid_res grid resolution
+         * @param grid_shape grid shape
+         * @param grid_values values at the grid vertices
+         * @param mask mask where true indicates the vertex is valid
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @param vertices output vertices
+         * @param triangles output triangles
+         * @param triangle_normals output face normals
+         */
+        static void
+        RunWithMask(
+            const Eigen::Ref<const Eigen::Vector3d> &coords_min,
+            const Eigen::Ref<const Eigen::Vector3d> &grid_res,
+            const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+            const Eigen::Ref<const Eigen::VectorXd> &grid_values,
+            const Eigen::Ref<const Eigen::VectorXb> &mask,
+            double iso_value,
+            bool row_major,
+            bool parallel,
+            std::vector<Eigen::Vector3d> &vertices,
+            std::vector<Eigen::Vector3i> &triangles,
+            std::vector<Eigen::Vector3d> &triangle_normals);
+
+        /**
+         * Marching cubes algorithm (single precision).
+         * @param coords_min minimum metric coordinates of the grid
+         * @param grid_res grid resolution
+         * @param grid_shape grid shape
+         * @param grid_values values at the grid vertices
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @param vertices output vertices
+         * @param triangles output triangles
+         * @param triangle_normals output face normals
+         */
         static void
         Run(const Eigen::Ref<const Eigen::Vector3f> &coords_min,
             const Eigen::Ref<const Eigen::Vector3f> &grid_res,
@@ -170,6 +308,34 @@ namespace erl::geometry {
             bool parallel,
             std::vector<Eigen::Vector3f> &vertices,
             std::vector<Eigen::Vector3i> &triangles,
-            std::vector<Eigen::Vector3f> &face_normals);
+            std::vector<Eigen::Vector3f> &triangle_normals);
+
+        /**
+         * Marching cubes algorithm with a mask (single precision).
+         * @param coords_min minimum metric coordinates of the grid
+         * @param grid_res grid resolution
+         * @param grid_shape grid shape
+         * @param grid_values values at the grid vertices
+         * @param mask mask where true indicates the vertex is valid
+         * @param iso_value surface value
+         * @param row_major true if the grid values are stored in row-major order
+         * @param parallel true to use multiprocessing
+         * @param vertices output vertices
+         * @param triangles output triangles
+         * @param triangle_normals output face normals
+         */
+        static void
+        RunWithMask(
+            const Eigen::Ref<const Eigen::Vector3f> &coords_min,
+            const Eigen::Ref<const Eigen::Vector3f> &grid_res,
+            const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+            const Eigen::Ref<const Eigen::VectorXf> &grid_values,
+            const Eigen::Ref<const Eigen::VectorXb> &mask,
+            float iso_value,
+            bool row_major,
+            bool parallel,
+            std::vector<Eigen::Vector3f> &vertices,
+            std::vector<Eigen::Vector3i> &triangles,
+            std::vector<Eigen::Vector3f> &triangle_normals);
     };
 }  // namespace erl::geometry

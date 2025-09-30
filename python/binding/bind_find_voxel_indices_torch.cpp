@@ -1,7 +1,9 @@
 #include "erl_common/pybind11.hpp"
 #include "erl_geometry/find_voxel_indices_torch.hpp"
 
-#include <torch/extension.h>
+#ifdef ERL_USE_LIBTORCH
+    #include <torch/extension.h>
+#endif
 
 void
 BindFindVoxelIndicesTorch(py::module &m) {

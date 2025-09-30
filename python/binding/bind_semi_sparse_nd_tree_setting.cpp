@@ -9,6 +9,7 @@ BindSemiSparseNdTreeSetting(const py::module& m) {
         m,
         "SemiSparseNdTreeSetting")
         .def(py::init<>())
-        .def_readwrite("full_depth", &SemiSparseNdTreeSetting::full_depth)
-        .def_readwrite("init_voxel_num", &SemiSparseNdTreeSetting::init_voxel_num);
+        .def_readwrite("semi_sparse_depth", &SemiSparseNdTreeSetting::semi_sparse_depth)
+        .def_readwrite("init_voxel_num", &SemiSparseNdTreeSetting::init_voxel_num)
+        .def_readwrite("cache_voxel_centers", &SemiSparseNdTreeSetting::cache_voxel_centers);
 }

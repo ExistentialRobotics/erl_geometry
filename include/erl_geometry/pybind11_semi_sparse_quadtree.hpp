@@ -1,9 +1,16 @@
 #pragma once
 
+#ifdef ERL_USE_OPENCV
+    #include "pybind11_semi_sparse_quadtree_drawer.hpp"
+#endif
+
 #include "pybind11_quadtree_impl.hpp"
-#include "pybind11_semi_sparse_quadtree_drawer.hpp"
 #include "semi_sparse_nd_tree_setting.hpp"
 #include "semi_sparse_quadtree_base.hpp"
+
+#ifdef ERL_USE_LIBTORCH
+    #include <torch/extension.h>
+#endif
 
 template<class Quadtree, class Node>
 auto
@@ -48,6 +55,7 @@ BindSemiSparseQuadtree(
         .def_property_readonly("parents", &Quadtree::GetParents)
         .def_property_readonly("children", &Quadtree::GetChildren)
         .def_property_readonly("voxels", &Quadtree::GetVoxels)
+        .def_property_readonly("voxel_centers", &Quadtree::GetVoxelCenters)
         .def_property_readonly("vertices", &Quadtree::GetVertices)
         .def_property_readonly("num_vertices", &Quadtree::GetVertexCount)
         .def_property_readonly("vertex_keys", &Quadtree::GetVertexKeys)
@@ -55,15 +63,157 @@ BindSemiSparseQuadtree(
             "insert_points",
             py::overload_cast<const Matrix2X &>(&Quadtree::InsertPoints),
             py::arg("points"))
-        .def("insert_point", &Quadtree::InsertPoint, py::arg("key"), py::arg("max_depth"))
+        .def(
+            "insert_keys",
+            [](Quadtree &self, const Eigen::Matrix2X<QuadtreeKey::KeyType> &keys) {
+                auto keys_ptr = reinterpret_cast<const QuadtreeKey *>(keys.data());
+                self.InsertKeys(keys_ptr, keys.cols());
+            },
+            py::arg("keys"))
+        .def("insert_key", &Quadtree::InsertKey, py::arg("key"), py::arg("max_depth"))
         .def(
             "find_voxel_indices",
             py::overload_cast<const Matrix2X &, bool>(&Quadtree::FindVoxelIndices, py::const_),
             py::arg("points"),
+            py::arg("parallel"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "find_voxel_indices",
+            [](const Quadtree &self,
+               const Eigen::Matrix2X<QuadtreeKey::KeyType> &keys,
+               bool parallel) {
+                auto keys_ptr = reinterpret_cast<const QuadtreeKey *>(keys.data());
+                return self.FindVoxelIndices(keys_ptr, keys.cols(), parallel);
+            },
+            py::arg("keys"),
             py::arg("parallel"))
         .def("find_voxel_index", &Quadtree::FindVoxelIndex, py::arg("key"));
 
+#ifdef ERL_USE_LIBTORCH
+    // extra bindings to support libtorch tensors
+    tree.def_property_readonly(
+            "parents_tensor",
+            [](const Quadtree &self) {
+                const auto &parents = self.GetParents();
+                torch::Tensor parents_tensor =
+                    torch::from_blob(
+                        const_cast<typename Quadtree::NodeIndex *>(parents.data()),
+                        {static_cast<long>(parents.size())},
+                        c10::CppTypeToScalarType<typename Quadtree::NodeIndex>::value)
+                        .clone();
+                return parents_tensor;
+            })
+        .def_property_readonly(
+            "children_tensor",
+            [](const Quadtree &self) {
+                const auto &children = self.GetChildren();
+                torch::Tensor children_tensor =
+                    torch::from_blob(
+                        const_cast<typename Quadtree::NodeIndex *>(children.data()),
+                        {static_cast<long>(children.cols()), 4},
+                        c10::CppTypeToScalarType<typename Quadtree::NodeIndex>::value)
+                        .clone();
+                return children_tensor;
+            })
+        .def_property_readonly(
+            "voxels_tensor",
+            [](const Quadtree &self) {
+                const auto &voxels = self.GetVoxels();
+                torch::Tensor voxels_tensor =
+                    torch::from_blob(
+                        const_cast<QuadtreeKey::KeyType *>(voxels.data()),
+                        {static_cast<long>(voxels.cols()), 3},  // (x, y, size)
+                        c10::CppTypeToScalarType<QuadtreeKey::KeyType>::value)
+                        .clone();
+                return voxels_tensor;
+            })
+        .def_property_readonly(
+            "voxel_centers_tensor",
+            [](const Quadtree &self) {
+                const auto &voxel_centers = self.GetVoxelCenters();
+                torch::Tensor voxel_centers_tensor =
+                    torch::from_blob(
+                        const_cast<Dtype *>(voxel_centers.data()),
+                        {static_cast<long>(voxel_centers.cols()), 2},  // (x, y)
+                        c10::CppTypeToScalarType<Dtype>::value)
+                        .clone();
+                return voxel_centers_tensor;
+            })
+        .def_property_readonly(
+            "vertices_tensor",
+            [](const Quadtree &self) {
+                const auto &vertices = self.GetVertices();
+                torch::Tensor vertices_tensor =
+                    torch::from_blob(
+                        const_cast<typename Quadtree::NodeIndex *>(vertices.data()),
+                        {static_cast<long>(vertices.cols()), 4},
+                        c10::CppTypeToScalarType<typename Quadtree::NodeIndex>::value)
+                        .clone();
+                return vertices_tensor;
+            })
+        .def(
+            "insert_points",
+            [](Quadtree &self, const torch::Tensor &points) {
+                ERL_ASSERTM(points.is_floating_point(), "points must be floating point tensor.");
+                ERL_ASSERTM(points.ndimension() >= 2, "points must be (..., 2) tensor.");
+                ERL_ASSERTM(
+                    points.size(points.ndimension() - 1) == 2,
+                    "points must be (..., 2) tensor.");
+
+                const auto setting = self.template GetSetting<typename Quadtree::Setting>();
+                const uint32_t key_offset = 1 << (setting->tree_depth - 1);
+                torch::Tensor keys = (points / setting->resolution + key_offset).cpu();
+                keys = keys.to(c10::CppTypeToScalarType<QuadtreeKey::KeyType>::value).contiguous();
+
+                const auto key_val_ptr = keys.const_data_ptr<QuadtreeKey::KeyType>();
+                const auto key_ptr = reinterpret_cast<const QuadtreeKey *>(key_val_ptr);
+                const long num_keys = keys.numel() / 2;
+
+                auto indices = self.InsertKeys(key_ptr, num_keys);
+                torch::Tensor indices_tensor =
+                    torch::from_blob(
+                        indices.data(),
+                        keys.sizes().slice(0, keys.ndimension() - 1),
+                        c10::CppTypeToScalarType<typename Quadtree::NodeIndex>::value)
+                        .clone()
+                        .to(keys.device());
+                return indices_tensor;
+            },
+            py::arg("points"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "insert_keys",
+            [](Quadtree &self, const torch::Tensor &keys) {
+                ERL_ASSERTM(!keys.is_floating_point(), "keys must be integer tensor.");
+                ERL_ASSERTM(keys.ndimension() >= 2, "keys must be (..., 2) tensor.");
+                ERL_ASSERTM(keys.size(keys.ndimension() - 1) == 2, "keys must be (..., 2) tensor.");
+
+                const torch::Tensor keys_ =
+                    keys.cpu()
+                        .to(c10::CppTypeToScalarType<QuadtreeKey::KeyType>::value)
+                        .contiguous();
+
+                const auto key_val_ptr = keys_.const_data_ptr<QuadtreeKey::KeyType>();
+                const auto key_ptr = reinterpret_cast<const QuadtreeKey *>(key_val_ptr);
+                const long num_keys = keys_.numel() / 2;
+
+                auto indices = self.InsertKeys(key_ptr, num_keys);
+                torch::Tensor indices_tensor =
+                    torch::from_blob(
+                        indices.data(),
+                        keys.sizes().slice(0, keys.ndimension() - 1),
+                        c10::CppTypeToScalarType<typename Quadtree::NodeIndex>::value)
+                        .clone()
+                        .to(keys.device());
+                return indices_tensor;
+            },
+            py::arg("keys"),
+            py::call_guard<py::gil_scoped_release>());
+#endif
+
     BindQuadtreeImpl<decltype(tree), Dtype, Quadtree, Node>(tree);
+
+#ifdef ERL_USE_OPENCV
     BindSemiSparseQuadtreeDrawer<Quadtree>(tree, "Drawer");
 
     tree.def(
@@ -137,6 +287,7 @@ BindSemiSparseQuadtree(
         py::arg("fg_color") = Eigen::Vector4i(255, 255, 255, 255),
         py::arg("border_color") = Eigen::Vector4i(0, 0, 0, 255),
         py::arg("border_thickness") = 1);
+#endif
 
     return tree;
 }

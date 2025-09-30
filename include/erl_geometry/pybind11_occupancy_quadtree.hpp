@@ -1,8 +1,10 @@
 #pragma once
 
+#ifdef ERL_USE_OPENCV
+    #include "pybind11_occupancy_quadtree_drawer.hpp"
+#endif
+
 #include "occupancy_quadtree_base.hpp"
-#include "occupancy_quadtree_drawer.hpp"
-#include "pybind11_occupancy_quadtree_drawer.hpp"
 #include "pybind11_quadtree_impl.hpp"
 
 template<class Node, class NodeParent = void>
@@ -106,7 +108,8 @@ BindOccupancyQuadtree(
             py::arg("with_count"),
             py::arg("parallel"),
             py::arg("lazy_eval"),
-            py::arg("discrete"))
+            py::arg("discrete"),
+            py::call_guard<py::gil_scoped_release>())
         .def(
             "insert_point_cloud_rays",
             &Quadtree::InsertPointCloudRays,
@@ -115,7 +118,8 @@ BindOccupancyQuadtree(
             py::arg("min_range"),
             py::arg("max_range"),
             py::arg("parallel"),
-            py::arg("lazy_eval"))
+            py::arg("lazy_eval"),
+            py::call_guard<py::gil_scoped_release>())
         .def(
             "insert_ray",
             &Quadtree::InsertRay,
@@ -147,17 +151,20 @@ BindOccupancyQuadtree(
                 std::vector<long> hit_ray_indices;
                 std::vector<Vector2> hit_positions;
                 std::vector<const Node*> hit_nodes;
-                self.CastRays(
-                    position,
-                    rotation,
-                    angles,
-                    ignore_unknown,
-                    max_range,
-                    prune_rays,
-                    parallel,
-                    hit_ray_indices,
-                    hit_positions,
-                    hit_nodes);
+                {
+                    py::gil_scoped_release release;
+                    self.CastRays(
+                        position,
+                        rotation,
+                        angles,
+                        ignore_unknown,
+                        max_range,
+                        prune_rays,
+                        parallel,
+                        hit_ray_indices,
+                        hit_positions,
+                        hit_nodes);
+                }
 
                 py::dict result;
                 result["hit_ray_indices"] = hit_ray_indices;
@@ -184,16 +191,19 @@ BindOccupancyQuadtree(
                 std::vector<long> hit_ray_indices;
                 std::vector<Vector2> hit_positions;
                 std::vector<const Node*> hit_nodes;
-                self.CastRays(
-                    positions,
-                    directions,
-                    ignore_unknown,
-                    max_range,
-                    prune_rays,
-                    parallel,
-                    hit_ray_indices,
-                    hit_positions,
-                    hit_nodes);
+                {
+                    py::gil_scoped_release release;
+                    self.CastRays(
+                        positions,
+                        directions,
+                        ignore_unknown,
+                        max_range,
+                        prune_rays,
+                        parallel,
+                        hit_ray_indices,
+                        hit_positions,
+                        hit_nodes);
+                }
                 py::dict result;
                 result["hit_ray_indices"] = hit_ray_indices;
                 result["hit_positions"] = hit_positions;
@@ -271,6 +281,8 @@ BindOccupancyQuadtree(
         .def("to_max_likelihood", &Quadtree::ToMaxLikelihood);
 
     BindQuadtreeImpl<decltype(tree), Dtype, Quadtree, Node>(tree);
+
+#ifdef ERL_USE_OPENCV
     BindOccupancyQuadtreeDrawer<Quadtree>(tree, "Drawer");
 
     tree.def(
@@ -358,6 +370,7 @@ BindOccupancyQuadtree(
         py::arg("free_color") = Eigen::Vector4i(255, 255, 255, 255),
         py::arg("border_color") = Eigen::Vector4i(0, 0, 0, 255),
         py::arg("border_thickness") = 1);
+#endif
 
     return tree;
 }

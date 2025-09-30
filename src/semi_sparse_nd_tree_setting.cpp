@@ -4,7 +4,9 @@ bool
 erl::geometry::SemiSparseNdTreeSetting::operator==(const NdTreeSetting &other) const {
     if (NdTreeSetting::operator==(other)) {
         const auto that = reinterpret_cast<const SemiSparseNdTreeSetting &>(other);
-        return full_depth == that.full_depth && init_voxel_num == that.init_voxel_num;
+        return semi_sparse_depth == that.semi_sparse_depth &&
+               init_voxel_num == that.init_voxel_num &&
+               cache_voxel_centers == that.cache_voxel_centers;
     }
     return false;
 }
@@ -13,8 +15,9 @@ YAML::Node
 YAML::convert<erl::geometry::SemiSparseNdTreeSetting>::encode(
     const erl::geometry::SemiSparseNdTreeSetting &setting) {
     Node node = convert<erl::geometry::NdTreeSetting>::encode(setting);
-    ERL_YAML_SAVE_ATTR(node, setting, full_depth);
+    ERL_YAML_SAVE_ATTR(node, setting, semi_sparse_depth);
     ERL_YAML_SAVE_ATTR(node, setting, init_voxel_num);
+    ERL_YAML_SAVE_ATTR(node, setting, cache_voxel_centers);
     return node;
 }
 
@@ -24,7 +27,8 @@ YAML::convert<erl::geometry::SemiSparseNdTreeSetting>::decode(
     erl::geometry::SemiSparseNdTreeSetting &setting) {
     if (!node.IsMap()) { return false; }
     if (!convert<erl::geometry::NdTreeSetting>::decode(node, setting)) { return false; }
-    ERL_YAML_LOAD_ATTR(node, setting, full_depth);
+    ERL_YAML_LOAD_ATTR(node, setting, semi_sparse_depth);
     ERL_YAML_LOAD_ATTR(node, setting, init_voxel_num);
+    ERL_YAML_LOAD_ATTR(node, setting, cache_voxel_centers);
     return true;
 }

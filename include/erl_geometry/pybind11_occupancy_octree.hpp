@@ -1,9 +1,11 @@
 #pragma once
 
+#ifdef ERL_USE_OPEN3D
+    #include "open3d_visualizer_wrapper.hpp"
+    #include "pybind11_occupancy_octree_drawer.hpp"
+#endif
+
 #include "occupancy_octree_base.hpp"
-#include "occupancy_octree_drawer.hpp"
-#include "open3d_visualizer_wrapper.hpp"
-#include "pybind11_occupancy_octree_drawer.hpp"
 #include "pybind11_octree_impl.hpp"
 
 template<class Node, class NodeParent = void>
@@ -103,7 +105,8 @@ BindOccupancyOctree(
             py::arg("with_count"),
             py::arg("parallel"),
             py::arg("lazy_eval"),
-            py::arg("discrete"))
+            py::arg("discrete"),
+            py::call_guard<py::gil_scoped_release>())
         .def(
             "insert_point_cloud_rays",
             &Octree::InsertPointCloudRays,
@@ -112,7 +115,8 @@ BindOccupancyOctree(
             py::arg("min_range"),
             py::arg("max_range"),
             py::arg("parallel"),
-            py::arg("lazy_eval"))
+            py::arg("lazy_eval"),
+            py::call_guard<py::gil_scoped_release>())
         .def(
             "insert_ray",
             &Octree::InsertRay,
@@ -147,18 +151,21 @@ BindOccupancyOctree(
                 std::vector<std::pair<long, long>> hit_ray_indices;
                 std::vector<Vector3> hit_positions;
                 std::vector<const Node *> hit_nodes;
-                self.CastRays(
-                    position,
-                    rotation,
-                    azimuth_angles,
-                    elevation_angles,
-                    ignore_unknown,
-                    max_range,
-                    prune_rays,
-                    parallel,
-                    hit_ray_indices,
-                    hit_positions,
-                    hit_nodes);
+                {
+                    py::gil_scoped_release release;
+                    self.CastRays(
+                        position,
+                        rotation,
+                        azimuth_angles,
+                        elevation_angles,
+                        ignore_unknown,
+                        max_range,
+                        prune_rays,
+                        parallel,
+                        hit_ray_indices,
+                        hit_positions,
+                        hit_nodes);
+                }
 
                 py::dict result;
                 result["hit_ray_indices"] = hit_ray_indices;
@@ -186,16 +193,19 @@ BindOccupancyOctree(
                 std::vector<long> hit_ray_indices;
                 std::vector<Vector3> hit_positions;
                 std::vector<const Node *> hit_nodes;
-                self.CastRays(
-                    positions,
-                    directions,
-                    ignore_unknown,
-                    max_range,
-                    prune_rays,
-                    parallel,
-                    hit_ray_indices,
-                    hit_positions,
-                    hit_nodes);
+                {
+                    py::gil_scoped_release release;
+                    self.CastRays(
+                        positions,
+                        directions,
+                        ignore_unknown,
+                        max_range,
+                        prune_rays,
+                        parallel,
+                        hit_ray_indices,
+                        hit_positions,
+                        hit_nodes);
+                }
                 py::dict result;
                 result["hit_ray_indices"] = hit_ray_indices;
                 result["hit_positions"] = hit_positions;
@@ -280,6 +290,8 @@ BindOccupancyOctree(
         .def("to_max_likelihood", &Octree::ToMaxLikelihood);
 
     BindOctreeImpl<decltype(tree), Dtype, Octree, Node>(tree);
+
+#ifdef ERL_USE_OPEN3D
     BindOccupancyOctreeDrawer<Octree>(tree, "Drawer");
 
     tree.def(
@@ -338,6 +350,7 @@ BindOccupancyOctree(
         py::arg("window_height") = 1080,
         py::arg("window_left") = 50,
         py::arg("window_top") = 50);
+#endif
 
     return tree;
 }

@@ -2,7 +2,6 @@
 
 #include "abstract_octree.hpp"
 #include "octree_key.hpp"
-#include "open3d_visualizer_wrapper.hpp"
 
 #include "erl_common/pybind11.hpp"
 

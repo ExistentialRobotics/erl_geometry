@@ -865,7 +865,7 @@ namespace erl::geometry {
         {1, 0, 1, 2},
         {0, 1, 1, 1},
         {0, 0, 1, 2},
-        {0, 0, 0, 3},
+        {0, 0, 0, 3},  // edge 8, (i, j, k, 3), where 3 means z.
         {1, 0, 0, 3},
         {1, 1, 0, 3},
         {0, 1, 0, 3},
@@ -1078,6 +1078,74 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
+    std::vector<std::vector<MarchingCubes::ValidCube>>
+    CollectValidCubesWithMaskImpl(
+        const Eigen::Vector3i &grid_shape,
+        const Eigen::Ref<const Eigen::VectorX<Dtype>> &grid_values,
+        const Eigen::Ref<const Eigen::VectorXb> &mask,
+        const Dtype iso_value,
+        const bool row_major,
+        const bool parallel) {
+
+        (void) parallel;
+        using MC = MarchingCubes;
+        using namespace common;
+        const Eigen::Vector3i grid_strides = row_major ? ComputeCStrides<int, 3>(grid_shape, 1)
+                                                       : ComputeFStrides<int, 3>(grid_shape, 1);
+        const Eigen::Vector3i edge_strides = grid_strides.array() * 4;
+
+        std::vector<std::vector<MC::ValidCube>> valid_cubes_vec(grid_shape[0] - 1);
+#pragma omp parallel for if (parallel) default(none) \
+    shared(grid_shape, grid_values, mask, grid_strides, iso_value, edge_strides, valid_cubes_vec)
+        for (int i = 0; i < grid_shape[0] - 1; ++i) {
+            std::vector<MC::ValidCube> &valid_cubes = valid_cubes_vec[i];
+            valid_cubes.reserve(1024);
+            for (int j = 0; j < grid_shape[1] - 1; ++j) {
+                for (int k = 0; k < grid_shape[2] - 1; ++k) {
+                    bool ignore = false;
+                    // get the cfg index
+                    Dtype vertex_values[8];
+                    int vertex_indices[8];  // global indices
+                    for (int l = 0; l < 8; ++l) {
+                        const int *code = MC::kCubeVertexCodes[l];
+                        int &vertex_gid = vertex_indices[l];
+                        Eigen::Vector3i vertex_index(i + code[0], j + code[1], k + code[2]);
+                        vertex_gid = vertex_index.dot(grid_strides);
+                        if (!mask[vertex_gid]) {
+                            ignore = true;
+                            break;
+                        }
+                        vertex_values[l] = grid_values[vertex_gid];
+                    }
+                    if (ignore) { continue; }
+                    int cfg_index = CalculateVertexConfigIndexImpl<Dtype>(vertex_values, iso_value);
+                    if (cfg_index == 0 || cfg_index == 255) { continue; }
+                    MC::ValidCube valid_cube{{i, j, k}, cfg_index, {}};
+                    valid_cube.edges.reserve(12);
+                    // get the edges that we are going to interpolate.
+                    const int *unique_edge_indices = MC::kTriangleUniqueEdgeIndexTable[cfg_index];
+                    int col = 0;
+                    while (unique_edge_indices[col] != -1) {
+                        const int &edge_index = unique_edge_indices[col];
+                        // get the vertex indices of the edge.
+                        const int *edge_vertices = MC::kEdgeVertexIndexTable[edge_index];
+                        const int v1 = vertex_indices[edge_vertices[0]];  // convert to global index
+                        const int v2 = vertex_indices[edge_vertices[1]];  // convert to global index
+                        // get the edge hash.
+                        const int *edge_code = MC::kCubeEdgeCodes[edge_index];
+                        Eigen::Vector3i cube(edge_code[0] + i, edge_code[1] + j, edge_code[2] + k);
+                        const int edge_hash = cube.dot(edge_strides) + edge_code[3];
+                        valid_cube.edges.emplace_back(edge_hash, v1, v2);
+                        ++col;
+                    }
+                    valid_cubes.emplace_back(std::move(valid_cube));
+                }
+            }
+        }
+        return valid_cubes_vec;
+    }
+
+    template<typename Dtype>
     void
     ProcessValidCubesImpl(
         const std::vector<std::vector<MarchingCubes::ValidCube>> &valid_cubes,
@@ -1090,7 +1158,7 @@ namespace erl::geometry {
         const bool parallel,
         std::vector<Eigen::Vector3<Dtype>> &vertices,
         std::vector<Eigen::Vector3i> &triangles,
-        std::vector<Eigen::Vector3<Dtype>> &face_normals) {
+        std::vector<Eigen::Vector3<Dtype>> &triangle_normals) {
 
         (void) parallel;
         using MC = MarchingCubes;
@@ -1157,9 +1225,9 @@ namespace erl::geometry {
         }
 
         triangles.clear();
-        face_normals.clear();
+        triangle_normals.clear();
         triangles.reserve(face_cnt);
-        face_normals.reserve(face_cnt);
+        triangle_normals.reserve(face_cnt);
         for (const std::vector<MC::ValidCube> &cubes: valid_cubes) {
             for (const MC::ValidCube &cube: cubes) {
                 const int *vertex_indices = MC::kTriangleVertexIndexTable[cube.cfg_index];
@@ -1177,7 +1245,7 @@ namespace erl::geometry {
                     const Eigen::Vector3<Dtype> &p2 = vertices[v3];
                     const Eigen::Vector3<Dtype> px = p1 - p0;
                     const Eigen::Vector3<Dtype> py = p2 - p0;
-                    face_normals.emplace_back(px.cross(py).normalized());
+                    triangle_normals.emplace_back(px.cross(py).normalized());
                     col += 3;
                 }
             }
@@ -1219,11 +1287,33 @@ namespace erl::geometry {
     std::vector<std::vector<MarchingCubes::ValidCube>>
     MarchingCubes::CollectValidCubes(
         const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
-        const Eigen::Ref<const Eigen::VectorXd> &values,
+        const Eigen::Ref<const Eigen::VectorXd> &grid_values,
         const double iso_value,
         const bool row_major,
         const bool parallel) {
-        return CollectValidCubesImpl<double>(grid_shape, values, iso_value, row_major, parallel);
+        return CollectValidCubesImpl<double>(
+            grid_shape,
+            grid_values,
+            iso_value,
+            row_major,
+            parallel);
+    }
+
+    std::vector<std::vector<MarchingCubes::ValidCube>>
+    MarchingCubes::CollectValidCubesWithMask(
+        const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+        const Eigen::Ref<const Eigen::VectorXd> &grid_values,
+        const Eigen::Ref<const Eigen::VectorXb> &mask,
+        const double iso_value,
+        const bool row_major,
+        const bool parallel) {
+        return CollectValidCubesWithMaskImpl<double>(
+            grid_shape,
+            grid_values,
+            mask,
+            iso_value,
+            row_major,
+            parallel);
     }
 
     std::vector<std::vector<MarchingCubes::ValidCube>>
@@ -1236,31 +1326,48 @@ namespace erl::geometry {
         return CollectValidCubesImpl<float>(grid_shape, values, iso_value, row_major, parallel);
     }
 
+    std::vector<std::vector<MarchingCubes::ValidCube>>
+    MarchingCubes::CollectValidCubesWithMask(
+        const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+        const Eigen::Ref<const Eigen::VectorXf> &grid_values,
+        const Eigen::Ref<const Eigen::VectorXb> &mask,
+        const float iso_value,
+        const bool row_major,
+        const bool parallel) {
+        return CollectValidCubesWithMaskImpl<float>(
+            grid_shape,
+            grid_values,
+            mask,
+            iso_value,
+            row_major,
+            parallel);
+    }
+
     void
     MarchingCubes::ProcessValidCubes(
         const std::vector<std::vector<ValidCube>> &valid_cubes,
         const Eigen::Ref<const Eigen::Vector3d> &coords_min,
         const Eigen::Ref<const Eigen::Vector3d> &grid_res,
         const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
-        const Eigen::Ref<const Eigen::VectorXd> &values,
+        const Eigen::Ref<const Eigen::VectorXd> &grid_values,
         const double iso_value,
         const bool row_major,
         const bool parallel,
         std::vector<Eigen::Vector3d> &vertices,
         std::vector<Eigen::Vector3i> &triangles,
-        std::vector<Eigen::Vector3d> &face_normals) {
+        std::vector<Eigen::Vector3d> &triangle_normals) {
         ProcessValidCubesImpl<double>(
             valid_cubes,
             coords_min,
             grid_res,
             grid_shape,
-            values,
+            grid_values,
             iso_value,
             row_major,
             parallel,
             vertices,
             triangles,
-            face_normals);
+            triangle_normals);
     }
 
     void
@@ -1275,7 +1382,7 @@ namespace erl::geometry {
         const bool parallel,
         std::vector<Eigen::Vector3f> &vertices,
         std::vector<Eigen::Vector3i> &triangles,
-        std::vector<Eigen::Vector3f> &face_normals) {
+        std::vector<Eigen::Vector3f> &triangle_normals) {
         ProcessValidCubesImpl<float>(
             valid_cubes,
             coords_min,
@@ -1287,7 +1394,7 @@ namespace erl::geometry {
             parallel,
             vertices,
             triangles,
-            face_normals);
+            triangle_normals);
     }
 
     void
@@ -1295,19 +1402,19 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector3d> &coords_min,
         const Eigen::Ref<const Eigen::Vector3d> &grid_res,
         const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
-        const Eigen::Ref<const Eigen::VectorXd> &values,
+        const Eigen::Ref<const Eigen::VectorXd> &grid_values,
         const double iso_value,
         const bool row_major,
         const bool parallel,
         std::vector<Eigen::Vector3d> &vertices,
         std::vector<Eigen::Vector3i> &triangles,
-        std::vector<Eigen::Vector3d> &face_normals) {
+        std::vector<Eigen::Vector3d> &triangle_normals) {
         using MC = MarchingCubes;
 
         // 1. calculate the vertex config index of each cube;
         // 2. collect cubes whose vertex config index is not 0 nor 255;
-        std::vector<std::vector<MC::ValidCube>> valid_cubes_vec =
-            CollectValidCubesImpl<double>(grid_shape, values, iso_value, row_major, parallel);
+        const std::vector<std::vector<MC::ValidCube>> valid_cubes_vec =
+            CollectValidCubesImpl<double>(grid_shape, grid_values, iso_value, row_major, parallel);
 
         // 3. calculate the extracted mesh vertices, normals and indices for each cube;
         // 3.1. interpolate the edge vertices;
@@ -1318,13 +1425,50 @@ namespace erl::geometry {
             coords_min,
             grid_res,
             grid_shape,
-            values,
+            grid_values,
             iso_value,
             row_major,
             parallel,
             vertices,
             triangles,
-            face_normals);
+            triangle_normals);
+    }
+
+    void
+    MarchingCubes::RunWithMask(
+        const Eigen::Ref<const Eigen::Vector3d> &coords_min,
+        const Eigen::Ref<const Eigen::Vector3d> &grid_res,
+        const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+        const Eigen::Ref<const Eigen::VectorXd> &grid_values,
+        const Eigen::Ref<const Eigen::VectorXb> &mask,
+        double iso_value,
+        bool row_major,
+        bool parallel,
+        std::vector<Eigen::Vector3d> &vertices,
+        std::vector<Eigen::Vector3i> &triangles,
+        std::vector<Eigen::Vector3d> &triangle_normals) {
+
+        using MC = MarchingCubes;
+        const std::vector<std::vector<MC::ValidCube>> valid_cubes_vec =
+            CollectValidCubesWithMaskImpl<double>(
+                grid_shape,
+                grid_values,
+                mask,
+                iso_value,
+                row_major,
+                parallel);
+        ProcessValidCubesImpl<double>(
+            valid_cubes_vec,
+            coords_min,
+            grid_res,
+            grid_shape,
+            grid_values,
+            iso_value,
+            row_major,
+            parallel,
+            vertices,
+            triangles,
+            triangle_normals);
     }
 
     void
@@ -1338,7 +1482,7 @@ namespace erl::geometry {
         const bool parallel,
         std::vector<Eigen::Vector3f> &vertices,
         std::vector<Eigen::Vector3i> &triangles,
-        std::vector<Eigen::Vector3f> &face_normals) {
+        std::vector<Eigen::Vector3f> &triangle_normals) {
         using MC = MarchingCubes;
 
         // 1. calculate the vertex config index of each cube;
@@ -1361,7 +1505,44 @@ namespace erl::geometry {
             parallel,
             vertices,
             triangles,
-            face_normals);
+            triangle_normals);
+    }
+
+    void
+    MarchingCubes::RunWithMask(
+        const Eigen::Ref<const Eigen::Vector3f> &coords_min,
+        const Eigen::Ref<const Eigen::Vector3f> &grid_res,
+        const Eigen::Ref<const Eigen::Vector3i> &grid_shape,
+        const Eigen::Ref<const Eigen::VectorXf> &grid_values,
+        const Eigen::Ref<const Eigen::VectorXb> &mask,
+        float iso_value,
+        bool row_major,
+        bool parallel,
+        std::vector<Eigen::Vector3f> &vertices,
+        std::vector<Eigen::Vector3i> &triangles,
+        std::vector<Eigen::Vector3f> &triangle_normals) {
+
+        using MC = MarchingCubes;
+        const std::vector<std::vector<MC::ValidCube>> valid_cubes_vec =
+            CollectValidCubesWithMaskImpl<float>(
+                grid_shape,
+                grid_values,
+                mask,
+                iso_value,
+                row_major,
+                parallel);
+        ProcessValidCubesImpl<float>(
+            valid_cubes_vec,
+            coords_min,
+            grid_res,
+            grid_shape,
+            grid_values,
+            iso_value,
+            row_major,
+            parallel,
+            vertices,
+            triangles,
+            triangle_normals);
     }
 
 }  // namespace erl::geometry

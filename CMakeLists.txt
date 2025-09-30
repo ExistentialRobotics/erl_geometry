@@ -49,7 +49,7 @@ endif ()
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 erl_collect_targets(LIBRARIES ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
-                                                  $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
+                           $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
 erl_target_dependencies(
     ${PROJECT_NAME} PUBLIC #
     nanoflann::nanoflann Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D absl::flat_hash_map absl::flat_hash_set)
@@ -57,6 +57,7 @@ if (ERL_USE_LIBTORCH)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
 endif ()
+target_compile_definitions(${PROJECT_NAME} PUBLIC "-DERL_USE_OPEN3D")
 
 # ######################################################################################################################
 # Python bindings #
