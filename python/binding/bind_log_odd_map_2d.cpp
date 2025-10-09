@@ -10,7 +10,9 @@ BindLogOddMap2DImpl(const py::module &m, const char *name) {
 
     auto py_log_odd_map = py::class_<T, std::shared_ptr<T>>(m, name);
 
-    py::class_<typename T::Setting, YamlableBase, std::shared_ptr<typename T::Setting>>(py_log_odd_map, "Setting")
+    py::class_<typename T::Setting, YamlableBase, std::shared_ptr<typename T::Setting>>(
+        py_log_odd_map,
+        "Setting")
         .def(py::init<>())
         .def_readwrite("sensor_min_range", &T::Setting::sensor_min_range)
         .def_readwrite("sensor_max_range", &T::Setting::sensor_max_range)
@@ -21,50 +23,34 @@ BindLogOddMap2DImpl(const py::module &m, const char *name) {
         .def_readwrite("threshold_free", &T::Setting::threshold_free)
         .def_readwrite("use_cross_kernel", &T::Setting::use_cross_kernel)
         .def_readwrite("num_iters_for_cleaned_mask", &T::Setting::num_iters_for_cleaned_mask)
-        .def_readwrite("filter_obstacles_in_cleaned_mask", &T::Setting::filter_obstacles_in_cleaned_mask);
+        .def_readwrite(
+            "filter_obstacles_in_cleaned_mask",
+            &T::Setting::filter_obstacles_in_cleaned_mask);
 
     py_log_odd_map
-        .def(py::init<std::shared_ptr<typename T::Setting>, std::shared_ptr<GridMapInfo<Dtype, 2>>>(), py::arg("setting").none(false), py::arg("grid_map_info"))
         .def(
-            py::init<std::shared_ptr<typename T::Setting>, std::shared_ptr<GridMapInfo<Dtype, 2>>, const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &>(),
+            py::init<
+                std::shared_ptr<typename T::Setting>,
+                std::shared_ptr<GridMapInfo<Dtype, 2>>>(),
+            py::arg("setting").none(false),
+            py::arg("grid_map_info"))
+        .def(
+            py::init<
+                std::shared_ptr<typename T::Setting>,
+                std::shared_ptr<GridMapInfo<Dtype, 2>>,
+                const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &>(),
             py::arg("setting").none(false),
             py::arg("grid_map_info"),
             py::arg("shape_vertices"))
         .def_static("get_cell_type_name", &T::GetCellTypeName, py::arg("cell_type"))
         .def_static("get_cell_type_from_name", &T::GetCellTypeFromName, py::arg("cell_type_name"))
-        .def("update", &T::Update, py::arg("position"), py::arg("theta"), py::arg("angles_body"), py::arg("ranges"))
-        .def("load_external_possibility_map", &T::LoadExternalPossibilityMap, py::arg("position"), py::arg("theta"), py::arg("possibility_map"))
+        .def("update", &T::Update, py::arg("position"), py::arg("theta"), py::arg("points"))
         .def(
-            "compute_statistics_of_lidar_frame",
-            [](const T &self,
-               const Eigen::Ref<const Eigen::Vector2<Dtype>> &position,
-               const Dtype theta,
-               const Eigen::Ref<const Eigen::VectorX<Dtype>> &angles_body,
-               const Eigen::Ref<const Eigen::VectorX<Dtype>> &ranges,
-               const bool clip_ranges) {
-                const std::shared_ptr<typename T::LidarFrameMask> mask = nullptr;
-                int num_occupied_cells;
-                int num_free_cells;
-                int num_unexplored_cells;
-                int num_out_of_map_cells;
-                self.ComputeStatisticsOfLidarFrame(
-                    position,
-                    theta,
-                    angles_body,
-                    ranges,
-                    clip_ranges,
-                    mask,
-                    num_occupied_cells,
-                    num_free_cells,
-                    num_unexplored_cells,
-                    num_out_of_map_cells);
-                return std::make_tuple(num_occupied_cells, num_free_cells, num_unexplored_cells, num_out_of_map_cells);
-            },
+            "load_external_possibility_map",
+            &T::LoadExternalPossibilityMap,
             py::arg("position"),
             py::arg("theta"),
-            py::arg("angles_body"),
-            py::arg("ranges"),
-            py::arg("clip_ranges"))
+            py::arg("possibility_map"))
         .def_property_readonly("setting", &T::GetSetting)
         .def_property_readonly(
             "log_map",
@@ -141,16 +127,28 @@ BindLogOddMap2DImpl(const py::module &m, const char *name) {
                 cv::cv2eigen(mask, cleaned_unexplored_mask);
                 return cleaned_unexplored_mask;
             })
-        .def("get_frontiers", &T::GetFrontiers, py::arg("clean_at_first") = true, py::arg("approx_iters") = 4);
+        .def(
+            "get_frontiers",
+            &T::GetFrontiers,
+            py::arg("clean_at_first") = true,
+            py::arg("approx_iters") = 4);
 }
 
 void
 BindLogOddMap2D(const py::module &m) {
     using namespace erl::geometry;
     py::class_<LogOddMap, std::shared_ptr<LogOddMap>> py_log_odd_map(m, "LogOddMap");
-    py::enum_<LogOddMap::CellType>(py_log_odd_map, "CellType", py::arithmetic(), "Type of grid cell.")
-        .value(LogOddMap::GetCellTypeName(LogOddMap::CellType::kOccupied), LogOddMap::CellType::kOccupied)
-        .value(LogOddMap::GetCellTypeName(LogOddMap::CellType::kUnexplored), LogOddMap::CellType::kUnexplored)
+    py::enum_<LogOddMap::CellType>(
+        py_log_odd_map,
+        "CellType",
+        py::arithmetic(),
+        "Type of grid cell.")
+        .value(
+            LogOddMap::GetCellTypeName(LogOddMap::CellType::kOccupied),
+            LogOddMap::CellType::kOccupied)
+        .value(
+            LogOddMap::GetCellTypeName(LogOddMap::CellType::kUnexplored),
+            LogOddMap::CellType::kUnexplored)
         .value(LogOddMap::GetCellTypeName(LogOddMap::CellType::kFree), LogOddMap::CellType::kFree)
         .export_values();
 

@@ -40,11 +40,23 @@ namespace erl::geometry {
          * e.g., positions = positions_org * scaling.
          * @return matrix of pixel coordinates (2 x N)
          */
+        template<typename Dtype>
         [[nodiscard]] Eigen::Matrix2Xi
-        GetPixelCoordsForPositions(const Eigen::Matrix2Xf &positions, bool scaled_position) const;
+        GetPixelCoordsForPositions(
+            const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &positions,
+            bool scaled_position) const {
+            if (scaled_position) {
+                return m_grid_map_info_->MeterToPixelForPoints(
+                    positions.template cast<float>().array() / m_setting_->scaling);
+            }
+            return m_grid_map_info_->MeterToPixelForPoints(positions.template cast<float>());
+        }
 
+        template<typename Dtype>
         [[nodiscard]] Eigen::Matrix2Xi
-        GetPixelCoordsForVectors(const Eigen::Matrix2Xf &vectors) const;
+        GetPixelCoordsForVectors(const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &vectors) const {
+            return m_grid_map_info_->MeterToPixelForVectors(vectors.template cast<float>());
+        }
 
         /**
          * Compute the meter coordinates for the given pixel coordinates.
@@ -53,14 +65,16 @@ namespace erl::geometry {
          * factor. i.e., meter_coords = meter_coords_org * scaling.
          * @return matrix of meter coordinates (2 x N)
          */
-        [[nodiscard]] Eigen::Matrix2Xf
+        template<typename Dtype>
+        [[nodiscard]] Eigen::Matrix2X<Dtype>
         GetMeterCoordsForPositions(const Eigen::Matrix2Xi &pixel_coords, const bool scaled_position)
             const {
             if (scaled_position) {
-                return m_grid_map_info_->PixelToMeterForPoints(pixel_coords).array() *
-                       m_setting_->scaling;
+                return (m_grid_map_info_->PixelToMeterForPoints(pixel_coords).array() *
+                        m_setting_->scaling)
+                    .cast<Dtype>();
             }
-            return m_grid_map_info_->PixelToMeterForPoints(pixel_coords);
+            return m_grid_map_info_->PixelToMeterForPoints(pixel_coords).cast<Dtype>();
         }
 
         [[nodiscard]] Eigen::Matrix2Xf

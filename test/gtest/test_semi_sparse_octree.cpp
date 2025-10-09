@@ -80,7 +80,8 @@ TEST(SemiSparseOctree, Build) {
                                SemiSparseOctreeD::LeafInAabbIterator &it) {
         long node_index = it->GetNodeIndex();
         auto &vertex_indices = vertices.col(node_index);
-        for (auto &vertex_index: vertex_indices) {
+        for (long i = 0; i < 8; ++i) {
+            const long &vertex_index = vertex_indices[i];
             ERL_ASSERTM(vertex_index >= 0, "invalid vertex index: {}", vertex_index);
             auto p = tree->KeyToVertexCoord(vertex_keys[vertex_index]);
             pcd_vertices->points_.emplace_back(p);

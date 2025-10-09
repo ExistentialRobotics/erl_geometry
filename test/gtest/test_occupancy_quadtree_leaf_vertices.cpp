@@ -5,13 +5,16 @@
 
 using namespace erl::common;
 using namespace erl::geometry;
-using QuadtreeDrawer = OccupancyQuadtreeDrawer<OccupancyQuadtreeD>;
+using Dtype = float;
+using OccupancyTree = OccupancyQuadtree<Dtype>;
+using TreeSetting = OccupancyTree::Setting;
+using QuadtreeDrawer = OccupancyQuadtreeDrawer<OccupancyTree>;
+using Vector2 = Eigen::Vector2<Dtype>;
 
 struct UserData {
     inline static const char *window_name = "quadtree leaf of node at level 6";
-    std::shared_ptr<OccupancyQuadtreeD::Setting> tree_setting =
-        std::make_shared<OccupancyQuadtreeD::Setting>();
-    std::shared_ptr<OccupancyQuadtreeD> tree;
+    std::shared_ptr<TreeSetting> tree_setting = std::make_shared<TreeSetting>();
+    std::shared_ptr<OccupancyTree> tree;
     std::shared_ptr<QuadtreeDrawer> drawer;
     cv::Mat img;
 };
@@ -36,20 +39,20 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
 
         auto grid_map_info = data->drawer->GetGridMapInfo();
         cv::Mat img = data->img.clone();
-        double x = grid_map_info->GridToMeterAtDim(mouse_x, 0);
-        double y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
+        Dtype x = grid_map_info->GridToMeterAtDim(mouse_x, 0);
+        Dtype y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
 
         const uint32_t tree_depth = data->tree->GetTreeDepth();
         const QuadtreeKey key = data->tree->CoordToKey(x, y, tree_depth);
         const OccupancyQuadtreeNode *node = data->tree->Search(key);
         if (node == nullptr) { return; }
-        double kx, ky;
+        Dtype kx, ky;
         data->tree->KeyToCoord(key, node->GetDepth(), kx, ky);
-        const double half_size = data->tree->GetNodeSize(node->GetDepth()) / 2;
+        const Dtype half_size = data->tree->GetNodeSize(node->GetDepth()) / 2.0f;
         Eigen::Vector2i min =
-            grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(kx - half_size, ky - half_size));
+            grid_map_info->MeterToPixelForPoints(Vector2(kx - half_size, ky - half_size));
         Eigen::Vector2i max =
-            grid_map_info->MeterToPixelForPoints(Eigen::Vector2d(kx + half_size, ky + half_size));
+            grid_map_info->MeterToPixelForPoints(Vector2(kx + half_size, ky + half_size));
         cv::rectangle(
             img,
             cv::Point(min[0], min[1]),
@@ -62,7 +65,7 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         QuadtreeKey vertex_key;
         for (uint32_t i = 0; i < 4; ++i) {
             QuadtreeKey::ComputeVertexKey(i, voxel_size, voxel_key, vertex_key);
-            Eigen::Vector2d coord = data->tree->KeyToVertexCoord(vertex_key, node->GetDepth());
+            Vector2 coord = data->tree->KeyToVertexCoord(vertex_key);
             Eigen::Vector2i pixel = grid_map_info->MeterToPixelForPoints(coord);
             cv::circle(
                 img,
@@ -81,15 +84,16 @@ TEST(OccupancyQuadtree, LeafVertices) {
     GTEST_PREPARE_OUTPUT_DIR();
     UserData data;
     data.tree_setting->resolution = 0.1;
-    data.tree = std::make_shared<OccupancyQuadtreeD>(data.tree_setting);
+    data.tree = std::make_shared<OccupancyTree>(data.tree_setting);
     std::filesystem::path data_dir = ERL_GEOMETRY_ROOT_DIR;
     data_dir /= "data";
     ASSERT_TRUE(
-        Serialization<OccupancyQuadtreeD>::Read(
-            data_dir /= "house_expo_room_1451_2d_double.bt",
+        Serialization<OccupancyTree>::Read(
+            data_dir /= std::is_same_v<Dtype, double> ? "house_expo_room_1451_2d_double.bt"
+                                                      : "house_expo_room_1451_2d_float.bt",
             [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
-    setting->resolution = 0.01;
+    setting->resolution = 0.01f;
     setting->border_color = cv::Scalar(255, 0, 0);
     data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
     data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);

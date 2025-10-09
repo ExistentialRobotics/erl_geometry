@@ -17,21 +17,6 @@ namespace erl::geometry {
         return m_grid_map_info_;
     }
 
-    Eigen::Matrix2Xi
-    AbstractQuadtreeDrawer::GetPixelCoordsForPositions(
-        const Eigen::Matrix2Xf &positions,
-        const bool scaled_position) const {
-        if (scaled_position) {
-            return m_grid_map_info_->MeterToPixelForPoints(positions.array() / m_setting_->scaling);
-        }
-        return m_grid_map_info_->MeterToPixelForPoints(positions);
-    }
-
-    Eigen::Matrix2Xi
-    AbstractQuadtreeDrawer::GetPixelCoordsForVectors(const Eigen::Matrix2Xf &vectors) const {
-        return m_grid_map_info_->MeterToPixelForVectors(vectors);
-    }
-
     void
     AbstractQuadtreeDrawer::DrawTree(const std::string &filename) const {
         cv::Mat img;

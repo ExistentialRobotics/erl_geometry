@@ -76,10 +76,11 @@ TEST(SemiSparseQuadtree, Build) {
         [&](const TreeDrawer *self, cv::Mat &mat, SemiSparseQuadtreeD::LeafInAabbIterator &it) {
             long node_index = it->GetNodeIndex();
             auto &vertex_indices = vertices.col(node_index);
-            for (auto &vertex_index: vertex_indices) {
+            for (long i = 0; i < 4; ++i) {
+                const long &vertex_index = vertex_indices[i];
                 ERL_ASSERTM(vertex_index >= 0, "invalid vertex index: {}", vertex_index);
                 auto p = tree->KeyToVertexCoord(vertex_keys[vertex_index]);
-                auto pixel = self->GetPixelCoordsForPositions(p.cast<float>(), true);
+                auto pixel = self->GetPixelCoordsForPositions<double>(p, true);
                 cv::circle(mat, {pixel(0, 0), pixel(1, 0)}, 1, {0, 0, 255}, -1);
             }
 
@@ -92,7 +93,7 @@ TEST(SemiSparseQuadtree, Build) {
             area << voxel_center[0] - voxel_half_size, voxel_center[0] + voxel_half_size,
                     voxel_center[1] - voxel_half_size, voxel_center[1] + voxel_half_size;
             // clang-format on
-            auto pixels = self->GetPixelCoordsForPositions(area, true);
+            auto pixels = self->GetPixelCoordsForPositions<float>(area, true);
             cv::rectangle(
                 mat,
                 {pixels(0, 0), pixels(1, 0)},

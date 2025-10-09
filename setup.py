@@ -15,12 +15,20 @@ from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext
 
 torch_dir = os.environ.get("Torch_DIR", None)
+cusparselt_dir = os.environ.get("cuSPARSELt_DIR", None)
 try:
     if torch_dir is None:
         import torch
 
         torch_dir = pathlib.Path(torch.__file__).parent / "share" / "cmake" / "Torch"
+
+    if cusparselt_dir is None:
+        import nvidia
+
+        cusparselt_dir = pathlib.Path(nvidia.__file__).parent / "cusparselt"
+
     print(f"Torch_DIR: {torch_dir}")
+    print(f"cuSPARSELt_DIR: {cusparselt_dir}")
 except ImportError:
     print("torch is not installed, the system libtorch will be used if needed.")
     pass
@@ -192,6 +200,8 @@ class CMakeBuild(build_ext):
             ]
             if torch_dir is not None:
                 cmake_args.append(f"-DTorch_DIR:PATH={torch_dir}")
+                cmake_args.append(f"-DCUSPARSELT_INCLUDE_PATH:PATH={cusparselt_dir}/include")
+                cmake_args.append(f"-DCUSPARSELT_LIBRARY_PATH:PATH={cusparselt_dir}/lib/libcusparseLt.so.0")
             # add dependencies
             site_packages_dir = site.getsitepackages()[0]
             user_site_packages_dir = site.getusersitepackages()

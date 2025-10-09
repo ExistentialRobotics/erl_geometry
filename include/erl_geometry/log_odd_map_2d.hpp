@@ -15,7 +15,9 @@ namespace erl::geometry {
     public:
         using Vector2 = Eigen::Vector2<Dtype>;
         using VectorX = Eigen::VectorX<Dtype>;
+        using Matrix2X = Eigen::Matrix2X<Dtype>;
         using Matrix3X = Eigen::Matrix3X<Dtype>;
+        using GridMapInfo = common::GridMapInfo2D<Dtype>;
 
         struct LogOddCVMask {
             cv::Mat unexplored_mask;
@@ -38,9 +40,11 @@ namespace erl::geometry {
             Dtype min_log_odd = -8;
             Dtype threshold_occupied = 0.7;
             Dtype threshold_free = 0.3;
-            // If true, use cross kernel. Otherwise, use rect kernel. For 3x3, ellipse and cross are
-            // the same.
+
+            // If true, use cross kernel. Otherwise, use rect kernel.
+            // For 3x3, ellipse and cross are the same.
             bool use_cross_kernel = true;
+
             // number of iterations of dilation and erosion to generate cleaned mask
             int num_iters_for_cleaned_mask = 4;
             bool filter_obstacles_in_cleaned_mask = false;
@@ -54,7 +58,7 @@ namespace erl::geometry {
             };
         };
 
-        struct LidarFrameMask {
+        struct FrameMask {
             cv::Mat mask;  // rows: x, cols: y. should use point(y, x) to draw contour
             int x_grid_min = std::numeric_limits<int>::max();
             int y_grid_min = std::numeric_limits<int>::max();
@@ -62,7 +66,7 @@ namespace erl::geometry {
             int y_grid_max = -std::numeric_limits<int>::max();
             Eigen::Matrix2Xi occupied_grids;
 
-            LidarFrameMask() = default;
+            FrameMask() = default;
 
             void
             UpdateGridRange(const int x, const int y) {
@@ -75,7 +79,7 @@ namespace erl::geometry {
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        std::shared_ptr<common::GridMapInfo2D<Dtype>> m_grid_map_info_ = nullptr;
+        std::shared_ptr<GridMapInfo> m_grid_map_info_ = nullptr;
         cv::Mat m_log_map_ = {};  // ij-indexing, x to the bottom, y to the right
         cv::Mat m_possibility_map_ = {};
         cv::Mat m_occupancy_map_ = {};
@@ -85,31 +89,24 @@ namespace erl::geometry {
         std::size_t m_num_unexplored_cells_ = -1;
         std::size_t m_num_occupied_cells_ = 0;
         std::size_t m_num_free_cells_ = 0;
-        Eigen::Matrix2X<Dtype> m_shape_vertices_ = {};
+        Matrix2X m_robot_metric_contour_ = {};
 
     public:
-        LogOddMap2D(
-            std::shared_ptr<Setting> setting,
-            std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info);
+        LogOddMap2D(std::shared_ptr<Setting> setting, std::shared_ptr<GridMapInfo> grid_map_info);
 
         LogOddMap2D(
             std::shared_ptr<Setting> setting,
-            std::shared_ptr<common::GridMapInfo2D<Dtype>> grid_map_info,
-            const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &shape_metric_vertices);
+            std::shared_ptr<GridMapInfo> grid_map_info,
+            const Eigen::Ref<const Matrix2X> &robot_metric_contour);
 
         /**
          *
          * @param position Sensor position in world frame, the unit is meters.
-         * @param theta Sensor orientation in world frame, the unit is radian.
-         * @param angles_body Sensor angles in the body frame, the unit is radian.
-         * @param ranges Range measurements, the unit is meters.
+         * @param theta Sensor yaw angle in world frame, the unit is radians.
+         * @param points Scan points in world frame, the unit is meters.
          */
         void
-        Update(
-            const Eigen::Ref<const Vector2> &position,
-            Dtype theta,
-            const Eigen::Ref<const VectorX> &angles_body,
-            const Eigen::Ref<const VectorX> &ranges);
+        Update(const Eigen::Ref<const Vector2> &position, Dtype theta, Matrix2X points);
 
         /**
          * @brief Load the external possibility map where -1 means unexplored, 0 ~ 100 means
@@ -124,35 +121,10 @@ namespace erl::geometry {
             Dtype theta,
             const Eigen::Ref<const Eigen::MatrixXi> &possibility_map);
 
-        std::shared_ptr<LidarFrameMask>
-        ComputeStatisticsOfLidarFrame(
-            const Eigen::Ref<const Vector2> &position,
-            Dtype theta,
-            const Eigen::Ref<const VectorX> &angles_body,
-            const Eigen::Ref<const VectorX> &ranges,
-            bool clip_ranges,
-            const std::shared_ptr<LidarFrameMask> &old_mask,
-            int &num_occupied_cells,
-            int &num_free_cells,
-            int &num_unexplored_cells,
-            int &num_out_of_map_cells) const;
-
-        std::shared_ptr<LidarFrameMask>
-        ComputeStatisticsOfLidarFrames(
-            const Eigen::Ref<const Matrix3X> &lidar_poses,
-            const Eigen::Ref<const VectorX> &lidar_angles_body,
-            const std::vector<VectorX> &lidar_ranges,
-            bool clip_ranges,
-            const std::shared_ptr<LidarFrameMask> &old_mask,
-            int &num_occupied_cells,
-            int &num_free_cells,
-            int &num_unexplored_cells,
-            int &num_out_of_map_cells) const;
-
         [[nodiscard]] std::shared_ptr<Setting>
         GetSetting() const;
 
-        [[nodiscard]] std::shared_ptr<const common::GridMapInfo2D<Dtype>>
+        [[nodiscard]] std::shared_ptr<const GridMapInfo>
         GetGridMapInfo() const;
 
         [[nodiscard]] cv::Mat
@@ -194,37 +166,28 @@ namespace erl::geometry {
         [[nodiscard]] cv::Mat
         GetCleanedUnexploredMask() const;
 
-        [[nodiscard]] auto
-        GetFrontiers(bool clean_at_first = true, int approx_iters = 4) const
-            -> std::vector<Eigen::Matrix2Xi>;
+        [[nodiscard]] std::vector<Eigen::Matrix2Xi>
+        GetFrontiers(bool clean_at_first = true, int approx_iters = 4) const;
 
     private:
-        [[nodiscard]] std::shared_ptr<LidarFrameMask>
-        ComputeLidarFrameMask(
+        /**
+         *
+         * @param position sensor position in world frame, the unit is meters.
+         * @param points scan points in world frame, the unit is meters.
+         * @param clip_ranges if true, clip the rays that exceed the max range to the max range.
+         * @param ray_mode if true, use ray mode, otherwise use area mode.
+         * @param in_map_only if true, only compute the in-map area.
+         * @param old_mask if not nullptr, keep the overlapped area of old_mask and the new mask.
+         * @return
+         */
+        [[nodiscard]] std::shared_ptr<FrameMask>
+        ComputeFrameMask(
             const Eigen::Ref<const Vector2> &position,
-            Dtype theta,
-            const Eigen::Ref<const VectorX> &angles_body,
-            const Eigen::Ref<const VectorX> &ranges,
+            Eigen::Matrix2X<Dtype> points,
             bool clip_ranges,
-            bool ray_mode,  // true: ray mode, false: area mode
+            bool ray_mode,
             bool in_map_only,
-            const std::shared_ptr<LidarFrameMask> &old_mask) const;
-
-        [[nodiscard]] std::shared_ptr<LidarFrameMask>
-        ComputeLidarFramesMask(
-            const Eigen::Ref<const Matrix3X> &lidar_poses,
-            const Eigen::Ref<const VectorX> &lidar_angles_body,
-            const std::vector<VectorX> &lidar_ranges,
-            bool clip_ranges,
-            const std::shared_ptr<LidarFrameMask> &old_mask) const;
-
-        void
-        ComputeStatisticsOfLidarFrameMask(
-            const std::shared_ptr<LidarFrameMask> &mask,
-            int &num_occupied_cells,
-            int &num_free_cells,
-            int &num_unexplored_cells,
-            int &num_out_of_map_cells) const;
+            const std::shared_ptr<FrameMask> &old_mask) const;
 
         void
         PostProcessMasks(const Eigen::Ref<const Vector2> &position, Dtype theta);

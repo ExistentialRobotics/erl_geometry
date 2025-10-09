@@ -1,6 +1,10 @@
 ARG BASE_IMAGE=erl/common:20.04
 FROM ${BASE_IMAGE}
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+    apt-get install -y \
+    libjsoncpp-dev
+
 WORKDIR /root
 
 # install nanoflann
@@ -10,13 +14,6 @@ RUN git clone https://github.com/jlblancoc/nanoflann && \
     cmake .. -DCMAKE_BUILD_TYPE=Release && \
     make install && \
     cd /root && rm -rf nanoflann
-
-# install abseil-cpp
-RUN git clone --recursive https://github.com/abseil/abseil-cpp.git && cd abseil-cpp && \
-    git checkout 20240722.1 && mkdir -p build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXXFLAGS} -DNDEBUG" \
-       -DCMAKE_CXX_STANDARD=17 -DBUILD_SHARED_LIBS=ON -DABSL_PROPAGATE_CXX_STD=ON && \
-    make -j`nproc` && make install && cd /root && rm -rf abseil-cpp
 
 # install QHull
 RUN git clone --recursive https://github.com/qhull/qhull.git && cd qhull && \
@@ -32,6 +29,8 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v3.24.0/cmake-3.24.0
     rm cmake-3.24.0-linux-x86_64.sh
 
 # install Open3D
+# Open3D requires eigen3 >= 3.4 but Ubuntu 20.04 provides 3.3
+# we cannot use -DUSE_SYSTEM_EIGEN3=ON
 RUN git clone --recursive https://github.com/isl-org/Open3D.git && cd Open3D && \
     git checkout 1e7b174 && echo y | util/install_deps_ubuntu.sh && mkdir -p build && \
     cd build && \
@@ -51,3 +50,9 @@ RUN git clone --recursive https://github.com/isl-org/Open3D.git && cd Open3D && 
         -DBUILD_BENCHMARKS=OFF && \
     make -j`nproc` && make install && \
     cd /root && rm -rf Open3D
+
+# clean
+RUN apt-get clean  && rm -rf /var/lib/apt/lists/*
+RUN if [ -n "$APT_MIRROR" ]; then \
+    mv /etc/apt/sources.list.backup /etc/apt/sources.list; \
+    fi

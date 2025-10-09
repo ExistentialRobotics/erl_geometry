@@ -25,7 +25,7 @@ namespace erl::geometry {
     class KdTreeEigenAdaptor {
 
         using EigenMatrix = Eigen::Matrix<T, Dim, Eigen::Dynamic>;
-        using Self = KdTreeEigenAdaptor<T, Dim, Metric, IndexType>;
+        using Self = KdTreeEigenAdaptor;
         using NumType = typename EigenMatrix::Scalar;
         using MetricType = typename Metric::template traits<NumType, Self>::distance_t;
         using TreeType = nanoflann::KDTreeSingleIndexAdaptor<MetricType, Self, Dim, IndexType>;

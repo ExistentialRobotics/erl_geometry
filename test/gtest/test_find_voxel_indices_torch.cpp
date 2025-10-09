@@ -1,9 +1,11 @@
-#include "erl_common/block_timer.hpp"
-#include "erl_common/test_helper.hpp"
-#include "erl_geometry/find_voxel_indices_torch.hpp"
-#include "erl_geometry/libmorton_torch.hpp"
+#ifdef ERL_USE_LIBTORCH
 
-#include <cuda_runtime_api.h>
+    #include "erl_common/block_timer.hpp"
+    #include "erl_common/test_helper.hpp"
+    #include "erl_geometry/find_voxel_indices_torch.hpp"
+    #include "erl_geometry/libmorton_torch.hpp"
+
+    #include <cuda_runtime_api.h>
 
 template<int Dim>
 void
@@ -74,3 +76,5 @@ TEST(FindVoxelIndices, Torch) {
     TestFindVoxelIndicesTorch<2>();
     TestFindVoxelIndicesTorch<3>();
 }
+
+#endif

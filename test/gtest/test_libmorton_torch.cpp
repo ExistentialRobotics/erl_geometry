@@ -1,5 +1,7 @@
-#include "erl_common/test_helper.hpp"
-#include "erl_geometry/libmorton_torch.hpp"
+#ifdef ERL_USE_LIBTORCH
+
+    #include "erl_common/test_helper.hpp"
+    #include "erl_geometry/libmorton_torch.hpp"
 
 TEST(libmorton, Torch) {
 
@@ -28,3 +30,5 @@ TEST(libmorton, Torch) {
     MortonEncodeTorch(coords_3d_cuda, codes_cuda);
     ASSERT_TRUE(codes_cpu.equal(codes_cuda.cpu()));
 }
+
+#endif

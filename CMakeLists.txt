@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(erl_geometry #
-        LANGUAGES CXX C #
-        VERSION 0.1.0 #
+project(erl_geometry
+        LANGUAGES CXX C
+        VERSION 0.1.0
         DESCRIPTION "erl_geometry is a C++ library of geometry data structures, algorithms and datasets.")
 message(STATUS "Configuring ${PROJECT_NAME} ${PROJECT_VERSION}")
 
@@ -30,13 +30,13 @@ endif ()
 erl_setup_ros(LIBRARIES ${PROJECT_NAME} #
               CFG_EXTRAS erl_geometry_dependencies.cmake)
 
-# ######################################################################################################################
-# BUILD
-# ######################################################################################################################
+# #######
+# BUILD #
+# #######
 
-# ######################################################################################################################
+# ######################
 # define the libraries #
-# ######################################################################################################################
+# ######################
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 if (CMAKE_CUDA_COMPILER)
     file(GLOB_RECURSE CUDA_SRC_FILES src/*.cu)
@@ -48,23 +48,26 @@ if (CMAKE_CUDA_COMPILER)
 endif ()
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 erl_collect_targets(LIBRARIES ${PROJECT_NAME})
-target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
+target_include_directories(${PROJECT_NAME} PUBLIC
+                           $<BUILD_INTERFACE:${${PROJECT_NAME}_INCLUDE_DIR}>
                            $<INSTALL_INTERFACE:${${PROJECT_NAME}_INSTALL_INCLUDE_DIR}>)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${Open3D_INCLUDE_DIRS})
 erl_target_dependencies(
-    ${PROJECT_NAME} PUBLIC #
-    nanoflann::nanoflann Qhull::qhullcpp Qhull::qhull_r Open3D::Open3D absl::flat_hash_map absl::flat_hash_set)
+    ${PROJECT_NAME} PUBLIC
+    ${Open3D_LIBRARIES} nanoflann::nanoflann Qhull::qhullcpp Qhull::qhull_r
+    absl::flat_hash_map absl::flat_hash_set)
 if (ERL_USE_LIBTORCH)
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
     target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
 endif ()
-target_compile_definitions(${PROJECT_NAME} PUBLIC "-DERL_USE_OPEN3D")
+erl_dump_compile_definitions(include/${PROJECT_NAME}/compile_definitions.hpp)
 
-# ######################################################################################################################
+# #################
 # Python bindings #
-# ######################################################################################################################
+# #################
 erl_add_pybind_module(
-    PYBIND_MODULE_NAME py${PROJECT_NAME} #
-    PYBIND_SRC_DIR ${${PROJECT_NAME}_PYTHON_BINDING_DIR} #
+    PYBIND_MODULE_NAME py${PROJECT_NAME}
+    PYBIND_SRC_DIR ${${PROJECT_NAME}_PYTHON_BINDING_DIR}
     LIBRARIES ${PROJECT_NAME})
 if (ERL_USE_LIBTORCH)
     get_filename_component(TORCH_LIBRARIES_DIR "${Torch_DIR}/../../../lib" ABSOLUTE)
@@ -72,29 +75,42 @@ if (ERL_USE_LIBTORCH)
 endif ()
 erl_add_python_package()
 
-# ######################################################################################################################
-# INSTALL
-# ######################################################################################################################
+# #########
+# INSTALL #
+# #########
 erl_install(
-    EXECUTABLES ${${PROJECT_NAME}_COLLECTED_EXECUTABLES} #
-    LIBRARIES ${${PROJECT_NAME}_COLLECTED_LIBRARIES} #
-    PYBIND_MODULES py${PROJECT_NAME} #
+    EXECUTABLES ${${PROJECT_NAME}_COLLECTED_EXECUTABLES}
+    LIBRARIES ${${PROJECT_NAME}_COLLECTED_LIBRARIES}
+    PYBIND_MODULES py${PROJECT_NAME}
     OTHER_FILES data/bunny_z_up.ply data/house_expo_room_1451.ply data/house_expo_room_1451.json
     data/house_expo_room_1451.csv data/gazebo)
 
-# ######################################################################################################################
-# TEST
-# ######################################################################################################################
+# ######
+# TEST #
+# ######
 erl_add_tests(
-    LIBRARIES ${PROJECT_NAME} #
-    EXCLUDE_FROM_ALL test_depth_frame_3d_basic test_convex_hull test_convex_hull_3d_impls test_depth_frame_3d_basic
-    test_hidden_point_removal test_lidar_frame_2d_basic test_lidar_frame_3d_basic test_occupancy_octree_build
-    test_occupancy_octree_ray_casting test_occupancy_quadtree_batch_ray_casting test_occupancy_quadtree_build
-    test_occupancy_quadtree_build_from_image test_occupancy_quadtree_find_neighbors test_occupancy_quadtree_house_expo
-    test_occupancy_quadtree_leaf_in_aabb test_occupancy_quadtree_leaf_of_node test_occupancy_quadtree_leaf_on_ray
+    LIBRARIES ${PROJECT_NAME}
+    EXCLUDE_FROM_ALL
+    test_depth_frame_3d_basic
+    test_convex_hull
+    test_convex_hull_3d_impls
+    test_depth_frame_3d_basic
+    test_hidden_point_removal
+    test_lidar_frame_2d_basic
+    test_lidar_frame_3d_basic
+    test_occupancy_octree_build
+    test_occupancy_octree_ray_casting
+    test_occupancy_quadtree_batch_ray_casting
+    test_occupancy_quadtree_build
+    test_occupancy_quadtree_build_from_image
+    test_occupancy_quadtree_find_neighbors
+    test_occupancy_quadtree_house_expo
+    test_occupancy_quadtree_leaf_in_aabb
+    test_occupancy_quadtree_leaf_of_node
+    test_occupancy_quadtree_leaf_on_ray
     test_occupancy_quadtree_ray_casting)
 
-# ######################################################################################################################
-# export variables
-# ######################################################################################################################
+# ##################
+# export variables #
+# ##################
 erl_mark_project_found()
