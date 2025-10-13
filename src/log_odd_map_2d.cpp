@@ -10,12 +10,14 @@ namespace erl::geometry {
         YAML::Node node;
         ERL_YAML_SAVE_ATTR(node, setting, sensor_min_range);
         ERL_YAML_SAVE_ATTR(node, setting, sensor_max_range);
-        ERL_YAML_SAVE_ATTR(node, setting, measurement_certainty);
+        ERL_YAML_SAVE_ATTR(node, setting, log_odd_hit);
+        ERL_YAML_SAVE_ATTR(node, setting, log_odd_miss);
         ERL_YAML_SAVE_ATTR(node, setting, max_log_odd);
         ERL_YAML_SAVE_ATTR(node, setting, min_log_odd);
         ERL_YAML_SAVE_ATTR(node, setting, threshold_occupied);
         ERL_YAML_SAVE_ATTR(node, setting, threshold_free);
         ERL_YAML_SAVE_ATTR(node, setting, use_cross_kernel);
+        ERL_YAML_SAVE_ATTR(node, setting, kernel_size);
         ERL_YAML_SAVE_ATTR(node, setting, num_iters_for_cleaned_mask);
         ERL_YAML_SAVE_ATTR(node, setting, filter_obstacles_in_cleaned_mask);
         return node;
@@ -27,12 +29,14 @@ namespace erl::geometry {
         if (!node.IsMap()) { return false; }
         ERL_YAML_LOAD_ATTR(node, setting, sensor_min_range);
         ERL_YAML_LOAD_ATTR(node, setting, sensor_max_range);
-        ERL_YAML_LOAD_ATTR(node, setting, measurement_certainty);
+        ERL_YAML_LOAD_ATTR(node, setting, log_odd_hit);
+        ERL_YAML_LOAD_ATTR(node, setting, log_odd_miss);
         ERL_YAML_LOAD_ATTR(node, setting, max_log_odd);
         ERL_YAML_LOAD_ATTR(node, setting, min_log_odd);
         ERL_YAML_LOAD_ATTR(node, setting, threshold_occupied);
         ERL_YAML_LOAD_ATTR(node, setting, threshold_free);
         ERL_YAML_LOAD_ATTR(node, setting, use_cross_kernel);
+        ERL_YAML_LOAD_ATTR(node, setting, kernel_size);
         ERL_YAML_LOAD_ATTR(node, setting, num_iters_for_cleaned_mask);
         ERL_YAML_LOAD_ATTR(node, setting, filter_obstacles_in_cleaned_mask);
         return true;
@@ -62,7 +66,7 @@ namespace erl::geometry {
           m_kernel_(
               cv::getStructuringElement(
                   m_setting_->use_cross_kernel ? cv::MORPH_CROSS : cv::MORPH_RECT,
-                  cv::Size{3, 3})),
+                  cv::Size{m_setting_->kernel_size, m_setting_->kernel_size})),
           m_mask_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1)),
           m_cleaned_mask_(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1)),
           m_num_unexplored_cells_(m_grid_map_info_->Shape(0) * m_grid_map_info_->Shape(1)) {}
@@ -71,9 +75,9 @@ namespace erl::geometry {
     LogOddMap2D<Dtype>::LogOddMap2D(
         std::shared_ptr<Setting> setting,
         std::shared_ptr<GridMapInfo> grid_map_info,
-        const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &shape_metric_vertices)
+        const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &robot_metric_contour)
         : LogOddMap2D(std::move(setting), std::move(grid_map_info)) {
-        m_robot_metric_contour_ = shape_metric_vertices;
+        m_robot_metric_contour_ = robot_metric_contour;
     }
 
     template<typename Dtype>
@@ -97,10 +101,8 @@ namespace erl::geometry {
         if (mask->mask.rows == 0 || mask->mask.cols == 0) { return; }
 
         // compute parameters
-        const Dtype log_certainty = std::log(m_setting_->measurement_certainty);
-        const Dtype log_uncertainty = std::log(1.0 - m_setting_->measurement_certainty);
-        const Dtype log_odd_occupied = log_certainty - log_uncertainty;
-        const Dtype log_odd_free = log_uncertainty - log_certainty;
+        const Dtype log_odd_hit = m_setting_->log_odd_hit;
+        const Dtype log_odd_miss = m_setting_->log_odd_miss;
 
         // update log_odd_map, possibility_map, occupancy_map
         for (int row = 0; row < mask->mask.rows; ++row) {
@@ -118,9 +120,9 @@ namespace erl::geometry {
                 auto &unexplored_mask_value = m_mask_.unexplored_mask.template at<uint8_t>(x, y);
 
                 if (mask_value == kOccupied) {
-                    log_odd_value += log_odd_occupied;
+                    log_odd_value += log_odd_hit;
                 } else {
-                    log_odd_value += log_odd_free;
+                    log_odd_value += log_odd_miss;
                 }
                 if (log_odd_value < m_setting_->min_log_odd) {
                     log_odd_value = m_setting_->min_log_odd;
@@ -201,8 +203,8 @@ namespace erl::geometry {
                     unexplored_mask_value = 1;
                     m_num_unexplored_cells_++;
                 } else {
-                    possibility_value = static_cast<Dtype>(possibility_map(i, j)) / 100.;
-                    log_odd_value = std::log(possibility_value / (1. - possibility_value));
+                    possibility_value = static_cast<Dtype>(possibility_map(i, j)) / 100.0f;
+                    log_odd_value = std::log(possibility_value / (1.0f - possibility_value));
                     if (possibility_value > m_setting_->threshold_occupied) {
                         occupancy_value = kOccupied;
                         free_mask_value = 0;
@@ -397,7 +399,6 @@ namespace erl::geometry {
 
         if (points.cols() == 0) { return nullptr; }
 
-        // LidarFrameMask mask;
         auto mask = std::make_shared<FrameMask>();
 
         // clip the ranges if necessary, check if the ray hits an obstacle.
@@ -407,9 +408,10 @@ namespace erl::geometry {
         for (int i = 0; i < num_rays; ++i) {
             auto &&p = points.col(i);
             Dtype range = (p - position).norm();
+            if (std::isinf(range)) { continue; }
             if (range >= m_setting_->sensor_max_range) {
-                if (clip_ranges || std::isinf(range)) {
-                    p = position + (p - position) / range * m_setting_->sensor_max_range;
+                if (clip_ranges) {
+                    p = position + (p - position) * (m_setting_->sensor_max_range / range);
                 }
             } else if (range < m_setting_->sensor_min_range) {
                 p = position;
@@ -431,8 +433,8 @@ namespace erl::geometry {
             area_contours.reserve(num_rays);
             for (long i = 0; i < num_rays; ++i) {
                 auto p = points.col(i);
-                int x = m_grid_map_info_->MeterToGridAtDim(p[1], 1);
-                int y = m_grid_map_info_->MeterToGridAtDim(p[0], 0);
+                int x = m_grid_map_info_->MeterToGridAtDim(p[0], 0);
+                int y = m_grid_map_info_->MeterToGridAtDim(p[1], 1);
                 mask->UpdateGridRange(x, y);
                 area_contours.emplace_back(
                     std::vector<cv::Point>{cv::Point(start_y, start_x), cv::Point(y, x)});
@@ -444,8 +446,8 @@ namespace erl::geometry {
             contour.emplace_back(start_y, start_x);  // (col, row)
             for (long i = 0; i < num_rays; ++i) {
                 auto p = points.col(i);
-                int x = m_grid_map_info_->MeterToGridAtDim(p[1], 1);
-                int y = m_grid_map_info_->MeterToGridAtDim(p[0], 0);
+                int x = m_grid_map_info_->MeterToGridAtDim(p[0], 0);
+                int y = m_grid_map_info_->MeterToGridAtDim(p[1], 1);
                 mask->UpdateGridRange(x, y);
                 contour.emplace_back(y, x);
             }
@@ -496,7 +498,6 @@ namespace erl::geometry {
                 point.y -= mask->x_grid_min;
             }
         }
-
         if (ray_mode) {
             cv::polylines(mask->mask, area_contours, false, kFree, 1, cv::LINE_8);
         } else {

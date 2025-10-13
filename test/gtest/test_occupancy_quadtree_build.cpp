@@ -30,7 +30,7 @@ struct Options {
     std::string house_expo_map_file = kDataDir / "house_expo_room_1451.json";
     std::string house_expo_traj_file = kDataDir / "house_expo_room_1451.csv";
     std::string ucsd_fah_2d_file = kDataDir / "ucsd_fah_2d.dat";
-    bool use_gazebo_room_2d = true;
+    bool use_gazebo_room_2d = false;
     bool use_house_expo_lidar_2d = false;
     bool use_ucsd_fah_2d = false;
     bool hold = false;
@@ -185,9 +185,9 @@ TEST(OccupancyQuadtree, Build) {
 
     // setup visualization
     auto drawer_setting = std::make_shared<OccupancyQuadtreeDrawer::Setting>();
-    drawer_setting->area_min = map_min;
-    drawer_setting->area_max = map_max;
-    drawer_setting->resolution = map_resolution[0];
+    drawer_setting->area_min = map_min.cast<float>();
+    drawer_setting->area_max = map_max.cast<float>();
+    drawer_setting->resolution = static_cast<float>(map_resolution[0]);
     drawer_setting->padding = map_padding[0];
     drawer_setting->border_color = cv::Scalar(255, 0, 0, 255);
     std::cout << "OccupancyQuadtree::Drawer Setting:" << std::endl << *drawer_setting << std::endl;

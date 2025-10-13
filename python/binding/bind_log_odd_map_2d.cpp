@@ -16,12 +16,14 @@ BindLogOddMap2DImpl(const py::module &m, const char *name) {
         .def(py::init<>())
         .def_readwrite("sensor_min_range", &T::Setting::sensor_min_range)
         .def_readwrite("sensor_max_range", &T::Setting::sensor_max_range)
-        .def_readwrite("measurement_certainty", &T::Setting::measurement_certainty)
+        .def_readwrite("log_odd_hit", &T::Setting::log_odd_hit)
+        .def_readwrite("log_odd_miss", &T::Setting::log_odd_miss)
         .def_readwrite("max_log_odd", &T::Setting::max_log_odd)
         .def_readwrite("min_log_odd", &T::Setting::min_log_odd)
         .def_readwrite("threshold_occupied", &T::Setting::threshold_occupied)
         .def_readwrite("threshold_free", &T::Setting::threshold_free)
         .def_readwrite("use_cross_kernel", &T::Setting::use_cross_kernel)
+        .def_readwrite("kernel_size", &T::Setting::kernel_size)
         .def_readwrite("num_iters_for_cleaned_mask", &T::Setting::num_iters_for_cleaned_mask)
         .def_readwrite(
             "filter_obstacles_in_cleaned_mask",

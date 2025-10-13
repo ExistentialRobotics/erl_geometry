@@ -35,18 +35,20 @@ namespace erl::geometry {
         struct Setting : public common::Yamlable<Setting> {
             Dtype sensor_min_range = 0.01;
             Dtype sensor_max_range = 30;
-            Dtype measurement_certainty = 0.9;
+            Dtype log_odd_hit = 0.9;
+            Dtype log_odd_miss = -0.2;
             Dtype max_log_odd = 50;
             Dtype min_log_odd = -8;
-            Dtype threshold_occupied = 0.7;
-            Dtype threshold_free = 0.3;
+            Dtype threshold_occupied = 0.55f;
+            Dtype threshold_free = 0.49f;
 
             // If true, use cross kernel. Otherwise, use rect kernel.
             // For 3x3, ellipse and cross are the same.
             bool use_cross_kernel = true;
+            int kernel_size = 3;
 
             // number of iterations of dilation and erosion to generate cleaned mask
-            int num_iters_for_cleaned_mask = 4;
+            int num_iters_for_cleaned_mask = 2;
             bool filter_obstacles_in_cleaned_mask = false;
 
             struct YamlConvertImpl {

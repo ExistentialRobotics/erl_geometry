@@ -969,7 +969,7 @@ namespace erl::geometry {
         uint32_t next_depth = node_depth + 1;
         ERL_DEBUG_ASSERT(
             next_depth <= m_max_node_depth_,
-            "Wrong depth: %u (max: %u).\n",
+            "Wrong depth: {} (max: {}).",
             next_depth,
             m_max_node_depth_);
         OctreeKey next_key;
