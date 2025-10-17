@@ -49,10 +49,21 @@ BindLogOddMap2DImpl(const py::module &m, const char *name) {
         .def("update", &T::Update, py::arg("position"), py::arg("theta"), py::arg("points"))
         .def(
             "load_external_possibility_map",
-            &T::LoadExternalPossibilityMap,
+            [](T &self,
+               const Eigen::Vector2<Dtype> &position,
+               Dtype theta,
+               const Eigen::MatrixXi &possibility_map,
+               const std::shared_ptr<GridMapInfo<Dtype, 2>> &grid_map_info) {
+                Eigen::Map<const Eigen::MatrixXi> map(
+                    possibility_map.data(),
+                    possibility_map.rows(),
+                    possibility_map.cols());
+                self.template LoadExternalPossibilityMap<int>(position, theta, map, grid_map_info);
+            },
             py::arg("position"),
             py::arg("theta"),
-            py::arg("possibility_map"))
+            py::arg("possibility_map"),
+            py::arg("grid_map_info"))
         .def_property_readonly("setting", &T::GetSetting)
         .def_property_readonly(
             "log_map",

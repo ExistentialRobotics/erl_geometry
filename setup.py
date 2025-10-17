@@ -36,8 +36,7 @@ except ImportError:
 # read project configuration from pyproject.toml
 with open("pyproject.toml", "r") as f:
     config = tomllib.loads("".join(f.readlines()))
-python_pkg_name = config["erl"]["python_pkg_name"]
-pybind_module_name = config["erl"]["pybind_module_name"]
+python_pkg_name = config["project"]["name"]
 cmake_build_type = config["erl"].get("build_type", "Release")
 cmake_ignore_conda_libraries = config["erl"].get("ignore_conda_libraries", "ON")
 cmake_use_lapack = config["erl"].get("use_lapack", "ON")
@@ -237,18 +236,21 @@ for i, require in enumerate(requires):
         pkg_name = pkg_name.strip()
         requires[i] = f"{pkg_name} @ {require.strip()}"
 
+entry_points = {}
+if "project" in config and "scripts" in config["project"]:
+    entry_points["console_scripts"] = [f"{key} = {val}" for key, val in config["project"]["scripts"].items()]
+
 setup(
     name=python_pkg_name,
-    description=config["erl"]["description"],
-    version=config["erl"]["version"],
-    author=config["erl"]["author"],
-    author_email=config["erl"]["author_email"],
-    license=config["erl"]["license"],
-    ext_modules=[CMakeExtension(pybind_module_name)],
+    description=config["project"]["description"],
+    version=config["project"]["version"],
+    author=config["project"]["authors"][0]["name"],
+    author_email=config["project"]["authors"][0]["email"],
+    ext_modules=[CMakeExtension(python_pkg_name)],
     cmdclass={"build_ext": CMakeBuild},
     install_requires=requires,
     packages=find_packages("python"),
     package_dir={python_pkg_name: f"python/{python_pkg_name}"},
     include_package_data=True,
-    entry_points=config["erl"]["entry_points"],
+    entry_points=entry_points,
 )

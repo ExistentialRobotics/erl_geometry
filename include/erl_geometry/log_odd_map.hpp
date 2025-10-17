@@ -6,7 +6,10 @@
 namespace erl::geometry {
 
     struct LogOddMap {
-        enum CellType { kOccupied = 0, kFree = 255, kUnexplored = 128 };
+        // occupancy grid cell types.
+        // the number is consistent with nav_msgs/OccupancyGrid.
+        // https://docs.ros.org/en/api/nav_msgs/html/msg/OccupancyGrid.html
+        enum CellType { kOccupied = 100, kFree = 0, kUnexplored = 255 };
 
         static const char *
         GetCellTypeName(const CellType type) {
