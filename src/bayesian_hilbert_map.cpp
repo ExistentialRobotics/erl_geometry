@@ -5,8 +5,6 @@
 #include "erl_common/serialization.hpp"
 #include "erl_geometry/intersection.hpp"
 
-#include <unordered_set>
-
 namespace erl::geometry {
 
     template<typename Dtype, int Dim>
@@ -22,6 +20,12 @@ namespace erl::geometry {
           m_map_boundary_(std::move(map_boundary)),
           m_generator_(seed) {
 
+        Reset();
+    }
+
+    template<typename Dtype, int Dim>
+    void
+    BayesianHilbertMap<Dtype, Dim>::Reset() {
         const long m = m_hinged_points_.cols() + 1;
         const Dtype sigma = m_setting_->init_sigma;
         const Dtype sigma_inv = 1.0f / sigma;
@@ -102,11 +106,8 @@ namespace erl::geometry {
     template<typename Dtype, int Dim>
     [[nodiscard]] Dtype
     BayesianHilbertMap<Dtype, Dim>::GetWeightVariance(int idx) const {
-        if (m_setting_->diagonal_sigma) {
-            return m_sigma_(idx, 0);
-        } else {
-            return m_sigma_(idx, idx);
-        }
+        if (m_setting_->diagonal_sigma) { return m_sigma_(idx, 0); }
+        return m_sigma_(idx, idx);
     }
 
     template<typename Dtype, int Dim>
@@ -232,7 +233,7 @@ namespace erl::geometry {
         if (m_setting_->use_sparse) {
             m_phi_sparse_.setZero();
             m_phi_sparse_.resize(num_points, n_hinged + 1);  // (N, M + 1)
-            m_kernel_->ComputeKtestSparse(
+            (void) m_kernel_->ComputeKtestSparse(
                 points,
                 num_points,
                 m_hinged_points_,
@@ -471,19 +472,19 @@ namespace erl::geometry {
         VectorX &prob_occupied,
         MatrixDX &gradient) const {
 
-        // // sparsity does not improve the performance of the prediction
-        if (m_setting_->use_sparse) {
-            PredictSparse(
-                points,
-                logodd,
-                faster,
-                compute_gradient,
-                gradient_with_sigmoid,
-                parallel,
-                prob_occupied,
-                gradient);
-            return;
-        }
+        // sparsity does not improve the performance of the prediction
+        // if (m_setting_->use_sparse) {
+        //     PredictSparse(
+        //         points,
+        //         logodd,
+        //         faster,
+        //         compute_gradient,
+        //         gradient_with_sigmoid,
+        //         parallel,
+        //         prob_occupied,
+        //         gradient);
+        //     return;
+        // }
 
         constexpr auto kPI = static_cast<Dtype>(M_PI);
         (void) parallel;

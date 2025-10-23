@@ -3,6 +3,8 @@
 #include "colored_occupancy_octree_node.hpp"
 #include "occupancy_octree_base.hpp"
 
+#include "erl_common/serialization.hpp"
+
 namespace erl::geometry {
     template<typename Dtype>
     class ColoredOccupancyOctree : public OccupancyOctreeBase<
@@ -11,10 +13,9 @@ namespace erl::geometry {
                                        OccupancyOctreeBaseSetting> {
     public:
         using Setting = OccupancyOctreeBaseSetting;
-        using Super =
-            OccupancyOctreeBase<Dtype, ColoredOccupancyOctreeNode, OccupancyOctreeBaseSetting>;
+        using Super = OccupancyOctreeBase<Dtype, ColoredOccupancyOctreeNode, Setting>;
 
-        explicit ColoredOccupancyOctree(const std::shared_ptr<OccupancyOctreeBaseSetting> &setting)
+        explicit ColoredOccupancyOctree(const std::shared_ptr<Setting> &setting)
             : Super(setting) {}
 
         ColoredOccupancyOctree()
@@ -23,7 +24,7 @@ namespace erl::geometry {
         explicit ColoredOccupancyOctree(const std::string &filename)
             : ColoredOccupancyOctree() {
             ERL_ASSERTM(
-                this->LoadData(filename),
+                common::Serialization<ColoredOccupancyOctree>::Read(filename, this),
                 "Failed to read ColoredOccupancyOctree from file: {}",
                 filename);
         }
@@ -38,12 +39,12 @@ namespace erl::geometry {
     protected:
         [[nodiscard]] std::shared_ptr<geometry::AbstractOctree<Dtype>>
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
-            auto tree_setting = std::dynamic_pointer_cast<OccupancyOctreeBaseSetting>(setting);
+            auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) {
                 ERL_DEBUG_ASSERT(
                     setting == nullptr,
                     "setting is not the type for ColoredOccupancyOctree.");
-                tree_setting = std::make_shared<OccupancyOctreeBaseSetting>();
+                tree_setting = std::make_shared<Setting>();
             }
             return std::make_shared<ColoredOccupancyOctree>(tree_setting);
         }

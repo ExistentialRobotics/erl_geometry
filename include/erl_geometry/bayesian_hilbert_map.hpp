@@ -13,7 +13,7 @@ namespace erl::geometry {
         // computation.
         bool diagonal_sigma = false;
         // minimum distance from the sensor to consider a point as occupied.
-        float min_distance = 0.5f;
+        float min_distance = 0.05f;
         // maximum distance from the sensor to consider a point as occupied.
         float max_distance = 30.0f;
         // number of free points to sample per meter from the sensor.
@@ -111,6 +111,9 @@ namespace erl::geometry {
             MatrixDX hinged_points,
             AabbD map_boundary,
             uint64_t seed);
+
+        void
+        Reset();
 
         [[nodiscard]] std::shared_ptr<const BayesianHilbertMapSetting>
         GetSetting() const;

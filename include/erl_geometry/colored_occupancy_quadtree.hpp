@@ -11,13 +11,9 @@ namespace erl::geometry {
                                          OccupancyQuadtreeBaseSetting> {
     public:
         using Setting = OccupancyQuadtreeBaseSetting;
-        using Super = OccupancyQuadtreeBase<
-            Dtype,
-            ColoredOccupancyQuadtreeNode,
-            OccupancyQuadtreeBaseSetting>;
+        using Super = OccupancyQuadtreeBase<Dtype, ColoredOccupancyQuadtreeNode, Setting>;
 
-        explicit ColoredOccupancyQuadtree(
-            const std::shared_ptr<OccupancyQuadtreeBaseSetting> &setting)
+        explicit ColoredOccupancyQuadtree(const std::shared_ptr<Setting> &setting)
             : Super(setting) {}
 
         ColoredOccupancyQuadtree()
@@ -41,12 +37,12 @@ namespace erl::geometry {
     protected:
         [[nodiscard]] std::shared_ptr<geometry::AbstractQuadtree<Dtype>>
         Create(const std::shared_ptr<NdTreeSetting> &setting) const override {
-            auto tree_setting = std::dynamic_pointer_cast<OccupancyQuadtreeBaseSetting>(setting);
+            auto tree_setting = std::dynamic_pointer_cast<Setting>(setting);
             if (tree_setting == nullptr) {
                 ERL_DEBUG_ASSERT(
                     setting == nullptr,
                     "setting is not the type for ColoredOccupancyQuadtree.");
-                tree_setting = std::make_shared<OccupancyQuadtreeBaseSetting>();
+                tree_setting = std::make_shared<Setting>();
             }
             return std::make_shared<ColoredOccupancyQuadtree>(tree_setting);
         }

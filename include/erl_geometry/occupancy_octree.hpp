@@ -12,13 +12,13 @@ namespace erl::geometry {
         : public OccupancyOctreeBase<Dtype, OccupancyOctreeNode, OccupancyOctreeBaseSetting> {
     public:
         using Setting = OccupancyOctreeBaseSetting;
-        using Super = OccupancyOctreeBase<Dtype, OccupancyOctreeNode, OccupancyOctreeBaseSetting>;
+        using Super = OccupancyOctreeBase<Dtype, OccupancyOctreeNode, Setting>;
 
-        explicit OccupancyOctree(const std::shared_ptr<OccupancyOctreeBaseSetting> &setting)
+        explicit OccupancyOctree(const std::shared_ptr<Setting> &setting)
             : Super(setting) {}
 
         OccupancyOctree()
-            : OccupancyOctree(std::make_shared<OccupancyOctreeBaseSetting>()) {}
+            : OccupancyOctree(std::make_shared<Setting>()) {}
 
         explicit OccupancyOctree(const std::string &filename)
             : OccupancyOctree() {

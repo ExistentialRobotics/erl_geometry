@@ -8,7 +8,8 @@
 
 namespace erl::geometry {
     template<typename Dtype, int Dim>
-    struct OccupancyMap {
+    class OccupancyMap {
+    public:
         struct RayInfo {
             long point_index = -1;
             bool hit_flag = false;

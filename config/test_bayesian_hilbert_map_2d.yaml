@@ -1,0 +1,35 @@
+hold: false
+hinged_grid_size: 31
+max_dataset_size: 300
+test_grid_size: 100
+kernel_scale: 0.12
+faster_prediction: true
+iso_value: &iso_value 4
+iso_values: [ -10, 0, *iso_value ]
+bhm:
+    diagonal_sigma: true
+    min_distance: 0.001
+    max_distance: 30.0
+    free_points_per_meter: 1
+    free_sampling_margin: 0.001
+    surf_perturbation_std: 0.03
+    sampling_area_scale: 1
+    init_mu: 0.0
+    init_sigma: 10000
+    num_em_iterations: 1
+    sparse_zero_threshold: 1.0e-4
+    use_sparse: true
+
+# The test case has an area [-3, 3] x [-3, 3].
+# There are two circles. One has radius 0.3 and center at (-1, 0.2). The other one has radius 0.8
+# and center at (0.3, 0.0).
+
+# | hinged_grid_size | resolution | kernel_scale | iso_value | surf_perturbation_std |
+# | 41               | 0.15       | 0.1          | 4         | 0.06                  | a bit slower
+# | 31               | 0.2        | 0.12         | 4         | 0.03                  | good balance
+# | 21               | 0.3        | 0.15         | 4         | 0.01                  | (smaller circle not well captured)
+
+# The iso_value should be a small positive value to extract the surface because the hit points
+# are labeled with 1.0 and the free points are labeled with -1.0, so the learned function has
+# a small positive bias on the surface.
+# By perturbing the surface points inwards with a small std, the bias can be reduced.

@@ -61,7 +61,7 @@ namespace erl::geometry {
                 d2 = std::min((1.0f - free_sampling_margin) * v_norm, d2);
             }
             // number of free points to sample
-            auto n = std::max(0l, static_cast<long>(std::ceil((d2 - d1) * free_points_per_meter)));
+            auto n = std::max(1l, static_cast<long>(std::ceil((d2 - d1) * free_points_per_meter)));
             if (n == 0 && !hit_flag) { continue; }  // no free points and the point is not hit
             total_num_free_points += n;             // count the number of free points to sample
             total_num_hit_points += static_cast<long>(hit_flag);  // count the number of hit points

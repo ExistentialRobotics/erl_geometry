@@ -1,4 +1,4 @@
-#include "erl_geometry/intersection.hpp"
+#pragma once
 
 #include <cmath>
 
