@@ -11,7 +11,7 @@ use_libtorch = "ON"
 
 [project]
 name = "erl_geometry"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python package for erl_geometry"
 authors = [
     { name = "Zhirui Dai", email = "zhdai@ucsd.edu" }
