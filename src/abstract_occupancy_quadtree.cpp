@@ -9,8 +9,7 @@ namespace erl::geometry {
     template<typename Dtype>
     AbstractOccupancyQuadtree<Dtype>::AbstractOccupancyQuadtree(
         std::shared_ptr<OccupancyNdTreeSetting> setting)
-        : AbstractQuadtree<Dtype>(setting),
-          m_setting_(std::move(setting)) {}
+        : AbstractQuadtree<Dtype>(setting), m_setting_(std::move(setting)) {}
 
     template<typename Dtype>
     bool
@@ -26,56 +25,56 @@ namespace erl::geometry {
     template<typename Dtype>
     bool
     AbstractOccupancyQuadtree<Dtype>::WriteBinary(std::ostream &s) const {
+        using namespace common::serialization;
         s << "# Binary file\n";  // add a comment line
-        static const common::TokenWriteFunctionPairs<AbstractOccupancyQuadtree>
-            token_function_pairs = {
-                {
-                    "setting",
-                    [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
-                        self->WriteSetting(stream);
-                        return stream.good();
-                    },
+        static const TokenWriteFunctionPairs<AbstractOccupancyQuadtree> token_function_pairs = {
+            {
+                "setting",
+                [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
+                    self->WriteSetting(stream);
+                    return stream.good();
                 },
-                {
-                    "data",
-                    [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
-                        const std::size_t size = self->GetSize();
-                        stream << size << '\n';
-                        if (size > 0) { return self->WriteBinaryData(stream) && stream.good(); }
-                        return stream.good();
-                    },
+            },
+            {
+                "data",
+                [](const AbstractOccupancyQuadtree *self, std::ostream &stream) {
+                    const std::size_t size = self->GetSize();
+                    stream << size << '\n';
+                    if (size > 0) { return self->WriteBinaryData(stream) && stream.good(); }
+                    return stream.good();
                 },
-            };
-        return common::WriteTokens(s, this, token_function_pairs);
+            },
+        };
+        return WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
     AbstractOccupancyQuadtree<Dtype>::ReadBinary(std::istream &s) {
-        static const common::TokenReadFunctionPairs<AbstractOccupancyQuadtree>
-            token_function_pairs = {
-                {
-                    "setting",
-                    [](AbstractOccupancyQuadtree *self, std::istream &stream) {
-                        self->Clear();  // clear the tree before reading the setting
-                        if (!self->ReadSetting(stream)) { return false; }
-                        self->ApplySetting();
-                        return stream.good();
-                    },
+        using namespace common::serialization;
+        static const TokenReadFunctionPairs<AbstractOccupancyQuadtree> token_function_pairs = {
+            {
+                "setting",
+                [](AbstractOccupancyQuadtree *self, std::istream &stream) {
+                    self->Clear();  // clear the tree before reading the setting
+                    if (!self->ReadSetting(stream)) { return false; }
+                    self->ApplySetting();
+                    return stream.good();
                 },
-                {
-                    "data",
-                    [](AbstractOccupancyQuadtree *self, std::istream &stream) {
-                        std::size_t size;
-                        stream >> size;
-                        common::SkipLine(stream);
-                        if (size > 0) { return self->ReadBinaryData(stream) && stream.good(); }
-                        ERL_DEBUG("Load {} nodes", size);
-                        return size == self->GetSize() && stream.good();
-                    },
+            },
+            {
+                "data",
+                [](AbstractOccupancyQuadtree *self, std::istream &stream) {
+                    std::size_t size;
+                    stream >> size;
+                    SkipLine(stream);
+                    if (size > 0) { return self->ReadBinaryData(stream) && stream.good(); }
+                    ERL_DEBUG("Load {} nodes", size);
+                    return size == self->GetSize() && stream.good();
                 },
-            };
-        return common::ReadTokens(s, this, token_function_pairs);
+            },
+        };
+        return ReadTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>

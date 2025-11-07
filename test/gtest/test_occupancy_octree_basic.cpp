@@ -13,7 +13,7 @@
 using Dtype = float;
 using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
 using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
-using TreeSerializer = erl::common::Serialization<OccupancyOctree>;
+using TreeSerializer = erl::common::serialization::Serialization<OccupancyOctree>;
 using OccupancyOctreeNode = erl::geometry::OccupancyOctreeNode;
 using Open3dVisualizerWrapper = erl::geometry::Open3dVisualizerWrapper;
 using OctreeKey = erl::geometry::OctreeKey;
@@ -25,13 +25,13 @@ using Matrix3X = Eigen::Matrix3X<Dtype>;
 TEST(OccupancyOctree, IO) {
     OccupancyOctree tree;
     EXPECT_EQ(tree.GetSize(), 0);
-    EXPECT_TRUE(TreeSerializer::Write("empty.bt", [&](std::ostream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Write("empty.bt", [&](std::ostream &s) -> bool {
         return tree.WriteBinary(s);
     }));
     EXPECT_TRUE(TreeSerializer::Write("empty.ot", &tree));
 
     OccupancyOctree read_tree_bt;
-    EXPECT_TRUE(TreeSerializer::Read("empty.bt", [&](std::istream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Read("empty.bt", [&](std::istream &s) -> bool {
         return read_tree_bt.ReadBinary(s);
     }));
     EXPECT_EQ(read_tree_bt.GetSize(), 0);
@@ -115,17 +115,17 @@ TEST(OccupancyOctree, InsertPointCloud) {
     // test occupancy node deep copy (shallow copy is not allowed unless it is managed by
     // shared_ptr)
     auto cloned_node = std::shared_ptr<OccupancyOctreeNode>(
-        reinterpret_cast<OccupancyOctreeNode*>(tree->GetRoot()->Clone()));  // deep copy
+        reinterpret_cast<OccupancyOctreeNode *>(tree->GetRoot()->Clone()));  // deep copy
     EXPECT_TRUE(*cloned_node == *tree->GetRoot());
     cloned_node->GetChild<OccupancyOctreeNode>(1)->AddLogOdds(0.1);
     EXPECT_FALSE(*cloned_node == *tree->GetRoot());
 
     auto tree_bt_file = test_output_dir / "sphere.bt";
-    EXPECT_TRUE(TreeSerializer::Write(tree_bt_file, [&](std::ostream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Write(tree_bt_file, [&](std::ostream &s) -> bool {
         return tree->WriteBinary(s);
     }));
     OccupancyOctree read_tree_bt;
-    EXPECT_TRUE(TreeSerializer::Read(tree_bt_file, [&](std::istream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Read(tree_bt_file, [&](std::istream &s) -> bool {
         return read_tree_bt.ReadBinary(s);
     }));
     EXPECT_EQ(tree->GetSize(), read_tree_bt.GetSize());
@@ -186,11 +186,11 @@ TEST(OccupancyOctree, InsertPointCloudRays) {
     EXPECT_TRUE(TreeSerializer::Read("sphere.ot", &read_tree_ot));
     EXPECT_EQ(tree->GetSize(), read_tree_ot.GetSize());
     EXPECT_TRUE(*tree == read_tree_ot);
-    EXPECT_TRUE(TreeSerializer::Write("sphere.bt", [&](std::ostream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Write("sphere.bt", [&](std::ostream &s) -> bool {
         return tree->WriteBinary(s);
     }));
     OccupancyOctree read_tree_bt;
-    EXPECT_TRUE(TreeSerializer::Read("sphere.bt", [&](std::istream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Read("sphere.bt", [&](std::istream &s) -> bool {
         return read_tree_bt.ReadBinary(s);
     }));
     EXPECT_EQ(tree->GetSize(), read_tree_bt.GetSize());
@@ -255,11 +255,11 @@ TEST(OccupancyOctree, InsertRay) {
     EXPECT_EQ(tree->GetSize(), read_tree_ot.GetSize());
     EXPECT_TRUE(*tree == read_tree_ot);
 
-    EXPECT_TRUE(TreeSerializer::Write("sphere.bt", [&](std::ostream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Write("sphere.bt", [&](std::ostream &s) -> bool {
         return tree->WriteBinary(s);
     }));
     OccupancyOctree read_tree_bt;
-    EXPECT_TRUE(TreeSerializer::Read("sphere.bt", [&](std::istream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Read("sphere.bt", [&](std::istream &s) -> bool {
         return read_tree_bt.ReadBinary(s);
     }));
     EXPECT_EQ(tree->GetSize(), read_tree_bt.GetSize());
@@ -526,7 +526,7 @@ TEST(OccupancyOctree, Prune) {
     // find parent of newly inserted node
     unsigned int search_depth = tree->GetTreeDepth() - 1;
     OctreeKey parent_key = tree->CoordToKey(-0.2, -0.2, -0.2);
-    auto* parent_node = const_cast<OccupancyOctreeNode*>(tree->Search(parent_key, search_depth));
+    auto *parent_node = const_cast<OccupancyOctreeNode *>(tree->Search(parent_key, search_depth));
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
     // only one child exists
@@ -670,7 +670,7 @@ TEST(OccupancyOctree, Iterator) {
     EXPECT_EQ(tree_ot.ComputeNumberOfLeafNodes(), num_iterated_leaf_nodes);
 
     std::size_t occupied_leaf_node_count = 0;
-    std::vector<const OccupancyOctreeNode*> stack;
+    std::vector<const OccupancyOctreeNode *> stack;
     stack.emplace_back(tree_ot.GetRoot().get());
     while (!stack.empty()) {
         auto node = stack.back();
@@ -753,7 +753,7 @@ TEST(OccupancyOctree, RayCasting) {
         }
     }
 
-    EXPECT_TRUE(TreeSerializer::Write("sphere_sampled.bt", [&](std::ostream& s) -> bool {
+    EXPECT_TRUE(TreeSerializer::Write("sphere_sampled.bt", [&](std::ostream &s) -> bool {
         return sampled_surface->WriteBinary(s);
     }));
     EXPECT_EQ(hit, n);

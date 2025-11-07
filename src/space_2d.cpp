@@ -10,21 +10,6 @@
 
 namespace erl::geometry {
 
-    const char *
-    Space2D::GetSignMethodName(const SignMethod &type) {
-        static const char *names[3] = {"kPointNormal", "kLineNormal", "kPolygon"};
-        return names[static_cast<int>(type)];
-    }
-
-    Space2D::SignMethod
-    Space2D::GetSignMethodFromName(const std::string &type_name) {
-        if (type_name == "kPointNormal") { return SignMethod::kPointNormal; }
-        if (type_name == "kLineNormal") { return SignMethod::kLineNormal; }
-        if (type_name == "kPolygon") { return SignMethod::kPolygon; }
-
-        throw std::runtime_error("Unknown sign method: " + type_name);
-    }
-
     Space2D::Space2D(
         const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &ordered_object_vertices,
         const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &ordered_object_normals) {
@@ -263,7 +248,7 @@ namespace erl::geometry {
         Eigen::VectorXd sdf(query_points.cols());
 
 #pragma omp parallel for if (parallel) default(none) \
-    shared(m_surface_, query_points, use_kdtree, sign_method, m_kdtree_, sdf, Eigen::Dynamic)
+    shared(m_surface_, query_points, use_kdtree, sign_method, m_kdtree_, sdf)
         for (int i = 0; i < query_points.cols(); ++i) {
             if (use_kdtree) {
                 sdf[i] = ComputeSdfWithKdtree(query_points.col(i), sign_method);
@@ -375,8 +360,7 @@ namespace erl::geometry {
         const bool parallel) const {
         Eigen::MatrixX<Eigen::VectorXd> out(grid_map_info.Height(), grid_map_info.Width());
 
-#pragma omp parallel for if (parallel) default(none) \
-    shared(grid_map_info, query_directions, out, Eigen::Dynamic)
+#pragma omp parallel for if (parallel) default(none) shared(grid_map_info, query_directions, out)
         for (int v = 0; v < grid_map_info.Height(); ++v) {
             for (int u = 0; u < grid_map_info.Width(); ++u) {
                 Eigen::Vector2d point = grid_map_info.PixelToMeterForPoints(Eigen::Vector2i(u, v));
@@ -543,7 +527,7 @@ namespace erl::geometry {
         Eigen::VectorXd sddf(query_points.cols());
 
 #pragma omp parallel for if (parallel) default(none) \
-    shared(m_surface_, query_points, query_directions, sign_method, sddf, Eigen::Dynamic)
+    shared(m_surface_, query_points, query_directions, sign_method, sddf)
         for (int i = 0; i < query_points.cols(); ++i) {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();
@@ -719,17 +703,3 @@ namespace erl::geometry {
         }
     }
 }  // namespace erl::geometry
-
-YAML::Node
-YAML::convert<erl::geometry::Space2D::SignMethod>::encode(
-    const erl::geometry::Space2D::SignMethod &method) {
-    return Node(erl::geometry::Space2D::GetSignMethodName(method));
-}
-
-bool
-YAML::convert<erl::geometry::Space2D::SignMethod>::decode(
-    const Node &node,
-    erl::geometry::Space2D::SignMethod &method) {
-    method = erl::geometry::Space2D::GetSignMethodFromName(node.as<std::string>());
-    return true;
-}

@@ -1,33 +1,6 @@
 #include "erl_geometry/camera_intrinsic.hpp"
 
 namespace erl::geometry {
-    template<typename Dtype>
-    YAML::Node
-    CameraIntrinsic<Dtype>::YamlConvertImpl::encode(const CameraIntrinsic &intrinsic) {
-        YAML::Node node;
-        ERL_YAML_SAVE_ATTR(node, intrinsic, image_height);
-        ERL_YAML_SAVE_ATTR(node, intrinsic, image_width);
-        ERL_YAML_SAVE_ATTR(node, intrinsic, camera_fx);
-        ERL_YAML_SAVE_ATTR(node, intrinsic, camera_fy);
-        ERL_YAML_SAVE_ATTR(node, intrinsic, camera_cx);
-        ERL_YAML_SAVE_ATTR(node, intrinsic, camera_cy);
-        return node;
-    }
-
-    template<typename Dtype>
-    bool
-    CameraIntrinsic<Dtype>::YamlConvertImpl::decode(
-        const YAML::Node &node,
-        CameraIntrinsic &intrinsic) {
-        if (!node.IsMap()) { return false; }
-        ERL_YAML_LOAD_ATTR(node, intrinsic, image_height);
-        ERL_YAML_LOAD_ATTR(node, intrinsic, image_width);
-        ERL_YAML_LOAD_ATTR(node, intrinsic, camera_fx);
-        ERL_YAML_LOAD_ATTR(node, intrinsic, camera_fy);
-        ERL_YAML_LOAD_ATTR(node, intrinsic, camera_cx);
-        ERL_YAML_LOAD_ATTR(node, intrinsic, camera_cy);
-        return true;
-    }
 
     template<typename Dtype>
     void
@@ -41,7 +14,7 @@ namespace erl::geometry {
         const Dtype fx_inv = 1.0f / camera_fx;
         const Dtype fy_inv = 1.0f / camera_fy;
 
-#pragma omp parallel for default(none) shared(fx_inv, fy_inv, dirs, Eigen::Dynamic)
+#pragma omp parallel for default(none) shared(fx_inv, fy_inv, dirs)
         for (long u = 0; u < image_width; ++u) {
             const Dtype xu = (static_cast<Dtype>(u) - camera_cx) * fx_inv;
             for (long v = 0; v < image_height; ++v) {
@@ -70,7 +43,7 @@ namespace erl::geometry {
         const Dtype fx_inv = 1.0f / camera_fx;
         const Dtype fy_inv = 1.0f / camera_fy;
 
-#pragma omp parallel for default(none) shared(fx_inv, fy_inv, coords, dirs, Eigen::Dynamic)
+#pragma omp parallel for default(none) shared(fx_inv, fy_inv, coords, dirs)
         for (long u = 0; u < image_width; ++u) {
             const Dtype xu = (static_cast<Dtype>(u) - camera_cx) * fx_inv;
             for (long v = 0; v < image_height; ++v) {
@@ -104,7 +77,7 @@ namespace erl::geometry {
         const Dtype fx_inv = 1.0f / camera_fx;
         const Dtype fy_inv = 1.0f / camera_fy;
 
-#pragma omp parallel for default(none) shared(fx_inv, fy_inv, depth, distance, Eigen::Dynamic)
+#pragma omp parallel for default(none) shared(fx_inv, fy_inv, depth, distance)
         for (long u = 0; u < image_width; ++u) {
             const Dtype xu = (static_cast<Dtype>(u) - camera_cx) * fx_inv;
             Dtype *distance_ptr = distance.col(u).data();
@@ -135,7 +108,7 @@ namespace erl::geometry {
         const Dtype fx_inv = 1.0f / camera_fx;
         const Dtype fy_inv = 1.0f / camera_fy;
 
-#pragma omp parallel for default(none) shared(fx_inv, fy_inv, depth, distance, Eigen::Dynamic)
+#pragma omp parallel for default(none) shared(fx_inv, fy_inv, depth, distance)
         for (long u = 0; u < image_width; ++u) {
             const Dtype xu = (static_cast<Dtype>(u) - camera_cx) * fx_inv;
             Dtype *depth_ptr = depth.col(u).data();
@@ -198,16 +171,7 @@ namespace erl::geometry {
         }
 
 #pragma omp parallel for default(none) \
-    shared(fx_inv,                     \
-               fy_inv,                 \
-               depth,                  \
-               rgb,                    \
-               has_optical_pose,       \
-               rotation,               \
-               translation,            \
-               points,                 \
-               colors,                 \
-               Eigen::Dynamic)
+    shared(fx_inv, fy_inv, depth, rgb, has_optical_pose, rotation, translation, points, colors)
         for (long u = 0; u < image_width; ++u) {
             const Dtype xu = (static_cast<Dtype>(u) - camera_cx) * fx_inv;
             const Dtype *depth_ptr = depth.col(u).data();
@@ -248,6 +212,6 @@ namespace erl::geometry {
         }
     }
 
-    template class CameraIntrinsic<double>;
-    template class CameraIntrinsic<float>;
+    template struct CameraIntrinsic<double>;
+    template struct CameraIntrinsic<float>;
 }  // namespace erl::geometry

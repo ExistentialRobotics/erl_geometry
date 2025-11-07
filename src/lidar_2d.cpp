@@ -4,8 +4,7 @@
 
 namespace erl::geometry {
     Lidar2D::Lidar2D(std::shared_ptr<Setting> setting, std::shared_ptr<Space2D> space)
-        : m_setting_(std::move(setting)),
-          m_space_(std::move(space)) {
+        : m_setting_(std::move(setting)), m_space_(std::move(space)) {
         ERL_ASSERTM(m_space_ != nullptr, "space cannot be nullptr!");
     }
 
@@ -78,50 +77,3 @@ namespace erl::geometry {
         return out;
     }
 }  // namespace erl::geometry
-
-YAML::Node
-YAML::convert<erl::geometry::Lidar2D::Mode>::encode(const erl::geometry::Lidar2D::Mode &mode) {
-    static const char *mode_names[3] = {"kDdf", "kSddfV1", "kSddfV2"};
-    return Node(mode_names[static_cast<int>(mode)]);
-}
-
-bool
-YAML::convert<erl::geometry::Lidar2D::Mode>::decode(
-    const Node &node,
-    erl::geometry::Lidar2D::Mode &mode) {
-    if (const std::string &mode_name = node.as<std::string>(); mode_name == "kDdf") {
-        mode = erl::geometry::Lidar2D::Mode::kDdf;
-    } else if (mode_name == "kSddfV1") {
-        mode = erl::geometry::Lidar2D::Mode::kSddfV1;
-    } else if (mode_name == "kSddfV2") {
-        mode = erl::geometry::Lidar2D::Mode::kSddfV2;
-    } else {
-        return false;
-    }
-    return true;
-}
-
-YAML::Node
-YAML::convert<erl::geometry::Lidar2D::Setting>::encode(
-    const erl::geometry::Lidar2D::Setting &setting) {
-    Node node;
-    ERL_YAML_SAVE_ATTR(node, setting, min_angle);
-    ERL_YAML_SAVE_ATTR(node, setting, max_angle);
-    ERL_YAML_SAVE_ATTR(node, setting, num_lines);
-    ERL_YAML_SAVE_ATTR(node, setting, mode);
-    ERL_YAML_SAVE_ATTR(node, setting, sign_method);
-    return node;
-}
-
-bool
-YAML::convert<erl::geometry::Lidar2D::Setting>::decode(
-    const Node &node,
-    erl::geometry::Lidar2D::Setting &setting) {
-    if (!node.IsMap()) { return false; }
-    ERL_YAML_LOAD_ATTR(node, setting, min_angle);
-    ERL_YAML_LOAD_ATTR(node, setting, max_angle);
-    ERL_YAML_LOAD_ATTR(node, setting, num_lines);
-    ERL_YAML_LOAD_ATTR(node, setting, mode);
-    ERL_YAML_LOAD_ATTR(node, setting, sign_method);
-    return true;
-}

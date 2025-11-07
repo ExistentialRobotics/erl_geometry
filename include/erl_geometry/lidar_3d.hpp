@@ -28,13 +28,14 @@ namespace erl::geometry {
             long num_azimuth_lines = 900;      // angular resolution: 0.4 degree
             long num_elevation_lines = 16;     // angular resolution: 2 degree
 
-            struct YamlConvertImpl {
-                static YAML::Node
-                encode(const Setting &setting);
-
-                static bool
-                decode(const YAML::Node &node, Setting &setting);
-            };
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, azimuth_min),
+                ERL_REFLECT_MEMBER(Setting, azimuth_max),
+                ERL_REFLECT_MEMBER(Setting, elevation_min),
+                ERL_REFLECT_MEMBER(Setting, elevation_max),
+                ERL_REFLECT_MEMBER(Setting, num_azimuth_lines),
+                ERL_REFLECT_MEMBER(Setting, num_elevation_lines));
         };
 
     private:
@@ -49,8 +50,7 @@ namespace erl::geometry {
         Lidar3D(
             std::shared_ptr<Setting> setting,
             const std::shared_ptr<open3d::t::geometry::RaycastingScene> &o3d_scene)
-            : Super(o3d_scene),
-              m_setting_(std::move(setting)) {
+            : Super(o3d_scene), m_setting_(std::move(setting)) {
             ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         }
 
@@ -79,11 +79,3 @@ namespace erl::geometry {
 }  // namespace erl::geometry
 
 #include "lidar_3d.tpp"
-
-template<>
-struct YAML::convert<erl::geometry::Lidar3Dd::Setting>
-    : erl::geometry::Lidar3Dd::Setting::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::Lidar3Df::Setting>
-    : erl::geometry::Lidar3Df::Setting::YamlConvertImpl {};

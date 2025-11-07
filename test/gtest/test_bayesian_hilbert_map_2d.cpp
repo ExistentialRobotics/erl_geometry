@@ -25,39 +25,18 @@ struct Options : erl::common::Yamlable<Options> {
     float iso_value = 0.0f;
     std::shared_ptr<erl::geometry::BayesianHilbertMapSetting> bhm =
         std::make_shared<erl::geometry::BayesianHilbertMapSetting>();
-};
 
-template<>
-struct YAML::convert<Options> {
-    static YAML::Node
-    encode(const Options &options) {
-        YAML::Node node;
-        ERL_YAML_SAVE_ATTR(node, options, hold);
-        ERL_YAML_SAVE_ATTR(node, options, hinged_grid_size);
-        ERL_YAML_SAVE_ATTR(node, options, max_dataset_size);
-        ERL_YAML_SAVE_ATTR(node, options, test_grid_size);
-        ERL_YAML_SAVE_ATTR(node, options, kernel_scale);
-        ERL_YAML_SAVE_ATTR(node, options, faster_prediction);
-        ERL_YAML_SAVE_ATTR(node, options, iso_values);
-        ERL_YAML_SAVE_ATTR(node, options, iso_value);
-        ERL_YAML_SAVE_ATTR(node, options, bhm);
-        return node;
-    }
-
-    static bool
-    decode(const YAML::Node &node, Options &options) {
-        if (!node.IsMap()) { return false; }
-        ERL_YAML_LOAD_ATTR(node, options, hold);
-        ERL_YAML_LOAD_ATTR(node, options, hinged_grid_size);
-        ERL_YAML_LOAD_ATTR(node, options, max_dataset_size);
-        ERL_YAML_LOAD_ATTR(node, options, test_grid_size);
-        ERL_YAML_LOAD_ATTR(node, options, kernel_scale);
-        ERL_YAML_LOAD_ATTR(node, options, faster_prediction);
-        ERL_YAML_LOAD_ATTR(node, options, iso_values);
-        ERL_YAML_LOAD_ATTR(node, options, iso_value);
-        if (!ERL_YAML_LOAD_ATTR(node, options, bhm)) { return false; }
-        return true;
-    }
+    ERL_REFLECT_SCHEMA(
+        Options,
+        ERL_REFLECT_MEMBER(Options, hold),
+        ERL_REFLECT_MEMBER(Options, hinged_grid_size),
+        ERL_REFLECT_MEMBER(Options, max_dataset_size),
+        ERL_REFLECT_MEMBER(Options, test_grid_size),
+        ERL_REFLECT_MEMBER(Options, kernel_scale),
+        ERL_REFLECT_MEMBER(Options, faster_prediction),
+        ERL_REFLECT_MEMBER(Options, iso_values),
+        ERL_REFLECT_MEMBER(Options, iso_value),
+        ERL_REFLECT_MEMBER(Options, bhm));
 };
 
 Options g_options;
@@ -316,7 +295,7 @@ TestIo(
     GTEST_PREPARE_OUTPUT_DIR();
     std::string filename = fmt::format("test_bhm_2d_{}.bin", type_name<Dtype>());
     filename = test_output_dir / filename;
-    using Serializer = erl::common::Serialization<BayesianHilbertMap<Dtype, 2>>;
+    using Serializer = erl::common::serialization::Serialization<BayesianHilbertMap<Dtype, 2>>;
     ASSERT_TRUE(Serializer::Write(filename, &bhm));
     BayesianHilbertMap<Dtype, 2> bhm_read(
         std::make_shared<BayesianHilbertMapSetting>(),

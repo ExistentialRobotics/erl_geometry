@@ -4,33 +4,6 @@
 #include "erl_common/serialization.hpp"
 
 namespace erl::geometry {
-    template<typename Dtype>
-    YAML::Node
-    LidarFrame3D<Dtype>::Setting::YamlConvertImpl::encode(const Setting &setting) {
-        YAML::Node node = Super::Setting::YamlConvertImpl::encode(setting);
-        ERL_YAML_SAVE_ATTR(node, setting, azimuth_min);
-        ERL_YAML_SAVE_ATTR(node, setting, azimuth_max);
-        ERL_YAML_SAVE_ATTR(node, setting, elevation_min);
-        ERL_YAML_SAVE_ATTR(node, setting, elevation_max);
-        ERL_YAML_SAVE_ATTR(node, setting, num_azimuth_lines);
-        ERL_YAML_SAVE_ATTR(node, setting, num_elevation_lines);
-        return node;
-    }
-
-    template<typename Dtype>
-    bool
-    LidarFrame3D<Dtype>::Setting::YamlConvertImpl::decode(
-        const YAML::Node &node,
-        Setting &setting) {
-        if (!Super::Setting::YamlConvertImpl::decode(node, setting)) { return false; }
-        ERL_YAML_LOAD_ATTR(node, setting, azimuth_min);
-        ERL_YAML_LOAD_ATTR(node, setting, azimuth_max);
-        ERL_YAML_LOAD_ATTR(node, setting, elevation_min);
-        ERL_YAML_LOAD_ATTR(node, setting, elevation_max);
-        ERL_YAML_LOAD_ATTR(node, setting, num_azimuth_lines);
-        ERL_YAML_LOAD_ATTR(node, setting, num_elevation_lines);
-        return true;
-    }
 
     template<typename Dtype>
     std::pair<long, long>
@@ -42,8 +15,7 @@ namespace erl::geometry {
 
     template<typename Dtype>
     LidarFrame3D<Dtype>::LidarFrame3D(std::shared_ptr<Setting> setting)
-        : Super(setting),
-          m_setting_(std::move(setting)) {
+        : Super(setting), m_setting_(std::move(setting)) {
         ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
 
         VectorX azimuths = VectorX::LinSpaced(
@@ -262,7 +234,8 @@ namespace erl::geometry {
             ERL_WARN("Failed to write parent class {}.", type_name<Super>());
             return false;
         }
-        static const common::TokenWriteFunctionPairs<LidarFrame3D> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenWriteFunctionPairs<LidarFrame3D> token_function_pairs = {
             {
                 "setting",
                 [](const LidarFrame3D *self, std::ostream &stream) {
@@ -270,7 +243,7 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::WriteTokens(s, this, token_function_pairs);
+        return WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
@@ -280,7 +253,8 @@ namespace erl::geometry {
             ERL_WARN("Failed to read parent class {}.", type_name<Super>());
             return false;
         }
-        static const common::TokenReadFunctionPairs<LidarFrame3D> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenReadFunctionPairs<LidarFrame3D> token_function_pairs = {
             {
                 "setting",
                 [](LidarFrame3D *self, std::istream &stream) {
@@ -288,7 +262,7 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::ReadTokens(s, this, token_function_pairs);
+        return ReadTokens(s, this, token_function_pairs);
     }
 
     template class LidarFrame3D<double>;

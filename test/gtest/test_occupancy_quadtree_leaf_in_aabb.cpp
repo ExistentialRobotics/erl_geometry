@@ -4,6 +4,7 @@
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 using namespace erl::common;
+using namespace erl::common::serialization;
 using namespace erl::geometry;
 using QuadtreeDrawer = OccupancyQuadtreeDrawer<OccupancyQuadtreeD>;
 
@@ -52,8 +53,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             double half_size = leaf_size / 2;
             Eigen::Vector2d min_meter(leaf_x - half_size, leaf_y - half_size);
             Eigen::Vector2d max_meter(leaf_x + half_size, leaf_y + half_size);
-            Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(min_meter);
-            Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(max_meter);
+            Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(min_meter.cast<float>());
+            Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(max_meter.cast<float>());
             cv::Point pt1(min[0], min[1]);
             cv::Point pt2(max[0], max[1]);
             cv::rectangle(
@@ -90,8 +91,8 @@ TEST(OccupancyQuadtree, IterateLeafInAABB) {
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
-    data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
+    setting->area_min = data.tree->GetMetricMin().cast<float>();
+    setting->area_max = data.tree->GetMetricMax().cast<float>();
     data.drawer = std::make_shared<QuadtreeDrawer>(setting, data.tree);
     data.drawer->DrawLeaves(data.img);
 

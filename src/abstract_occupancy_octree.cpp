@@ -9,8 +9,7 @@ namespace erl::geometry {
     template<typename Dtype>
     AbstractOccupancyOctree<Dtype>::AbstractOccupancyOctree(
         std::shared_ptr<OccupancyNdTreeSetting> setting)
-        : Super(setting),
-          m_setting_(std::move(setting)) {}
+        : Super(setting), m_setting_(std::move(setting)) {}
 
     template<typename Dtype>
     bool
@@ -26,56 +25,56 @@ namespace erl::geometry {
     template<typename Dtype>
     bool
     AbstractOccupancyOctree<Dtype>::WriteBinary(std::ostream &s) const {
+        using namespace common::serialization;
         s << "# Binary file\n";  // add a comment line
-        static const common::TokenWriteFunctionPairs<AbstractOccupancyOctree> token_function_pairs =
+        static const TokenWriteFunctionPairs<AbstractOccupancyOctree> token_function_pairs = {
             {
-                {
-                    "setting",
-                    [](const AbstractOccupancyOctree *self, std::ostream &stream) {
-                        self->WriteSetting(stream);
-                        return stream.good();
-                    },
+                "setting",
+                [](const AbstractOccupancyOctree *self, std::ostream &stream) {
+                    self->WriteSetting(stream);
+                    return stream.good();
                 },
-                {
-                    "data",
-                    [](const AbstractOccupancyOctree *self, std::ostream &stream) {
-                        const std::size_t size = self->GetSize();
-                        stream << size << '\n';
-                        if (size > 0) { return self->WriteBinaryData(stream) && stream.good(); }
-                        return stream.good();
-                    },
+            },
+            {
+                "data",
+                [](const AbstractOccupancyOctree *self, std::ostream &stream) {
+                    const std::size_t size = self->GetSize();
+                    stream << size << '\n';
+                    if (size > 0) { return self->WriteBinaryData(stream) && stream.good(); }
+                    return stream.good();
                 },
-            };
-        return common::WriteTokens(s, this, token_function_pairs);
+            },
+        };
+        return WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
     AbstractOccupancyOctree<Dtype>::ReadBinary(std::istream &s) {
-        static const common::TokenReadFunctionPairs<AbstractOccupancyOctree> token_function_pairs =
+        using namespace common::serialization;
+        static const TokenReadFunctionPairs<AbstractOccupancyOctree> token_function_pairs = {
             {
-                {
-                    "setting",
-                    [](AbstractOccupancyOctree *self, std::istream &stream) {
-                        self->Clear();  // clear the tree before reading the setting
-                        if (!self->ReadSetting(stream)) { return false; }
-                        self->ApplySetting();
-                        return stream.good();
-                    },
+                "setting",
+                [](AbstractOccupancyOctree *self, std::istream &stream) {
+                    self->Clear();  // clear the tree before reading the setting
+                    if (!self->ReadSetting(stream)) { return false; }
+                    self->ApplySetting();
+                    return stream.good();
                 },
-                {
-                    "data",
-                    [](AbstractOccupancyOctree *self, std::istream &stream) {
-                        std::size_t size;
-                        stream >> size;
-                        common::SkipLine(stream);
-                        if (size > 0) { return self->ReadBinaryData(stream) && stream.good(); }
-                        ERL_DEBUG("Load {} nodes", size);
-                        return size == self->GetSize() && stream.good();
-                    },
+            },
+            {
+                "data",
+                [](AbstractOccupancyOctree *self, std::istream &stream) {
+                    std::size_t size;
+                    stream >> size;
+                    SkipLine(stream);
+                    if (size > 0) { return self->ReadBinaryData(stream) && stream.good(); }
+                    ERL_DEBUG("Load {} nodes", size);
+                    return size == self->GetSize() && stream.good();
                 },
-            };
-        return common::ReadTokens(s, this, token_function_pairs);
+            },
+        };
+        return ReadTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>

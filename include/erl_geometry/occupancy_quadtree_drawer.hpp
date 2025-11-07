@@ -14,13 +14,10 @@ namespace erl::geometry {
         cv::Scalar occupied_color = {0, 0, 0, 255};    // black
         cv::Scalar free_color = {255, 255, 255, 255};  // white
 
-        struct YamlConvertImpl {
-            static YAML::Node
-            encode(const OccupancyQuadtreeDrawerSetting& setting);
-
-            static bool
-            decode(const YAML::Node& node, OccupancyQuadtreeDrawerSetting& setting);
-        };
+        ERL_REFLECT_SCHEMA(
+            OccupancyQuadtreeDrawerSetting,
+            ERL_REFLECT_MEMBER(OccupancyQuadtreeDrawerSetting, occupied_color),
+            ERL_REFLECT_MEMBER(OccupancyQuadtreeDrawerSetting, free_color));
     };
 
     using OccupancyQuadtreeDrawerSettingD = OccupancyQuadtreeDrawerSetting<double>;
@@ -33,9 +30,9 @@ namespace erl::geometry {
         using Dtype = typename Tree::DataType;
         using Setting = OccupancyQuadtreeDrawerSetting<Dtype>;
         using DrawTreeCallback = std::function<
-            void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::TreeIterator&)>;
+            void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename Tree::TreeIterator &)>;
         using DrawLeafCallback = std::function<
-            void(const OccupancyQuadtreeDrawer*, cv::Mat&, typename Tree::LeafIterator&)>;
+            void(const OccupancyQuadtreeDrawer *, cv::Mat &, typename Tree::LeafIterator &)>;
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
@@ -67,19 +64,11 @@ namespace erl::geometry {
         using AbstractQuadtreeDrawer::DrawTree;
 
         void
-        DrawTree(cv::Mat& mat) const override;
+        DrawTree(cv::Mat &mat) const override;
 
         void
-        DrawLeaves(cv::Mat& mat) const override;
+        DrawLeaves(cv::Mat &mat) const override;
     };
 }  // namespace erl::geometry
 
 #include "occupancy_quadtree_drawer.tpp"
-
-template<>
-struct YAML::convert<erl::geometry::OccupancyQuadtreeDrawerSettingD>
-    : erl::geometry::OccupancyQuadtreeDrawerSettingD::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::OccupancyQuadtreeDrawerSettingF>
-    : erl::geometry::OccupancyQuadtreeDrawerSettingF::YamlConvertImpl {};

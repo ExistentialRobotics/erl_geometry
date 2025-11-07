@@ -10,6 +10,7 @@
 TEST(LidarFrame2D, Serialization) {
 
     using namespace erl::common;
+    using namespace erl::common::serialization;
     using namespace erl::geometry;
 
     std::filesystem::path data_dir = ERL_GEOMETRY_ROOT_DIR;

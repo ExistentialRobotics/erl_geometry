@@ -4,6 +4,7 @@
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 using namespace erl::common;
+using namespace erl::common::serialization;
 using namespace erl::geometry;
 
 using QuadtreeDrawer = OccupancyQuadtreeDrawer<OccupancyQuadtreeD>;
@@ -35,10 +36,10 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         if (mouse_fixed) { return; }
         if (data->tree == nullptr) { return; }
 
-        auto grid_map_info = data->drawer->GetGridMapInfo();
+        auto grid_map_info = data->drawer->GetGridMapInfo()->Cast<double>();
         cv::Mat img = data->img.clone();
-        double x = grid_map_info->GridToMeterAtDim(mouse_x, 0);
-        double y = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
+        double x = grid_map_info.GridToMeterAtDim(mouse_x, 0);
+        double y = grid_map_info.GridToMeterAtDim(grid_map_info.Shape(1) - mouse_y, 1);
         QuadtreeKey key;
         if (!data->tree->CoordToKeyChecked(x, y, key)) { return; }
         unsigned int key_depth = 0;
@@ -50,8 +51,8 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
         double half_size = data->tree->GetNodeSize(key_depth) / 2.0;
         Eigen::Vector2d min_meter(x - half_size, y - half_size);
         Eigen::Vector2d max_meter(x + half_size, y + half_size);
-        Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(min_meter);
-        Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(max_meter);
+        Eigen::Vector2i min = grid_map_info.MeterToPixelForPoints(min_meter);
+        Eigen::Vector2i max = grid_map_info.MeterToPixelForPoints(max_meter);
         cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {255, 0, 0, 100}, cv::FILLED);
         // draw neighbors on west
         {
@@ -62,9 +63,9 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;
-                min = grid_map_info->MeterToPixelForPoints(
+                min = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x - half_size, node_y - half_size));
-                max = grid_map_info->MeterToPixelForPoints(
+                max = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x + half_size, node_y + half_size));
                 cv::rectangle(
                     img,
@@ -83,9 +84,9 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;
-                min = grid_map_info->MeterToPixelForPoints(
+                min = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x - half_size, node_y - half_size));
-                max = grid_map_info->MeterToPixelForPoints(
+                max = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x + half_size, node_y + half_size));
                 cv::rectangle(
                     img,
@@ -104,9 +105,9 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;
-                min = grid_map_info->MeterToPixelForPoints(
+                min = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x - half_size, node_y - half_size));
-                max = grid_map_info->MeterToPixelForPoints(
+                max = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x + half_size, node_y + half_size));
                 cv::rectangle(
                     img,
@@ -125,9 +126,9 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
                 double node_x = it.GetX();
                 double node_y = it.GetY();
                 half_size = it.GetNodeSize() / 2.;
-                min = grid_map_info->MeterToPixelForPoints(
+                min = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x - half_size, node_y - half_size));
-                max = grid_map_info->MeterToPixelForPoints(
+                max = grid_map_info.MeterToPixelForPoints(
                     Eigen::Vector2d(node_x + half_size, node_y + half_size));
                 cv::rectangle(
                     img,
@@ -155,8 +156,8 @@ TEST(OccupancyQuadtree, FindNeighbors) {
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     setting->resolution = 0.0025;
     setting->border_color = cv::Scalar(255, 0, 0);
-    data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
-    data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
+    setting->area_min = data.tree->GetMetricMin().cast<float>();
+    setting->area_max = data.tree->GetMetricMax().cast<float>();
     data.drawer = std::make_shared<QuadtreeDrawer>(setting, data.tree);
     data.drawer->DrawLeaves(data.img);
 

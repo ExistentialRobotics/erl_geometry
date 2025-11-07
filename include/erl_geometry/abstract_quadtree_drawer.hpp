@@ -17,6 +17,18 @@ namespace erl::geometry {
             cv::Scalar fg_color = {255, 255, 255, 255};  // white
             cv::Scalar border_color = {0, 0, 0, 255};    // black
             int border_thickness = 1;
+
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, area_min),
+                ERL_REFLECT_MEMBER(Setting, area_max),
+                ERL_REFLECT_MEMBER(Setting, resolution),
+                ERL_REFLECT_MEMBER(Setting, scaling),
+                ERL_REFLECT_MEMBER(Setting, padding),
+                ERL_REFLECT_MEMBER(Setting, bg_color),
+                ERL_REFLECT_MEMBER(Setting, fg_color),
+                ERL_REFLECT_MEMBER(Setting, border_color),
+                ERL_REFLECT_MEMBER(Setting, border_thickness));
         };
 
     private:
@@ -95,12 +107,3 @@ namespace erl::geometry {
         DrawLeaves(cv::Mat &mat) const = 0;
     };
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::AbstractQuadtreeDrawer::Setting> {
-    static Node
-    encode(const erl::geometry::AbstractQuadtreeDrawer::Setting &setting);
-
-    static bool
-    decode(const Node &node, erl::geometry::AbstractQuadtreeDrawer::Setting &setting);
-};  // namespace YAML

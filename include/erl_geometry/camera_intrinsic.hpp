@@ -1,5 +1,6 @@
 #pragma once
 
+#include "erl_common/eigen.hpp"
 #include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
@@ -15,13 +16,14 @@ namespace erl::geometry {
         Dtype camera_cx = 599.5f;
         Dtype camera_cy = 339.5f;
 
-        struct YamlConvertImpl {
-            static YAML::Node
-            encode(const CameraIntrinsic &intrinsic);
-
-            static bool
-            decode(const YAML::Node &node, CameraIntrinsic &intrinsic);
-        };
+        ERL_REFLECT_SCHEMA(
+            CameraIntrinsic,
+            ERL_REFLECT_MEMBER(CameraIntrinsic, image_height),
+            ERL_REFLECT_MEMBER(CameraIntrinsic, image_width),
+            ERL_REFLECT_MEMBER(CameraIntrinsic, camera_fx),
+            ERL_REFLECT_MEMBER(CameraIntrinsic, camera_fy),
+            ERL_REFLECT_MEMBER(CameraIntrinsic, camera_cx),
+            ERL_REFLECT_MEMBER(CameraIntrinsic, camera_cy));
 
         using MatrixX = Eigen::MatrixX<Dtype>;
         using Matrix4 = Eigen::Matrix4<Dtype>;
@@ -107,11 +109,3 @@ namespace erl::geometry {
     extern template struct CameraIntrinsic<double>;
     extern template struct CameraIntrinsic<float>;
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::CameraIntrinsic<double>>
-    : erl::geometry::CameraIntrinsic<double>::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::CameraIntrinsic<float>>
-    : erl::geometry::CameraIntrinsic<float>::YamlConvertImpl {};

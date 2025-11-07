@@ -63,8 +63,8 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
         .def_property_readonly("hit_points_world", &T::GetHitPointsWorld)
         .def_property_readonly("min_valid_range", &T::GetMinValidRange)
         .def_property_readonly("max_valid_range", &T::GetMaxValidRange)
-        .def_property_readonly("hit_mask", [](const T &self) { return self.GetHitMask(); })
-        .def_property_readonly("is_valid", [](const T &self) { return self.IsValid(); })
+        .def_property_readonly("hit_mask", &T::GetHitMask)
+        .def_property_readonly("is_valid", &T::IsValid)
         .def("position_is_in_frame", &T::PosIsInFrame, py::arg("xyz_frame"))
         .def("coords_is_in_frame", &T::CoordsIsInFrame, py::arg("frame_coords"))
         .def(
@@ -194,14 +194,14 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
                 {
                     py::gil_scoped_release release;
                     self.SampleInRegionHpr(
-                       num_positions,
-                       num_near_surface_samples_per_ray,
-                       num_along_ray_samples_per_ray,
-                       max_in_obstacle_dist,
-                       positions_world,
-                       directions_world,
-                       distances,
-                       parallel);
+                        num_positions,
+                        num_near_surface_samples_per_ray,
+                        num_along_ray_samples_per_ray,
+                        max_in_obstacle_dist,
+                        positions_world,
+                        directions_world,
+                        distances,
+                        parallel);
                 }
                 py::dict out;
                 out["positions_world"] = positions_world;
@@ -227,13 +227,13 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
                 {
                     py::gil_scoped_release release;
                     self.SampleInRegionVrs(
-                       num_hit_points,
-                       num_samples_per_azimuth_segment,
-                       num_azimuth_segments,
-                       positions_world,
-                       directions_world,
-                       distances,
-                       parallel);
+                        num_hit_points,
+                        num_samples_per_azimuth_segment,
+                        num_azimuth_segments,
+                        positions_world,
+                        directions_world,
+                        distances,
+                        parallel);
                 }
 
                 py::dict out;

@@ -10,7 +10,7 @@
 #include <open3d/pipelines/registration/Registration.h>
 #include <open3d/visualization/utility/DrawGeometry.h>
 
-struct Options {
+struct Options : erl::common::Yamlable<Options> {
     std::string directory = fmt::format("{}/data/cow_and_lady", ERL_GEOMETRY_ROOT_DIR);
     double valid_range_min = 0.0;
     double valid_range_max = 1000;
@@ -19,6 +19,17 @@ struct Options {
     bool show_gt = false;
     bool use_icp = false;
     bool hold = false;
+
+    ERL_REFLECT_SCHEMA(
+        Options,
+        ERL_REFLECT_MEMBER(Options, directory),
+        ERL_REFLECT_MEMBER(Options, valid_range_min),
+        ERL_REFLECT_MEMBER(Options, valid_range_max),
+        ERL_REFLECT_MEMBER(Options, frame_depth),
+        ERL_REFLECT_MEMBER(Options, frame_rgb),
+        ERL_REFLECT_MEMBER(Options, show_gt),
+        ERL_REFLECT_MEMBER(Options, use_icp),
+        ERL_REFLECT_MEMBER(Options, hold));
 };
 
 Options g_options;
@@ -27,7 +38,7 @@ TEST(CowAndLady, Load) {
     GTEST_PREPARE_OUTPUT_DIR();
 
     std::cout << "Transform: vicon -> camera" << std::endl;
-    Eigen::Quaterniond q(erl::geometry::CowAndLady::sk_Transform_.topLeftCorner<3, 3>(0, 0));
+    Eigen::Quaterniond q(erl::geometry::CowAndLady::sk_Transform_.topLeftCorner<3, 3>());
     std::cout << "rotation: " << q.coeffs().transpose() << std::endl;
     std::cout << "translation: "
               << erl::geometry::CowAndLady::sk_Transform_.topRightCorner<3, 1>().transpose()
@@ -155,31 +166,6 @@ TEST(CowAndLady, Align) {
 int
 main(int argc, char *argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
-    try {
-        namespace po = boost::program_options;
-        po::options_description desc;
-        // clang-format off
-        desc.add_options()
-            ("help", "produce help message")
-            ("directory", po::value<std::string>(&g_options.directory), "Cow and lady dataset directory")
-            ("valid-range-min", po::value<double>(&g_options.valid_range_min)->default_value(0.0), "Minimum valid range for depth")
-            ("valid-range-max", po::value<double>(&g_options.valid_range_max)->default_value(1000.0), "Maximum valid range for depth")
-            ("frame-depth", po::value<int>(&g_options.frame_depth)->default_value(0), "Depth frame index")
-            ("frame-rgb", po::value<int>(&g_options.frame_rgb)->default_value(0), "RGB frame index")
-            ("show-gt", po::bool_switch(&g_options.show_gt)->default_value(false), "Show ground truth point cloud")
-            ("use-icp", po::bool_switch(&g_options.use_icp)->default_value(false), "Use ICP for registration")
-            ("hold", po::bool_switch(&g_options.hold)->default_value(false), "Hold the visualization window");
-        // clang-format on
-        po::variables_map vm;
-        po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
-        if (vm.count("help")) {
-            std::cout << "Usage: " << argv[0] << " [options]" << std::endl << desc << std::endl;
-            return 0;
-        }
-        po::notify(vm);
-    } catch (std::exception &e) {
-        std::cerr << e.what() << std::endl;
-        return 1;
-    }
+    g_options.FromCommandLine(argc, argv);
     return RUN_ALL_TESTS();
 }

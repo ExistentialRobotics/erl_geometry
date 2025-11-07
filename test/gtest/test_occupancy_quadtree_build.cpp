@@ -234,12 +234,13 @@ TEST(OccupancyQuadtree, Build) {
         cv::imshow(g_window_name, img);
         cv::waitKey(10);
     }
+    using namespace erl::common::serialization;
     EXPECT_TRUE(
-        erl::common::Serialization<OccupancyQuadtree>::Write(
+        Serialization<OccupancyQuadtree>::Write(
             test_output_dir / fmt::format("{}_{}.ot", tree_name, type_name<Dtype>()),
             tree));
     EXPECT_TRUE(
-        erl::common::Serialization<OccupancyQuadtree>::Write(
+        Serialization<OccupancyQuadtree>::Write(
             test_output_dir / fmt::format("{}_{}.bt", tree_name, type_name<Dtype>()),
             [&](std::ostream &s) -> bool { return tree->WriteBinary(s, true); }));
     if (g_options.hold) {

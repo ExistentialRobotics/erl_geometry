@@ -18,13 +18,12 @@ namespace erl::geometry {
             Dtype valid_range_min = 0.0f;
             Dtype valid_range_max = std::numeric_limits<Dtype>::infinity();
 
-            struct YamlConvertImpl {
-                static YAML::Node
-                encode(const Setting &setting);
-
-                static bool
-                decode(const YAML::Node &node, Setting &setting);
-            };
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, row_margin),
+                ERL_REFLECT_MEMBER(Setting, col_margin),
+                ERL_REFLECT_MEMBER(Setting, valid_range_min),
+                ERL_REFLECT_MEMBER(Setting, valid_range_max));
         };
 
         using MatrixX = Eigen::MatrixX<Dtype>;
@@ -85,9 +84,8 @@ namespace erl::geometry {
                     const std::string derived_frame_type = type_name<Derived>();
                     if (setting == nullptr) {
                         ERL_WARN(
-                            "setting is nullptr before creating a derived RangeSensorFrame3D of "
-                            "type "
-                            "{}.",
+                            "setting is nullptr before creating a derived "
+                            "RangeSensorFrame3D of type {}.",
                             derived_frame_type);
                         return nullptr;
                     }
@@ -264,10 +262,10 @@ namespace erl::geometry {
         operator!=(const RangeSensorFrame3D &other) const;
 
         [[nodiscard]] virtual bool
-        Write(std::ostream &s) const;
+        Write(std::ostream &stream) const;
 
         [[nodiscard]] virtual bool
-        Read(std::istream &s);
+        Read(std::istream &stream);
 
     protected:
         void
@@ -299,11 +297,3 @@ namespace erl::geometry {
     extern template class RangeSensorFrame3D<double>;
     extern template class RangeSensorFrame3D<float>;
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::RangeSensorFrame3D<double>::Setting>
-    : erl::geometry::RangeSensorFrame3D<double>::Setting::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::RangeSensorFrame3D<float>::Setting>
-    : erl::geometry::RangeSensorFrame3D<float>::Setting::YamlConvertImpl {};

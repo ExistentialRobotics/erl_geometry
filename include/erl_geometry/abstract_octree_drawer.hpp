@@ -14,7 +14,14 @@ namespace erl::geometry {
             float scaling = 1.0f;
             Eigen::Vector3d area_min = {-1.0, -1.0, -1.0};
             Eigen::Vector3d area_max = {1.0, 1.0, 1.0};
-            Eigen::Vector3d border_color = {0.0, 0.0, 0.0};  // black
+            Eigen::Vector3d border_color = {0.0, 0.0, 0.0};
+
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, scaling),
+                ERL_REFLECT_MEMBER(Setting, area_min),
+                ERL_REFLECT_MEMBER(Setting, area_max),
+                ERL_REFLECT_MEMBER(Setting, border_color));
         };
 
     private:
@@ -45,12 +52,3 @@ namespace erl::geometry {
         DrawLeaves(std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const = 0;
     };
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::AbstractOctreeDrawer::Setting> {
-    static Node
-    encode(const erl::geometry::AbstractOctreeDrawer::Setting &setting);
-
-    static bool
-    decode(const Node &node, erl::geometry::AbstractOctreeDrawer::Setting &setting);
-};  // namespace YAML

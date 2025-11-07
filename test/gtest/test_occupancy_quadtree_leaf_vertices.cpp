@@ -60,11 +60,10 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             cv::Scalar(0, 255, 255, 255),
             cv::FILLED);
 
-        const uint32_t voxel_size = 1 << (tree_depth - node->GetDepth());
         const QuadtreeKey voxel_key = data->tree->AdjustKeyToDepth(key, node->GetDepth());
         QuadtreeKey vertex_key;
         for (uint32_t i = 0; i < 4; ++i) {
-            QuadtreeKey::ComputeVertexKey(i, voxel_size, voxel_key, vertex_key);
+            QuadtreeKey::ComputeVertexKey(i, tree_depth - node->GetDepth(), voxel_key, vertex_key);
             Vector2 coord = data->tree->KeyToVertexCoord(vertex_key);
             Eigen::Vector2i pixel = grid_map_info->MeterToPixelForPoints(coord);
             cv::circle(
@@ -88,7 +87,7 @@ TEST(OccupancyQuadtree, LeafVertices) {
     std::filesystem::path data_dir = ERL_GEOMETRY_ROOT_DIR;
     data_dir /= "data";
     ASSERT_TRUE(
-        Serialization<OccupancyTree>::Read(
+        serialization::Serialization<OccupancyTree>::Read(
             data_dir /= std::is_same_v<Dtype, double> ? "house_expo_room_1451_2d_double.bt"
                                                       : "house_expo_room_1451_2d_float.bt",
             [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));

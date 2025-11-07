@@ -4,6 +4,7 @@
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 using namespace erl::common;
+using namespace erl::common::serialization;
 using namespace erl::geometry;
 using QuadtreeDrawer = OccupancyQuadtreeDrawer<OccupancyQuadtreeD>;
 
@@ -47,9 +48,9 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             double size = data->tree->GetNodeSize(node_depth);
             double half_size = size / 2;
             Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(
-                Eigen::Vector2d(kx - half_size, ky - half_size));
+                Eigen::Vector2f(kx - half_size, ky - half_size));
             Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(
-                Eigen::Vector2d(kx + half_size, ky + half_size));
+                Eigen::Vector2f(kx + half_size, ky + half_size));
             cv::Point pt1(min[0], min[1]);
             cv::Point pt2(max[0], max[1]);
             cv::rectangle(img, pt1, pt2, cv::Scalar(0, 255, 255, 255), cv::FILLED);
@@ -63,9 +64,9 @@ MouseCallback(int event, int mouse_x, int mouse_y, int flags, void *userdata) {
             double leaf_size = it.GetNodeSize();
             double half_size = leaf_size / 2;
             Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(
-                Eigen::Vector2d(leaf_x - half_size, leaf_y - half_size));
+                Eigen::Vector2f(leaf_x - half_size, leaf_y - half_size));
             Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(
-                Eigen::Vector2d(leaf_x + half_size, leaf_y + half_size));
+                Eigen::Vector2f(leaf_x + half_size, leaf_y + half_size));
             cv::Point pt1(min[0], min[1]);
             cv::Point pt2(max[0], max[1]);
             cv::rectangle(
@@ -102,8 +103,8 @@ TEST(OccupancyQuadtree, IterateLeafOfNode) {
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
-    data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
-    data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
+    setting->area_min = data.tree->GetMetricMin().cast<float>();
+    setting->area_max = data.tree->GetMetricMax().cast<float>();
     data.drawer = std::make_shared<QuadtreeDrawer>(setting, data.tree);
     data.drawer->DrawLeaves(data.img);
 

@@ -6,29 +6,6 @@
 #include "erl_geometry/hidden_point_removal.hpp"
 
 namespace erl::geometry {
-    template<typename Dtype>
-    YAML::Node
-    RangeSensorFrame3D<Dtype>::Setting::YamlConvertImpl::encode(const Setting &setting) {
-        YAML::Node node;
-        ERL_YAML_SAVE_ATTR(node, setting, row_margin);
-        ERL_YAML_SAVE_ATTR(node, setting, col_margin);
-        ERL_YAML_SAVE_ATTR(node, setting, valid_range_min);
-        ERL_YAML_SAVE_ATTR(node, setting, valid_range_max);
-        return node;
-    }
-
-    template<typename Dtype>
-    bool
-    RangeSensorFrame3D<Dtype>::Setting::YamlConvertImpl::decode(
-        const YAML::Node &node,
-        Setting &setting) {
-        if (!node.IsMap()) { return false; }
-        ERL_YAML_LOAD_ATTR(node, setting, row_margin);
-        ERL_YAML_LOAD_ATTR(node, setting, col_margin);
-        ERL_YAML_LOAD_ATTR(node, setting, valid_range_min);
-        ERL_YAML_LOAD_ATTR(node, setting, valid_range_max);
-        return true;
-    }
 
     template<typename Dtype>
     RangeSensorFrame3D<Dtype>::RangeSensorFrame3D(std::shared_ptr<Setting> setting)
@@ -582,253 +559,234 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    RangeSensorFrame3D<Dtype>::Write(std::ostream &s) const {
+    RangeSensorFrame3D<Dtype>::Write(std::ostream &stream) const {
         using namespace common;
+        using namespace common::serialization;
         static const TokenWriteFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
             {
                 "setting",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return self->m_setting_->Write(stream) && stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return self->m_setting_->Write(s) && s.good();
                 },
             },
             {
                 "rotation",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveEigenMatrixToBinaryStream(stream, self->m_rotation_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_rotation_) && s.good();
                 },
             },
             {
                 "translation",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveEigenMatrixToBinaryStream(stream, self->m_translation_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_translation_) && s.good();
                 },
             },
             {
                 "frame_coords",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_frame_coords_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(s, self->m_frame_coords_) &&
+                           s.good();
                 },
             },
             {
                 "ranges",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveEigenMatrixToBinaryStream(stream, self->m_ranges_) && stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_ranges_) && s.good();
                 },
             },
             {
                 "dirs_frame",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_dirs_frame_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(s, self->m_dirs_frame_) &&
+                           s.good();
                 },
             },
             {
                 "dirs_world",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_dirs_world_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveEigenMatrixOfEigenMatricesToBinaryStream(s, self->m_dirs_world_) &&
+                           s.good();
                 },
             },
             {
                 "end_pts_frame",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
                     return SaveEigenMatrixOfEigenMatricesToBinaryStream(
-                               stream,
+                               s,
                                self->m_end_pts_frame_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "end_pts_world",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
                     return SaveEigenMatrixOfEigenMatricesToBinaryStream(
-                               stream,
+                               s,
                                self->m_end_pts_world_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "mask_hit",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveEigenMatrixToBinaryStream(stream, self->m_mask_hit_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_mask_hit_) && s.good();
                 },
             },
             {
                 "hit_ray_indices",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    stream << self->m_hit_ray_indices_.size() << '\n';
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    s << self->m_hit_ray_indices_.size() << '\n';
                     for (const auto &[row, col]: self->m_hit_ray_indices_) {
-                        stream << row << " " << col << '\n';
+                        s << row << " " << col << '\n';
                     }
-                    return stream.good();
+                    return s.good();
                 },
             },
             {
                 "hit_points_frame",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_hit_points_frame_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_hit_points_frame_) &&
+                           s.good();
                 },
             },
             {
                 "hit_points_world",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    return SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_hit_points_world_) &&
-                           stream.good();
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_hit_points_world_) &&
+                           s.good();
                 },
             },
             {
                 "max_valid_range",
-                [](const RangeSensorFrame3D *self, std::ostream &stream) {
-                    stream.write(
+                [](const RangeSensorFrame3D *self, std::ostream &s) {
+                    s.write(
                         reinterpret_cast<const char *>(&self->m_max_valid_range_),
                         sizeof(Dtype));
-                    return stream.good();
+                    return s.good();
                 },
             },
         };
-        return WriteTokens(s, this, token_function_pairs);
+        return WriteTokens(stream, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
-    RangeSensorFrame3D<Dtype>::Read(std::istream &s) {
+    RangeSensorFrame3D<Dtype>::Read(std::istream &stream) {
         using namespace common;
+        using namespace common::serialization;
         static const TokenReadFunctionPairs<RangeSensorFrame3D> token_function_pairs = {
             {
                 "setting",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return self->m_setting_->Read(stream) && stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    return self->m_setting_->Read(s) && s.good();
                 },
             },
             {
                 "rotation",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return LoadEigenMatrixFromBinaryStream(stream, self->m_rotation_) &&
-                           stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_rotation_) && s.good();
                 },
             },
             {
                 "translation",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return LoadEigenMatrixFromBinaryStream(stream, self->m_translation_) &&
-                           stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_translation_) && s.good();
                 },
             },
             {
                 "frame_coords",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
+                [](RangeSensorFrame3D *self, std::istream &s) {
                     return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
-                               stream,
+                               s,
                                self->m_frame_coords_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "ranges",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return LoadEigenMatrixFromBinaryStream(stream, self->m_ranges_) &&
-                           stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_ranges_) && s.good();
                 },
             },
             {
                 "dirs_frame",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
-                               stream,
-                               self->m_dirs_frame_) &&
-                           stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, self->m_dirs_frame_) &&
+                           s.good();
                 },
             },
             {
                 "dirs_world",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
-                               stream,
-                               self->m_dirs_world_) &&
-                           stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    return LoadEigenMatrixOfEigenMatricesFromBinaryStream(s, self->m_dirs_world_) &&
+                           s.good();
                 },
             },
             {
                 "end_pts_frame",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
+                [](RangeSensorFrame3D *self, std::istream &s) {
                     return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
-                               stream,
+                               s,
                                self->m_end_pts_frame_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "end_pts_world",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
+                [](RangeSensorFrame3D *self, std::istream &s) {
                     return LoadEigenMatrixOfEigenMatricesFromBinaryStream(
-                               stream,
+                               s,
                                self->m_end_pts_world_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "mask_hit",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    return LoadEigenMatrixFromBinaryStream(stream, self->m_mask_hit_) &&
-                           stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_mask_hit_) && s.good();
                 },
             },
             {
                 "hit_ray_indices",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
+                [](RangeSensorFrame3D *self, std::istream &s) {
                     long num_hit_ray_indices;
-                    stream >> num_hit_ray_indices;
+                    s >> num_hit_ray_indices;
                     self->m_hit_ray_indices_.resize(num_hit_ray_indices);
                     for (long i = 0; i < num_hit_ray_indices; ++i) {
-                        stream >> self->m_hit_ray_indices_[i].first >>
+                        s >> self->m_hit_ray_indices_[i].first >>
                             self->m_hit_ray_indices_[i].second;
                     }
-                    SkipLine(stream);
-                    return stream.good();
+                    SkipLine(s);
+                    return s.good();
                 },
             },
             {
                 "hit_points_frame",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
+                [](RangeSensorFrame3D *self, std::istream &s) {
                     return LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
+                               s,
                                self->m_hit_points_frame_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "hit_points_world",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
+                [](RangeSensorFrame3D *self, std::istream &s) {
                     return LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
+                               s,
                                self->m_hit_points_world_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "max_valid_range",
-                [](RangeSensorFrame3D *self, std::istream &stream) {
-                    stream.read(reinterpret_cast<char *>(&self->m_max_valid_range_), sizeof(Dtype));
-                    return stream.good();
+                [](RangeSensorFrame3D *self, std::istream &s) {
+                    s.read(reinterpret_cast<char *>(&self->m_max_valid_range_), sizeof(Dtype));
+                    return s.good();
                 },
             },
         };
-        return ReadTokens(s, this, token_function_pairs);
+        return ReadTokens(stream, this, token_function_pairs);
     }
 
     template<typename Dtype>
@@ -860,7 +818,7 @@ namespace erl::geometry {
         distances_samples.resize(max_num_samples);
 
         std::vector<long> visible_hit_point_indices;
-        std::mt19937 random_engine(seed);
+        std::mt19937_64 random_engine(seed);
         std::uniform_real_distribution<Dtype> uniform_ns(
             -max_in_obstacle_dist,
             max_in_obstacle_dist);
@@ -948,7 +906,7 @@ namespace erl::geometry {
         directions_samples.resize(3, max_num_samples);
         distances_samples.resize(max_num_samples);
         long sample_idx = 0;
-        std::mt19937 random_engine(seed);
+        std::mt19937_64 random_engine(seed);
         std::uniform_real_distribution<Dtype> uniform_range_ratio(0.1f, 0.9f);
 
         struct RayInfo {

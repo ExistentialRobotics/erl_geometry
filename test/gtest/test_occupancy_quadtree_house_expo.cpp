@@ -7,6 +7,7 @@
 #include "erl_geometry/occupancy_quadtree_drawer.hpp"
 
 using namespace erl::common;
+using namespace erl::common::serialization;
 using namespace erl::geometry;
 
 TEST(OccupancyQuadtree, BuildWithHouseExpo) {
@@ -36,13 +37,13 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     auto tree = std::make_shared<OccupancyQuadtreeD>(tree_setting);
     using QuadtreeDrawer = OccupancyQuadtreeDrawer<OccupancyQuadtreeD>;
     auto drawer_setting = std::make_shared<QuadtreeDrawer::Setting>();
-    drawer_setting->area_min = map_min;
-    drawer_setting->area_max = map_max;
+    drawer_setting->area_min = map_min.cast<float>();
+    drawer_setting->area_max = map_max.cast<float>();
     drawer_setting->resolution = map_resolution[0];
     drawer_setting->padding = map_padding[0];
     drawer_setting->border_color = cv::Scalar(255, 0, 0, 255);
     auto drawer = std::make_shared<QuadtreeDrawer>(drawer_setting, tree);
-    auto grid_map_info = drawer->GetGridMapInfo();
+    auto grid_map_info = drawer->GetGridMapInfo()->Cast<double>();
 
     long stride = 5;
     cv::Scalar trajectory_color(0, 0, 255, 255);
@@ -64,9 +65,11 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     }
     for (long i = 0; i < max_update_cnt; i += stride) {
         constexpr bool pixel_based = true;
+        constexpr bool with_count = false;
         constexpr bool discrete = false;
         constexpr bool lazy_eval = false;
         constexpr bool parallel = true;
+        constexpr double min_range = 0;
         constexpr double max_range = 30;
         constexpr bool scan_in_parallel = true;
         std::vector<double> &waypoint = trajectory[i];
@@ -80,7 +83,15 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
             points.col(j) << rotation * (lidar_ranges[j] * line_directions.col(j)) + translation;
         }
         auto t0 = std::chrono::high_resolution_clock::now();
-        tree->InsertPointCloud(points, translation, max_range, parallel, lazy_eval, discrete);
+        tree->InsertPointCloud(
+            points,
+            translation,
+            min_range,
+            max_range,
+            with_count,
+            parallel,
+            lazy_eval,
+            discrete);
         auto t1 = std::chrono::high_resolution_clock::now();
         std::cout << "update time: " << std::chrono::duration<double, std::milli>(t1 - t0).count()
                   << " ms" << std::endl;
@@ -89,7 +100,7 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
         DrawTrajectoryInplace<double>(
             img,
             cur_traj.block(0, 0, 2, i),
-            grid_map_info,
+            std::make_shared<GridMapInfo2Dd>(grid_map_info),
             trajectory_color,
             2,
             pixel_based);
@@ -97,12 +108,14 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
         cv::waitKey(10);
     }
 
-    EXPECT_TRUE(Serialization<OccupancyQuadtreeD>::Write(
-        "house_expo_room_" + std::to_string(map_index) + ".bt",
-        [&](std::ostream &s) { return tree->WriteBinary(s); }));
-    EXPECT_TRUE(Serialization<OccupancyQuadtreeD>::Write(
-        "house_expo_room_" + std::to_string(map_index) + ".ot",
-        tree));
+    EXPECT_TRUE(
+        Serialization<OccupancyQuadtreeD>::Write(
+            "house_expo_room_" + std::to_string(map_index) + ".bt",
+            [&](std::ostream &s) { return tree->WriteBinary(s); }));
+    EXPECT_TRUE(
+        Serialization<OccupancyQuadtreeD>::Write(
+            "house_expo_room_" + std::to_string(map_index) + ".ot",
+            tree));
     std::cout << "Press any key to exit immediately. Test will exist in 10 seconds." << std::endl;
     cv::waitKey(10000);  // 10 seconds
 }

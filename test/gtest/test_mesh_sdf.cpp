@@ -112,7 +112,7 @@ TEST(MeshSdf, Bunny) {
     mesh->Scale(1.2 / scale_org, Eigen::Vector3d::Zero());
     mesh->ComputeTriangleNormals();
     mesh->ComputeVertexNormals();
-    // open3d::io::WriteTriangleMesh(test_output_dir / "bunny.ply", *mesh, true);
+    // open3d::io::WriteTriangleMesh(test_output_dir / "bunny.ply", *mesh);
     // open3d::visualization::DrawGeometries({mesh});
 
     // generate test data
@@ -232,7 +232,7 @@ TEST(MeshSdf, HouseExpo) {
     // mesh->Scale(1.2 / scale_org, Eigen::Vector3d::Zero());
     mesh->ComputeTriangleNormals();
     mesh->ComputeVertexNormals();
-    open3d::io::WriteTriangleMesh(test_output_dir / "house_expo.ply", *mesh, true);
+    open3d::io::WriteTriangleMesh(test_output_dir / "house_expo.ply", *mesh);
     // open3d::visualization::DrawGeometries({mesh}, "House Expo", 640, 480, 50, 50, true);
 
     // generate test data

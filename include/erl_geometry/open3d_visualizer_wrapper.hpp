@@ -30,6 +30,24 @@ namespace erl::geometry {
             double translate_step = 0.1;
             double angle_step = 0.1;
             bool mesh_show_back_face = false;
+
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, window_name),
+                ERL_REFLECT_MEMBER(Setting, window_width),
+                ERL_REFLECT_MEMBER(Setting, window_height),
+                ERL_REFLECT_MEMBER(Setting, window_left),
+                ERL_REFLECT_MEMBER(Setting, window_top),
+                ERL_REFLECT_MEMBER(Setting, screenshot_filename),
+                ERL_REFLECT_MEMBER(Setting, x),
+                ERL_REFLECT_MEMBER(Setting, y),
+                ERL_REFLECT_MEMBER(Setting, z),
+                ERL_REFLECT_MEMBER(Setting, roll),
+                ERL_REFLECT_MEMBER(Setting, pitch),
+                ERL_REFLECT_MEMBER(Setting, yaw),
+                ERL_REFLECT_MEMBER(Setting, translate_step),
+                ERL_REFLECT_MEMBER(Setting, angle_step),
+                ERL_REFLECT_MEMBER(Setting, mesh_show_back_face));
         };
 
     private:
@@ -84,12 +102,3 @@ namespace erl::geometry {
         AddKeyboardCallbacks();
     };
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::Open3dVisualizerWrapper::Setting> {
-    static Node
-    encode(const erl::geometry::Open3dVisualizerWrapper::Setting &setting);
-
-    static bool
-    decode(const Node &node, erl::geometry::Open3dVisualizerWrapper::Setting &setting);
-};

@@ -30,10 +30,10 @@ namespace erl::geometry::sdf_util {
     }
 
     // Get a seeded mersenne twister 19937
-    std::mt19937&
+    std::mt19937_64&
     get_rng() {
         // Safer seeding with time (random_device can be unavailable)
-        thread_local std::mt19937 rg{
+        thread_local std::mt19937_64 rg{
             std::random_device{}() ^
             static_cast<unsigned int>(
                 std::chrono::high_resolution_clock::now().time_since_epoch().count())};

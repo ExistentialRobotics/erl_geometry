@@ -41,6 +41,7 @@ using Matrix4 = Eigen::Matrix4<Dtype>;
 TEST(OccupancyOctree, Build) {
     GTEST_PREPARE_OUTPUT_DIR();
     using namespace erl::common;
+    using namespace erl::common::serialization;
 
     std::string mesh_file = (gtest_src_dir / "../../data/house_expo_room_1451.ply").string();
     std::string traj_file = (gtest_src_dir / "../../data/house_expo_room_1451.csv").string();

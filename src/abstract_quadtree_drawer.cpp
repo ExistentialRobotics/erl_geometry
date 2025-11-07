@@ -31,36 +31,3 @@ namespace erl::geometry {
         cv::imwrite(filename, img);
     }
 }  // namespace erl::geometry
-
-YAML::Node
-YAML::convert<erl::geometry::AbstractQuadtreeDrawer::Setting>::encode(
-    const erl::geometry::AbstractQuadtreeDrawer::Setting &setting) {
-    Node node;
-    ERL_YAML_SAVE_ATTR(node, setting, area_min);
-    ERL_YAML_SAVE_ATTR(node, setting, area_max);
-    ERL_YAML_SAVE_ATTR(node, setting, resolution);
-    ERL_YAML_SAVE_ATTR(node, setting, scaling);
-    ERL_YAML_SAVE_ATTR(node, setting, padding);
-    ERL_YAML_SAVE_ATTR(node, setting, bg_color);
-    ERL_YAML_SAVE_ATTR(node, setting, fg_color);
-    ERL_YAML_SAVE_ATTR(node, setting, border_color);
-    ERL_YAML_SAVE_ATTR(node, setting, border_thickness);
-    return node;
-}
-
-bool
-YAML::convert<erl::geometry::AbstractQuadtreeDrawer::Setting>::decode(
-    const Node &node,
-    erl::geometry::AbstractQuadtreeDrawer::Setting &setting) {
-    if (!node.IsMap()) { return false; }
-    ERL_YAML_LOAD_ATTR(node, setting, area_min);
-    ERL_YAML_LOAD_ATTR(node, setting, area_max);
-    ERL_YAML_LOAD_ATTR(node, setting, resolution);
-    ERL_YAML_LOAD_ATTR(node, setting, scaling);
-    ERL_YAML_LOAD_ATTR(node, setting, padding);
-    ERL_YAML_LOAD_ATTR(node, setting, bg_color);
-    ERL_YAML_LOAD_ATTR(node, setting, fg_color);
-    ERL_YAML_LOAD_ATTR(node, setting, border_color);
-    ERL_YAML_LOAD_ATTR(node, setting, border_thickness);
-    return true;
-}

@@ -5,23 +5,19 @@
 namespace erl::geometry {
     template<typename Dtype, int Dim>
     void
-    OccupancyMap<Dtype, Dim>::GenerateRayInfos(
+    OccupancyMap<Dtype, Dim>::CollectRays(
         const Eigen::Ref<const VectorD> &sensor_position,
         const Eigen::Ref<const MatrixDX> &points,
         const std::vector<long> &point_indices,
         const AabbD &map_boundary,
-        const Dtype min_distance,
-        const Dtype max_distance,
+        const Dtype min_dist,
+        const Dtype max_dist,
         const Dtype free_sampling_margin,
         const Dtype free_points_per_meter,
-        std::vector<RayInfo> &infos,
-        long &total_num_free_points,
-        long &total_num_hit_points) {
+        std::vector<long> &hit_indices,
+        std::vector<RayInfo> &rays) {
 
-        infos.clear();
-        infos.reserve(points.cols() / 10);  // reserve space for the infos
-        total_num_free_points = 0;
-        total_num_hit_points = 0;
+        hit_indices.clear();
 
         auto npts = point_indices.empty() ? points.cols() : static_cast<long>(point_indices.size());
 
@@ -29,8 +25,8 @@ namespace erl::geometry {
             long idx = point_indices.empty() ? i : point_indices[i];
             VectorD point = points.col(idx);
             VectorD v = point - sensor_position;
-            Dtype v_norm = v.norm();
-            v /= v_norm;  // normalize the vector
+            Dtype dist = v.norm();
+            v /= dist;  // normalize the vector
             Dtype d1 = 0;
             Dtype d2 = 0;
             bool hit_flag = false;
@@ -49,76 +45,75 @@ namespace erl::geometry {
             // the ray does not intersect with the map boundary, or
             // hits a point outside the map, and v points away from the map; or
             // the ray hits a point outside the map, v points toward the map.
-            if (!intersected || (d1 < 0 && d2 < 0) || (v_norm <= d1 && d1 <= d2)) { continue; }
+            if (!intersected || (d1 < 0 && d2 < 0) || (dist <= d1 && d1 <= d2)) { continue; }
             // check if the point is inside the map
-            hit_flag =
-                map_boundary.contains(point) && (v_norm < max_distance) && (v_norm > min_distance);
-            if (is_inside) {  // the ray hits a point inside the map, d2 < 0 is useless
-                d2 = std::min((1.0f - free_sampling_margin) * v_norm, d1);
-                d1 = free_sampling_margin * v_norm;
+            hit_flag = map_boundary.contains(point) && (dist <= max_dist) && (dist >= min_dist);
+            if (is_inside) {  // the sensor_position is inside the map, d2 < 0 is useless
+                d2 = std::min((1.0f - free_sampling_margin) * dist, d1);
+                d1 = free_sampling_margin * dist;
             } else {
-                d1 = std::max(free_sampling_margin * v_norm, d1);
-                d2 = std::min((1.0f - free_sampling_margin) * v_norm, d2);
+                d1 = std::max(free_sampling_margin * dist, d1);
+                d2 = std::min((1.0f - free_sampling_margin) * dist, d2);
             }
             // number of free points to sample
-            auto n = std::max(1l, static_cast<long>(std::ceil((d2 - d1) * free_points_per_meter)));
-            if (n == 0 && !hit_flag) { continue; }  // no free points and the point is not hit
-            total_num_free_points += n;             // count the number of free points to sample
-            total_num_hit_points += static_cast<long>(hit_flag);  // count the number of hit points
-            d1 = std::min(std::max(d1, min_distance), max_distance);
-            d2 = std::min(std::max(d2, min_distance), max_distance);
-            d1 /= v_norm;
-            d2 /= v_norm;
-            infos.emplace_back(idx, hit_flag, n, d1, d2);
+            auto n = std::max(0l, static_cast<long>(std::round((d2 - d1) * free_points_per_meter)));
+            d1 = std::min(std::max(d1, min_dist), max_dist);
+            d2 = std::min(std::max(d2, min_dist), max_dist);
+            d1 /= dist;
+            d2 /= dist;
+            if (hit_flag) { hit_indices.push_back(idx); }
+            rays.emplace_back(sensor_position, point, hit_flag, n, d1, d2);
         }
     }
 
     template<typename Dtype, int Dim>
-    void
+    std::size_t
     OccupancyMap<Dtype, Dim>::GenerateSamples(
-        const Eigen::Ref<const VectorD> &sensor_position,
-        const Eigen::Ref<const MatrixDX> &points,
-        const std::vector<RayInfo> &infos,
+        std::vector<RayInfo> &rays,
         std::mt19937_64 &generator,
-        const bool random_infos,
+        const bool random,
         const long num_hit_to_sample,
         const long num_free_to_sample,
+        long &num_hit,
         long &num_samples,
         MatrixDX &dataset_points,
-        VectorX &dataset_labels,
-        std::vector<long> &hit_indices) {
-
-        ERL_DEBUG_ASSERT(!infos.empty(), "infos is empty.");
+        VectorX &dataset_labels) {
 
         const long n_to_sample = num_hit_to_sample + num_free_to_sample;
         if (dataset_points.cols() < n_to_sample) { dataset_points.resize(Dim, n_to_sample); }
         if (dataset_labels.size() < n_to_sample) { dataset_labels.resize(n_to_sample); }
 
-        std::vector<std::size_t> info_indices(infos.size());
-        std::iota(info_indices.begin(), info_indices.end(), 0);
-        if (random_infos) { std::shuffle(info_indices.begin(), info_indices.end(), generator); }
+        if (n_to_sample == 0 || rays.empty()) { return 0; }
 
         Dtype *points_ptr = dataset_points.data();
         Dtype *labels_ptr = dataset_labels.data();
         num_samples = 0;
-        long n_hit = 0, n_free = 0;
-        hit_indices.clear();
+        num_hit = 0;
+        long n_free = 0;
 
-        for (std::size_t i = 0; i < infos.size(); ++i) {
+        std::uniform_int_distribution<std::size_t> ray_distribution(0, rays.size() - 1);
+
+        std::size_t i = 0;
+        for (; i < rays.size(); ++i) {
             if (num_samples >= n_to_sample) { break; }  // already sampled enough points
 
-            std::size_t idx = i;
-            if (random_infos) { idx = info_indices[i]; }
-            const auto &[point_index, hit_flag, num_free_points, d1, d2] = infos[idx];
-            const Dtype *point_ptr = points.col(point_index).data();
+            std::size_t idx1 = i;
+            std::size_t idx2 = rays.size() - 1 - i;
+            // move the used ray to the back of the list
+            if (random) {
+                idx1 = ray_distribution(generator) % (rays.size() - i);
+                std::swap(rays[idx1], rays[idx2]);
+            } else {
+                std::swap(rays[idx1], rays[idx2]);
+            }
+            const auto &[p1, p2, hit_flag, num_free_points, d1, d2] = rays[idx2];
 
-            if (hit_flag && n_hit < num_hit_to_sample) {
-                std::memcpy(points_ptr, point_ptr, sizeof(Dtype) * Dim);  // save the hit point
+            if (hit_flag && num_hit < num_hit_to_sample) {
+                std::memcpy(points_ptr, p2.data(), sizeof(Dtype) * Dim);  // save the hit point
                 *labels_ptr++ = 1.0f;                                     // label as occupied
                 points_ptr += Dim;  // move to the next position
-                ++n_hit;
+                ++num_hit;
                 ++num_samples;
-                hit_indices.push_back(point_index);  // add the index to the list
             }
 
             const long n = std::min(num_free_points, num_free_to_sample - n_free);
@@ -130,15 +125,16 @@ namespace erl::geometry {
             for (long j = 0; j < n; ++j) {
                 // sample a random distance within the range [d1, d2]
                 Dtype r = distribution(generator);
-                Dtype s = 1 - r;
-                for (long k = 0; k < Dim; ++k) {  // compute the free point position
-                    *points_ptr++ = sensor_position[k] * s + point_ptr[k] * r;
-                }
+                Dtype s = 1.0f - r;
+                // compute the free point position
+                for (long k = 0; k < Dim; ++k) { *points_ptr++ = p1[k] * s + p2[k] * r; }
                 *labels_ptr++ = 0.0f;  // label as free
             }
         }
 
-        ERL_DEBUG("Sampled {} points, {} hit points, {} free points.", num_samples, n_hit, n_free);
+        ERL_DEBUG("Sampled {} points, {} hit points, {} free points", num_samples, num_hit, n_free);
+
+        return i;
     }
 
     template<typename Dtype, int Dim>
@@ -164,10 +160,10 @@ namespace erl::geometry {
         // 3. sample the free points uniformly within the range.
         // 4. return the result.
 
-        // tuple of (point_index, hit_flag, num_free_points, d1, d2)
-        std::vector<RayInfo> infos;
-        long max_num_free_points = 0, max_num_hit_points = 0;
-        GenerateRayInfos(
+        // (origin, end, hit_flag, num_free_points, d1, d2)
+        std::vector<RayInfo> rays;
+        rays.reserve(point_indices.size());
+        CollectRays(
             sensor_position,
             points,
             point_indices,
@@ -176,36 +172,39 @@ namespace erl::geometry {
             max_distance,
             free_sampling_margin,
             free_points_per_meter,
-            infos,
-            max_num_free_points,
-            max_num_hit_points);
-        if (infos.empty()) { return; }
+            hit_indices,
+            rays);
+        if (rays.empty()) { return; }
+
+        long total_num_free_points = 0, total_num_hit_points = 0;
+        for (const auto &ray: rays) {
+            if (ray.hit_flag) { ++total_num_hit_points; }
+            total_num_free_points += ray.num_free_points;
+        }
 
         // check if the dataset size limit is exceeded.
         // if exceeded, adjust the number of points to sample.
-        const long max_num_points = max_num_free_points + max_num_hit_points;
+        const long max_num_points = total_num_free_points + total_num_hit_points;
         const bool limit_exceeded = max_dataset_size > 0 && max_num_points > max_dataset_size;
         long num_hit_to_sample, num_free_to_sample;
         if (limit_exceeded) {
-            num_hit_to_sample = max_dataset_size * max_num_hit_points / max_num_points;
-            num_free_to_sample = max_dataset_size * max_num_free_points / max_num_points;
+            num_hit_to_sample = max_dataset_size * total_num_hit_points / max_num_points;
+            num_free_to_sample = max_dataset_size * total_num_free_points / max_num_points;
         } else {
-            num_hit_to_sample = max_num_hit_points;
-            num_free_to_sample = max_num_free_points;
+            num_hit_to_sample = total_num_hit_points;
+            num_free_to_sample = total_num_free_points;
         }
 
-        GenerateSamples(
-            sensor_position,
-            points,
-            infos,
+        (void) GenerateSamples(
+            rays,
             generator,
-            limit_exceeded /*random_infos*/,
+            limit_exceeded,
             num_hit_to_sample,
             num_free_to_sample,
+            num_hit_to_sample,
             num_samples,
             dataset_points,
-            dataset_labels,
-            hit_indices);
+            dataset_labels);
     }
 
     template class OccupancyMap<double, 3>;

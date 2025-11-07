@@ -22,6 +22,14 @@ namespace erl::geometry {
         // in probability
         float log_odd_occ_threshold = 0;
 
+        ERL_REFLECT_SCHEMA(
+            OccupancyNdTreeSetting,
+            ERL_REFLECT_MEMBER(OccupancyNdTreeSetting, log_odd_min),
+            ERL_REFLECT_MEMBER(OccupancyNdTreeSetting, log_odd_max),
+            ERL_REFLECT_MEMBER(OccupancyNdTreeSetting, log_odd_hit),
+            ERL_REFLECT_MEMBER(OccupancyNdTreeSetting, log_odd_miss),
+            ERL_REFLECT_MEMBER(OccupancyNdTreeSetting, log_odd_occ_threshold));
+
         void
         SetProbabilityHit(const float p) {
             log_odd_hit = logodd::LogOdd(p);
@@ -58,15 +66,6 @@ namespace erl::geometry {
         }
 
         bool
-        operator==(const NdTreeSetting& other) const override;
+        operator==(const NdTreeSetting &other) const override;
     };
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::OccupancyNdTreeSetting> {
-    static Node
-    encode(const erl::geometry::OccupancyNdTreeSetting& setting);
-
-    static bool
-    decode(const Node& node, erl::geometry::OccupancyNdTreeSetting& rhs);
-};  // namespace YAML

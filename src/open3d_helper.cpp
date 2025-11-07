@@ -2,7 +2,10 @@
 
 #include "erl_common/angle_utils.hpp"
 
+#include <open3d/geometry/BoundingVolume.h>
 #include <open3d/geometry/PointCloud.h>
+#include <open3d/visualization/utility/DrawGeometry.h>
+#include <open3d/visualization/visualizer/VisualizerWithKeyCallback.h>
 
 namespace erl::geometry {
 
@@ -103,5 +106,48 @@ namespace erl::geometry {
         z_axis.Translate({-1.0, 0.0, 0.0});
         *box += z_axis;
         return box;
+    }
+
+    void
+    GetMinimalOrientedBoundingBox(
+        const open3d::geometry::TriangleMesh &mesh,
+        const bool z_up,
+        Eigen::Vector3d &box_center,
+        Eigen::Matrix3d &box_rotation,
+        Eigen::Vector3d &box_extent) {
+
+        open3d::geometry::OrientedBoundingBox obb = mesh.GetMinimalOrientedBoundingBox();
+        box_center = obb.center_;
+        box_rotation = obb.R_;
+        box_extent = obb.extent_;
+        if (!z_up) { return; }
+
+        Eigen::Vector3d score = obb.R_.transpose() * Eigen::Vector3d::UnitZ();
+        long axis_idx = 0;
+        if (score[axis_idx] < score[1]) { axis_idx = 1; }
+        if (score[axis_idx] < score[2]) { axis_idx = 2; }
+        if (axis_idx != 2 || score[axis_idx] < 0) {
+            Eigen::Matrix3d rotation2;
+            Eigen::Vector3d new_up_axis = Eigen::Matrix3d::Identity().col(axis_idx);
+            if (score[axis_idx] < 0) { new_up_axis = -new_up_axis; }
+            const Eigen::Vector3d z_up_axis = Eigen::Vector3d::UnitZ();
+            const Eigen::Vector3d v = new_up_axis.cross(z_up_axis);
+            const double c = new_up_axis.dot(z_up_axis);
+            const double s = v.norm();
+
+            if (s < 1.e-5) {
+                if (c > 0.0) {  // same direction
+                    rotation2 = Eigen::Matrix3d::Identity();
+                } else {  // rotate to make the z-axis up
+                    rotation2 = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX());
+                }
+            } else {
+                rotation2 = Eigen::AngleAxisd(std::atan2(s, c), v / s);
+            }
+            box_rotation = box_rotation * rotation2.transpose();
+        }
+
+        box_extent = box_rotation.transpose() * obb.R_ * box_extent;
+        box_extent = box_extent.cwiseAbs();
     }
 }  // namespace erl::geometry

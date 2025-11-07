@@ -20,6 +20,7 @@ Options g_user_data;
 
 TEST(LidarFrame3D, Serialization) {
     using namespace erl::common;
+    using namespace erl::common::serialization;
     using namespace erl::geometry;
     std::cout << "ply_file: " << g_user_data.ply_file << std::endl
               << "lidar_elevation_min: " << g_user_data.lidar_elevation_min << std::endl

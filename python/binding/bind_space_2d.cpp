@@ -1,4 +1,5 @@
 #include "erl_common/pybind11.hpp"
+#include "erl_common/pybind11_yaml.hpp"
 #include "erl_geometry/space_2d.hpp"
 
 void
@@ -8,25 +9,7 @@ BindSpace2D(const py::module &m) {
 
     auto py_space = py::class_<Space2D, std::shared_ptr<Space2D>>(m, "Space2D");
 
-    py::enum_<Space2D::SignMethod>(
-        py_space,
-        "SignMethod",
-        py::arithmetic(),
-        "Algorithm to determine SDF sign.")
-        .value(
-            Space2D::GetSignMethodName(Space2D::SignMethod::kPointNormal),
-            Space2D::SignMethod::kPointNormal,
-            "Use the normal of the nearest vertex to determine the sign.")
-        .value(
-            Space2D::GetSignMethodName(Space2D::SignMethod::kLineNormal),
-            Space2D::SignMethod::kLineNormal,
-            "Use the normal of the nearest line segment to determine the sign.")
-        .value(
-            Space2D::GetSignMethodName(Space2D::SignMethod::kPolygon),
-            Space2D::SignMethod::kPolygon,
-            "Use the nearest object polygon and the winding number algorithm to determine the "
-            "sign.")
-        .export_values();
+    BindYamlableEnum<decltype(py_space), Space2D::SignMethod, 3>(py_space, "SignMethod");
 
     py_space
         .def(
@@ -60,11 +43,6 @@ BindSpace2D(const py::module &m) {
             py::arg("parallel") = false,
             py::call_guard<py::gil_scoped_release>())
         .def(py::init<const Space2D &>(), py::arg("space2d"))
-        .def_static("get_sign_method_name", &Space2D::GetSignMethodName, py::arg("sign_method"))
-        .def_static(
-            "get_sign_method_from_name",
-            &Space2D::GetSignMethodFromName,
-            py::arg("sign_method_name"))
         .def_property_readonly("surface", &Space2D::GetSurface)
         .def(
             "generate_map_image",

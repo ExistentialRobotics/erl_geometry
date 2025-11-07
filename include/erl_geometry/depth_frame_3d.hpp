@@ -23,13 +23,7 @@ namespace erl::geometry {
         struct Setting : public common::Yamlable<Setting, typename Super::Setting> {
             CameraIntrinsic<Dtype> camera_intrinsic = {};
 
-            struct YamlConvertImpl {
-                static YAML::Node
-                encode(const Setting &setting);
-
-                static bool
-                decode(const YAML::Node &node, Setting &setting);
-            };
+            ERL_REFLECT_SCHEMA(Setting, ERL_REFLECT_MEMBER(Setting, camera_intrinsic));
 
             std::pair<long, long>
             Resize(Dtype factor) {
@@ -115,11 +109,3 @@ namespace erl::geometry {
     extern template class DepthFrame3D<float>;
 
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::DepthFrame3D<double>::Setting>
-    : erl::geometry::DepthFrame3D<double>::Setting::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::DepthFrame3D<float>::Setting>
-    : erl::geometry::DepthFrame3D<float>::Setting::YamlConvertImpl {};

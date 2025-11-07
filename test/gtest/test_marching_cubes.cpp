@@ -191,7 +191,7 @@ TEST(MarchingCubes, HouseExpo) {
     // mesh->Scale(1.2 / scale_org, Eigen::Vector3d::Zero());
     mesh->ComputeTriangleNormals();
     mesh->ComputeVertexNormals();
-    open3d::io::WriteTriangleMesh(test_output_dir / "house_expo.ply", *mesh, true);
+    open3d::io::WriteTriangleMesh(test_output_dir / "house_expo.ply", *mesh);
     // open3d::visualization::DrawGeometries({mesh}, "House Expo", 640, 480, 50, 50, true);
 
     // generate test data
@@ -220,7 +220,7 @@ TEST(MarchingCubes, HouseExpo) {
         extracted_mesh->vertices_,
         extracted_mesh->triangles_,
         extracted_mesh->triangle_normals_);
-    open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh, true);
+    open3d::io::WriteTriangleMesh(test_output_dir / "extracted_mesh.ply", *extracted_mesh);
 }
 
 TEST(MarchingCubes, FromArray1) {

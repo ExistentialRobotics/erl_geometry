@@ -4,27 +4,10 @@
 #include "erl_common/serialization.hpp"
 
 namespace erl::geometry {
-    template<typename Dtype>
-    YAML::Node
-    DepthFrame3D<Dtype>::Setting::YamlConvertImpl::encode(const Setting &setting) {
-        YAML::Node node = Super::Setting::YamlConvertImpl::encode(setting);
-        ERL_YAML_SAVE_ATTR(node, setting, camera_intrinsic);
-        return node;
-    }
-
-    template<typename Dtype>
-    bool
-    DepthFrame3D<Dtype>::Setting::YamlConvertImpl::decode(
-        const YAML::Node &node,
-        Setting &setting) {
-        if (!Super::Setting::YamlConvertImpl::decode(node, setting)) { return false; }
-        return ERL_YAML_LOAD_ATTR(node, setting, camera_intrinsic);
-    }
 
     template<typename Dtype>
     DepthFrame3D<Dtype>::DepthFrame3D(std::shared_ptr<Setting> setting)
-        : Super(setting),
-          m_setting_(std::move(setting)) {
+        : Super(setting), m_setting_(std::move(setting)) {
         ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
         UpdateFrameCoords();
     }
@@ -66,15 +49,17 @@ namespace erl::geometry {
     DepthFrame3D<Dtype>::ComputeFrameCoords(
         const Vector3 &xyz_frame,
         Dtype &dist,
-        typename DepthFrame3D<Dtype>::Vector2 &frame_coords) const {
+        Vector2 &frame_coords) const {
         if (xyz_frame[2] <= 0) { return false; }  // behind the camera
         dist = xyz_frame.norm();
         if (dist < 0 || !std::isfinite(dist) || dist < m_setting_->valid_range_min ||
             dist > m_setting_->valid_range_max) {
             return false;
         }
-        frame_coords[0] = xyz_frame[0] / xyz_frame[2];
-        frame_coords[1] = xyz_frame[1] / xyz_frame[2];
+        // frame_coord: (row, col) -> (yv, xu)
+        // xyz_frame: (x, y, z)
+        frame_coords[0] = xyz_frame[1] / xyz_frame[2];
+        frame_coords[1] = xyz_frame[0] / xyz_frame[2];
         return true;
     }
 
@@ -133,7 +118,7 @@ namespace erl::geometry {
 
         // compute directions and end points
 #pragma omp parallel for default(none) \
-    shared(image_height, image_width, valid_range_min, valid_range_max, Eigen::Dynamic)
+    shared(image_height, image_width, valid_range_min, valid_range_max)
         for (long u = 0; u < image_width; ++u) {
             for (long v = 0; v < image_height; ++v) {
                 // directions and end_points in the frame
@@ -261,7 +246,8 @@ namespace erl::geometry {
             ERL_WARN("Failed to write parent class {}.", type_name<Super>());
             return false;
         }
-        static const common::TokenWriteFunctionPairs<DepthFrame3D> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenWriteFunctionPairs<DepthFrame3D> token_function_pairs = {
             {
                 "setting",
                 [](const DepthFrame3D *self, std::ostream &stream) {
@@ -269,7 +255,7 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::WriteTokens(s, this, token_function_pairs);
+        return WriteTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>
@@ -279,7 +265,8 @@ namespace erl::geometry {
             ERL_WARN("Failed to read parent class {}.", type_name<Super>());
             return false;
         }
-        static const common::TokenReadFunctionPairs<DepthFrame3D> token_function_pairs = {
+        using namespace common::serialization;
+        static const TokenReadFunctionPairs<DepthFrame3D> token_function_pairs = {
             {
                 "setting",
                 [](DepthFrame3D *self, std::istream &stream) {
@@ -287,7 +274,7 @@ namespace erl::geometry {
                 },
             },
         };
-        return common::ReadTokens(s, this, token_function_pairs);
+        return ReadTokens(s, this, token_function_pairs);
     }
 
     template<typename Dtype>

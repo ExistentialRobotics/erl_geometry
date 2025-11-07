@@ -10,40 +10,6 @@
 namespace erl::geometry {
 
     template<typename Dtype>
-    YAML::Node
-    LidarFrame2D<Dtype>::Setting::YamlConvertImpl::encode(const Setting &setting) {
-        YAML::Node node;
-        ERL_YAML_SAVE_ATTR(node, setting, valid_range_min);
-        ERL_YAML_SAVE_ATTR(node, setting, valid_range_max);
-        ERL_YAML_SAVE_ATTR(node, setting, angle_min);
-        ERL_YAML_SAVE_ATTR(node, setting, angle_max);
-        ERL_YAML_SAVE_ATTR(node, setting, num_rays);
-        ERL_YAML_SAVE_ATTR(node, setting, discontinuity_detection);
-        ERL_YAML_SAVE_ATTR(node, setting, discontinuity_factor);
-        ERL_YAML_SAVE_ATTR(node, setting, rolling_diff_discount);
-        ERL_YAML_SAVE_ATTR(node, setting, min_partition_size);
-        return node;
-    }
-
-    template<typename Dtype>
-    bool
-    LidarFrame2D<Dtype>::Setting::YamlConvertImpl::decode(
-        const YAML::Node &node,
-        Setting &setting) {
-        if (!node.IsMap()) { return false; }
-        ERL_YAML_LOAD_ATTR(node, setting, valid_range_min);
-        ERL_YAML_LOAD_ATTR(node, setting, valid_range_max);
-        ERL_YAML_LOAD_ATTR(node, setting, angle_min);
-        ERL_YAML_LOAD_ATTR(node, setting, angle_max);
-        ERL_YAML_LOAD_ATTR(node, setting, num_rays);
-        ERL_YAML_LOAD_ATTR(node, setting, discontinuity_detection);
-        ERL_YAML_LOAD_ATTR(node, setting, discontinuity_factor);
-        ERL_YAML_LOAD_ATTR(node, setting, rolling_diff_discount);
-        ERL_YAML_LOAD_ATTR(node, setting, min_partition_size);
-        return true;
-    }
-
-    template<typename Dtype>
     long
     LidarFrame2D<Dtype>::Setting::Resize(Dtype factor) {
         num_rays = static_cast<long>(factor * num_rays);
@@ -55,9 +21,7 @@ namespace erl::geometry {
         LidarFrame2D *frame,
         const long index_begin,
         const long index_end)
-        : m_frame_(frame),
-          m_index_begin_(index_begin),
-          m_index_end_(index_end) {
+        : m_frame_(frame), m_index_begin_(index_begin), m_index_end_(index_end) {
         ERL_DEBUG_ASSERT(m_frame_ != nullptr, "frame is nullptr.");
         ERL_DEBUG_ASSERT(m_index_begin_ >= 0, "index_begin is negative.");
         ERL_DEBUG_ASSERT(m_index_end_ >= 0, "index_end is negative.");
@@ -772,335 +736,299 @@ namespace erl::geometry {
 
     template<typename Dtype>
     bool
-    LidarFrame2D<Dtype>::Write(std::ostream &s) const {
-        static const common::TokenWriteFunctionPairs<LidarFrame2D> token_function_pairs = {
+    LidarFrame2D<Dtype>::Write(std::ostream &stream) const {
+        using namespace common;
+        using namespace common::serialization;
+        static const TokenWriteFunctionPairs<LidarFrame2D> token_function_pairs = {
             {
                 "setting",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return self->m_setting_->Write(stream) && stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return self->m_setting_->Write(s) && s.good();
                 },
             },
             {
                 "rotation",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_rotation_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_rotation_) && s.good();
                 },
             },
             {
                 "rotation_angle",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    stream.write(
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    s.write(
                         reinterpret_cast<const char *>(&self->m_rotation_angle_),
                         sizeof(Dtype));
-                    return stream.good();
+                    return s.good();
                 },
             },
             {
                 "translation",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_translation_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_translation_) && s.good();
                 },
             },
             {
                 "angles_frame",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_angles_frame_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_angles_frame_) && s.good();
                 },
             },
             {
                 "angles_world",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_angles_world_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_angles_world_) && s.good();
                 },
             },
             {
                 "ranges",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_ranges_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_ranges_) && s.good();
                 },
             },
             {
                 "dirs_frame",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_dirs_frame_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_dirs_frame_) &&
+                           s.good();
                 },
             },
             {
                 "dirs_world",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_dirs_world_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_dirs_world_) &&
+                           s.good();
                 },
             },
             {
                 "end_pts_frame",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_end_pts_frame_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_end_pts_frame_) &&
+                           s.good();
                 },
             },
             {
                 "end_pts_world",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_end_pts_world_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_end_pts_world_) &&
+                           s.good();
                 },
             },
             {
                 "mask_hit",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(stream, self->m_mask_hit_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_mask_hit_) && s.good();
                 },
             },
             {
                 "mask_continuous",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveEigenMatrixToBinaryStream(
-                               stream,
-                               self->m_mask_continuous_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveEigenMatrixToBinaryStream(s, self->m_mask_continuous_) && s.good();
                 },
             },
             {
                 "hit_ray_indices",
-                [](const LidarFrame2D *self, std::ostream &stream) {
+                [](const LidarFrame2D *self, std::ostream &s) {
                     const std::size_t n_rays = self->m_hit_ray_indices_.size();
-                    stream.write(reinterpret_cast<const char *>(&n_rays), sizeof(std::size_t));
-                    stream.write(
+                    s.write(reinterpret_cast<const char *>(&n_rays), sizeof(std::size_t));
+                    s.write(
                         reinterpret_cast<const char *>(self->m_hit_ray_indices_.data()),
                         static_cast<std::streamsize>(n_rays * sizeof(long)));
-                    return stream.good();
+                    return s.good();
                 },
             },
             {
                 "hit_points_frame",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_hit_points_frame_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_hit_points_frame_) &&
+                           s.good();
                 },
             },
             {
                 "hit_points_world",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    return common::SaveVectorOfEigenMatricesToBinaryStream(
-                               stream,
-                               self->m_hit_points_world_) &&
-                           stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    return SaveVectorOfEigenMatricesToBinaryStream(s, self->m_hit_points_world_) &&
+                           s.good();
                 },
             },
             {
                 "max_valid_range",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    stream.write(
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    s.write(
                         reinterpret_cast<const char *>(&self->m_max_valid_range_),
                         sizeof(Dtype));
-                    return stream.good();
+                    return s.good();
                 },
             },
             {
                 "partitioned",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    stream.write(
-                        reinterpret_cast<const char *>(&self->m_partitioned_),
-                        sizeof(bool));
-                    return stream.good();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    s.write(reinterpret_cast<const char *>(&self->m_partitioned_), sizeof(bool));
+                    return s.good();
                 },
             },
             {
                 "partitions",
-                [](const LidarFrame2D *self, std::ostream &stream) {
-                    stream << self->m_partitions_.size();
+                [](const LidarFrame2D *self, std::ostream &s) {
+                    s << self->m_partitions_.size();
                     for (const auto &partition: self->m_partitions_) {
-                        stream << ' ' << partition.m_index_begin_ << ' ' << partition.m_index_end_;
+                        s << ' ' << partition.m_index_begin_ << ' ' << partition.m_index_end_;
                     }
-                    return stream.good();
+                    return s.good();
                 },
             },
         };
-        return common::WriteTokens(s, this, token_function_pairs);
+        return WriteTokens(stream, this, token_function_pairs);
     }
 
     template<typename Dtype>
     bool
-    LidarFrame2D<Dtype>::Read(std::istream &s) {
-        static const common::TokenReadFunctionPairs<LidarFrame2D> token_function_pairs = {
+    LidarFrame2D<Dtype>::Read(std::istream &stream) {
+        using namespace common;
+        using namespace common::serialization;
+        static const TokenReadFunctionPairs<LidarFrame2D> token_function_pairs = {
             {
                 "setting",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return self->m_setting_->Read(stream) && stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return self->m_setting_->Read(s) && s.good();
                 },
             },
             {
                 "rotation",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_rotation_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_rotation_) && s.good();
                 },
             },
             {
                 "rotation_angle",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    stream.read(reinterpret_cast<char *>(&self->m_rotation_angle_), sizeof(Dtype));
-                    return stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    s.read(reinterpret_cast<char *>(&self->m_rotation_angle_), sizeof(Dtype));
+                    return s.good();
                 },
             },
             {
                 "translation",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_translation_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_translation_) && s.good();
                 },
             },
             {
                 "angles_frame",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_angles_frame_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_angles_frame_) && s.good();
                 },
             },
             {
                 "angles_world",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_angles_world_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_angles_world_) && s.good();
                 },
             },
             {
                 "ranges",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_ranges_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_ranges_) && s.good();
                 },
             },
             {
                 "dirs_frame",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
-                               self->m_dirs_frame_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadVectorOfEigenMatricesFromBinaryStream(s, self->m_dirs_frame_) &&
+                           s.good();
                 },
             },
             {
                 "dirs_world",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
-                               self->m_dirs_world_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadVectorOfEigenMatricesFromBinaryStream(s, self->m_dirs_world_) &&
+                           s.good();
                 },
             },
             {
                 "end_pts_frame",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
-                               self->m_end_pts_frame_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadVectorOfEigenMatricesFromBinaryStream(s, self->m_end_pts_frame_) &&
+                           s.good();
                 },
             },
             {
                 "end_pts_world",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
-                               self->m_end_pts_world_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadVectorOfEigenMatricesFromBinaryStream(s, self->m_end_pts_world_) &&
+                           s.good();
                 },
             },
             {
                 "mask_hit",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(stream, self->m_mask_hit_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_mask_hit_) && s.good();
                 },
             },
             {
                 "mask_continuous",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadEigenMatrixFromBinaryStream(
-                               stream,
-                               self->m_mask_continuous_) &&
-                           stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadEigenMatrixFromBinaryStream(s, self->m_mask_continuous_) && s.good();
                 },
             },
             {
                 "hit_ray_indices",
-                [](LidarFrame2D *self, std::istream &stream) {
+                [](LidarFrame2D *self, std::istream &s) {
                     std::size_t n;
-                    stream.read(reinterpret_cast<char *>(&n), sizeof(std::size_t));
+                    s.read(reinterpret_cast<char *>(&n), sizeof(std::size_t));
                     self->m_hit_ray_indices_.resize(n);
-                    stream.read(
+                    s.read(
                         reinterpret_cast<char *>(self->m_hit_ray_indices_.data()),
                         static_cast<std::streamsize>(n * sizeof(long)));
-                    return stream.good();
+                    return s.good();
                 },
             },
             {
                 "hit_points_frame",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadVectorOfEigenMatricesFromBinaryStream(
+                               s,
                                self->m_hit_points_frame_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "hit_points_world",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    return common::LoadVectorOfEigenMatricesFromBinaryStream(
-                               stream,
+                [](LidarFrame2D *self, std::istream &s) {
+                    return LoadVectorOfEigenMatricesFromBinaryStream(
+                               s,
                                self->m_hit_points_world_) &&
-                           stream.good();
+                           s.good();
                 },
             },
             {
                 "max_valid_range",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    stream.read(reinterpret_cast<char *>(&self->m_max_valid_range_), sizeof(Dtype));
-                    return stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    s.read(reinterpret_cast<char *>(&self->m_max_valid_range_), sizeof(Dtype));
+                    return s.good();
                 },
             },
             {
                 "partitioned",
-                [](LidarFrame2D *self, std::istream &stream) {
-                    stream.read(reinterpret_cast<char *>(&self->m_partitioned_), sizeof(bool));
-                    return stream.good();
+                [](LidarFrame2D *self, std::istream &s) {
+                    s.read(reinterpret_cast<char *>(&self->m_partitioned_), sizeof(bool));
+                    return s.good();
                 },
             },
             {
                 "partitions",
-                [](LidarFrame2D *self, std::istream &stream) {
+                [](LidarFrame2D *self, std::istream &s) {
                     long n;
-                    stream >> n;
+                    s >> n;
                     self->m_partitions_.reserve(n);
                     for (long i = 0; i < n; ++i) {
                         long index_begin, index_end;
-                        stream >> index_begin >> index_end;
+                        s >> index_begin >> index_end;
                         self->m_partitions_.emplace_back(self, index_begin, index_end);
                     }
-                    return stream.good();
+                    return s.good();
                 },
             },
         };
-        return common::ReadTokens(s, this, token_function_pairs);
+        return ReadTokens(stream, this, token_function_pairs);
     }
 
     template<typename Dtype>

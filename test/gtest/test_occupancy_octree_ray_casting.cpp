@@ -8,6 +8,7 @@
 #include <open3d/geometry/LineSet.h>
 
 using namespace erl::common;
+using namespace erl::common::serialization;
 using namespace erl::geometry;
 using OctreeDrawer = OccupancyOctreeDrawer<OccupancyOctreeD>;
 

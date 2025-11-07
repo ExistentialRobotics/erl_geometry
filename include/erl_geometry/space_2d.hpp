@@ -4,6 +4,7 @@
 #include "marching_squares.hpp"
 #include "surface_2d.hpp"
 
+#include "erl_common/enum_parse.hpp"
 #include "erl_common/grid_map_info.hpp"
 #include "erl_common/yaml.hpp"
 
@@ -28,12 +29,6 @@ namespace erl::geometry {
             // this works perfectly when m_surface_.outsideFlagsAvailable() returns true
             kPolygon = 2
         };
-
-        static const char *
-        GetSignMethodName(const SignMethod &type);
-
-        static SignMethod
-        GetSignMethodFromName(const std::string &type_name);
 
         Space2D(
             const std::vector<Eigen::Ref<const Eigen::Matrix2Xd>> &ordered_object_vertices,
@@ -185,11 +180,10 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-template<>
-struct YAML::convert<erl::geometry::Space2D::SignMethod> {
-    static Node
-    encode(const erl::geometry::Space2D::SignMethod &method);
-
-    static bool
-    decode(const Node &node, erl::geometry::Space2D::SignMethod &method);
-};  // namespace YAML
+ERL_REFLECT_ENUM_SCHEMA(
+    erl::geometry::Space2D::SignMethod,
+    3,
+    ERL_REFLECT_ENUM_MEMBER("point_normal", erl::geometry::Space2D::SignMethod::kPointNormal),
+    ERL_REFLECT_ENUM_MEMBER("line_normal", erl::geometry::Space2D::SignMethod::kLineNormal),
+    ERL_REFLECT_ENUM_MEMBER("polygon", erl::geometry::Space2D::SignMethod::kPolygon));
+ERL_PARSE_ENUM(erl::geometry::Space2D::SignMethod, 3);

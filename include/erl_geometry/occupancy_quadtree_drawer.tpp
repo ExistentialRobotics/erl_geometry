@@ -1,32 +1,6 @@
 #pragma once
 
-#include "occupancy_quadtree_drawer.hpp"
-
 namespace erl::geometry {
-
-    template<typename Dtype>
-    YAML::Node
-    OccupancyQuadtreeDrawerSetting<Dtype>::YamlConvertImpl::encode(
-        const OccupancyQuadtreeDrawerSetting &setting) {
-        YAML::Node node = YAML::convert<AbstractQuadtreeDrawer::Setting>::encode(setting);
-        ERL_YAML_SAVE_ATTR(node, setting, occupied_color);
-        ERL_YAML_SAVE_ATTR(node, setting, free_color);
-        return node;
-    }
-
-    template<typename Dtype>
-    bool
-    OccupancyQuadtreeDrawerSetting<Dtype>::YamlConvertImpl::decode(
-        const YAML::Node &node,
-        OccupancyQuadtreeDrawerSetting &setting) {
-        if (!node.IsMap()) { return false; }
-        if (!YAML::convert<AbstractQuadtreeDrawer::Setting>::decode(node, setting)) {
-            return false;
-        }
-        ERL_YAML_LOAD_ATTR(node, setting, occupied_color);
-        ERL_YAML_LOAD_ATTR(node, setting, free_color);
-        return true;
-    }
 
     template<typename OccupancyQuadtreeType>
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::OccupancyQuadtreeDrawer(

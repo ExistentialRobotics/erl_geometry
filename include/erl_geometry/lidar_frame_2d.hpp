@@ -32,14 +32,17 @@ namespace erl::geometry {
             Dtype rolling_diff_discount = 0.9;
             long min_partition_size = 5;
 
-            struct YamlConvertImpl {
-                static YAML::Node
-                encode(const Setting &setting);
-
-                static bool
-                decode(const YAML::Node &node, Setting &setting);
-            };
-
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, valid_range_min),
+                ERL_REFLECT_MEMBER(Setting, valid_range_max),
+                ERL_REFLECT_MEMBER(Setting, angle_min),
+                ERL_REFLECT_MEMBER(Setting, angle_max),
+                ERL_REFLECT_MEMBER(Setting, num_rays),
+                ERL_REFLECT_MEMBER(Setting, discontinuity_detection),
+                ERL_REFLECT_MEMBER(Setting, discontinuity_factor),
+                ERL_REFLECT_MEMBER(Setting, rolling_diff_discount),
+                ERL_REFLECT_MEMBER(Setting, min_partition_size));
             long
             Resize(Dtype factor);
         };
@@ -265,10 +268,10 @@ namespace erl::geometry {
         operator!=(const LidarFrame2D &other) const;
 
         [[nodiscard]] bool
-        Write(std::ostream &s) const;
+        Write(std::ostream &stream) const;
 
         [[nodiscard]] bool
-        Read(std::istream &s);
+        Read(std::istream &stream);
 
         void
         PartitionRays();
@@ -280,11 +283,3 @@ namespace erl::geometry {
     extern template class LidarFrame2D<double>;
     extern template class LidarFrame2D<float>;
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::LidarFrame2D<double>::Setting>
-    : erl::geometry::LidarFrame2Dd::Setting::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::LidarFrame2D<float>::Setting>
-    : erl::geometry::LidarFrame2Df::Setting::YamlConvertImpl {};

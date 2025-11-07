@@ -4,15 +4,16 @@
 
 template<typename Dtype>
 void
-BindAbstractOccupancyQuadtreeImpl(const py::module& m, const char* name) {
+BindAbstractOccupancyQuadtreeImpl(const py::module &m, const char *name) {
+    using namespace erl::common::serialization;
     using namespace erl::geometry;
     using T = AbstractOccupancyQuadtree<Dtype>;
 
     py::class_<T, AbstractQuadtree<Dtype>, std::shared_ptr<T>>(m, name)
         .def(
             "write_binary",
-            [](T* self, const std::string& filename, const bool prune_at_first) -> bool {
-                return erl::common::Serialization<T>::Write(filename, [&](std::ostream& s) -> bool {
+            [](T *self, const std::string &filename, const bool prune_at_first) -> bool {
+                return Serialization<T>::Write(filename, [&](std::ostream &s) -> bool {
                     return self->WriteBinary(s, prune_at_first);
                 });
             },
@@ -20,8 +21,8 @@ BindAbstractOccupancyQuadtreeImpl(const py::module& m, const char* name) {
             py::arg("prune_at_first"))
         .def(
             "read_binary",
-            [](T& self, const std::string& filename) -> bool {
-                return erl::common::Serialization<T>::Read(filename, [&](std::istream& s) -> bool {
+            [](T &self, const std::string &filename) -> bool {
+                return Serialization<T>::Read(filename, [&](std::istream &s) -> bool {
                     return self.ReadBinary(s);
                 });
             },
@@ -30,7 +31,7 @@ BindAbstractOccupancyQuadtreeImpl(const py::module& m, const char* name) {
         .def("is_node_at_threshold", &T::IsNodeAtThreshold, py::arg("node"))
         .def(
             "get_hit_occupied_node",
-            [](const T& self,
+            [](const T &self,
                const Dtype px,
                const Dtype py,
                const Dtype vx,
@@ -38,7 +39,7 @@ BindAbstractOccupancyQuadtreeImpl(const py::module& m, const char* name) {
                const bool ignore_unknown,
                const Dtype max_range) {
                 Dtype ex, ey;
-                auto* node =
+                auto *node =
                     self.GetHitOccupiedNode(px, py, vx, vy, ignore_unknown, max_range, ex, ey);
                 py::dict result;
                 if (node == nullptr) { return result; }
@@ -56,7 +57,7 @@ BindAbstractOccupancyQuadtreeImpl(const py::module& m, const char* name) {
 }
 
 void
-BindAbstractOccupancyQuadtree(const py::module& m) {
+BindAbstractOccupancyQuadtree(const py::module &m) {
     BindAbstractOccupancyQuadtreeImpl<double>(m, "AbstractOccupancyQuadtreeD");
     BindAbstractOccupancyQuadtreeImpl<float>(m, "AbstractOccupancyQuadtreeF");
 }

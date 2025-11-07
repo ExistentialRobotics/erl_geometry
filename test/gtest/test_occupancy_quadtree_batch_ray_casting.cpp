@@ -122,11 +122,10 @@ TEST(OccupancyQuadtree, BatchRayCasting) {
         "{}/data/house_expo_room_1451_2d_{}.bt",
         ERL_GEOMETRY_ROOT_DIR,
         type_name<Dtype>());
-
-    ASSERT_TRUE(erl::common::Serialization<OccupancyQuadtree>::Read(
-        file,
-        [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }))
-        << "Fail to load the tree.";
+    using namespace erl::common::serialization;
+    ASSERT_TRUE(Serialization<OccupancyQuadtree>::Read(file, [&](std::istream &s) -> bool {
+        return data.tree->ReadBinary(s);
+    })) << "Fail to load the tree.";
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     // setting->resolution = 0.0025;
     setting->resolution = 0.01;

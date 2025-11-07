@@ -17,13 +17,12 @@ namespace erl::geometry {
         bool draw_node_boxes = true;
         bool draw_node_borders = true;
 
-        struct YamlConvertImpl {
-            static YAML::Node
-            encode(const OccupancyOctreeDrawerSetting &setting);
-
-            static bool
-            decode(const YAML::Node &node, OccupancyOctreeDrawerSetting &setting);
-        };
+        ERL_REFLECT_SCHEMA(
+            OccupancyOctreeDrawerSetting,
+            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, occupied_only),
+            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, occupied_color),
+            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, draw_node_boxes),
+            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, draw_node_borders));
     };
 
     template<typename OccupancyOctreeType>
@@ -76,7 +75,3 @@ namespace erl::geometry {
 }  // namespace erl::geometry
 
 #include "occupancy_octree_drawer.tpp"
-
-template<>
-struct YAML::convert<erl::geometry::OccupancyOctreeDrawerSetting>
-    : erl::geometry::OccupancyOctreeDrawerSetting::YamlConvertImpl {};

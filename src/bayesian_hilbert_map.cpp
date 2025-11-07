@@ -117,6 +117,12 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, int Dim>
+    std::mt19937_64 &
+    BayesianHilbertMap<Dtype, Dim>::GetRandomGenerator() {
+        return m_generator_;
+    }
+
+    template<typename Dtype, int Dim>
     typename BayesianHilbertMap<Dtype, Dim>::AabbD
     BayesianHilbertMap<Dtype, Dim>::GetSamplingBoundary() const {
         return AabbD(
@@ -258,7 +264,7 @@ namespace erl::geometry {
                 m_phi_sq_transpose_sparse_ = m_phi_sq_sparse_.transpose();
             }
         } else {
-            m_kernel_->ComputeKtest(points, num_points, m_hinged_points_, n_hinged, m_phi_);
+            (void) m_kernel_->ComputeKtest(points, num_points, m_hinged_points_, n_hinged, m_phi_);
             // add the bias term
             m_phi_.template rightCols<1>().setOnes();
             m_phi_transpose_ = m_phi_.transpose();
@@ -496,7 +502,7 @@ namespace erl::geometry {
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
         MatrixX phi(n_feats, phi_cols);
         if (compute_gradient) {
-            m_kernel_->ComputeKtestWithGradient(
+            (void) m_kernel_->ComputeKtestWithGradient(
                 m_hinged_points_,
                 n_hinged,
                 grad_flags,
@@ -508,7 +514,7 @@ namespace erl::geometry {
             phi.template bottomRows<1>().tail(Dim * n_points).setZero();
             if (gradient.cols() < n_points) { gradient.resize(Dim, n_points); }
         } else {
-            m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, points, n_points, phi);
+            (void) m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, points, n_points, phi);
             phi.template bottomRows<1>().head(n_points).setOnes();
         }
 
@@ -658,7 +664,7 @@ namespace erl::geometry {
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Zero(n_hinged);
         MatrixX phi = MatrixX::Zero(n_hinged + 1, phi_cols);
         if (compute_gradient) {
-            m_kernel_->ComputeKtestWithGradient(
+            (void) m_kernel_->ComputeKtestWithGradient(
                 m_hinged_points_,
                 n_hinged,
                 grad_flags,
@@ -669,7 +675,7 @@ namespace erl::geometry {
             phi.data()[n_hinged] = 1.0f;  // add the bias term
             // for (int i = 1; i <= Dim; ++i) { phi(n_hinged, i) = 0.0f; }
         } else {
-            m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, point, 1, phi);
+            (void) m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, point, 1, phi);
             phi.data()[n_hinged] = 1.0f;  // add the bias term
         }
 
@@ -771,7 +777,7 @@ namespace erl::geometry {
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
         SparseMatrix phi(n_hinged + 1, phi_cols);
         if (compute_gradient) {
-            m_kernel_->ComputeKtestWithGradientSparse(
+            (void) m_kernel_->ComputeKtestWithGradientSparse(
                 m_hinged_points_,
                 n_hinged,
                 grad_flags,
@@ -789,7 +795,7 @@ namespace erl::geometry {
             }
             if (gradient.cols() < n_points) { gradient.resize(Dim, n_points); }
         } else {
-            m_kernel_->ComputeKtestSparse(
+            (void) m_kernel_->ComputeKtestSparse(
                 m_hinged_points_,
                 n_hinged,
                 points,
@@ -935,7 +941,7 @@ namespace erl::geometry {
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
         SparseMatrix phi(n_hinged + 1, phi_cols);
         if (compute_gradient) {
-            m_kernel_->ComputeKtestWithGradientSparse(
+            (void) m_kernel_->ComputeKtestWithGradientSparse(
                 m_hinged_points_,
                 n_hinged,
                 grad_flags,
@@ -948,7 +954,7 @@ namespace erl::geometry {
             phi.insert(n_hinged, 0) = 1.0f;  // add the bias term
             for (long d = 0; d < Dim; ++d) { phi.insert(n_hinged, d + 1) = 0.0f; }
         } else {
-            m_kernel_->ComputeKtestSparse(
+            (void) m_kernel_->ComputeKtestSparse(
                 m_hinged_points_,
                 n_hinged,
                 point,
@@ -1055,7 +1061,7 @@ namespace erl::geometry {
 
         const Eigen::VectorXl grad_flags = Eigen::VectorXl::Constant(n_hinged, 0);
         MatrixX phi(n_hinged + 1, phi_cols);
-        m_kernel_->ComputeKtestWithGradient(
+        (void) m_kernel_->ComputeKtestWithGradient(
             m_hinged_points_,
             n_hinged,
             grad_flags,
@@ -1152,6 +1158,7 @@ namespace erl::geometry {
     bool
     BayesianHilbertMap<Dtype, Dim>::Write(std::ostream &s) const {
         using namespace common;
+        using namespace common::serialization;
         static const TokenWriteFunctionPairs<BayesianHilbertMap> token_function_pairs = {
             {
                 "setting",
@@ -1317,6 +1324,7 @@ namespace erl::geometry {
     bool
     BayesianHilbertMap<Dtype, Dim>::Read(std::istream &s) {
         using namespace common;
+        using namespace common::serialization;
         static const TokenReadFunctionPairs<BayesianHilbertMap> token_function_pairs = {
             {
                 "setting",
@@ -1534,40 +1542,3 @@ namespace erl::geometry {
     template class BayesianHilbertMap<float, 3>;
     template class BayesianHilbertMap<double, 3>;
 }  // namespace erl::geometry
-
-YAML::Node
-YAML::convert<erl::geometry::BayesianHilbertMapSetting>::encode(
-    const erl::geometry::BayesianHilbertMapSetting &setting) {
-    Node node;
-    ERL_YAML_SAVE_ATTR(node, setting, diagonal_sigma);
-    ERL_YAML_SAVE_ATTR(node, setting, min_distance);
-    ERL_YAML_SAVE_ATTR(node, setting, max_distance);
-    ERL_YAML_SAVE_ATTR(node, setting, free_points_per_meter);
-    ERL_YAML_SAVE_ATTR(node, setting, free_sampling_margin);
-    ERL_YAML_SAVE_ATTR(node, setting, sampling_area_scale);
-    ERL_YAML_SAVE_ATTR(node, setting, init_mu);
-    ERL_YAML_SAVE_ATTR(node, setting, init_sigma);
-    ERL_YAML_SAVE_ATTR(node, setting, num_em_iterations);
-    ERL_YAML_SAVE_ATTR(node, setting, sparse_zero_threshold);
-    ERL_YAML_SAVE_ATTR(node, setting, use_sparse);
-    return node;
-}
-
-bool
-YAML::convert<erl::geometry::BayesianHilbertMapSetting>::decode(
-    const Node &node,
-    erl::geometry::BayesianHilbertMapSetting &setting) {
-    if (!node.IsMap()) { return false; }
-    ERL_YAML_LOAD_ATTR(node, setting, diagonal_sigma);
-    ERL_YAML_LOAD_ATTR(node, setting, min_distance);
-    ERL_YAML_LOAD_ATTR(node, setting, max_distance);
-    ERL_YAML_LOAD_ATTR(node, setting, free_points_per_meter);
-    ERL_YAML_LOAD_ATTR(node, setting, free_sampling_margin);
-    ERL_YAML_LOAD_ATTR(node, setting, sampling_area_scale);
-    ERL_YAML_LOAD_ATTR(node, setting, init_mu);
-    ERL_YAML_LOAD_ATTR(node, setting, init_sigma);
-    ERL_YAML_LOAD_ATTR(node, setting, num_em_iterations);
-    ERL_YAML_LOAD_ATTR(node, setting, sparse_zero_threshold);
-    ERL_YAML_LOAD_ATTR(node, setting, use_sparse);
-    return true;
-}

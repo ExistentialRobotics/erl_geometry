@@ -14,8 +14,14 @@ namespace erl::geometry {
         bool use_aabb_limit = false;
         Aabb2Dd aabb = {};
 
+        ERL_REFLECT_SCHEMA(
+            OccupancyQuadtreeBaseSetting,
+            ERL_REFLECT_MEMBER(OccupancyQuadtreeBaseSetting, use_change_detection),
+            ERL_REFLECT_MEMBER(OccupancyQuadtreeBaseSetting, use_aabb_limit),
+            ERL_REFLECT_MEMBER(OccupancyQuadtreeBaseSetting, aabb));
+
         bool
-        operator==(const NdTreeSetting& other) const override;
+        operator==(const NdTreeSetting &other) const override;
     };
 
     template<typename Dtype, class Node, class Setting>
@@ -40,35 +46,35 @@ namespace erl::geometry {
 
         OccupancyQuadtreeBase() = delete;  // no default constructor
 
-        explicit OccupancyQuadtreeBase(const std::shared_ptr<Setting>& setting);
+        explicit OccupancyQuadtreeBase(const std::shared_ptr<Setting> &setting);
 
         OccupancyQuadtreeBase(
             std::shared_ptr<Setting> setting,
-            const std::shared_ptr<common::GridMapInfo2D<Dtype>>& map_info,
-            const cv::Mat& image_map,
+            const std::shared_ptr<common::GridMapInfo2D<Dtype>> &map_info,
+            const cv::Mat &image_map,
             Dtype occupied_threshold,
             int padding = 0);
 
-        OccupancyQuadtreeBase(const OccupancyQuadtreeBase& other) = default;
-        OccupancyQuadtreeBase&
-        operator=(const OccupancyQuadtreeBase& other) = default;
-        OccupancyQuadtreeBase(OccupancyQuadtreeBase&& other) noexcept = default;
-        OccupancyQuadtreeBase&
-        operator=(OccupancyQuadtreeBase&& other) noexcept = default;
+        OccupancyQuadtreeBase(const OccupancyQuadtreeBase &other) = default;
+        OccupancyQuadtreeBase &
+        operator=(const OccupancyQuadtreeBase &other) = default;
+        OccupancyQuadtreeBase(OccupancyQuadtreeBase &&other) noexcept = default;
+        OccupancyQuadtreeBase &
+        operator=(OccupancyQuadtreeBase &&other) noexcept = default;
 
         [[nodiscard]] std::shared_ptr<AbstractQuadtree<Dtype>>
         Clone() const override;
 
         //-- implement abstract methods
         void
-        OnDeleteNodeChild(Node* node, Node* child, const QuadtreeKey& /*key*/) override;
+        OnDeleteNodeChild(Node *node, Node *child, const QuadtreeKey & /*key*/) override;
 
         //-- Sample position
         /**
          * Sample positions from the free space.
          */
         void
-        SamplePositions(std::size_t num_positions, std::vector<Vector2>& positions) const;
+        SamplePositions(std::size_t num_positions, std::vector<Vector2> &positions) const;
 
         //-- insert point cloud
         /**
@@ -90,22 +96,22 @@ namespace erl::geometry {
          */
         void
         ComputeOccupiedCells(
-            const Eigen::Ref<const Matrix2X>& points,
-            const Eigen::Ref<const Vector2>& sensor_origin,
+            const Eigen::Ref<const Matrix2X> &points,
+            const Eigen::Ref<const Vector2> &sensor_origin,
             Dtype min_range,
             Dtype max_range,
             bool discrete,
-            std::vector<Dtype>& ranges,
-            std::vector<std::array<Dtype, 2>>& diffs,
-            Matrix2X& filtered_points,
-            QuadtreeKeyVector& occupied_cells);
+            std::vector<Dtype> &ranges,
+            std::vector<std::array<Dtype, 2>> &diffs,
+            Matrix2X &filtered_points,
+            QuadtreeKeyVector &occupied_cells);
 
         void
         ComputeFreeCells(
-            const Eigen::Ref<const Matrix2X>& points,
-            const Eigen::Ref<const Vector2>& sensor_origin,
-            const std::vector<Dtype>& ranges,
-            const std::vector<std::array<Dtype, 2>>& diffs,
+            const Eigen::Ref<const Matrix2X> &points,
+            const Eigen::Ref<const Vector2> &sensor_origin,
+            const std::vector<Dtype> &ranges,
+            const std::vector<std::array<Dtype, 2>> &diffs,
             Dtype max_range,
             bool with_count,
             bool parallel);
@@ -128,8 +134,8 @@ namespace erl::geometry {
          */
         virtual void
         InsertPointCloud(
-            const Eigen::Ref<const Matrix2X>& points,
-            const Eigen::Ref<const Vector2>& sensor_origin,
+            const Eigen::Ref<const Matrix2X> &points,
+            const Eigen::Ref<const Vector2> &sensor_origin,
             Dtype min_range,
             Dtype max_range,
             bool with_count,
@@ -151,8 +157,8 @@ namespace erl::geometry {
          */
         virtual void
         InsertPointCloudRays(
-            const Eigen::Ref<const Matrix2X>& points,
-            const Eigen::Ref<const Vector2>& sensor_origin,
+            const Eigen::Ref<const Matrix2X> &points,
+            const Eigen::Ref<const Vector2> &sensor_origin,
             Dtype min_range,
             Dtype max_range,
             bool parallel,
@@ -188,39 +194,39 @@ namespace erl::geometry {
         GetBatchRayCaster(
             Matrix2X origins,
             Matrix2X directions,
-            const VectorX& max_ranges,
-            const VectorX& node_paddings,
-            const Eigen::VectorXb& bidirectional_flags,
-            const Eigen::VectorXb& leaf_only_flags,
-            const Eigen::VectorXi& min_node_depths,
-            const Eigen::VectorXi& max_node_depths) const;
+            const VectorX &max_ranges,
+            const VectorX &node_paddings,
+            const Eigen::VectorXb &bidirectional_flags,
+            const Eigen::VectorXb &leaf_only_flags,
+            const Eigen::VectorXi &min_node_depths,
+            const Eigen::VectorXi &max_node_depths) const;
 
         void
         CastRays(
-            const Eigen::Ref<const Vector2>& position,
-            const Eigen::Ref<const Matrix2>& rotation,
-            const Eigen::Ref<const VectorX>& angles,
+            const Eigen::Ref<const Vector2> &position,
+            const Eigen::Ref<const Matrix2> &rotation,
+            const Eigen::Ref<const VectorX> &angles,
             bool ignore_unknown,
             Dtype max_range,
             bool prune_rays,
             bool parallel,
-            std::vector<long>& hit_ray_indices,
-            std::vector<Vector2>& hit_positions,
-            std::vector<const Node*>& hit_nodes) const;
+            std::vector<long> &hit_ray_indices,
+            std::vector<Vector2> &hit_positions,
+            std::vector<const Node *> &hit_nodes) const;
 
         void
         CastRays(
-            const Eigen::Ref<const Matrix2X>& positions,
-            const Eigen::Ref<const Matrix2X>& directions,
+            const Eigen::Ref<const Matrix2X> &positions,
+            const Eigen::Ref<const Matrix2X> &directions,
             bool ignore_unknown,
             Dtype max_range,
             bool prune_rays,
             bool parallel,
-            std::vector<long>& hit_ray_indices,
-            std::vector<Vector2>& hit_positions,
-            std::vector<const Node*>& hit_nodes) const;
+            std::vector<long> &hit_ray_indices,
+            std::vector<Vector2> &hit_positions,
+            std::vector<const Node *> &hit_nodes) const;
 
-        const OccupancyQuadtreeNode*
+        const OccupancyQuadtreeNode *
         GetHitOccupiedNode(
             Dtype px,
             Dtype py,
@@ -228,8 +234,8 @@ namespace erl::geometry {
             Dtype vy,
             bool ignore_unknown,
             Dtype max_range,
-            Dtype& ex,
-            Dtype& ey) const override;
+            Dtype &ex,
+            Dtype &ey) const override;
 
         /**
          * Cast a ray starting from (px, py) along (vx, vy) and get the hit surface point (ex, ey)
@@ -246,7 +252,7 @@ namespace erl::geometry {
          * @param ey metric y coordinate of the hit leaf cell
          * @return node pointer if the ray hits an occupied cell, nullptr otherwise.
          */
-        const Node*
+        const Node *
         CastRay(
             Dtype px,
             Dtype py,
@@ -254,17 +260,17 @@ namespace erl::geometry {
             Dtype vy,
             bool ignore_unknown,
             Dtype max_range,
-            Dtype& ex,
-            Dtype& ey) const;
+            Dtype &ex,
+            Dtype &ey) const;
 
         //-- trace ray
-        [[nodiscard]] const QuadtreeKeyBoolMap&
+        [[nodiscard]] const QuadtreeKeyBoolMap &
         GetChangedKeys() const;
 
         void
         ClearChangedKeys();
 
-        [[nodiscard]] const QuadtreeKeyVectorMap&
+        [[nodiscard]] const QuadtreeKeyVectorMap &
         GetEndPointMaps() const;
 
         //-- update nodes' occupancy
@@ -278,7 +284,7 @@ namespace erl::geometry {
          * after all updates are done.
          * @return
          */
-        Node*
+        Node *
         UpdateNode(Dtype x, Dtype y, bool occupied, bool lazy_eval);
 
         /**
@@ -289,28 +295,28 @@ namespace erl::geometry {
          * updated. This speeds up the intersection, but you need to call UpdateInnerOccupancy()
          * after all updates are done.
          */
-        Node*
-        UpdateNode(const QuadtreeKey& key, bool occupied, bool lazy_eval);
+        Node *
+        UpdateNode(const QuadtreeKey &key, bool occupied, bool lazy_eval);
 
-        Node*
+        Node *
         UpdateNode(Dtype x, Dtype y, float log_odds_delta, bool lazy_eval);
 
-        Node*
-        UpdateNode(const QuadtreeKey& key, float log_odds_delta, bool lazy_eval);
+        Node *
+        UpdateNode(const QuadtreeKey &key, float log_odds_delta, bool lazy_eval);
 
     private:
-        Node*
+        Node *
         UpdateNodeRecurs(
-            Node* node,
+            Node *node,
             bool node_just_created,
             bool node_from_expansion,
-            const QuadtreeKey& key,
+            const QuadtreeKey &key,
             float log_odds_delta,
             bool lazy_eval);
 
     protected:
         void
-        UpdateNodeLogOdds(Node* node, float log_odd_delta);
+        UpdateNodeLogOdds(Node *node, float log_odd_delta);
 
     public:
         void
@@ -318,10 +324,10 @@ namespace erl::geometry {
 
     protected:
         void
-        UpdateInnerOccupancyRecurs(Node* node, uint32_t depth);
+        UpdateInnerOccupancyRecurs(Node *node, uint32_t depth);
 
         void
-        UpdateInnerNodeOccupancy(Node* node);
+        UpdateInnerNodeOccupancy(Node *node);
 
     public:
         /**
@@ -332,21 +338,12 @@ namespace erl::geometry {
 
         //--file IO
         bool
-        ReadBinaryData(std::istream& s) override;
+        ReadBinaryData(std::istream &s) override;
 
         bool
-        WriteBinaryData(std::ostream& s) const override;
+        WriteBinaryData(std::ostream &s) const override;
     };
 
 }  // namespace erl::geometry
 
 #include "occupancy_quadtree_base.tpp"
-
-template<>
-struct YAML::convert<erl::geometry::OccupancyQuadtreeBaseSetting> {
-    static Node
-    encode(const erl::geometry::OccupancyQuadtreeBaseSetting& setting);
-
-    static bool
-    decode(const Node& node, erl::geometry::OccupancyQuadtreeBaseSetting& setting);
-};  // namespace YAML

@@ -43,10 +43,6 @@ TEST(NewerCollege, Load) {
         pcd->points_.reserve(frame.points.cols());
 
         Eigen::Matrix3Xd points_in_world_frame = frame.GetPointsInWorldFrame();
-        // erl::common::SaveEigenMatrixToTextFile<double>(
-        //     fmt::format("points.txt"),
-        //     points_in_world_frame.transpose());
-        // TODO: compute the azimuthe and elevation to check the layout of points.
         for (int i = 0; i < points_in_world_frame.cols(); ++i) {
             pcd->points_.emplace_back(points_in_world_frame.col(i));
         }
@@ -56,7 +52,8 @@ TEST(NewerCollege, Load) {
         line_set->points_.push_back(frame.translation);
         if (line_set->points_.size() > 1) {
             line_set->lines_.emplace_back(
-                Eigen::Vector2i(line_set->points_.size() - 2, line_set->points_.size() - 1));
+                line_set->points_.size() - 2,
+                line_set->points_.size() - 1);
             line_set->colors_.emplace_back(0.0, 1.0, 0.0);
             vis->UpdateGeometry(line_set);
         }

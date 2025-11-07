@@ -35,6 +35,20 @@ namespace erl::geometry {
         float sparse_zero_threshold = 1e-6f;
         // if true, use sparse matrix for the feature matrix.
         bool use_sparse = false;
+
+        ERL_REFLECT_SCHEMA(
+            BayesianHilbertMapSetting,
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, diagonal_sigma),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, min_distance),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, max_distance),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, free_points_per_meter),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, free_sampling_margin),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, sampling_area_scale),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, init_mu),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, init_sigma),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, num_em_iterations),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, sparse_zero_threshold),
+            ERL_REFLECT_MEMBER(BayesianHilbertMapSetting, use_sparse));
     };
 
     template<typename Dtype, int Dim>
@@ -147,6 +161,9 @@ namespace erl::geometry {
 
         [[nodiscard]] const AabbD &
         GetMapBoundary() const;
+
+        [[nodiscard]] std::mt19937_64 &
+        GetRandomGenerator();
 
         [[nodiscard]] AabbD
         GetSamplingBoundary() const;
@@ -294,12 +311,3 @@ namespace erl::geometry {
     extern template class BayesianHilbertMap<float, 3>;
     extern template class BayesianHilbertMap<double, 3>;
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::BayesianHilbertMapSetting> {
-    static Node
-    encode(const erl::geometry::BayesianHilbertMapSetting &setting);
-
-    static bool
-    decode(const Node &node, erl::geometry::BayesianHilbertMapSetting &setting);
-};

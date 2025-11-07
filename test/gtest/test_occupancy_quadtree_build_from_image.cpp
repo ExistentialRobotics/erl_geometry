@@ -24,8 +24,8 @@ TEST(OccupancyQuadtree, BuildFromImage) {
     const auto drawer_setting =
         std::make_shared<OccupancyQuadtreeDrawer<OccupancyQuadtreeD>::Setting>();
     drawer_setting->resolution = 0.075;
-    drawer_setting->area_min = map_info->Min().array() - 0.25;
-    drawer_setting->area_max = map_info->Max().array() + 0.25;
+    drawer_setting->area_min = map_info->Min().cast<float>().array() - 0.25;
+    drawer_setting->area_max = map_info->Max().cast<float>().array() + 0.25;
     drawer_setting->border_color = cv::Scalar(255, 0, 0);
     const auto drawer =
         std::make_shared<OccupancyQuadtreeDrawer<OccupancyQuadtreeD>>(drawer_setting, quadtree);
@@ -60,8 +60,7 @@ TEST(OccupancyQuadtree, BuildFromImage) {
 
                 Eigen::Vector2d position;
                 position[0] = grid_map_info->GridToMeterAtDim(mouse_x, 0);
-                position[1] =
-                    grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
+                position[1] = grid_map_info->GridToMeterAtDim(grid_map_info->Shape(1) - mouse_y, 1);
                 const Eigen::Matrix2d rotation = Eigen::Matrix2d::Identity();
                 const Eigen::VectorXd angles =
                     Eigen::VectorXd::LinSpaced(361, 0, 2 * M_PI).head(360);

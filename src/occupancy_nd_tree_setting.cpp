@@ -10,29 +10,3 @@ erl::geometry::OccupancyNdTreeSetting::operator==(const NdTreeSetting &other) co
     }
     return false;
 }
-
-YAML::Node
-YAML::convert<erl::geometry::OccupancyNdTreeSetting>::encode(
-    const erl::geometry::OccupancyNdTreeSetting &setting) {
-    Node node = convert<erl::geometry::NdTreeSetting>::encode(setting);
-    ERL_YAML_SAVE_ATTR(node, setting, log_odd_min);
-    ERL_YAML_SAVE_ATTR(node, setting, log_odd_max);
-    ERL_YAML_SAVE_ATTR(node, setting, log_odd_hit);
-    ERL_YAML_SAVE_ATTR(node, setting, log_odd_miss);
-    ERL_YAML_SAVE_ATTR(node, setting, log_odd_occ_threshold);
-    return node;
-}
-
-bool
-YAML::convert<erl::geometry::OccupancyNdTreeSetting>::decode(
-    const Node &node,
-    erl::geometry::OccupancyNdTreeSetting &rhs) {
-    if (!node.IsMap()) { return false; }
-    if (!convert<erl::geometry::NdTreeSetting>::decode(node, rhs)) { return false; }
-    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_min);
-    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_max);
-    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_hit);
-    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_miss);
-    ERL_YAML_LOAD_ATTR(node, rhs, log_odd_occ_threshold);
-    return true;
-}

@@ -2,7 +2,9 @@
 
 #include "space_2d.hpp"
 
-#include <fmt/format.h>
+#include "erl_common/enum_parse.hpp"
+#include "erl_common/fmt.hpp"
+#include "erl_common/yaml.hpp"
 
 namespace erl::geometry {
 
@@ -16,6 +18,14 @@ namespace erl::geometry {
             int num_lines = 360;
             Mode mode = Mode::kDdf;
             Space2D::SignMethod sign_method = Space2D::SignMethod::kLineNormal;
+
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, min_angle),
+                ERL_REFLECT_MEMBER(Setting, max_angle),
+                ERL_REFLECT_MEMBER(Setting, num_lines),
+                ERL_REFLECT_MEMBER(Setting, mode),
+                ERL_REFLECT_MEMBER(Setting, sign_method));
         };
 
     private:
@@ -55,38 +65,10 @@ namespace erl::geometry {
     };
 }  // namespace erl::geometry
 
-template<>
-struct fmt::formatter<erl::geometry::Lidar2D::Mode> {
-    template<typename ParseContext>
-    constexpr auto
-    parse(ParseContext &ctx) {
-        return ctx.begin();
-    }
-
-    template<typename FormatContext>
-    auto
-    format(erl::geometry::Lidar2D::Mode mode, FormatContext &ctx) const {
-        static const char *mode_names[3] = {"kDdf", "kSddfV1", "kSddfV2"};
-        return format_to(ctx.out(), mode_names[static_cast<int>(mode)]);
-    }
-};
-
-template<>
-struct YAML::convert<erl::geometry::Lidar2D::Mode> {
-    static Node
-    encode(const erl::geometry::Lidar2D::Mode &mode);
-
-    static bool
-    decode(const Node &node, erl::geometry::Lidar2D::Mode &mode);
-};
-
-template<>
-struct YAML::convert<erl::geometry::Lidar2D::Setting> {
-    static Node
-    encode(const erl::geometry::Lidar2D::Setting &setting);
-
-    static bool
-    decode(const Node &node, erl::geometry::Lidar2D::Setting &setting);
-};
-
-// ReSharper restore CppInconsistentNaming
+ERL_REFLECT_ENUM_SCHEMA(
+    erl::geometry::Lidar2D::Mode,
+    3,
+    ERL_REFLECT_ENUM_MEMBER("ddf", erl::geometry::Lidar2D::Mode::kDdf),
+    ERL_REFLECT_ENUM_MEMBER("sddf_v1", erl::geometry::Lidar2D::Mode::kSddfV1),
+    ERL_REFLECT_ENUM_MEMBER("sddf_v2", erl::geometry::Lidar2D::Mode::kSddfV2));
+ERL_PARSE_ENUM(erl::geometry::Lidar2D::Mode, 3);

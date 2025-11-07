@@ -58,16 +58,8 @@ MouseCallback(
             ex = x;
             ey = y;
 
-            // // (ex, ey) is node center position
-            // if (const double vx = std::cos(angles[i]), vy = std::sin(angles[i]);
-            //     !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ false, /*max_range*/ -1,
-            //     ex, ey) || !data->tree->CastRay(x, y, vx, vy, /*ignore_unknown*/ true,
-            //     /*max_range*/ -1, ex, ey)) { ERL_DEBUG("Fail to cast ray for angle {}.",
-            //     erl::common::RadianToDegree(angles[i]));
-            // }
-
-            // similar to CastRay, but using BeginNodeOnRay, (ex, ey) is the hit point on the node
-            // boundary
+            // similar to CastRay, but using BeginNodeOnRay,
+            // (ex, ey) is the hit point on the node boundary
             const double vx = std::cos(angles[i]), vy = std::sin(angles[i]);
             auto itr = data->tree->BeginNodeOnRay(x, y, vx, vy, -1, 0, false, true);
             auto end = data->tree->EndNodeOnRay();
@@ -81,8 +73,8 @@ MouseCallback(
             }
         }
         for (long i = 0; i < n; ++i) {
-            const double &ex = end_points(0, i);
-            const double &ey = end_points(1, i);
+            const auto ex = static_cast<float>(end_points(0, i));
+            const auto ey = static_cast<float>(end_points(1, i));
             cv::line(
                 img,
                 cv::Point(mouse_x, mouse_y),
@@ -108,15 +100,16 @@ TEST(OccupancyQuadtree, RayCasting) {
     data.tree = std::make_shared<OccupancyQuadtreeD>(data.tree_setting);
     std::filesystem::path data_dir = ERL_GEOMETRY_ROOT_DIR;
     data_dir /= "data";
-    ASSERT_TRUE(Serialization<OccupancyQuadtreeD>::Read(
-        data_dir /= "house_expo_room_1451_2d_double.bt",
-        [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));
+    ASSERT_TRUE(
+        serialization::Serialization<OccupancyQuadtreeD>::Read(
+            data_dir /= "house_expo_room_1451_2d_double.bt",
+            [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     setting->resolution = 0.01;
     setting->border_color = cv::Scalar(255, 0, 0);
     setting->padding = 10;
-    data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
-    data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
+    setting->area_min = data.tree->GetMetricMin().cast<float>();
+    setting->area_max = data.tree->GetMetricMax().cast<float>();
     data.drawer = std::make_shared<QuadtreeDrawer>(setting, data.tree);
     data.drawer->DrawLeaves(data.img);
 

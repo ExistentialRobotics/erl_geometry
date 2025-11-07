@@ -1,10 +1,10 @@
+resolution: 0.05 # 0.15 # 0.1
 tree_depth: 16
 log_odd_min: -10
 log_odd_max: 20
-log_odd_hit: 0.8
-log_odd_miss: -0.05
-log_odd_occ_threshold: 0
-resolution: 0.6
+log_odd_hit: 0.7
+log_odd_miss: -0.1
+log_odd_occ_threshold: 1
 use_change_detection: false
 use_aabb_limit: false
 aabb:

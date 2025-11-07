@@ -4,6 +4,7 @@
 
 TEST(DepthFrame3D, Serialization) {
     using namespace erl::common;
+    using namespace erl::common::serialization;
     using namespace erl::geometry;
 
     std::filesystem::path depth_png = ERL_GEOMETRY_ROOT_DIR;

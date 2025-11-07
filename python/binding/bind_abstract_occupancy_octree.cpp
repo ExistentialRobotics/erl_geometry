@@ -5,6 +5,7 @@
 template<typename Dtype>
 void
 BindAbstractOccupancyOctreeImpl(const py::module &m, const char *name) {
+    using namespace erl::common::serialization;
     using namespace erl::geometry;
     using T = AbstractOccupancyOctree<Dtype>;
 
@@ -12,7 +13,7 @@ BindAbstractOccupancyOctreeImpl(const py::module &m, const char *name) {
         .def(
             "write_binary",
             [](T *self, const std::string &filename, const bool prune_at_first) -> bool {
-                return erl::common::Serialization<T>::Write(filename, [&](std::ostream &s) -> bool {
+                return Serialization<T>::Write(filename, [&](std::ostream &s) -> bool {
                     return self->WriteBinary(s, prune_at_first);
                 });
             },
@@ -21,7 +22,7 @@ BindAbstractOccupancyOctreeImpl(const py::module &m, const char *name) {
         .def(
             "read_binary",
             [](T &self, const std::string &filename) -> bool {
-                return erl::common::Serialization<T>::Read(filename, [&](std::istream &s) -> bool {
+                return Serialization<T>::Read(filename, [&](std::istream &s) -> bool {
                     return self.ReadBinary(s);
                 });
             },

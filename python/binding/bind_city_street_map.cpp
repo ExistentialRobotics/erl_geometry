@@ -8,15 +8,15 @@ BindCityStreetMap(const py::module &m) {
     using namespace erl::geometry;
 
     py::class_<CityStreetMap> city_street_map(m, "CityStreetMap");
-    city_street_map.def_property_readonly_static("kFree", [](const py::object &) { return CityStreetMap::kFree; })
-        .def_property_readonly_static("kObstacle", [](const py::object &) { return CityStreetMap::kObstacle; })
-        .def_property_readonly_static("kPassableDot", [](const py::object &) { return CityStreetMap::kPassableDot; })
-        .def_property_readonly_static("kPassableG", [](const py::object &) { return CityStreetMap::kPassableG; })
-        .def_property_readonly_static("kOutOfBoundAt", [](const py::object &) { return CityStreetMap::kOutOfBoundAt; })
-        .def_property_readonly_static("kOutOfBoundO", [](const py::object &) { return CityStreetMap::kOutOfBoundO; })
-        .def_property_readonly_static("kTree", [](const py::object &) { return CityStreetMap::kTree; })
-        .def_property_readonly_static("kSwamp", [](const py::object &) { return CityStreetMap::kSwamp; })
-        .def_property_readonly_static("kWater", [](const py::object &) { return CityStreetMap::kWater; })
+    city_street_map.def_readonly_static("kFree", &CityStreetMap::kFree)
+        .def_readonly_static("kObstacle", &CityStreetMap::kObstacle)
+        .def_readonly_static("kPassableDot", &CityStreetMap::kPassableDot)
+        .def_readonly_static("kPassableG", &CityStreetMap::kPassableG)
+        .def_readonly_static("kOutOfBoundAt", &CityStreetMap::kOutOfBoundAt)
+        .def_readonly_static("kOutOfBoundO", &CityStreetMap::kOutOfBoundO)
+        .def_readonly_static("kTree", &CityStreetMap::kTree)
+        .def_readonly_static("kSwamp", &CityStreetMap::kSwamp)
+        .def_readonly_static("kWater", &CityStreetMap::kWater)
         .def_static("load_map", &CityStreetMap::LoadMap, py::arg("filename"))
         .def_static("load_scenes", &CityStreetMap::LoadScenes, py::arg("filename"));
     py::class_<CityStreetMap::Scene>(city_street_map, "Scene")

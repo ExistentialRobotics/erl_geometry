@@ -53,43 +53,20 @@ namespace erl::geometry {
             int num_iters_for_cleaned_mask = 2;
             bool filter_obstacles_in_cleaned_mask = false;
 
-            struct YamlConvertImpl {
-                static YAML::Node
-                encode(const Setting &setting) {
-                    YAML::Node node;
-                    ERL_YAML_SAVE_ATTR(node, setting, sensor_min_range);
-                    ERL_YAML_SAVE_ATTR(node, setting, sensor_max_range);
-                    ERL_YAML_SAVE_ATTR(node, setting, log_odd_hit);
-                    ERL_YAML_SAVE_ATTR(node, setting, log_odd_miss);
-                    ERL_YAML_SAVE_ATTR(node, setting, max_log_odd);
-                    ERL_YAML_SAVE_ATTR(node, setting, min_log_odd);
-                    ERL_YAML_SAVE_ATTR(node, setting, threshold_occupied);
-                    ERL_YAML_SAVE_ATTR(node, setting, threshold_free);
-                    ERL_YAML_SAVE_ATTR(node, setting, use_cross_kernel);
-                    ERL_YAML_SAVE_ATTR(node, setting, kernel_size);
-                    ERL_YAML_SAVE_ATTR(node, setting, num_iters_for_cleaned_mask);
-                    ERL_YAML_SAVE_ATTR(node, setting, filter_obstacles_in_cleaned_mask);
-                    return node;
-                }
-
-                static bool
-                decode(const YAML::Node &node, Setting &setting) {
-                    if (!node.IsMap()) { return false; }
-                    ERL_YAML_LOAD_ATTR(node, setting, sensor_min_range);
-                    ERL_YAML_LOAD_ATTR(node, setting, sensor_max_range);
-                    ERL_YAML_LOAD_ATTR(node, setting, log_odd_hit);
-                    ERL_YAML_LOAD_ATTR(node, setting, log_odd_miss);
-                    ERL_YAML_LOAD_ATTR(node, setting, max_log_odd);
-                    ERL_YAML_LOAD_ATTR(node, setting, min_log_odd);
-                    ERL_YAML_LOAD_ATTR(node, setting, threshold_occupied);
-                    ERL_YAML_LOAD_ATTR(node, setting, threshold_free);
-                    ERL_YAML_LOAD_ATTR(node, setting, use_cross_kernel);
-                    ERL_YAML_LOAD_ATTR(node, setting, kernel_size);
-                    ERL_YAML_LOAD_ATTR(node, setting, num_iters_for_cleaned_mask);
-                    ERL_YAML_LOAD_ATTR(node, setting, filter_obstacles_in_cleaned_mask);
-                    return true;
-                }
-            };
+            ERL_REFLECT_SCHEMA(
+                Setting,
+                ERL_REFLECT_MEMBER(Setting, sensor_min_range),
+                ERL_REFLECT_MEMBER(Setting, sensor_max_range),
+                ERL_REFLECT_MEMBER(Setting, log_odd_hit),
+                ERL_REFLECT_MEMBER(Setting, log_odd_miss),
+                ERL_REFLECT_MEMBER(Setting, max_log_odd),
+                ERL_REFLECT_MEMBER(Setting, min_log_odd),
+                ERL_REFLECT_MEMBER(Setting, threshold_occupied),
+                ERL_REFLECT_MEMBER(Setting, threshold_free),
+                ERL_REFLECT_MEMBER(Setting, use_cross_kernel),
+                ERL_REFLECT_MEMBER(Setting, kernel_size),
+                ERL_REFLECT_MEMBER(Setting, num_iters_for_cleaned_mask),
+                ERL_REFLECT_MEMBER(Setting, filter_obstacles_in_cleaned_mask));
         };
 
         struct FrameMask {
@@ -732,11 +709,3 @@ namespace erl::geometry {
     extern template class LogOddMap2D<float>;
 
 }  // namespace erl::geometry
-
-template<>
-struct YAML::convert<erl::geometry::LogOddMap2Dd::Setting>
-    : erl::geometry::LogOddMap2Dd::Setting::YamlConvertImpl {};
-
-template<>
-struct YAML::convert<erl::geometry::LogOddMap2Df::Setting>
-    : erl::geometry::LogOddMap2Df::Setting::YamlConvertImpl {};

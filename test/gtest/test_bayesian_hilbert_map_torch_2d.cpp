@@ -248,7 +248,7 @@ TestIo(
     GTEST_PREPARE_OUTPUT_DIR();
     std::string filename = fmt::format("test_bhm_2d_{}.bin", type_name<Dtype>());
     filename = test_output_dir / filename;
-    using Serializer = erl::common::Serialization<BayesianHilbertMap<Dtype, 2>>;
+    using Serializer = erl::common::serialization::Serialization<BayesianHilbertMap<Dtype, 2>>;
     ASSERT_TRUE(Serializer::Write(filename, &bhm));
     BayesianHilbertMap<Dtype, 2> bhm_read(
         std::make_shared<BayesianHilbertMapSetting>(),

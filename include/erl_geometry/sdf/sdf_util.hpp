@@ -21,7 +21,7 @@ namespace erl::geometry::sdf_util {
         std::size_t num_threads = std::thread::hardware_concurrency());
 
     // Get a seeded mersenne twister 19937
-    std::mt19937&
+    std::mt19937_64&
     get_rng();
 
 }  // namespace erl::geometry::sdf_util

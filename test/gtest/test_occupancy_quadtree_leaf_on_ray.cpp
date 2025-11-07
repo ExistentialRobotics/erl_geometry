@@ -57,8 +57,8 @@ Draw(UserData *data) {
             double node_x = it.GetX();
             double node_y = it.GetY();
             double half_size = it.GetNodeSize() / 2.;
-            Eigen::Vector2d min_meter(node_x - half_size, node_y - half_size);
-            Eigen::Vector2d max_meter(node_x + half_size, node_y + half_size);
+            Eigen::Vector2f min_meter(node_x - half_size, node_y - half_size);
+            Eigen::Vector2f max_meter(node_x + half_size, node_y + half_size);
             Eigen::Vector2i min = grid_map_info->MeterToPixelForPoints(min_meter);
             Eigen::Vector2i max = grid_map_info->MeterToPixelForPoints(max_meter);
             cv::rectangle(img, {min[0], min[1]}, {max[0], max[1]}, {0, 0, 255, 255}, cv::FILLED);
@@ -135,15 +135,16 @@ TEST(OccupancyQuadtree, IterateLeafOnRay) {
     auto tree_setting = std::make_shared<OccupancyQuadtreeD::Setting>();
     tree_setting->resolution = 0.1;
     data.tree = std::make_shared<OccupancyQuadtreeD>(tree_setting);
-    ASSERT_TRUE(Serialization<OccupancyQuadtreeD>::Read(
-        g_options.tree_bt_file,
-        [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));
+    ASSERT_TRUE(
+        serialization::Serialization<OccupancyQuadtreeD>::Read(
+            g_options.tree_bt_file,
+            [&](std::istream &s) -> bool { return data.tree->ReadBinary(s); }));
     auto setting = std::make_shared<QuadtreeDrawer::Setting>();
     setting->resolution = g_options.resolution;
     setting->padding = g_options.padding;
     setting->border_color = cv::Scalar(255, 0, 0);
-    data.tree->GetMetricMin(setting->area_min[0], setting->area_min[1]);
-    data.tree->GetMetricMax(setting->area_max[0], setting->area_max[1]);
+    setting->area_min = data.tree->GetMetricMin().cast<float>();
+    setting->area_max = data.tree->GetMetricMax().cast<float>();
     data.drawer = std::make_shared<QuadtreeDrawer>(setting, data.tree);
     data.drawer->DrawLeaves(data.img);
 
