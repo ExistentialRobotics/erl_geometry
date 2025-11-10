@@ -150,7 +150,8 @@ namespace erl::geometry {
     BayesianHilbertMap<Dtype, Dim>::GenerateDataset(
         const Eigen::Ref<const VectorD> &sensor_position,
         const Eigen::Ref<const MatrixDX> &points,
-        const std::vector<long> &point_indices,
+        std::vector<long> &point_indices,
+        std::size_t max_num_rays,
         long max_dataset_size,
         long &num_samples,
         MatrixDX &dataset_points,
@@ -166,6 +167,7 @@ namespace erl::geometry {
             m_setting_->max_distance,
             m_setting_->free_sampling_margin,
             m_setting_->free_points_per_meter,
+            max_num_rays,
             max_dataset_size,
             num_samples,
             dataset_points,
@@ -252,12 +254,14 @@ namespace erl::geometry {
             }
             for (long j = 0; j < num_points; ++j) { m_phi_sparse_.insert(j, n_hinged) = 1.0f; }
             m_phi_sparse_.makeCompressed();  // compress the sparse matrix for better performance
-            ERL_DEBUG(
-                "sparse: {}, dense: {}, sparsity score: {:.3f}",
-                m_phi_sparse_.nonZeros(),
-                m_phi_sparse_.size(),
-                static_cast<Dtype>(m_phi_sparse_.size() - m_phi_sparse_.nonZeros()) /
-                    static_cast<Dtype>(m_phi_sparse_.size()));
+
+            // ERL_DEBUG(
+            //     "sparse: {}, dense: {}, sparsity score: {:.3f}",
+            //     m_phi_sparse_.nonZeros(),
+            //     m_phi_sparse_.size(),
+            //     static_cast<Dtype>(m_phi_sparse_.size() - m_phi_sparse_.nonZeros()) /
+            //         static_cast<Dtype>(m_phi_sparse_.size()));
+
             m_phi_transpose_sparse_ = m_phi_sparse_.transpose();
             if (m_setting_->diagonal_sigma) {
                 m_phi_sq_sparse_ = m_phi_sparse_.cwiseAbs2();
@@ -443,7 +447,8 @@ namespace erl::geometry {
     BayesianHilbertMap<Dtype, Dim>::Update(
         const Eigen::Ref<const VectorD> &sensor_position,
         const Eigen::Ref<const MatrixDX> &points,
-        const std::vector<long> &point_indices,
+        std::vector<long> &point_indices,
+        const std::size_t max_num_rays,
         const long max_dataset_size,
         long &num_samples,
         MatrixDX &dataset_points,
@@ -453,6 +458,7 @@ namespace erl::geometry {
             sensor_position,
             points,
             point_indices,
+            max_num_rays,
             max_dataset_size,
             num_samples,
             dataset_points,

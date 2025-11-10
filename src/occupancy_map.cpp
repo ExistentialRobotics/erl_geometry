@@ -8,21 +8,42 @@ namespace erl::geometry {
     OccupancyMap<Dtype, Dim>::CollectRays(
         const Eigen::Ref<const VectorD> &sensor_position,
         const Eigen::Ref<const MatrixDX> &points,
-        const std::vector<long> &point_indices,
+        std::vector<long> &point_indices,
         const AabbD &map_boundary,
         const Dtype min_dist,
         const Dtype max_dist,
         const Dtype free_sampling_margin,
         const Dtype free_points_per_meter,
+        const std::size_t max_num_rays,
+        std::mt19937_64 &generator,
         std::vector<long> &hit_indices,
         std::vector<RayInfo> &rays) {
 
         hit_indices.clear();
 
-        auto npts = point_indices.empty() ? points.cols() : static_cast<long>(point_indices.size());
+        const std::size_t npts = point_indices.empty() ? points.cols() : point_indices.size();
+        bool sampling = false;
+        std::uniform_int_distribution<std::size_t> idx_distribution(0);
+        if (max_num_rays > 0 && npts > max_num_rays) {
+            sampling = true;
+            if (point_indices.empty()) {
+                point_indices.resize(npts);
+                std::iota(point_indices.begin(), point_indices.end(), 0);
+            }
+        }
 
-        for (long i = 0; i < npts; ++i) {
-            long idx = point_indices.empty() ? i : point_indices[i];
+        for (std::size_t i = 0; i < npts; ++i) {
+            if (max_num_rays > 0 && rays.size() >= max_num_rays) { break; }
+            long idx;
+            if (sampling) {
+                const std::size_t idx1 = idx_distribution(generator) % (npts - i);
+                idx = static_cast<long>(npts - 1 - i);
+                std::swap(point_indices[idx1], point_indices[idx]);
+                idx = point_indices[idx];
+            } else {
+                idx = point_indices.empty() ? static_cast<long>(i) : point_indices[i];
+            }
+
             VectorD point = points.col(idx);
             VectorD v = point - sensor_position;
             Dtype dist = v.norm();
@@ -91,20 +112,20 @@ namespace erl::geometry {
         num_hit = 0;
         long n_free = 0;
 
-        std::uniform_int_distribution<std::size_t> ray_distribution(0, rays.size() - 1);
+        std::uniform_int_distribution<std::size_t> ray_distribution(0);
 
         std::size_t i = 0;
         for (; i < rays.size(); ++i) {
             if (num_samples >= n_to_sample) { break; }  // already sampled enough points
 
-            std::size_t idx1 = i;
-            std::size_t idx2 = rays.size() - 1 - i;
+            std::size_t idx2 = rays.size() - 1 - i;  // index of the ray to use
             // move the used ray to the back of the list
             if (random) {
-                idx1 = ray_distribution(generator) % (rays.size() - i);
+                std::size_t idx1 = ray_distribution(generator) % (rays.size() - i);
                 std::swap(rays[idx1], rays[idx2]);
             } else {
-                std::swap(rays[idx1], rays[idx2]);
+                std::size_t idx1 = 0;
+                std::swap(rays[idx1], rays[idx2]);  // equivalent to reverse iteration
             }
             const auto &[p1, p2, hit_flag, num_free_points, d1, d2] = rays[idx2];
 
@@ -132,8 +153,6 @@ namespace erl::geometry {
             }
         }
 
-        ERL_DEBUG("Sampled {} points, {} hit points, {} free points", num_samples, num_hit, n_free);
-
         return i;
     }
 
@@ -142,13 +161,14 @@ namespace erl::geometry {
     OccupancyMap<Dtype, Dim>::GenerateDataset(
         const Eigen::Ref<const VectorD> &sensor_position,
         const Eigen::Ref<const MatrixDX> &points,
-        const std::vector<long> &point_indices,
+        std::vector<long> &point_indices,
         const AabbD &map_boundary,
         std::mt19937_64 &generator,
-        const Dtype min_distance,
-        const Dtype max_distance,
+        const Dtype min_dist,
+        const Dtype max_dist,
         const Dtype free_sampling_margin,
         const Dtype free_points_per_meter,
+        const std::size_t max_num_rays,
         const long max_dataset_size,
         long &num_samples,
         MatrixDX &dataset_points,
@@ -168,10 +188,12 @@ namespace erl::geometry {
             points,
             point_indices,
             map_boundary,
-            min_distance,
-            max_distance,
+            min_dist,
+            max_dist,
             free_sampling_margin,
             free_points_per_meter,
+            max_num_rays,
+            generator,
             hit_indices,
             rays);
         if (rays.empty()) { return; }

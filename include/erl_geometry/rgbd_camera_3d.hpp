@@ -26,7 +26,7 @@ namespace erl::geometry {
         explicit RgbdCamera3D(std::shared_ptr<Setting> setting)
             : m_setting_(std::move(setting)),
               m_visualizer_(std::make_shared<open3d::visualization::Visualizer>()) {
-            ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
+            ERL_ASSERT_PTR(m_setting_);
             m_visualizer_->CreateVisualizerWindow(
                 "RGBD",
                 static_cast<int>(m_setting_->image_width),
