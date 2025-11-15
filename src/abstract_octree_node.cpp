@@ -64,7 +64,7 @@ namespace erl::geometry {
         return demangle(typeid(*this).name());
     }
 
-    std::shared_ptr<AbstractOctreeNode>
+    std::unique_ptr<AbstractOctreeNode>
     AbstractOctreeNode::CreateNode(
         const std::string &node_type,
         const uint32_t depth,
@@ -100,14 +100,8 @@ namespace erl::geometry {
 
     AbstractOctreeNode *
     AbstractOctreeNode::CreateChild(const uint32_t child_index) {
-        ERL_DEBUG_ASSERT(
-            child_index < 8,
-            "Child index must be in [0, 7], but got %u.",
-            child_index);
-        ERL_DEBUG_ASSERT(
-            m_children_[child_index] == nullptr,
-            "Child %u already exists.",
-            child_index);
+        ERL_DEBUG_ASSERT(child_index < 8, "Index must be in [0, 7], but got %u.", child_index);
+        ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u exists.", child_index);
         m_children_[child_index] = this->Create(m_depth_ + 1, static_cast<int>(child_index));
         ++m_num_children_;
         return m_children_[child_index].get();
@@ -115,14 +109,8 @@ namespace erl::geometry {
 
     void
     AbstractOctreeNode::RemoveChild(const uint32_t child_index) {
-        ERL_DEBUG_ASSERT(
-            child_index < 8,
-            "Child index must be in [0, 7], but got %u.",
-            child_index);
-        ERL_DEBUG_ASSERT(
-            m_children_[child_index] != nullptr,
-            "Child %u does not exist.",
-            child_index);
+        ERL_DEBUG_ASSERT(child_index < 8, "Index must be in [0, 7], but got %u.", child_index);
+        ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "No child %u.", child_index);
         m_children_[child_index] = nullptr;
         --m_num_children_;
     }

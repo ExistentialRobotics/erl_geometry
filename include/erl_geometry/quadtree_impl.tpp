@@ -1,4 +1,3 @@
-// ReSharper disable CppRedundantParentheses
 #pragma once
 
 #include "intersection.hpp"
@@ -13,8 +12,7 @@ namespace erl::geometry {
     template<class Node, class Interface, class InterfaceSetting>
     QuadtreeImpl<Node, Interface, InterfaceSetting>::QuadtreeImpl(
         std::shared_ptr<InterfaceSetting> setting)
-        : Interface(setting),
-          m_setting_(std::move(setting)) {
+        : Interface(setting), m_setting_(std::move(setting)) {
         this->ApplySettingToQuadtreeImpl();
     }
 
@@ -318,7 +316,7 @@ namespace erl::geometry {
                     if (child != nullptr) { nodes_stack.push_back(child); }
                 }
             } else {
-                num_leaf_nodes++;
+                ++num_leaf_nodes;
             }
         }
         return num_leaf_nodes;
@@ -350,7 +348,7 @@ namespace erl::geometry {
         while (!nodes_stack.empty()) {
             const Node *node = nodes_stack.back();
             nodes_stack.pop_back();
-            num_nodes++;
+            ++num_nodes;
 
             if (node->HasAnyChild()) {  // if the node has any child, push them into the stack
                 for (uint32_t i = 0; i < 4; ++i) {
@@ -716,8 +714,7 @@ namespace erl::geometry {
     QuadtreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::StackElement::StackElement(
         const Node *node,
         QuadtreeKey key)
-        : node(node),
-          key(std::move(key)) {}
+        : node(node), key(std::move(key)) {}
 
     template<class Node, class Interface, class InterfaceSetting>
     template<typename T>
@@ -728,15 +725,13 @@ namespace erl::geometry {
 
     template<class Node, class Interface, class InterfaceSetting>
     QuadtreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::IteratorBase()
-        : m_tree_(nullptr),
-          m_max_node_depth_(0) {}
+        : m_tree_(nullptr), m_max_node_depth_(0) {}
 
     template<class Node, class Interface, class InterfaceSetting>
     QuadtreeImpl<Node, Interface, InterfaceSetting>::IteratorBase::IteratorBase(
         const QuadtreeImpl *tree,
         const uint32_t max_node_depth)
-        : m_tree_(tree),
-          m_max_node_depth_(max_node_depth) {
+        : m_tree_(tree), m_max_node_depth_(max_node_depth) {
         if (m_tree_ == nullptr) { return; }
         if (m_max_node_depth_ == 0) { m_max_node_depth_ = m_tree_->GetTreeDepth(); }
         if (m_tree_->m_root_ != nullptr) {  // the tree is not empty
@@ -2142,10 +2137,9 @@ namespace erl::geometry {
     QuadtreeImpl<Node, Interface, InterfaceSetting>::CreateNodeChild(
         Node *node,
         uint32_t child_idx) {
-        node->AllocateChildrenPtr();  // allocate children if necessary
         ERL_DEBUG_ASSERT(!node->HasChild(child_idx), "Child already exists.");
         Node *new_child = reinterpret_cast<Node *>(node->CreateChild(child_idx));  // create child
-        m_tree_size_++;          // increase tree size
+        ++m_tree_size_;          // increase tree size
         m_size_changed_ = true;  // the size of the tree has changed
         return new_child;
     }
@@ -2554,7 +2548,7 @@ namespace erl::geometry {
         }
 
         m_root_ = std::make_shared<Node>();
-        m_tree_size_++;
+        ++m_tree_size_;
         std::list<Node *> nodes_stack;
         nodes_stack.push_back(m_root_.get());
         while (!nodes_stack.empty()) {
@@ -2568,12 +2562,11 @@ namespace erl::geometry {
             char children_char;
             s.read(&children_char, sizeof(char));
             std::bitset<4> children(static_cast<unsigned long long>(children_char));
-            node->AllocateChildrenPtr();
             for (int i = 3; i >= 0; --i) {  // the same order as the recursive implementation
                 if (!children[i]) { continue; }
                 Node *child_node = reinterpret_cast<Node *>(node->CreateChild(i));
                 nodes_stack.push_back(child_node);
-                m_tree_size_++;
+                ++m_tree_size_;
             }
         }
 

@@ -56,7 +56,7 @@ namespace erl::geometry {
         [[nodiscard]] Eigen::Matrix2Xi
         GetPixelCoordsForPositions(
             const Eigen::Ref<const Eigen::Matrix2X<Dtype>> &positions,
-            bool scaled_position) const {
+            const bool scaled_position) const {
             if (scaled_position) {
                 return m_grid_map_info_->MeterToPixelForPoints(
                     positions.template cast<float>().array() / m_setting_->scaling);

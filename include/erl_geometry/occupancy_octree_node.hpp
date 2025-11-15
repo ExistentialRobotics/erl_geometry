@@ -136,8 +136,7 @@ namespace erl::geometry {
             for (int i = 0; i < 8; ++i) {
                 const auto *child = GetChild<OccupancyOctreeNode>(i);
                 if (child == nullptr) { continue; }
-                const float logodd = child->GetLogOdds();
-                if (logodd > max) { max = logodd; }
+                if (const float logodd = child->GetLogOdds(); logodd > max) { max = logodd; }
             }
             return max;
         }

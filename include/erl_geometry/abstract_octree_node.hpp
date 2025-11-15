@@ -24,7 +24,7 @@ namespace erl::geometry {
             {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     public:
-        using Factory = common::FactoryPattern<AbstractOctreeNode, false, false, uint32_t, int>;
+        using Factory = common::FactoryPattern<AbstractOctreeNode, true, false, uint32_t, int>;
 
         // rules of five: https://www.youtube.com/watch?v=juAZDfsaMvY
         // except for user-defined constructor,
@@ -68,7 +68,7 @@ namespace erl::geometry {
         [[nodiscard]] virtual std::unique_ptr<AbstractOctreeNode>
         Create(uint32_t depth, int child_index) const = 0;
 
-        static std::shared_ptr<AbstractOctreeNode>
+        static std::unique_ptr<AbstractOctreeNode>
         CreateNode(const std::string &node_type, uint32_t depth, int child_index);
 
         template<typename Derived>
@@ -77,7 +77,7 @@ namespace erl::geometry {
             return Factory::GetInstance().Register<Derived>(
                 node_type,
                 [](uint32_t depth, int child_index) {
-                    return std::make_shared<Derived>(depth, child_index);
+                    return std::make_unique<Derived>(depth, child_index);
                 });
         }
 

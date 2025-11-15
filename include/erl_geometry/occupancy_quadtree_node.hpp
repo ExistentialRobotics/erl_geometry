@@ -18,8 +18,7 @@ namespace erl::geometry {
             const uint32_t depth = 0,
             const int child_index = -1,
             const float log_odds = 0)
-            : AbstractQuadtreeNode(depth, child_index),
-              m_log_odds_(log_odds) {}
+            : AbstractQuadtreeNode(depth, child_index), m_log_odds_(log_odds) {}
 
         OccupancyQuadtreeNode(const OccupancyQuadtreeNode &other) = default;
         OccupancyQuadtreeNode &
@@ -37,17 +36,16 @@ namespace erl::geometry {
             return false;
         }
 
-        [[nodiscard]] AbstractQuadtreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractQuadtreeNode>
         Create(const uint32_t depth, const int child_index) const override {
             CheckRuntimeType<OccupancyQuadtreeNode>(this, /*debug_only*/ true);
-            const auto node = new OccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
-            return node;
+            return std::make_unique<OccupancyQuadtreeNode>(depth, child_index, /*log_odds*/ 0);
         }
 
-        [[nodiscard]] AbstractQuadtreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractQuadtreeNode>
         Clone() const override {
-            const auto node = new OccupancyQuadtreeNode(*this);
-            return node;
+            CheckRuntimeType<OccupancyQuadtreeNode>(this, /*debug_only*/ true);
+            return std::make_unique<OccupancyQuadtreeNode>(*this);
         }
 
         //-- file IO
@@ -68,26 +66,28 @@ namespace erl::geometry {
         [[nodiscard]] bool
         AllowMerge(const AbstractQuadtreeNode *other) const override {
             ERL_DEBUG_ASSERT(other != nullptr, "other node is nullptr.");
-            const auto *other_node = reinterpret_cast<const OccupancyQuadtreeNode *>(other);
+            ERL_DEBUG_ASSERT(
+                dynamic_cast<const OccupancyOctreeNode *>(other) != nullptr,
+                "other node is not OccupancyOctreeNode.");
+            const auto *other_node = static_cast<const OccupancyQuadtreeNode *>(other);
             if (m_num_children_ > 0 || other_node->m_num_children_ > 0) { return false; }
             return m_log_odds_ == other_node->m_log_odds_;
         }
 
         void
         Prune() override {
-            m_log_odds_ = reinterpret_cast<OccupancyQuadtreeNode *>(m_children_[0])->m_log_odds_;
+            m_log_odds_ = GetChild<OccupancyQuadtreeNode>(0)->m_log_odds_;
             AbstractQuadtreeNode::Prune();
         }
 
         void
         Expand() override {
-            if (m_children_ == nullptr) { m_children_ = new AbstractQuadtreeNode *[4]; }
             for (int i = 0; i < 4; ++i) {
                 // call the virtual method `Create` to make sure the child type is correct if this
                 // class is inherited
-                AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, i);
-                m_children_[i] = child;
-                reinterpret_cast<OccupancyQuadtreeNode *>(child)->m_log_odds_ = m_log_odds_;
+                auto &child = m_children_[i];
+                child = this->Create(m_depth_ + 1, i);
+                static_cast<OccupancyQuadtreeNode *>(child.get())->m_log_odds_ = m_log_odds_;
             }
             m_num_children_ = 4;
         }
@@ -120,7 +120,7 @@ namespace erl::geometry {
 
             float mean = 0;
             for (int i = 0; i < 4; ++i) {
-                const auto *child = reinterpret_cast<OccupancyQuadtreeNode *>(m_children_[i]);
+                const auto *child = GetChild<OccupancyQuadtreeNode>(i);
                 if (child == nullptr) { continue; }
                 mean += child->GetOccupancy();
             }
@@ -132,14 +132,12 @@ namespace erl::geometry {
         [[nodiscard]] float
         GetMaxChildLogOdds() const {
             float max = -std::numeric_limits<float>::max();
+            if (m_num_children_ == 0) { return max; }
 
-            if (m_num_children_ > 0) {
-                for (int i = 0; i < 4; ++i) {
-                    const auto *child = reinterpret_cast<OccupancyQuadtreeNode *>(
-                        m_children_[i]);  // dynamic_cast causes high overhead
-                    if (child == nullptr) { continue; }
-                    if (const float l = child->GetLogOdds(); l > max) { max = l; }
-                }
+            for (int i = 0; i < 4; ++i) {
+                const auto *child = GetChild<OccupancyQuadtreeNode>(i);
+                if (child == nullptr) { continue; }
+                if (const float logodd = child->GetLogOdds(); logodd > max) { max = logodd; }
             }
             return max;
         }
