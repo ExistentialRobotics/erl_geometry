@@ -18,8 +18,7 @@ namespace erl::geometry {
             const uint32_t depth = 0,
             const int child_index = -1,
             const float log_odds = 0)
-            : AbstractOctreeNode(depth, child_index),
-              m_log_odds_(log_odds) {}
+            : AbstractOctreeNode(depth, child_index), m_log_odds_(log_odds) {}
 
         OccupancyOctreeNode(const OccupancyOctreeNode &other) = default;
         OccupancyOctreeNode &
@@ -31,24 +30,22 @@ namespace erl::geometry {
         bool
         operator==(const AbstractOctreeNode &other) const override {
             if (AbstractOctreeNode::operator==(other)) {
-                const auto &other_node = reinterpret_cast<const OccupancyOctreeNode &>(other);
+                const auto &other_node = static_cast<const OccupancyOctreeNode &>(other);
                 return m_log_odds_ == other_node.m_log_odds_;
             }
             return false;
         }
 
-        [[nodiscard]] AbstractOctreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractOctreeNode>
         Create(const uint32_t depth, const int child_index) const override {
             CheckRuntimeType<OccupancyOctreeNode>(this, /*debug_only*/ true);
-            const auto node = new OccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
-            return node;
+            return std::make_unique<OccupancyOctreeNode>(depth, child_index, /*log_odds*/ 0);
         }
 
-        [[nodiscard]] AbstractOctreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractOctreeNode>
         Clone() const override {
             CheckRuntimeType<OccupancyOctreeNode>(this, /*debug_only*/ true);
-            const auto node = new OccupancyOctreeNode(*this);
-            return node;
+            return std::make_unique<OccupancyOctreeNode>(*this);
         }
 
         //-- file IO
@@ -72,25 +69,24 @@ namespace erl::geometry {
             ERL_DEBUG_ASSERT(
                 dynamic_cast<const OccupancyOctreeNode *>(other) != nullptr,
                 "other node is not OccupancyOctreeNode.");
-            const auto *other_node = reinterpret_cast<const OccupancyOctreeNode *>(other);
+            const auto *other_node = static_cast<const OccupancyOctreeNode *>(other);
             if (m_num_children_ > 0 || other_node->m_num_children_ > 0) { return false; }
             return m_log_odds_ == other_node->m_log_odds_;
         }
 
         void
         Prune() override {
-            m_log_odds_ = reinterpret_cast<OccupancyOctreeNode *>(m_children_[0])->m_log_odds_;
+            m_log_odds_ = GetChild<OccupancyOctreeNode>(0)->m_log_odds_;
             AbstractOctreeNode::Prune();
         }
 
         void
         Expand() override {
-            if (m_children_ == nullptr) { m_children_ = new AbstractOctreeNode *[8]; }
             for (int i = 0; i < 8; ++i) {
                 // make sure the child type is correct if this class is inherited
-                AbstractOctreeNode *child = this->Create(m_depth_ + 1, i);
-                m_children_[i] = child;
-                reinterpret_cast<OccupancyOctreeNode *>(child)->m_log_odds_ = m_log_odds_;
+                auto &child = m_children_[i];
+                child = this->Create(m_depth_ + 1, i);
+                static_cast<OccupancyOctreeNode *>(child.get())->m_log_odds_ = m_log_odds_;
             }
             m_num_children_ = 8;
         }
@@ -123,7 +119,7 @@ namespace erl::geometry {
 
             float mean = 0;
             for (int i = 0; i < 8; ++i) {
-                const auto *child = reinterpret_cast<OccupancyOctreeNode *>(m_children_[i]);
+                const auto *child = GetChild<OccupancyOctreeNode>(i);
                 if (child == nullptr) { continue; }
                 mean += child->GetOccupancy();
             }
@@ -135,15 +131,13 @@ namespace erl::geometry {
         [[nodiscard]] float
         GetMaxChildLogOdds() const {
             float max = -std::numeric_limits<float>::max();
+            if (m_num_children_ == 0) { return max; }
 
-            if (m_num_children_ > 0) {
-                for (int i = 0; i < 8; ++i) {
-                    const auto *child = reinterpret_cast<OccupancyOctreeNode *>(
-                        m_children_[i]);  // dynamic_cast causes high overhead
-                    if (child == nullptr) { continue; }
-                    const float l = child->GetLogOdds();
-                    if (l > max) { max = l; }
-                }
+            for (int i = 0; i < 8; ++i) {
+                const auto *child = GetChild<OccupancyOctreeNode>(i);
+                if (child == nullptr) { continue; }
+                const float logodd = child->GetLogOdds();
+                if (logodd > max) { max = logodd; }
             }
             return max;
         }

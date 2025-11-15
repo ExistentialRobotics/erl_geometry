@@ -3,6 +3,7 @@
 #include "erl_common/factory_pattern.hpp"
 #include "erl_common/logging.hpp"
 
+#include <array>
 #include <memory>
 #include <string>
 
@@ -15,8 +16,12 @@ namespace erl::geometry {
     protected:
         uint32_t m_depth_ = 0;
         int m_child_index_ = -1;
-        AbstractOctreeNode **m_children_ = nullptr;
         uint32_t m_num_children_ = 0;
+
+        // array of 8 children pointers. we use unique_ptr for automatic memory management without
+        // worrying about memory leaks and overhead of shared_ptr.
+        std::array<std::unique_ptr<AbstractOctreeNode>, 8> m_children_ =
+            {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     public:
         using Factory = common::FactoryPattern<AbstractOctreeNode, false, false, uint32_t, int>;
@@ -50,7 +55,7 @@ namespace erl::geometry {
         operator=(AbstractOctreeNode &&other) noexcept;
 
         // destructor
-        virtual ~AbstractOctreeNode() { this->DeleteChildrenPtr(); }
+        virtual ~AbstractOctreeNode() = default;
 
         //-- factory pattern
         [[nodiscard]] std::string
@@ -60,7 +65,7 @@ namespace erl::geometry {
          * Implemented by derived classes to create a new node of the same type.
          * @return a new node of the same type.
          */
-        [[nodiscard]] virtual AbstractOctreeNode *
+        [[nodiscard]] virtual std::unique_ptr<AbstractOctreeNode>
         Create(uint32_t depth, int child_index) const = 0;
 
         static std::shared_ptr<AbstractOctreeNode>
@@ -80,7 +85,7 @@ namespace erl::geometry {
          * Deep copy of the node. Used for copy constructor and copy assignment.
          * @return deep copy of the node.
          */
-        [[nodiscard]] virtual AbstractOctreeNode *
+        [[nodiscard]] virtual std::unique_ptr<AbstractOctreeNode>
         Clone() const = 0;
 
         //-- attributes
@@ -114,12 +119,6 @@ namespace erl::geometry {
 
         //-- children
 
-        void
-        AllocateChildrenPtr();
-
-        void
-        DeleteChildrenPtr();
-
         [[nodiscard]] uint32_t
         GetNumChildren() const {
             return m_num_children_;
@@ -146,7 +145,7 @@ namespace erl::geometry {
                 child_index < 8,
                 "Child index must be in [0, 7], but got %u.",
                 child_index);
-            return static_cast<Derived *>(m_children_[child_index]);
+            return static_cast<Derived *>(m_children_[child_index].get());
         }
 
         template<typename Derived>
@@ -156,7 +155,7 @@ namespace erl::geometry {
                 child_index < 8,
                 "Child index must be in [0, 7], but got %u.",
                 child_index);
-            return static_cast<const Derived *>(m_children_[child_index]);
+            return static_cast<const Derived *>(m_children_[child_index].get());
         }
 
         [[nodiscard]] virtual bool

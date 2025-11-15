@@ -18,9 +18,9 @@ namespace erl::geometry {
         PyObjectOccupancyOctreeNode(const PyObjectOccupancyOctreeNode &other) = default;
         PyObjectOccupancyOctreeNode &
         operator=(const PyObjectOccupancyOctreeNode &other) = default;
-        PyObjectOccupancyOctreeNode(PyObjectOccupancyOctreeNode &&other) = default;
+        PyObjectOccupancyOctreeNode(PyObjectOccupancyOctreeNode &&other) noexcept = default;
         PyObjectOccupancyOctreeNode &
-        operator=(PyObjectOccupancyOctreeNode &&other) = default;
+        operator=(PyObjectOccupancyOctreeNode &&other) noexcept = default;
 
         bool
         operator==(const AbstractOctreeNode &other) const override {
@@ -32,18 +32,16 @@ namespace erl::geometry {
             return false;
         }
 
-        [[nodiscard]] AbstractOctreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractOctreeNode>
         Create(const uint32_t depth, const int child_index) const override {
             CheckRuntimeType<PyObjectOccupancyOctreeNode>(this, /*debug_only*/ true);
-            const auto node = new PyObjectOccupancyOctreeNode(depth, child_index, /*log_odds*/ 0);
-            return node;
+            return std::make_unique<PyObjectOccupancyOctreeNode>(depth, child_index, /*logodds*/ 0);
         }
 
-        [[nodiscard]] AbstractOctreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractOctreeNode>
         Clone() const override {
             CheckRuntimeType<PyObjectOccupancyOctreeNode>(this, /*debug_only*/ true);
-            const auto node = new PyObjectOccupancyOctreeNode(*this);
-            return node;
+            return std::make_unique<PyObjectOccupancyOctreeNode>(*this);
         }
 
         [[nodiscard]] py::object
@@ -62,9 +60,7 @@ namespace erl::geometry {
             s.read(reinterpret_cast<char *>(&m_log_odds_), sizeof(float));
             try {
                 long length;
-                s.read(
-                    reinterpret_cast<char *>(&length),
-                    sizeof(long));  // Read the length of the data
+                s.read(reinterpret_cast<char *>(&length), sizeof(long));  // Get the data length
                 std::vector<char> buffer(length);
                 s.read(buffer.data(), length);               // Read the data into the buffer
                 m_py_object_ = py::module::import("pickle")  // Load the Python object

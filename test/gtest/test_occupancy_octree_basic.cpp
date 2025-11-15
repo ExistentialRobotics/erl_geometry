@@ -114,8 +114,7 @@ TEST(OccupancyOctree, InsertPointCloud) {
 
     // test occupancy node deep copy (shallow copy is not allowed unless it is managed by
     // shared_ptr)
-    auto cloned_node = std::shared_ptr<OccupancyOctreeNode>(
-        reinterpret_cast<OccupancyOctreeNode *>(tree->GetRoot()->Clone()));  // deep copy
+    auto cloned_node = tree->GetRoot()->Clone();  // deep copy
     EXPECT_TRUE(*cloned_node == *tree->GetRoot());
     cloned_node->GetChild<OccupancyOctreeNode>(1)->AddLogOdds(0.1);
     EXPECT_FALSE(*cloned_node == *tree->GetRoot());
