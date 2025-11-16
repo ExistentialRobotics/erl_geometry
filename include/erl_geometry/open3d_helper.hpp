@@ -17,10 +17,19 @@ namespace erl::geometry {
     std::shared_ptr<open3d::geometry::TriangleMesh>
     CreateUnitBoxFrameMesh(double edge_radius);
 
+    /**
+     * Rotates the oriented bounding box such that the specified axis is aligned with the up
+     * direction.
+     * @param obb The input oriented bounding box
+     * @param up_axis_idx The index of the up axis (0 for x, 1 for y, 2 for z)
+     * @param box_center The output box center
+     * @param box_rotation The output box rotation
+     * @param box_extent The output box extent
+     */
     void
-    GetMinimalOrientedBoundingBox(
-        const open3d::geometry::TriangleMesh &mesh,
-        bool z_up,
+    GetOrientedBoundingBoxWithAxisUp(
+        const open3d::geometry::OrientedBoundingBox &obb,
+        int up_axis_idx,
         Eigen::Vector3d &box_center,
         Eigen::Matrix3d &box_rotation,
         Eigen::Vector3d &box_extent);

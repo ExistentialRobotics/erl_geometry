@@ -109,37 +109,40 @@ namespace erl::geometry {
     }
 
     void
-    GetMinimalOrientedBoundingBox(
-        const open3d::geometry::TriangleMesh &mesh,
-        const bool z_up,
+    GetOrientedBoundingBoxWithAxisUp(
+        const open3d::geometry::OrientedBoundingBox &obb,
+        int up_axis_idx,
         Eigen::Vector3d &box_center,
         Eigen::Matrix3d &box_rotation,
         Eigen::Vector3d &box_extent) {
 
-        open3d::geometry::OrientedBoundingBox obb = mesh.GetMinimalOrientedBoundingBox();
         box_center = obb.center_;
         box_rotation = obb.R_;
         box_extent = obb.extent_;
-        if (!z_up) { return; }
 
-        Eigen::Vector3d score = obb.R_.transpose() * Eigen::Vector3d::UnitZ();
+        Eigen::Vector3d up_axis = Eigen::Vector3d::Zero();
+        up_axis[up_axis_idx] = 1.0;
+
+        Eigen::Vector3d score = obb.R_.transpose() * up_axis;
         long axis_idx = 0;
         if (score[axis_idx] < score[1]) { axis_idx = 1; }
         if (score[axis_idx] < score[2]) { axis_idx = 2; }
-        if (axis_idx != 2 || score[axis_idx] < 0) {
+
+        if (axis_idx != up_axis_idx || score[axis_idx] < 0) {
             Eigen::Matrix3d rotation2;
             Eigen::Vector3d new_up_axis = Eigen::Matrix3d::Identity().col(axis_idx);
             if (score[axis_idx] < 0) { new_up_axis = -new_up_axis; }
-            const Eigen::Vector3d z_up_axis = Eigen::Vector3d::UnitZ();
-            const Eigen::Vector3d v = new_up_axis.cross(z_up_axis);
-            const double c = new_up_axis.dot(z_up_axis);
+            const Eigen::Vector3d v = new_up_axis.cross(up_axis);
+            const double c = new_up_axis.dot(up_axis);
             const double s = v.norm();
 
             if (s < 1.e-5) {
                 if (c > 0.0) {  // same direction
                     rotation2 = Eigen::Matrix3d::Identity();
-                } else {  // rotate to make the z-axis up
-                    rotation2 = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX());
+                } else {  // rotate to make the axis up
+                    Eigen::Vector3d axis = Eigen::Vector3d::Zero();
+                    axis[(up_axis_idx + 1) % 3] = 1.0;
+                    rotation2 = Eigen::AngleAxisd(M_PI, axis);
                 }
             } else {
                 rotation2 = Eigen::AngleAxisd(std::atan2(s, c), v / s);
