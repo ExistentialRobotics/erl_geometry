@@ -400,7 +400,7 @@ namespace erl::geometry {
         }
         end_point_index = -1;
         distance = std::numeric_limits<Dtype>::infinity();
-        m_kd_tree_->Nearest(position_world, end_point_index, distance);
+        ERL_ASSERT_GT(m_kd_tree_->Nearest(position_world, end_point_index, distance), 0);
         distance = std::sqrt(distance);
     }
 

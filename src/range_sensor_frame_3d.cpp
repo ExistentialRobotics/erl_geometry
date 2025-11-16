@@ -210,7 +210,7 @@ namespace erl::geometry {
         }
         long end_point_index = -1;
         distance = std::numeric_limits<Dtype>::infinity();
-        m_kd_tree_->Nearest(position_world, end_point_index, distance);
+        ERL_ASSERT_GT(m_kd_tree_->Nearest(position_world, end_point_index, distance), 0);
         const long rows = m_end_pts_world_.rows();
         end_point_col_index = end_point_index / rows;
         end_point_row_index = end_point_index - end_point_col_index * rows;
