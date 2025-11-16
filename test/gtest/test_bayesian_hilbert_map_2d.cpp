@@ -377,11 +377,13 @@ TestImpl2D() {
 
         {
             ERL_BLOCK_TIMER_MSG("dataset generation");
+            std::vector<long> point_indices;
             std::vector<long> hit_indices;
             bhm.GenerateDataset(
                 pose.template head<2>(),
                 points,
-                std::vector<long>{},
+                point_indices,
+                0,
                 g_options.max_dataset_size,
                 num_points,
                 dataset_points,

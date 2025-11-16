@@ -181,6 +181,9 @@ namespace erl::geometry {
          * @param points point cloud in the world frame of the sensor measurement.
          * @param point_indices indices of the points in the point cloud that are valid for dataset.
          * If empty, all points will be used.
+         * @param max_num_rays maximum number of rays to use for dataset generation. If positive and
+         * the number of points in the point cloud or the size of point_indices exceeds this value,
+         * will sample this number of rays randomly from the point cloud.
          * @param max_dataset_size maximum number of points in the dataset. -1 means no limit.
          * @param num_samples number of points in the dataset.
          * @param dataset_points points in the dataset.
@@ -192,7 +195,8 @@ namespace erl::geometry {
         GenerateDataset(
             const Eigen::Ref<const VectorD> &sensor_position,
             const Eigen::Ref<const MatrixDX> &points,
-            const std::vector<long> &point_indices,
+            std::vector<long> &point_indices,
+            std::size_t max_num_rays,
             long max_dataset_size,
             long &num_samples,
             MatrixDX &dataset_points,
@@ -218,7 +222,8 @@ namespace erl::geometry {
         Update(
             const Eigen::Ref<const VectorD> &sensor_position,
             const Eigen::Ref<const MatrixDX> &points,
-            const std::vector<long> &point_indices,
+            std::vector<long> &point_indices,
+            std::size_t max_num_rays,
             long max_dataset_size,
             long &num_samples,
             MatrixDX &dataset_points,
