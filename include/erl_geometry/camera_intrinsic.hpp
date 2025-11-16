@@ -57,6 +57,21 @@ namespace erl::geometry {
             return {image_height, image_width};
         }
 
+        std::pair<long, long>
+        Resize(Dtype factor_height, Dtype factor_width) {
+            const auto old_image_height = static_cast<Dtype>(image_height);
+            const auto old_image_width = static_cast<Dtype>(image_width);
+            image_height = static_cast<int>(image_height * factor_height);
+            image_width = static_cast<int>(image_width * factor_width);
+            const Dtype factor_x = static_cast<Dtype>(image_width) / old_image_width;
+            camera_fx *= factor_x;
+            camera_cx *= factor_x;
+            const Dtype factor_y = static_cast<Dtype>(image_height) / old_image_height;
+            camera_fy *= factor_y;
+            camera_cy *= factor_y;
+            return {image_height, image_width};
+        }
+
         void
         ComputeFrameDirection(const long u, const long v, Dtype &dir_x, Dtype &dir_y, Dtype &dir_z)
             const {

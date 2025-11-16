@@ -29,6 +29,11 @@ namespace erl::geometry {
             Resize(Dtype factor) {
                 return camera_intrinsic.Resize(factor);
             }
+
+            std::pair<long, long>
+            Resize(Dtype factor_height, Dtype factor_width) {
+                return camera_intrinsic.Resize(factor_height, factor_width);
+            }
         };
 
     private:

@@ -17,7 +17,12 @@ BindCameraIntrinsicImpl(const py::module &m, const char *name) {
         .def_readwrite("camera_cx", &T::camera_cx)
         .def_readwrite("camera_cy", &T::camera_cy)
         .def_property_readonly("matrix", &T::GetIntrinsicMatrix)
-        .def("resize", &T::Resize, py::arg("factor"))
+        .def("resize", py::overload_cast<Dtype>(&T::Resize), py::arg("factor"))
+        .def(
+            "resize",
+            py::overload_cast<Dtype, Dtype>(&T::Resize),
+            py::arg("factor_height"),
+            py::arg("factor_width"))
         .def(
             "compute_frame_direction",
             [](const T &self, const long u, const long v) {
@@ -36,7 +41,10 @@ BindCameraIntrinsicImpl(const py::module &m, const char *name) {
             })
         .def(
             "convert_depth_to_distance",
-            [](const T &self, const Eigen::MatrixX<Dtype> &depth, const cv::Mat &rgb, const std::optional<Eigen::Matrix4<Dtype>> &optical_pose) {
+            [](const T &self,
+               const Eigen::MatrixX<Dtype> &depth,
+               const cv::Mat &rgb,
+               const std::optional<Eigen::Matrix4<Dtype>> &optical_pose) {
                 std::vector<Eigen::Vector3<Dtype>> points, colors;
                 self.ConvertRgbdToPointCloud(depth, rgb, optical_pose, points, colors);
                 py::dict out;

@@ -42,6 +42,9 @@ namespace erl::geometry {
 
             std::pair<long, long>
             Resize(Dtype factor);
+
+            std::pair<long, long>
+            Resize(Dtype factor_azimuth, Dtype factor_elevation);
         };
 
     protected:
