@@ -97,8 +97,9 @@ struct YAML::convert<erl::geometry::Aabb<Dtype, Dim>> {
 };
 
 template<typename Dtype, int Dim>
-struct erl::common::program_options::ParseOption<erl::geometry::Aabb<Dtype, Dim>> {
-    static void
+struct erl::common::program_options::ParseOption<erl::geometry::Aabb<Dtype, Dim>>
+    : erl::common::program_options::ParseOptionBase {
+    void
     Run(ProgramOptionsData &po_data,
         const std::string &option_name,
         erl::geometry::Aabb<Dtype, Dim> &member) {
