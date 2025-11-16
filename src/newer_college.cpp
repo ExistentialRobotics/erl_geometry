@@ -10,11 +10,12 @@ namespace erl::geometry {
 
     Eigen::MatrixXd
     NewerCollege::Frame::GetRangeMatrix() const {
-        Eigen::MatrixXd range_matrix = Eigen::MatrixXd::Zero(kWidth, kHeight);
-        const double a_res = 2.0 * M_PI / static_cast<double>(kWidth);
-        const double e_res = kVerticalFov / static_cast<double>(kHeight);
-        const double e_min = -kVerticalFov / 2.0;
+        Eigen::MatrixXd range_matrix = Eigen::MatrixXd::Zero(kNumAzimuthLines, kNumElevationLines);
+        constexpr double a_res = 2.0 * M_PI / static_cast<double>(kNumAzimuthLines);
+        constexpr double e_res = kVerticalFov / static_cast<double>(kNumElevationLines);
+        constexpr double e_min = -kVerticalFov / 2.0;
 
+        (void) points;
 #pragma omp parallel for default(none) schedule(static) shared(range_matrix, a_res, e_res)
         for (long i = 0; i < points.cols(); ++i) {
             Eigen::Vector3d p = points.col(i);
@@ -23,7 +24,10 @@ namespace erl::geometry {
             common::DirectionToAzimuthElevation<double>(p / r, azimuth, elevation);
             long a_idx = static_cast<long>(std::floor((azimuth + M_PI) / a_res));
             long e_idx = static_cast<long>(std::floor((elevation - e_min) / e_res));
-            if (a_idx < 0 || a_idx >= kWidth || e_idx < 0 || e_idx >= kHeight) { continue; }
+            if (a_idx < 0 || a_idx >= kNumAzimuthLines || e_idx < 0 ||
+                e_idx >= kNumElevationLines) {
+                continue;
+            }
             range_matrix(a_idx, e_idx) = r;
         }
         return range_matrix;

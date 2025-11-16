@@ -1,6 +1,6 @@
-#include "lidar_frame_3d.hpp"
+#pragma once
 
-#include "erl_common/eigen.hpp"
+#include "lidar_frame_3d.hpp"
 
 #include <open3d/geometry/PointCloud.h>
 #include <open3d/geometry/TriangleMesh.h>
@@ -10,11 +10,11 @@
 namespace erl::geometry {
 
     class NewerCollege {
-
-        inline static const long kNumFrames = 1988;
-        inline static const long kWidth = 1024;
-        inline static const long kHeight = 128;
-        inline static const double kVerticalFov = M_PI_2;
+    public:
+        static constexpr long kNumAzimuthLines = 1024;
+        static constexpr long kNumFrames = 1988;
+        static constexpr long kNumElevationLines = 128;
+        static constexpr double kVerticalFov = M_PI_2;
         inline static const Eigen::Matrix4d kOrientedBoundingBoxPose = []() -> Eigen::Matrix4d {
             Eigen::Matrix4d pose;
             // clang-format off
@@ -28,9 +28,10 @@ namespace erl::geometry {
         inline static const Eigen::Vector3d kOrientedBoundingBoxSize = {97.2007, 78.4891, 28.4871};
         inline static const Eigen::Vector3d kMinBound = {-14.63119532, -71.84256392, -2.95865968};
         inline static const Eigen::Vector3d kMaxBound = {62.0303405, 9.5561026, 23.65667085};
-        inline static const double kValidRangeMin = 0.6;
-        inline static const double kValidRangeMax = 50.0;
+        static constexpr double kValidRangeMin = 0.6;
+        static constexpr double kValidRangeMax = 50.0;
 
+    private:
         std::filesystem::path m_directory_;
         Eigen::Matrix<double, 7, Eigen::Dynamic> m_poses_;  // (x, y, z, qx, qy, qz, qw)
 
@@ -55,18 +56,18 @@ namespace erl::geometry {
         [[nodiscard]] std::shared_ptr<open3d::geometry::TriangleMesh>
         GetGroundTruthMesh() const;
 
-        [[nodiscard]] long
-        Size() const {
+        [[nodiscard]] static long
+        Size() {
             return kNumFrames;
         }
 
-        [[nodiscard]] Eigen::Vector3d
-        GetMapMin() const {
+        [[nodiscard]] static Eigen::Vector3d
+        GetMapMin() {
             return kMinBound;
         }
 
-        [[nodiscard]] Eigen::Vector3d
-        GetMapMax() const {
+        [[nodiscard]] static Eigen::Vector3d
+        GetMapMax() {
             return kMaxBound;
         }
 
