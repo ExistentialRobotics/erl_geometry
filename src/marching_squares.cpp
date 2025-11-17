@@ -133,14 +133,14 @@ namespace erl::geometry {
     };
 
     template<typename Dtype>
-    int
-    CalculateVertexConfigIndexImpl(const Dtype *vertex_values, Dtype iso_value) {
+    static int
+    CalculateVertexConfigIndexImpl2D(const Dtype *vertex_values, Dtype iso_value) {
         return (vertex_values[0] <= iso_value ? 1 : 0) | (vertex_values[1] <= iso_value ? 2 : 0) |
                (vertex_values[2] <= iso_value ? 4 : 0) | (vertex_values[3] <= iso_value ? 8 : 0);
     }
 
     template<typename Dtype>
-    void
+    static void
     MarchingSingleSquareImpl(
         const Eigen::Ref<const Eigen::Matrix<Dtype, 2, 4>> &vertex_coords,
         const Eigen::Ref<const Eigen::Vector<Dtype, 4>> &values,
@@ -151,7 +151,7 @@ namespace erl::geometry {
         vertices.clear();
         lines.clear();
 
-        const int config = CalculateVertexConfigIndexImpl<Dtype>(values.data(), iso_value);
+        const int config = CalculateVertexConfigIndexImpl2D<Dtype>(values.data(), iso_value);
         if (config <= 0 || config >= 15) { return; }
 
         auto interpolate = [&](const MarchingSquares::Edge &e) -> Eigen::Vector2<Dtype> {
@@ -277,7 +277,7 @@ namespace erl::geometry {
     }
 
     template<typename Dtype>
-    void
+    static void
     MarchingSquareImpl(
         const Eigen::Ref<const Eigen::MatrixX<Dtype>> &img,
         const Dtype iso_value,
@@ -367,12 +367,12 @@ namespace erl::geometry {
     MarchingSquares::CalculateVertexConfigIndex(
         const double *vertex_values,
         const double iso_value) {
-        return CalculateVertexConfigIndexImpl<double>(vertex_values, iso_value);
+        return CalculateVertexConfigIndexImpl2D<double>(vertex_values, iso_value);
     }
 
     int
     MarchingSquares::CalculateVertexConfigIndex(const float *vertex_values, const float iso_value) {
-        return CalculateVertexConfigIndexImpl<float>(vertex_values, iso_value);
+        return CalculateVertexConfigIndexImpl2D<float>(vertex_values, iso_value);
     }
 
     void
