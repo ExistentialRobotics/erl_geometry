@@ -30,18 +30,16 @@ namespace erl::geometry {
             return false;
         }
 
-        [[nodiscard]] AbstractQuadtreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractQuadtreeNode>
         Create(const uint32_t depth, const int child_index) const override {
             CheckRuntimeType<ColoredOccupancyQuadtreeNode>(this, /*debug_only*/ true);
-            const auto node = new ColoredOccupancyQuadtreeNode(depth, child_index, /*log_odds*/ 0);
-            return node;
+            return std::make_unique<ColoredOccupancyQuadtreeNode>(depth, child_index, /*log_odds*/ 0);
         }
 
-        [[nodiscard]] AbstractQuadtreeNode *
+        [[nodiscard]] std::unique_ptr<AbstractQuadtreeNode>
         Clone() const override {
             CheckRuntimeType<ColoredOccupancyQuadtreeNode>(this, /*debug_only*/ true);
-            const auto node = new ColoredOccupancyQuadtreeNode(*this);
-            return node;
+            return std::make_unique<ColoredOccupancyQuadtreeNode>(*this);
         }
 
         const std::array<uint8_t, 4> &
@@ -86,19 +84,18 @@ namespace erl::geometry {
 
         void
         Prune() override {
-            m_color_ = reinterpret_cast<ColoredOccupancyQuadtreeNode *>(m_children_[0])->m_color_;
+            m_color_ = static_cast<ColoredOccupancyQuadtreeNode *>(m_children_[0].get())->m_color_;
             OccupancyQuadtreeNode::Prune();
         }
 
         void
         Expand() override {
-            if (m_children_ == nullptr) { m_children_ = new AbstractQuadtreeNode *[4]; }
             for (int i = 0; i < 4; ++i) {
                 // call the virtual method `Create` to make sure the child type is correct if this
                 // class is inherited
-                AbstractQuadtreeNode *child = this->Create(m_depth_ + 1, i);
-                m_children_[i] = child;
-                auto *colored_child = reinterpret_cast<ColoredOccupancyQuadtreeNode *>(child);
+                auto &child = m_children_[i];
+                child = this->Create(m_depth_ + 1, i);
+                auto *colored_child = static_cast<ColoredOccupancyQuadtreeNode *>(child.get());
                 colored_child->m_log_odds_ = m_log_odds_;
                 colored_child->m_color_ = m_color_;
             }

@@ -57,7 +57,8 @@ namespace erl::geometry {
     OccupancyQuadtreeDrawer<OccupancyQuadtreeType>::DrawTree(cv::Mat &mat) const {
         if (!mat.total()) {
             mat = cv::Mat(
-                std::vector<int>{m_grid_map_info_->Height(), m_grid_map_info_->Width()},
+                m_grid_map_info_->Height(),
+                m_grid_map_info_->Width(),
                 CV_8UC4,
                 m_setting_->bg_color);
         }

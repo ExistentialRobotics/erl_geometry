@@ -67,7 +67,7 @@ namespace erl::geometry {
         AllowMerge(const AbstractQuadtreeNode *other) const override {
             ERL_DEBUG_ASSERT(other != nullptr, "other node is nullptr.");
             ERL_DEBUG_ASSERT(
-                dynamic_cast<const OccupancyOctreeNode *>(other) != nullptr,
+                dynamic_cast<const OccupancyQuadtreeNode *>(other) != nullptr,
                 "other node is not OccupancyOctreeNode.");
             const auto *other_node = static_cast<const OccupancyQuadtreeNode *>(other);
             if (m_num_children_ > 0 || other_node->m_num_children_ > 0) { return false; }
