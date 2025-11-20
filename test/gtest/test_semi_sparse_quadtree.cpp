@@ -124,17 +124,17 @@ TEST(SemiSparseQuadtree, Build) {
         static_cast<std::streamsize>(points.size() * 2));
 
     // save children
-    SaveBinaryFile<long>(
+    SaveBinaryFile<int64_t>(
         "semi_sparse_quadtree_children.bin",
         tree->GetChildren().data(),
         tree->GetChildren().size());
 
     // save node_indices
-    SaveBinaryFile<long>(
+    SaveBinaryFile<int64_t>(
         "semi_sparse_quadtree_node_indices.bin",
         node_indices.data(),
         node_indices.size());
-    Eigen::VectorXl found_node_indices;
+    Eigen::VectorX<int64_t> found_node_indices;
     {
         ERL_BLOCK_TIMER_MSG("Find voxel indices");
         found_node_indices =

@@ -1,0 +1,72 @@
+diff --git a/3rdparty/openblas/openblas.cmake b/3rdparty/openblas/openblas.cmake
+index e9b818ddf..484a6b889 100644
+--- a/3rdparty/openblas/openblas.cmake
++++ b/3rdparty/openblas/openblas.cmake
+@@ -16,6 +16,7 @@ ExternalProject_Add(
+         ${ExternalProject_CMAKE_ARGS}
+         -DTARGET=${OPENBLAS_TARGET}
+         -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
++        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+     BUILD_BYPRODUCTS 
+         <INSTALL_DIR>/${Open3D_INSTALL_LIB_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}${lib_name}${lib_suffix}${CMAKE_STATIC_LIBRARY_SUFFIX}
+ )
+diff --git a/3rdparty/possionrecon/possionrecon.cmake b/3rdparty/possionrecon/possionrecon.cmake
+index ef5f87f94..6807aa2ed 100644
+--- a/3rdparty/possionrecon/possionrecon.cmake
++++ b/3rdparty/possionrecon/possionrecon.cmake
+@@ -3,8 +3,9 @@ include(ExternalProject)
+ ExternalProject_Add(
+     ext_poisson
+     PREFIX poisson
+-    URL https://github.com/isl-org/Open3D-PoissonRecon/archive/90f3f064e275b275cff445881ecee5a7c495c9e0.tar.gz
+-    URL_HASH SHA256=1310df0c80ff0616b8fcf9b2fb568aa9b2190d0e071b0ead47dba339c146b1d3
++    URL https://github.com/daizhirui/Open3D-PoissonRecon/archive/refs/heads/fix-build-macos10.15.tar.gz
++    URL https://github.com/daizhirui/Open3D-PoissonRecon/archive/refs/heads/fix-build-macos10.15.tar.gz
++    URL_HASH SHA256=b3d1dc6f4e736e2321bc28fbd85c19f94194563c4b751d10b610fcc57eb0ec06
+     DOWNLOAD_DIR "${OPEN3D_THIRD_PARTY_DOWNLOAD_DIR}/poisson"
+     SOURCE_DIR "poisson/src/ext_poisson/PoissonRecon" # Add extra directory level for POISSON_INCLUDE_DIRS.
+     UPDATE_COMMAND ""
+diff --git a/cmake/Open3DShowAndAbortOnWarning.cmake b/cmake/Open3DShowAndAbortOnWarning.cmake
+index c95bfa75a..3ae660814 100644
+--- a/cmake/Open3DShowAndAbortOnWarning.cmake
++++ b/cmake/Open3DShowAndAbortOnWarning.cmake
+@@ -32,9 +32,9 @@ function(open3d_show_and_abort_on_warning target)
+         )
+         string(REPLACE ";" "," DISABLE_NVCC_WARNINGS "${DISABLE_NVCC_WARNINGS}")
+ 
+-        set(CUDA_FLAGS "--Werror cross-execution-space-call,deprecated-declarations")
+-        string(APPEND CUDA_FLAGS " --Werror all-warnings")
+-        string(APPEND CUDA_FLAGS " --Werror ext-lambda-captures-this")
++        set(CUDA_FLAGS " cross-execution-space-call,deprecated-declarations")
++        string(APPEND CUDA_FLAGS "  all-warnings")
++        string(APPEND CUDA_FLAGS "  ext-lambda-captures-this")
+         string(APPEND CUDA_FLAGS " --expt-relaxed-constexpr")
+         string(APPEND CUDA_FLAGS " --diag-suppress ${DISABLE_NVCC_WARNINGS}")
+ 
+@@ -46,12 +46,12 @@ function(open3d_show_and_abort_on_warning target)
+             string(APPEND CUDA_FLAGS " -Xcompiler /W4,/WX,${CUDA_DISABLE_MSVC_WARNINGS}")
+         else()
+             # reorder breaks builds on Windows, so only enable for other platforms
+-            string(APPEND CUDA_FLAGS " --Werror reorder")
++            string(APPEND CUDA_FLAGS "  reorder")
+ 
+             set(CUDA_DISABLE_GNU_CLANG_INTEL_WARNINGS ${DISABLE_GNU_CLANG_INTEL_WARNINGS})
+             string(REPLACE ";" "," CUDA_DISABLE_GNU_CLANG_INTEL_WARNINGS "${CUDA_DISABLE_GNU_CLANG_INTEL_WARNINGS}")
+ 
+-            string(APPEND CUDA_FLAGS " -Xcompiler -Wall,-Wextra,-Werror,${CUDA_DISABLE_GNU_CLANG_INTEL_WARNINGS}")
++            string(APPEND CUDA_FLAGS " -Xcompiler -Wall,-Wextra,,${CUDA_DISABLE_GNU_CLANG_INTEL_WARNINGS}")
+         endif()
+     else()
+         set(CUDA_FLAGS "")
+@@ -59,9 +59,9 @@ function(open3d_show_and_abort_on_warning target)
+ 
+     target_compile_options(${target} PRIVATE
+         $<$<COMPILE_LANG_AND_ID:C,MSVC>:/W4 /WX ${DISABLE_MSVC_WARNINGS}>
+-        $<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang,Intel>:-Wall -Wextra -Werror ${DISABLE_GNU_CLANG_INTEL_WARNINGS}>
++        $<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang,Intel>:-Wall -Wextra ${DISABLE_GNU_CLANG_INTEL_WARNINGS}>
+         $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/W4 /WX ${DISABLE_MSVC_WARNINGS}>
+-        $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang,Intel>:-Wall -Wextra -Werror ${DISABLE_GNU_CLANG_INTEL_WARNINGS}>
++        $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang,Intel>:-Wall -Wextra ${DISABLE_GNU_CLANG_INTEL_WARNINGS}>
+         $<$<COMPILE_LANGUAGE:CUDA>:SHELL:${CUDA_FLAGS}>
+         $<$<COMPILE_LANGUAGE:ISPC>:--werror>
+     )

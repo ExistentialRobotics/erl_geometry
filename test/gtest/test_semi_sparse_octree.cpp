@@ -138,7 +138,7 @@ TEST(SemiSparseOctree, Build) {
 
     // save node_indices
     SaveBinaryFile("semi_sparse_octree_node_indices.bin", node_indices.data(), node_indices.size());
-    Eigen::VectorXl found_node_indices;
+    Eigen::VectorX<int64_t> found_node_indices;
     double dt;
     {
         ERL_BLOCK_TIMER_MSG_TIME("Find voxel indices", dt);

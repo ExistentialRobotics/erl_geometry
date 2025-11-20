@@ -13,4 +13,5 @@ add_library(octomap SHARED
         src/Pointcloud.cpp
         src/ScanGraph.cpp
 )
-target_include_directories(octomap PUBLIC include)
+target_include_directories(octomap PUBLIC include ${OpenMP_INCLUDE_DIRS})
+target_link_libraries(octomap PUBLIC ${OpenMP_LIBRARIES})

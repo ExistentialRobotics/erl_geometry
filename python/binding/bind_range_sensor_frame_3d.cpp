@@ -72,8 +72,9 @@ BindRangeSensorFrame3DImpl(const py::module &m, const char *name) {
             [](T &self, const Vector3 &xyz_frame) {
                 Dtype dist;
                 Vector2 frame_coords;
-                self.ComputeFrameCoords(xyz_frame, dist, frame_coords);
+                bool success = self.ComputeFrameCoords(xyz_frame, dist, frame_coords);
                 py::dict out;
+                out["success"] = success;
                 out["distance"] = dist;
                 out["frame_coords"] = frame_coords;
                 return out;

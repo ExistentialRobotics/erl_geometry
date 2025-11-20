@@ -47,30 +47,30 @@
 namespace erl::geometry {
 
     const std::array<MarchingSquares::Edge, 5> MarchingSquares::kBaseEdgeTable = {
-        0, 0, 0, 1,  // edge 0
-        0, 0, 1, 0,  // edge 1
-        1, 0, 1, 1,  // edge 2
-        0, 1, 1, 1,  // edge 3
-        4, 4, 4, 4   // None
+        MarchingSquares::Edge{0, 0, 0, 1},  // edge 0
+        MarchingSquares::Edge{0, 0, 1, 0},  // edge 1
+        MarchingSquares::Edge{1, 0, 1, 1},  // edge 2
+        MarchingSquares::Edge{0, 1, 1, 1},  // edge 3
+        MarchingSquares::Edge{4, 4, 4, 4},  // None
     };
 
     const std::array<std::array<MarchingSquares::Edge, 4>, 16> MarchingSquares::kEdgePairTable = {
-        kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[1], kBaseEdgeTable[2],  // and 1, 2
-        kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[3],  // and 2, 3
-        kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
-        kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4],  //
+        std::array{kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[1], kBaseEdgeTable[2]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[3]},  //
+        std::array{kBaseEdgeTable[1], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[2], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[2], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[0], kBaseEdgeTable[3], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
+        std::array{kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4], kBaseEdgeTable[4]},  //
     };  // 16 x 4 Edge, 16 x 16 long
 
     const int MarchingSquares::kUniqueEdgeIndexTable[16][5] = {

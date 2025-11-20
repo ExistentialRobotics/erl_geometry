@@ -1,3 +1,4 @@
+erl_config_openmp()
 erl_config_nanoflann()
 erl_config_qhull()
 erl_config_absl()
