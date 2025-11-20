@@ -12,22 +12,7 @@ endif ()
 
 erl_project_setup(ERL_PACKAGES erl_common erl_covariance)
 include(cmake/erl_geometry_dependencies.cmake)
-
-if (ERL_BUILD_TEST_${PROJECT_NAME})
-    add_subdirectory(deps/octomap) # test_occupancy_octree_impls depends on octomap
-    erl_config_cgal()
-
-    if (NOT CGAL_FOUND)
-        erl_ignore_gtest(test_convex_hull_3d_impls.cpp)
-        message(WARNING "CGAL not found, ignoring test_convex_hull_3d_impls")
-    endif ()
-
-    erl_set_gtest_extra_libraries(test_convex_hull_3d_impls CGAL::CGAL)
-    erl_set_gtest_extra_libraries(test_occupancy_octree_build_profiling octomap)
-    erl_set_gtest_extra_libraries(test_occupancy_octree_impls octomap)
-endif ()
-
-erl_setup_ros(LIBRARIES ${PROJECT_NAME} #
+erl_setup_ros(LIBRARIES ${PROJECT_NAME}
               CFG_EXTRAS erl_geometry_dependencies.cmake)
 
 # #######
@@ -43,9 +28,6 @@ if (CMAKE_CUDA_COMPILER)
     list(APPEND SRC_FILES ${CUDA_SRC_FILES})
 endif ()
 add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
-if (CMAKE_CUDA_COMPILER)
-    set_target_properties(${PROJECT_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-endif ()
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 erl_collect_targets(LIBRARIES ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -56,10 +38,7 @@ erl_target_dependencies(
     ${PROJECT_NAME} PUBLIC
     ${Open3D_LIBRARIES} nanoflann::nanoflann Qhull::qhullcpp Qhull::qhull_r
     absl::flat_hash_map absl::flat_hash_set)
-if (ERL_USE_LIBTORCH)
-    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${TORCH_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${TORCH_LIBRARIES})
-endif ()
+erl_link_libtorch(${PROJECT_NAME})
 erl_dump_compile_definitions(include/${PROJECT_NAME}/compile_definitions.hpp)
 
 # #################
@@ -69,10 +48,7 @@ erl_add_pybind_module(
     PYBIND_MODULE_NAME py${PROJECT_NAME}
     PYBIND_SRC_DIR ${${PROJECT_NAME}_PYTHON_BINDING_DIR}
     LIBRARIES ${PROJECT_NAME})
-if (ERL_USE_LIBTORCH)
-    get_filename_component(TORCH_LIBRARIES_DIR "${Torch_DIR}/../../../lib" ABSOLUTE)
-    target_link_libraries(py${PROJECT_NAME} PRIVATE "${TORCH_LIBRARIES_DIR}/libtorch_python.so")
-endif ()
+erl_link_libtorch_python(py${PROJECT_NAME})
 erl_add_python_package()
 
 # #########
@@ -88,6 +64,19 @@ erl_install(
 # ######
 # TEST #
 # ######
+if (ERL_BUILD_TEST_${PROJECT_NAME})
+    add_subdirectory(deps/octomap) # test_occupancy_octree_impls depends on octomap
+    erl_config_cgal()
+
+    if (NOT CGAL_FOUND)
+        erl_ignore_gtest(test_convex_hull_3d_impls.cpp)
+        message(WARNING "CGAL not found, ignoring test_convex_hull_3d_impls")
+    endif ()
+
+    erl_set_gtest_extra_libraries(test_convex_hull_3d_impls CGAL::CGAL)
+    erl_set_gtest_extra_libraries(test_occupancy_octree_build_profiling octomap)
+    erl_set_gtest_extra_libraries(test_occupancy_octree_impls octomap)
+endif ()
 erl_add_tests(
     LIBRARIES ${PROJECT_NAME}
     EXCLUDE_FROM_ALL

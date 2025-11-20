@@ -1,4 +1,5 @@
 #include "erl_common/pybind11.hpp"
+#include "erl_common/pybind11_yaml.hpp"
 #include "erl_geometry/log_odd_map_2d.hpp"
 
 template<typename Dtype>
@@ -44,8 +45,6 @@ BindLogOddMap2DImpl(const py::module &m, const char *name) {
             py::arg("setting").none(false),
             py::arg("grid_map_info"),
             py::arg("shape_vertices"))
-        .def_static("get_cell_type_name", &T::GetCellTypeName, py::arg("cell_type"))
-        .def_static("get_cell_type_from_name", &T::GetCellTypeFromName, py::arg("cell_type_name"))
         .def("update", &T::Update, py::arg("position"), py::arg("theta"), py::arg("points"))
         .def(
             "load_external_possibility_map",
@@ -151,19 +150,8 @@ void
 BindLogOddMap2D(const py::module &m) {
     using namespace erl::geometry;
     py::class_<LogOddMap, std::shared_ptr<LogOddMap>> py_log_odd_map(m, "LogOddMap");
-    py::enum_<LogOddMap::CellType>(
-        py_log_odd_map,
-        "CellType",
-        py::arithmetic(),
-        "Type of grid cell.")
-        .value(
-            LogOddMap::GetCellTypeName(LogOddMap::CellType::kOccupied),
-            LogOddMap::CellType::kOccupied)
-        .value(
-            LogOddMap::GetCellTypeName(LogOddMap::CellType::kUnexplored),
-            LogOddMap::CellType::kUnexplored)
-        .value(LogOddMap::GetCellTypeName(LogOddMap::CellType::kFree), LogOddMap::CellType::kFree)
-        .export_values();
+
+    BindYamlableEnum<decltype(py_log_odd_map), LogOddMap::CellType, 3>(py_log_odd_map, "CellType");
 
     BindLogOddMap2DImpl<double>(m, "LogOddMap2Dd");
     BindLogOddMap2DImpl<float>(m, "LogOddMap2Df");

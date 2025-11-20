@@ -120,7 +120,7 @@ namespace erl::geometry {
                   m_grid_map_info_->Shape(0),
                   m_grid_map_info_->Shape(1),
                   CV_8UC1,
-                  cv::Scalar{kUnexplored}),
+                  cv::Scalar{static_cast<int>(CellType::kUnexplored)}),
               m_kernel_(
                   cv::getStructuringElement(
                       m_setting_->use_cross_kernel ? cv::MORPH_CROSS : cv::MORPH_RECT,
@@ -167,7 +167,7 @@ namespace erl::geometry {
             for (int row = 0; row < mask->mask.rows; ++row) {
                 for (int col = 0; col < mask->mask.cols; ++col) {
                     const auto &mask_value = mask->mask.template at<uint8_t>(row, col);
-                    if (mask_value == kUnexplored) { continue; }
+                    if (mask_value == static_cast<int>(CellType::kUnexplored)) { continue; }
 
                     const int x = mask->x_grid_min + row;
                     const int y = mask->y_grid_min + col;
@@ -179,7 +179,7 @@ namespace erl::geometry {
                     auto &unexplored_mask_value =
                         m_mask_.unexplored_mask.template at<uint8_t>(x, y);
 
-                    if (mask_value == kOccupied) {
+                    if (mask_value == static_cast<int>(CellType::kOccupied)) {
                         log_odd_value += log_odd_hit;
                     } else {
                         log_odd_value += log_odd_miss;
@@ -193,28 +193,32 @@ namespace erl::geometry {
                     possibility_value = 1.0f / (1.0f + std::exp(-log_odd_value));
 
                     if (possibility_value > m_setting_->threshold_occupied) {
-                        if (occupancy_value == kFree) {  // kFree -> kOccupied
+                        if (occupancy_value == static_cast<int>(CellType::kFree)) {
+                            // kFree -> kOccupied
                             m_num_free_cells_--;
                             m_num_occupied_cells_++;
                             free_mask_value = 0;
-                        } else if (occupancy_value == kUnexplored) {  // kUnexplored -> kOccupied
+                        } else if (occupancy_value == static_cast<int>(CellType::kUnexplored)) {
+                            // kUnexplored -> kOccupied
                             m_num_unexplored_cells_--;
                             m_num_occupied_cells_++;
                             unexplored_mask_value = 0;
                         }
-                        occupancy_value = kOccupied;
+                        occupancy_value = static_cast<int>(CellType::kOccupied);
                         occupied_mask_value = 1;
                     } else if (possibility_value < m_setting_->threshold_free) {
-                        if (occupancy_value == kOccupied) {  // kOccupied -> kFree
+                        if (occupancy_value == static_cast<int>(CellType::kOccupied)) {
+                            // kOccupied -> kFree
                             m_num_occupied_cells_--;
                             m_num_free_cells_++;
                             occupied_mask_value = 0;
-                        } else if (occupancy_value == kUnexplored) {  // kUnexplored -> kFree
+                        } else if (occupancy_value == static_cast<int>(CellType::kUnexplored)) {
+                            // kUnexplored -> kFree
                             m_num_unexplored_cells_--;
                             m_num_free_cells_++;
                             unexplored_mask_value = 0;
                         }
-                        occupancy_value = kFree;
+                        occupancy_value = static_cast<int>(CellType::kFree);
                         free_mask_value = 1;
                     }
                 }
@@ -266,7 +270,7 @@ namespace erl::geometry {
                     m_grid_map_info_->Shape(0),
                     m_grid_map_info_->Shape(1),
                     CV_8UC1,
-                    cv::Scalar{kUnexplored});
+                    cv::Scalar{static_cast<int>(CellType::kUnexplored)});
                 m_mask_ = LogOddCVMask(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1));
                 m_cleaned_mask_ =
                     LogOddCVMask(m_grid_map_info_->Shape(0), m_grid_map_info_->Shape(1));
@@ -308,7 +312,7 @@ namespace erl::geometry {
                     if (p_col[i] == -1) {
                         log_odd_value = 0.0f;
                         possibility_value = 0.5f;
-                        occupancy_value = kUnexplored;
+                        occupancy_value = static_cast<int>(CellType::kUnexplored);
                         free_mask_value = 0;
                         occupied_mask_value = 0;
                         unexplored_mask_value = 1;
@@ -317,19 +321,19 @@ namespace erl::geometry {
                         possibility_value = static_cast<Dtype>(p_col[i]) / 100.0f;
                         log_odd_value = std::log(possibility_value / (1.0f - possibility_value));
                         if (possibility_value > m_setting_->threshold_occupied) {
-                            occupancy_value = kOccupied;
+                            occupancy_value = static_cast<int>(CellType::kOccupied);
                             free_mask_value = 0;
                             occupied_mask_value = 1;
                             unexplored_mask_value = 0;
                             ++n_occupied;
                         } else if (possibility_value < m_setting_->threshold_free) {
-                            occupancy_value = kFree;
+                            occupancy_value = static_cast<int>(CellType::kFree);
                             free_mask_value = 1;
                             occupied_mask_value = 0;
                             unexplored_mask_value = 0;
                             ++n_free;
                         } else {
-                            occupancy_value = kUnexplored;
+                            occupancy_value = static_cast<int>(CellType::kUnexplored);
                             free_mask_value = 0;
                             occupied_mask_value = 0;
                             unexplored_mask_value = 1;
@@ -604,7 +608,11 @@ namespace erl::geometry {
                 if (old_mask == nullptr) { return mask; }
                 return mask;
             }
-            mask->mask = cv::Mat(n_rows, n_cols, CV_8UC1, cv::Scalar(kUnexplored));
+            mask->mask = cv::Mat(
+                n_rows,
+                n_cols,
+                CV_8UC1,
+                cv::Scalar(static_cast<int>(CellType::kUnexplored)));
 
             // copy the old mask if provided
             if (old_mask != nullptr && old_mask->mask.rows > 0 && old_mask->mask.cols > 0) {
@@ -624,9 +632,21 @@ namespace erl::geometry {
                 }
             }
             if (ray_mode) {
-                cv::polylines(mask->mask, area_contours, false, kFree, 1, cv::LINE_8);
+                cv::polylines(
+                    mask->mask,
+                    area_contours,
+                    false,
+                    static_cast<int>(CellType::kFree),
+                    1,
+                    cv::LINE_8);
             } else {
-                cv::drawContours(mask->mask, area_contours, 0, kFree, cv::FILLED, cv::LINE_8);
+                cv::drawContours(
+                    mask->mask,
+                    area_contours,
+                    0,
+                    static_cast<int>(CellType::kFree),
+                    cv::FILLED,
+                    cv::LINE_8);
             }
 
             // draw the occupied grids
@@ -635,7 +655,7 @@ namespace erl::geometry {
                 const int x = p[0] - mask->x_grid_min;
                 if (const int y = p[1] - mask->y_grid_min;
                     x >= 0 && x < n_rows && y >= 0 && y < n_cols) {
-                    mask->mask.template at<uint8_t>(x, y) = kOccupied;
+                    mask->mask.template at<uint8_t>(x, y) = static_cast<int>(CellType::kOccupied);
                 }
             }
 

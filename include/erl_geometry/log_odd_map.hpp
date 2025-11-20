@@ -1,5 +1,8 @@
 #pragma once
 
+#include "erl_common/enum_parse.hpp"
+#include "erl_common/reflection.hpp"
+
 #include <stdexcept>
 #include <string>
 
@@ -9,22 +12,14 @@ namespace erl::geometry {
         // occupancy grid cell types.
         // the number is consistent with nav_msgs/OccupancyGrid.
         // https://docs.ros.org/en/api/nav_msgs/html/msg/OccupancyGrid.html
-        enum CellType { kOccupied = 100, kFree = 0, kUnexplored = 255 };
-
-        static const char *
-        GetCellTypeName(const CellType type) {
-            static const char *names[] = {"kOccupied", "kUnexplored", "kFree"};
-
-            const int i = (static_cast<int>(type) + 1) / 128;
-            return names[i];
-        }
-
-        static CellType
-        GetCellTypeFromName(const std::string &name) {
-            if (name == "kOccupied") { return kOccupied; }
-            if (name == "kFree") { return kFree; }
-            if (name == "kUnexplored") { return kUnexplored; }
-            throw std::runtime_error("Unknown cell type: " + name);
-        }
+        enum class CellType { kOccupied = 100, kFree = 0, kUnexplored = 255 };
     };
 }  // namespace erl::geometry
+
+ERL_REFLECT_ENUM_SCHEMA(
+    erl::geometry::LogOddMap::CellType,
+    3,
+    ERL_REFLECT_ENUM_MEMBER("occupied", erl::geometry::LogOddMap::CellType::kOccupied),
+    ERL_REFLECT_ENUM_MEMBER("free", erl::geometry::LogOddMap::CellType::kFree),
+    ERL_REFLECT_ENUM_MEMBER("unexplored", erl::geometry::LogOddMap::CellType::kUnexplored));
+ERL_PARSE_ENUM(erl::geometry::LogOddMap::CellType, 3);

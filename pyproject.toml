@@ -20,7 +20,7 @@ maintainers = [
     { name = "Zhirui Dai", email = "daizhirui@hotmail.com" }
 ]
 readme = "README.md"
-license = "MIT"
+license = { file = "LICENSE" }
 requires-python = ">=3.8"
 dependencies = [
     "setuptools",
