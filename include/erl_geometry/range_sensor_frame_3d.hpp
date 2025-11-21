@@ -250,7 +250,7 @@ namespace erl::geometry {
 
         void
         ComputeRaysAt(
-            const Eigen::Ref<const Vector3> &position_world,
+            const Vector3 &position_world,
             Matrix3X &directions_world,
             VectorX &distances,
             std::vector<long> &visible_hit_point_indices) const;

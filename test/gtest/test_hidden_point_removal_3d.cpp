@@ -22,14 +22,14 @@ struct OctreeNode : public erl::geometry::OccupancyOctreeNode {
         const float log_odds = 0)
         : OccupancyOctreeNode(depth, child_index, log_odds) {}
 
-    [[nodiscard]] AbstractOctreeNode *
+    [[nodiscard]] std::unique_ptr<AbstractOctreeNode>
     Create(const uint32_t depth, const int child_index) const override {
-        return new OctreeNode(depth, child_index, /*log_odds*/ 0);
+        return std::make_unique<OctreeNode>(depth, child_index, /*log_odds*/ 0);
     }
 
-    [[nodiscard]] AbstractOctreeNode *
+    [[nodiscard]] std::unique_ptr<AbstractOctreeNode>
     Clone() const override {
-        return new OctreeNode(*this);
+        return std::make_unique<OctreeNode>(*this);
     }
 };
 
@@ -56,7 +56,7 @@ protected:
     }
 };
 
-TEST(HiddenPointRemoval, Basic) {
+TEST(HiddenPointRemoval3D, Basic) {
     std::filesystem::path ply_path = ERL_GEOMETRY_ROOT_DIR;
     ply_path /= "data/bunny.ply";
     std::cout << "ply_path: " << ply_path << std::endl;
@@ -170,7 +170,7 @@ TEST(HiddenPointRemoval, Basic) {
                 case Mode::kErlHiddenPointRemoval: {
                     // compute visible points
                     std::vector<long> visible_point_indices;
-                    erl::geometry::HiddenPointRemoval<double>(
+                    erl::geometry::HiddenPointRemoval<double, 3>(
                         points,
                         camera_position,
                         radius_scale,

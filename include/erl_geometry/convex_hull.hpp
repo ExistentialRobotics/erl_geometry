@@ -10,6 +10,7 @@ namespace erl::geometry {
      * @tparam Container A container class that uses contiguous per-point ordering storage and
      * provides .data() methods.
      * @param points
+     * @param dim The dimension of the points.
      * @param num_points
      * @param hull_pt_map variable to store the indices of the points on the convex hull.
      * @param options Options for qhull, e.g. "QJ" to joggle inputs. "QgGn" to generate a partial
@@ -20,6 +21,7 @@ namespace erl::geometry {
     void
     ConvexHull(
         const double *points,
+        int dim,
         int num_points,
         std::vector<long> &hull_pt_map,
         const std::string &options = "Qt");

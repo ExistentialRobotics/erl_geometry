@@ -1,6 +1,5 @@
 #include "erl_geometry/convex_hull.hpp"
 
-// #include <libqhullcpp/PointCoordinates.h>
 #include <libqhullcpp/Qhull.h>
 #include <libqhullcpp/QhullFacet.h>
 #include <libqhullcpp/QhullFacetList.h>
@@ -10,13 +9,14 @@ namespace erl::geometry {
     void
     ConvexHull(
         const double *points,
+        int dim,
         int num_points,
         std::vector<long> &hull_pt_map,
         const std::string &options) {
         ERL_ASSERTM(num_points > 0, "num_points = {}, it should be > 0.", num_points);
 
         // calculate convex hull
-        orgQhull::Qhull qhull("", 3, num_points, points, options.c_str());
+        orgQhull::Qhull qhull("", dim, num_points, points, options.c_str());
         ERL_DEBUG_ASSERT(qhull.initialized(), "qhull is not initialized.");
 
         if (qhull.vertexCount() == 0) {

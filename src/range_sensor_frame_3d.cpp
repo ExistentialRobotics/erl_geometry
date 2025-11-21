@@ -493,7 +493,7 @@ namespace erl::geometry {
     template<typename Dtype>
     void
     RangeSensorFrame3D<Dtype>::ComputeRaysAt(
-        const Eigen::Ref<const Vector3> &position_world,
+        const Vector3 &position_world,
         Matrix3X &directions_world,
         VectorX &distances,
         std::vector<long> &visible_hit_point_indices) const {
@@ -835,7 +835,7 @@ namespace erl::geometry {
                 m_translation_ + r * m_dirs_world_(hit_azimuth_index, hit_elevation_index);
             Dtype radius = (m_max_valid_range_ + (position_scan - m_translation_).norm()) * 10.0f;
             visible_hit_point_indices.clear();
-            HiddenPointRemoval<Dtype>(
+            HiddenPointRemoval(
                 m_hit_points_world_,
                 position_scan,
                 radius,
@@ -844,7 +844,7 @@ namespace erl::geometry {
                 false);
 
             if (static_cast<long>(visible_hit_point_indices.size()) == 0) {
-                position_idx--;  // retry
+                --position_idx;  // retry
                 continue;
             }
 
