@@ -3079,7 +3079,6 @@ namespace erl::geometry {
             ERL_INFO("Empty octree.\n");
             return os;
         }
-        // TODO: implement Print for non-empty octree
         std::vector<std::tuple<OctreeKey, int, const Node *, std::string, bool>> nodes_stack;
         nodes_stack.push_back({CoordToKey(0.0, 0.0, 0.0), -1, m_root_.get(), "", true});
         const char *last_child_prefix = "└── ";
@@ -3096,9 +3095,15 @@ namespace erl::geometry {
             } else {
                 os << (last_child ? last_child_prefix : child_prefix) << child_index << ':';
             }
-            os << '@' << fmt::format("0x{:016x}", reinterpret_cast<uint64_t>(node));
+            os  //
+                << '@' << std::hex
+                << reinterpret_cast<uint64_t>(static_cast<const AbstractOctreeNode *>(node))
+                << std::dec;
             if (node == nullptr) { continue; }
-            os << std::string(key);
+            os  //
+                << std::string(key)
+                << " [Center: " << this->KeyToCoord(key, node->GetDepth()).transpose()
+                << ", Size: " << this->GetNodeSize(node->GetDepth()) << "]";
             os << " [";
             node->Print(os);
             os << "]\n";
@@ -3114,7 +3119,8 @@ namespace erl::geometry {
                 }
                 OctreeKey child_key;
                 OctreeKey::ComputeChildKey(i, center_offset_key, key, child_key);
-                nodes_stack.push_back({child_key, i, GetNodeChild(node, i), next_prefix, next_last_child});
+                nodes_stack.push_back(
+                    {child_key, i, GetNodeChild(node, i), next_prefix, next_last_child});
                 ++num_children;
             }
         }
