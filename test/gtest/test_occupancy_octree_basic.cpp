@@ -515,19 +515,25 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_EQ(tree->GetSize(), 67);  // 32: level 4, increase 8x5 nodes
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
 
+    std::ofstream ofs("tree_layout1.txt", std::ios::out);
+    tree->Print(ofs);
+    ofs.close();
+
     // delete, expand, prune of single node
     std::size_t init_size = tree->GetSize();
+    OctreeKey parent_key = tree->CoordToKey(-0.2, -0.2, -0.2);
+    uint32_t search_depth = tree->GetTreeDepth() - 1;
+    auto *parent_node = const_cast<OccupancyOctreeNode *>(tree->Search(parent_key, search_depth));
     auto new_node = tree->UpdateNode(-0.2, -0.2, -0.2, occupied, lazy_eval);
     EXPECT_TRUE(new_node != nullptr);
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
     EXPECT_EQ(tree->GetSize(), init_size + 16);
 
     // find parent of newly inserted node
-    unsigned int search_depth = tree->GetTreeDepth() - 1;
-    OctreeKey parent_key = tree->CoordToKey(-0.2, -0.2, -0.2);
-    auto *parent_node = const_cast<OccupancyOctreeNode *>(tree->Search(parent_key, search_depth));
+    parent_node = const_cast<OccupancyOctreeNode *>(tree->Search(parent_key, search_depth));
     EXPECT_TRUE(parent_node != nullptr);
     EXPECT_TRUE(parent_node->HasAnyChild());
+    EXPECT_EQ(parent_node->GetNumChildren(), 1);
     // only one child exists
     EXPECT_TRUE(parent_node->GetChild<OccupancyOctreeNode>(0) != nullptr);
     EXPECT_TRUE(parent_node->GetChild<OccupancyOctreeNode>(1) == nullptr);

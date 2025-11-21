@@ -16,6 +16,7 @@ struct Options : erl::common::Yamlable<Options> {
     double valid_range_max = 1000;
     int frame_depth = 0;
     int frame_rgb = 0;
+    long max_wp_idx = erl::geometry::CowAndLady::kEndIdx;
     bool show_gt = false;
     bool use_icp = false;
     bool hold = false;
@@ -27,6 +28,7 @@ struct Options : erl::common::Yamlable<Options> {
         ERL_REFLECT_MEMBER(Options, valid_range_max),
         ERL_REFLECT_MEMBER(Options, frame_depth),
         ERL_REFLECT_MEMBER(Options, frame_rgb),
+        ERL_REFLECT_MEMBER(Options, max_wp_idx),
         ERL_REFLECT_MEMBER(Options, show_gt),
         ERL_REFLECT_MEMBER(Options, use_icp),
         ERL_REFLECT_MEMBER(Options, hold));
@@ -65,7 +67,7 @@ TEST(CowAndLady, Load) {
     long wp_idx = 0;
     auto callback = [&](erl::geometry::Open3dVisualizerWrapper *wrapper,
                         open3d::visualization::Visualizer *vis) -> bool {
-        if (wp_idx >= cow_and_lady.Size()) {
+        if (wp_idx >= g_options.max_wp_idx) {
             // compute chamfer distance
             wrapper->SetAnimationCallback(nullptr);
             if (!g_options.hold) { vis->Close(); }
@@ -104,7 +106,7 @@ TEST(CowAndLady, Load) {
         cv::imshow("depth_jet", depth_jet);
         cv::imshow("color", color);
         cv::waitKey(1);
-        wp_idx++;
+        ++wp_idx;
 
         return true;
     };
@@ -140,7 +142,7 @@ TEST(CowAndLady, Align) {
     cv::imshow("overlap", overlap);
     cv::waitKey(0);
 
-    for (long i = 0; i < cow_and_lady.Size(); ++i) {
+    for (long i = 0; i < g_options.max_wp_idx; ++i) {
         depth = cow_and_lady[i].depth_jet;
         color = cow_and_lady[i].color;
         cv::addWeighted(depth, 0.5, color, 0.5, 0, overlap);

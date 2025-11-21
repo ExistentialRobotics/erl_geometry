@@ -61,6 +61,13 @@ namespace erl::geometry {
             return s;
         }
 
+        std::ostream &
+        Print(std::ostream &os) const override {
+            AbstractOctreeNode::Print(os);
+            os << ", LogOdds: " << m_log_odds_;
+            return os;
+        }
+
         //-- pruning and expanding
 
         [[nodiscard]] bool

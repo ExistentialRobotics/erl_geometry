@@ -39,7 +39,7 @@ RunCgalImpl(const std::vector<Eigen::Vector3d> &points) {
 std::vector<long>
 RunQhullImpl(const Eigen::Matrix3Xd &points) {
     std::vector<long> indices;
-    erl::geometry::ConvexHull(points.data(), points.cols(), indices, "Q3 Q5 Q8");
+    erl::geometry::ConvexHull(points.data(), 3, points.cols(), indices, "Q3 Q5 Q8");
     return indices;
 }
 

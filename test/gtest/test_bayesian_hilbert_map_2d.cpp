@@ -8,13 +8,11 @@
 #include "erl_geometry/lidar_2d.hpp"
 #include "erl_geometry/space_2d.hpp"
 
-#include <boost/program_options.hpp>
-
 using namespace erl::common;
 using namespace erl::geometry;
 using namespace erl::covariance;
 
-struct Options : erl::common::Yamlable<Options> {
+struct Options : Yamlable<Options> {
     bool hold = true;
     int hinged_grid_size = 31;
     int max_dataset_size = 2000;
@@ -23,8 +21,7 @@ struct Options : erl::common::Yamlable<Options> {
     bool faster_prediction = true;
     std::vector<float> iso_values = {-20.f, 0.f, 20.f};
     float iso_value = 0.0f;
-    std::shared_ptr<erl::geometry::BayesianHilbertMapSetting> bhm =
-        std::make_shared<erl::geometry::BayesianHilbertMapSetting>();
+    std::shared_ptr<BayesianHilbertMapSetting> bhm = std::make_shared<BayesianHilbertMapSetting>();
 
     ERL_REFLECT_SCHEMA(
         Options,

@@ -16,3 +16,7 @@ brew install \
     zlib \
     vtk \
     pybind11
+
+# Optional
+brew install \
+    cgal

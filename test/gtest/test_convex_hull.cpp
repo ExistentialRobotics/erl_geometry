@@ -55,7 +55,7 @@ TEST(ConvexHull, Bunny) {
         auto hull_mesh =
             std::make_shared<open3d::geometry::TriangleMesh>(hull_vertices, hull_triangles);
 
-        erl::geometry::ConvexHull(points.data(), static_cast<int>(points.cols()), hull_pt_map);
+        erl::geometry::ConvexHull(points.data(), 3, static_cast<int>(points.cols()), hull_pt_map);
         auto hull_point_cloud = std::make_shared<open3d::geometry::PointCloud>();
         hull_point_cloud->points_.reserve(hull_pt_map.size());
         for (auto &i: hull_pt_map) {

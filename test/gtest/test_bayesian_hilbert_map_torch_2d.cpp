@@ -1,15 +1,32 @@
 #include "erl_common/test_helper.hpp"
+#include "erl_geometry/bayesian_hilbert_map.hpp"
 
-#include <boost/program_options.hpp>
+using namespace erl::common;
+using namespace erl::geometry;
+using namespace erl::covariance;
 
-struct Options {
+struct Options : Yamlable<Options> {
+    bool hold = true;
     int hinged_grid_size = 31;
     int max_dataset_size = 2000;
     int test_grid_size = 100;
-    float rbf_gamma = 20;
-    bool diagonal_sigma = true;
-    bool faster = true;
-    bool use_sparse = false;
+    float kernel_scale = 0.02f;
+    bool faster_prediction = true;
+    std::vector<float> iso_values = {-20.f, 0.f, 20.f};
+    float iso_value = 0.0f;
+    std::shared_ptr<BayesianHilbertMapSetting> bhm = std::make_shared<BayesianHilbertMapSetting>();
+
+    ERL_REFLECT_SCHEMA(
+        Options,
+        ERL_REFLECT_MEMBER(Options, hold),
+        ERL_REFLECT_MEMBER(Options, hinged_grid_size),
+        ERL_REFLECT_MEMBER(Options, max_dataset_size),
+        ERL_REFLECT_MEMBER(Options, test_grid_size),
+        ERL_REFLECT_MEMBER(Options, kernel_scale),
+        ERL_REFLECT_MEMBER(Options, faster_prediction),
+        ERL_REFLECT_MEMBER(Options, iso_values),
+        ERL_REFLECT_MEMBER(Options, iso_value),
+        ERL_REFLECT_MEMBER(Options, bhm));
 };
 
 Options g_options;
@@ -24,10 +41,6 @@ Options g_options;
     #include "erl_geometry/bayesian_hilbert_map_torch.hpp"
     #include "erl_geometry/lidar_2d.hpp"
     #include "erl_geometry/space_2d.hpp"
-
-using namespace erl::common;
-using namespace erl::geometry;
-using namespace erl::covariance;
 
 template<typename Dtype>
 std::vector<Eigen::Vector3<Dtype>>
@@ -139,11 +152,38 @@ VisualizeResult(
     const long img_size = grid_map.Shape(0);
     using MatrixX = Eigen::MatrixX<Dtype>;
     MatrixX eigen_img = Eigen::Map<const MatrixX>(prob_occupied.data(), img_size, img_size);
+    std::cout << "Prob occupied min: " << eigen_img.minCoeff() << ", max: " << eigen_img.maxCoeff()
+              << std::endl;
     cv::Mat img_prob_occupied, img_prob_occupied_rgb;
     cv::eigen2cv(eigen_img, img_prob_occupied);
     cv::normalize(img_prob_occupied, img_prob_occupied, 0, 255, cv::NORM_MINMAX);
     img_prob_occupied.convertTo(img_prob_occupied, CV_8UC1);
     cv::applyColorMap(img_prob_occupied, img_prob_occupied_rgb, cv::COLORMAP_JET);
+
+    // visualize contours
+    for (float iso_value: g_options.iso_values) {
+        cv::Mat img_contour;
+        cv::eigen2cv(eigen_img, img_contour);
+        img_contour = img_contour > iso_value;
+
+        cv::imshow(fmt::format("img_contour: {:.3f}", iso_value), img_contour);
+
+        cv::Scalar color;
+        if (iso_value > 0.f) {
+            color = cv::Scalar(0, 0, 255);
+        } else if (iso_value < 0.f) {
+            color = cv::Scalar(0, 255, 0);
+        } else {
+            color = cv::Scalar(255, 255, 255);
+        }
+
+        // cv::waitKey(0);
+        std::vector<std::vector<cv::Point>> contours;
+        cv::findContours(img_contour, contours, cv::RETR_LIST, cv::CHAIN_APPROX_TC89_KCOS);
+        cv::polylines(img_prob_occupied_rgb, contours, false, color, 1, cv::LINE_AA, 0);
+        // cv::polylines(img_gradient_norm_rgb, contours, false, cv::Scalar(255, 255, 255), 1,
+        // cv::LINE_AA, 0);
+    }
 
     Eigen::VectorX<Dtype> gradient_norm = gradient_grid.colwise().norm();
     eigen_img = Eigen::Map<MatrixX>(gradient_norm.data(), img_size, img_size);
@@ -202,7 +242,7 @@ VisualizeResult(
         gradient.normalize();
         px += grid_map_scaled.MeterToPixelForVectors(-gradient * 0.125);
         const cv::Point pt2(px[0], px[1]);
-        cv::arrowedLine(img_prob_occupied_rgb, pt1, pt2, cv::Scalar(255, 255, 255), 2);
+        // cv::arrowedLine(img_prob_occupied_rgb, pt1, pt2, cv::Scalar(255, 255, 255), 2);
         cv::arrowedLine(img_gradient_norm_rgb, pt1, pt2, cv::Scalar(255, 255, 255), 2);
         cv::circle(img_gradient_norm_rgb, pt1, 1, cv::Scalar(0, 0, 255), -1);
     }
@@ -234,7 +274,15 @@ VisualizeResult(
     cv::imshow("Probability Occupied", img_prob_occupied_rgb);
     cv::imshow("Gradient Norm", img_gradient_norm_rgb);
     cv::imshow("BHM Weights", img_bhm_weights);
-    cv::waitKey(100);
+
+    static bool windows_created = false;
+    if (!windows_created) {
+        cv::moveWindow("Gradient Norm", img_prob_occupied_rgb.cols, 0);
+        cv::moveWindow("BHM Weights", 2 * img_prob_occupied_rgb.cols, 0);
+        windows_created = true;
+    }
+
+    cv::waitKey(10);
 
     return {img_prob_occupied_rgb, img_gradient_norm_rgb, img_bhm_weights};
 }
@@ -263,39 +311,29 @@ TestIo(
 
 template<typename Dtype>
 void
-TestImpl2D(
-    const int hinged_grid_size,
-    const int max_dataset_size,
-    const int test_grid_size,
-    const Dtype rbf_gamma,
-    const bool diagonal_sigma,
-    const bool faster,
-    const bool use_sparse) {
+TestImpl2D() {
 
     GTEST_PREPARE_OUTPUT_DIR();
-    auto bhm_setting = std::make_shared<BayesianHilbertMapSetting>();
-    bhm_setting->diagonal_sigma = diagonal_sigma;
-    bhm_setting->use_sparse = use_sparse;
 
     auto kernel_setting = std::make_shared<typename Covariance<Dtype>::Setting>();
-    kernel_setting->scale = std::sqrt(0.5 / rbf_gamma);
+    kernel_setting->scale = g_options.kernel_scale;
     std::shared_ptr<Covariance<Dtype>> kernel =
         std::make_shared<RadialBiasFunction<Dtype, 2>>(kernel_setting);
 
     Aabb<Dtype, 2> map_boundary(Eigen::Vector2<Dtype>(-3.0, -3.0), Eigen::Vector2<Dtype>(3.0, 3.0));
     Eigen::Matrix2X<Dtype> hinged_points =
-        GenerateGridPoints(hinged_grid_size, map_boundary).second;
-    BayesianHilbertMap<Dtype, 2> bhm(bhm_setting, kernel, hinged_points, map_boundary, 0);
-    BayesianHilbertMapTorch<Dtype, 2> bhm_torch(bhm_setting);
+        GenerateGridPoints(g_options.hinged_grid_size, map_boundary).second;
+    BayesianHilbertMap<Dtype, 2> bhm(g_options.bhm, kernel, hinged_points, map_boundary, 0);
+    BayesianHilbertMapTorch<Dtype, 2> bhm_torch(g_options.bhm);
     bhm_torch.SetDevice(torch::kCUDA);
     bhm_torch.SetKernelScale(kernel_setting->scale);
     bhm_torch.LoadHingedPoints(hinged_points);
-    bhm_torch.PrepareMemory(1, max_dataset_size);
+    bhm_torch.PrepareMemory(1, g_options.max_dataset_size);
     bhm_torch.LoadWeightsAndCovariance(0, bhm.GetWeights(), bhm.GetWeightsCovariance());
 
     TestIo<Dtype>(bhm, hinged_points, map_boundary);
 
-    std::vector<Eigen::Vector3<Dtype>> trajectory = GenerateTrajectory<Dtype>(50, 1);
+    std::vector<Eigen::Vector3<Dtype>> trajectory = GenerateTrajectory<Dtype>(50, 2);
 
     const auto lidar_setting = std::make_shared<Lidar2D::Setting>();
     lidar_setting->max_angle = 135.0 / 180.0 * M_PI;   // 135 degrees
@@ -305,11 +343,17 @@ TestImpl2D(
     const Lidar2D lidar(lidar_setting, space);
     const Eigen::Matrix2Xd ray_dirs_frame = lidar.GetRayDirectionsInFrame();
 
-    const auto [test_grid, test_points] = GenerateGridPoints(test_grid_size, map_boundary);
+    auto [test_grid, test_points] = GenerateGridPoints(g_options.test_grid_size, map_boundary);
     const Eigen::Matrix2X<Dtype> surf_points = space->GetSurface()->vertices.cast<Dtype>();
     Eigen::VectorX<Dtype> predicted_prob_occupied(test_points.cols());
     Eigen::Matrix2X<Dtype> predicted_gradient(2, test_points.cols());
     Eigen::Matrix2X<Dtype> predicted_gradient_surf(2, surf_points.cols());
+
+    auto sdf = space->ComputeSdf(
+        test_points.template cast<double>(),
+        Space2D::SignMethod::kLineNormal,
+        true,
+        true);
 
     auto &ctx = at::globalContext();
     ctx.setDeterministicCuDNN(true);
@@ -340,17 +384,22 @@ TestImpl2D(
         long num_points = 0;
         Eigen::Matrix2X<Dtype> dataset_points;
         Eigen::VectorX<Dtype> dataset_labels;
-        std::vector<long> hit_indices;
 
-        bhm.GenerateDataset(
-            pose.template head<2>(),
-            points,
-            std::vector<long>{},
-            max_dataset_size,
-            num_points,
-            dataset_points,
-            dataset_labels,
-            hit_indices);
+        {
+            ERL_BLOCK_TIMER_MSG("dataset generation");
+            std::vector<long> point_indices;
+            std::vector<long> hit_indices;
+            bhm.GenerateDataset(
+                pose.template head<2>(),
+                points,
+                point_indices,
+                0,
+                g_options.max_dataset_size,
+                num_points,
+                dataset_points,
+                dataset_labels,
+                hit_indices);
+        }
 
         if (num_points == 0) {
             ERL_WARN("No valid points generated for update. Skipping update.");
@@ -359,10 +408,10 @@ TestImpl2D(
 
         bhm_torch.LoadDataset(0, map_boundary.center, dataset_points, dataset_labels, num_points);
         bhm_torch.PrepareExpectationMaximization();
-        for (int itr = 0; itr < bhm_setting->num_em_iterations; ++itr) {
+        for (int itr = 0; itr < g_options.bhm->num_em_iterations; ++itr) {
             {
                 ERL_BLOCK_TIMER_MSG("bhm_torch");
-                if (bhm_setting->use_sparse) {
+                if (g_options.bhm->use_sparse) {
                     bhm_torch.RunExpectationMaximizationIterationSparse();
                 } else {
                     bhm_torch.RunExpectationMaximizationIteration();
@@ -372,23 +421,23 @@ TestImpl2D(
             // predict and visualize
             constexpr bool logodd = false;
             constexpr bool compute_gradient = true;
-            constexpr bool with_sigmoid = false;
+            constexpr bool gradient_with_sigmoid = false;
             bhm_torch.Predict(
                 0,
                 surf_points,
                 logodd,
-                faster,
+                g_options.faster_prediction,
                 compute_gradient,
-                with_sigmoid,
+                gradient_with_sigmoid,
                 predicted_prob_occupied,
                 predicted_gradient_surf);
             bhm_torch.Predict(
                 0,
                 test_points,
                 logodd,
-                faster,
+                g_options.faster_prediction,
                 compute_gradient,
-                with_sigmoid,
+                gradient_with_sigmoid,
                 predicted_prob_occupied,
                 predicted_gradient);
 
@@ -403,6 +452,16 @@ TestImpl2D(
                 surf_points,
                 predicted_gradient_surf);
 
+            long n_correct = 0;
+            for (long i = 0; i < predicted_prob_occupied.size(); ++i) {
+                if ((sdf[i] < 0) == (predicted_prob_occupied[i] >= g_options.iso_value)) {
+                    n_correct++;
+                }
+            }
+            const Dtype accuracy =
+                static_cast<Dtype>(n_correct) / static_cast<Dtype>(predicted_prob_occupied.size());
+            ERL_INFO("EM Iteration {}: Prediction accuracy: {:.2f}%", itr, accuracy * 100.0f);
+
             std::string filename = fmt::format("{:04d}.png", cnt++);
             cv::imwrite(prob_occupied_dir / filename, img_prob_occupied_rgb);
             cv::imwrite(gradient_norms_dir / filename, img_gradient_norm_rgb);
@@ -415,60 +474,23 @@ TestImpl2D(
 
     bhm_torch.GetWeightsAndCovariance(0, bhm.GetWeights(), bhm.GetWeightsCovariance());
     TestIo<Dtype>(bhm, hinged_points, map_boundary);
+
+    if (g_options.hold) {
+        cv::waitKey();
+    } else {
+        cv::waitKey(2000);
+    }
 }
 
-TEST(BayesianHilbertMap, Torch2Dd) {
-    TestImpl2D<double>(
-        g_options.hinged_grid_size,
-        g_options.max_dataset_size,
-        g_options.test_grid_size,
-        g_options.rbf_gamma,
-        g_options.diagonal_sigma,
-        g_options.faster,
-        g_options.use_sparse);
-}
+TEST(BayesianHilbertMap, Torch2Dd) { TestImpl2D<double>(); }
 
-TEST(BayesianHilbertMap, Torch2Df) {
-    TestImpl2D<float>(
-        g_options.hinged_grid_size,
-        g_options.max_dataset_size,
-        g_options.test_grid_size,
-        g_options.rbf_gamma,
-        g_options.diagonal_sigma,
-        g_options.faster,
-        g_options.use_sparse);
-}
+TEST(BayesianHilbertMap, Torch2Df) { TestImpl2D<float>(); }
 #endif
 
 int
 main(int argc, char *argv[]) {
     testing::InitGoogleTest(&argc, argv);
-
-    try {
-        namespace po = boost::program_options;
-        po::options_description desc;
-        // clang-format off
-        desc.add_options()
-            ("help,h", "Show help message")
-            ("hinged-grid-size", po::value<int>(&g_options.hinged_grid_size)->default_value(g_options.hinged_grid_size), "Size of the hinged grid")
-            ("max-dataset-size", po::value<int>(&g_options.max_dataset_size)->default_value(g_options.max_dataset_size), "Size of the dataset")
-            ("test-grid-size", po::value<int>(&g_options.test_grid_size)->default_value(g_options.test_grid_size), "Size of the test grid")
-            ("rbf-gamma", po::value<float>(&g_options.rbf_gamma)->default_value(g_options.rbf_gamma), "RBF gamma value")
-            ("diagonal-sigma", po::value<bool>(&g_options.diagonal_sigma)->default_value(g_options.diagonal_sigma), "Use diagonal sigma")
-            ("faster", po::value<bool>(&g_options.faster)->default_value(g_options.faster), "Use faster prediction")
-            ("use-sparse", po::value<bool>(&g_options.use_sparse)->default_value(g_options.use_sparse), "Use sparse matrix");
-        // clang-format on
-        po::variables_map vm;
-        po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
-        if (vm.count("help")) {
-            std::cout << "Usage: " << argv[0] << " [options]" << std::endl << desc << std::endl;
-            return 0;
-        }
-        po::notify(vm);
-    } catch (const std::exception &e) {
-        ERL_ERROR("Error parsing command line arguments: {}", e.what());
-        return -1;
-    }
-
+    g_options.FromCommandLine(argc, argv);
+    std::cout << "Options:\n" << g_options << std::endl;
     return RUN_ALL_TESTS();
 }

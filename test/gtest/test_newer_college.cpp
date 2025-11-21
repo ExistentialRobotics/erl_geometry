@@ -7,8 +7,9 @@
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
 
-std::string newer_college_directory;
+std::string newer_college_directory = ERL_GEOMETRY_ROOT_DIR "/data/newer_college";
 long stride = 1;
+long max_wp_idx = erl::geometry::NewerCollege::Size() - 1;
 
 TEST(NewerCollege, Load) {
     GTEST_PREPARE_OUTPUT_DIR();
@@ -24,7 +25,7 @@ TEST(NewerCollege, Load) {
     long idx = 0;
     auto callback = [&](Open3dVisualizerWrapper *wrapper,
                         open3d::visualization::Visualizer *vis) -> bool {
-        if (idx >= newer_college.Size()) {
+        if (idx >= max_wp_idx) {
             wrapper->SetAnimationCallback(nullptr);
             return false;
         }
@@ -79,13 +80,22 @@ main(int argc, char *argv[]) {
     try {
         namespace po = boost::program_options;
         po::options_description desc;
-        desc.add_options()("help,h", "Show help message")(
+        // clang-format off
+        desc.add_options()
+        ("help,h", "Show help message")
+        (
             "directory",
             po::value<std::string>(&newer_college_directory),
-            "Directory containing the Newer College dataset")(
+            "Directory containing the Newer College dataset")
+        (
             "stride",
             po::value<long>(&stride)->default_value(1),
-            "Stride for loading frames (default: 1, load every frame)");
+            "Stride for loading frames (default: 1, load every frame)")
+        (
+            "max_wp_idx",
+            po::value<long>(&max_wp_idx)->default_value(max_wp_idx),
+            "Maximum waypoint index to load (default: last frame)");
+        // clang-format on
 
         po::variables_map vm;
         po::store(po::parse_command_line(argc, argv, desc), vm);
