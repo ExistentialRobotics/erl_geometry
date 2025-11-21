@@ -72,9 +72,18 @@ namespace erl::geometry {
         return Factory::GetInstance().Create(node_type, depth, child_index);
     }
 
+    std::ostream &
+    AbstractOctreeNode::Print(std::ostream &os) const {
+        os                                         //
+            << "NodeType: " << GetNodeType()       //
+            << ", Depth: " << m_depth_             //
+            << ", ChildIndex: " << m_child_index_  //
+            << ", NumChildren: " << m_num_children_;
+        return os;
+    }
+
     bool
-    AbstractOctreeNode::operator==(
-        const AbstractOctreeNode &other) const {  // NOLINT(*-no-recursion)
+    AbstractOctreeNode::operator==(const AbstractOctreeNode &other) const {
         // we don't do polymorphic check because it is expensive to do so here.
         // The tree should do polymorphic check: if two trees are the same type, their nodes
         // should be the same type. Unless we hack it by assigning nodes of a wrong type to the
@@ -94,14 +103,14 @@ namespace erl::geometry {
 
     bool
     AbstractOctreeNode::HasChild(const uint32_t index) const {
-        ERL_DEBUG_ASSERT(index < 8, "Index must be in [0, 7], but got %u.", index);
+        ERL_DEBUG_ASSERT_LT(index, 8);
         return m_children_[index] != nullptr;
     }
 
     AbstractOctreeNode *
     AbstractOctreeNode::CreateChild(const uint32_t child_index) {
-        ERL_DEBUG_ASSERT(child_index < 8, "Index must be in [0, 7], but got %u.", child_index);
-        ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u exists.", child_index);
+        ERL_DEBUG_ASSERT_LT(child_index, 8);
+        ERL_DEBUG_ASSERT_NULL(m_children_[child_index]);
         m_children_[child_index] = this->Create(m_depth_ + 1, static_cast<int>(child_index));
         ++m_num_children_;
         return m_children_[child_index].get();
@@ -109,8 +118,8 @@ namespace erl::geometry {
 
     void
     AbstractOctreeNode::RemoveChild(const uint32_t child_index) {
-        ERL_DEBUG_ASSERT(child_index < 8, "Index must be in [0, 7], but got %u.", child_index);
-        ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "No child %u.", child_index);
+        ERL_DEBUG_ASSERT_LT(child_index, 8);
+        ERL_DEBUG_ASSERT_PTR(m_children_[child_index]);
         m_children_[child_index] = nullptr;
         --m_num_children_;
     }

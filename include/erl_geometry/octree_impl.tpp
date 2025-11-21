@@ -2747,7 +2747,7 @@ namespace erl::geometry {
             this->DeleteNodeDescendants(child, key);    // delete the child's children recursively
             this->OnDeleteNodeChild(node, child, key);  // callback before deleting the child
             node->RemoveChild(child_idx);               // remove child
-            m_tree_size_--;                             // decrease tree size
+            --m_tree_size_;                             // decrease tree size
             m_size_changed_ = true;                     // the size of the tree has changed
             if (!node->HasAnyChild()) { return true; }  // node is pruned, can be deleted
         }
@@ -2885,11 +2885,7 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::Search(const OctreeKey &key, uint32_t max_depth)
         const {
         auto &tree_depth = m_setting_->tree_depth;
-        ERL_DEBUG_ASSERT(
-            max_depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.",
-            tree_depth,
-            max_depth);
+        ERL_DEBUG_ASSERT_LE(max_depth, tree_depth);
 
         if (m_root_ == nullptr) { return nullptr; }
         if (max_depth == 0) { max_depth = tree_depth; }
@@ -3074,6 +3070,55 @@ namespace erl::geometry {
         }
 
         return s;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    std::ostream &
+    OctreeImpl<Node, Interface, InterfaceSetting>::Print(std::ostream &os) const {
+        if (m_root_ == nullptr) {
+            ERL_INFO("Empty octree.\n");
+            return os;
+        }
+        // TODO: implement Print for non-empty octree
+        std::vector<std::tuple<OctreeKey, int, const Node *, std::string, bool>> nodes_stack;
+        nodes_stack.push_back({CoordToKey(0.0, 0.0, 0.0), -1, m_root_.get(), "", true});
+        const char *last_child_prefix = "└── ";
+        const char *child_prefix = "├── ";
+        const char *last_indent = "    ";
+        const char *indent = "│   ";
+        while (!nodes_stack.empty()) {
+            auto [key, child_index, node, prefix, last_child] = nodes_stack.back();
+            nodes_stack.pop_back();
+            // print prefix, node address, and node data
+            os << prefix;
+            if (child_index == -1) {
+                os << "root:";
+            } else {
+                os << (last_child ? last_child_prefix : child_prefix) << child_index << ':';
+            }
+            os << '@' << fmt::format("0x{:016x}", reinterpret_cast<uint64_t>(node));
+            if (node == nullptr) { continue; }
+            os << std::string(key);
+            os << " [";
+            node->Print(os);
+            os << "]\n";
+            if (!node->HasAnyChild()) { continue; }
+            int num_children = 0;
+            OctreeKey::KeyType center_offset_key = m_tree_key_offset_ >> (node->GetDepth() + 1);
+            for (int i = 7; i >= 0; --i) {
+                if (!node->HasChild(i)) { continue; }
+                const bool next_last_child = (num_children == 0);
+                std::string next_prefix;
+                if (child_index >= 0) {
+                    next_prefix = prefix + (last_child ? last_indent : indent);
+                }
+                OctreeKey child_key;
+                OctreeKey::ComputeChildKey(i, center_offset_key, key, child_key);
+                nodes_stack.push_back({child_key, i, GetNodeChild(node, i), next_prefix, next_last_child});
+                ++num_children;
+            }
+        }
+        return os;
     }
 
     template<class Node, class Interface, class InterfaceSetting>

@@ -107,6 +107,9 @@ namespace erl::geometry {
         virtual std::ostream &
         WriteData(std::ostream &s) const = 0;
 
+        virtual std::ostream &
+        Print(std::ostream &os) const;
+
         //-- comparison
 
         [[nodiscard]] virtual bool
