@@ -14,23 +14,29 @@
 #define WINDOW_NAME "OccupancyOctree_Build"
 
 struct Options : public erl::common::Yamlable<Options> {
+    std::string data_dir = ERL_GEOMETRY_ROOT_DIR "/data/newer_college";
     int animation_interval = 2;
     std::size_t max_point_cloud_size = 1000000;
     int stride = 1;
+    long max_wp_idx = erl::geometry::NewerCollege::kNumFrames;
     float scaling = 1.0f;
     float min_range = 0.6f;
     float max_range = 35.0f;
     bool draw_tree_grid = false;
+    bool hold = false;
 
     ERL_REFLECT_SCHEMA(
         Options,
+        ERL_REFLECT_MEMBER(Options, data_dir),
         ERL_REFLECT_MEMBER(Options, animation_interval),
         ERL_REFLECT_MEMBER(Options, max_point_cloud_size),
         ERL_REFLECT_MEMBER(Options, stride),
+        ERL_REFLECT_MEMBER(Options, max_wp_idx),
         ERL_REFLECT_MEMBER(Options, scaling),
         ERL_REFLECT_MEMBER(Options, min_range),
         ERL_REFLECT_MEMBER(Options, max_range),
-        ERL_REFLECT_MEMBER(Options, draw_tree_grid));
+        ERL_REFLECT_MEMBER(Options, draw_tree_grid),
+        ERL_REFLECT_MEMBER(Options, hold));
 };
 
 Options options;
@@ -49,11 +55,13 @@ using Matrix3X = Eigen::Matrix3X<Dtype>;
 using Matrix4 = Eigen::Matrix4<Dtype>;
 
 TEST(OccupancyOctree, BuildNewerCollege) {
+    options.max_wp_idx = std::min(options.max_wp_idx, erl::geometry::NewerCollege::kNumFrames);
+
     GTEST_PREPARE_OUTPUT_DIR();
     using namespace erl::common;
     using namespace erl::common::serialization;
 
-    erl::geometry::NewerCollege dataset("/home/daizhirui/Data/NewerCollege");
+    erl::geometry::NewerCollege dataset(options.data_dir);
 
     auto octree_setting = std::make_shared<OccupancyOctree::Setting>();
     ASSERT_TRUE(
@@ -86,12 +94,12 @@ TEST(OccupancyOctree, BuildNewerCollege) {
     OccupancyOctreeDrawer drawer(drawer_setting);
     drawer.SetOctree(octree);
 
-    std::size_t idx = 0;
+    long idx = 0;
     bool octree_saved = false;
     int animation_cnt = 0;
     double mean_insert_time = 0;
     auto callback = [&](Open3dVisualizerWrapper *wrapper, open3d::visualization::Visualizer *vis) {
-        if (idx >= static_cast<std::size_t>(dataset.Size())) {
+        if (idx >= options.max_wp_idx) {
             if (octree_saved) {
                 ERL_WARN_ONCE("callback is still called after octree is saved.");
                 return false;
@@ -113,6 +121,7 @@ TEST(OccupancyOctree, BuildNewerCollege) {
             wrapper->AddGeometries(geometries);
             vis->UpdateGeometry();
             wrapper->SetAnimationCallback(nullptr);  // stop calling this callback
+            if (!options.hold) { vis->Close(); }
             return false;
         }
 

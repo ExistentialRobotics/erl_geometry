@@ -515,10 +515,6 @@ TEST(OccupancyOctree, Prune) {
     EXPECT_EQ(tree->GetSize(), 67);  // 32: level 4, increase 8x5 nodes
     EXPECT_EQ(tree->ComputeNumberOfNodes(), tree->GetSize());
 
-    std::ofstream ofs("tree_layout1.txt", std::ios::out);
-    tree->Print(ofs);
-    ofs.close();
-
     // delete, expand, prune of single node
     std::size_t init_size = tree->GetSize();
     OctreeKey parent_key = tree->CoordToKey(-0.2, -0.2, -0.2);

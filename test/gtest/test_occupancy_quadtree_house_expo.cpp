@@ -55,10 +55,10 @@ TEST(OccupancyQuadtree, BuildWithHouseExpo) {
     for (long i = 0; i < lidar_setting->num_lines; ++i) {
         line_directions.col(i) << std::cos(lidar_angles[i]), std::sin(lidar_angles[i]);
     }
-    std::cout << "Press any key to start" << std::endl;
+    // std::cout << "Press any key to start" << std::endl;
     drawer->DrawLeaves(img);
     cv::imshow(window_name, img);
-    cv::waitKey(0);
+    cv::waitKey(1);
     Eigen::Matrix2Xd cur_traj(2, max_update_cnt);
     for (long i = 0; i < max_update_cnt; ++i) {
         cur_traj.col(i) << trajectory[i][0], trajectory[i][1];

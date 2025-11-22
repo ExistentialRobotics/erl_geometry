@@ -1012,7 +1012,7 @@ namespace octomap {
         float step_size = this->resolution * pow(2, tree_depth - depth);
         for (int i = 0; i < 3; ++i) {
             diff[i] = pmax_clamped(i) - pmin_clamped(i);
-            steps[i] = static_cast<unsigned int>(floor(diff[i] / step_size));
+            steps[i] = static_cast<unsigned int>(static_cast<int>(floor(diff[i] / step_size)));
             // std::cout << "bbx " << i << " size: " << diff[i] << " " << steps[i] << " steps\n";
         }
 

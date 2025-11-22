@@ -24,23 +24,35 @@ const std::filesystem::path kDataDir = kProjectRootDir / "data";
 const std::filesystem::path kConfigDir = kProjectRootDir / "config";
 static std::string g_window_name = "OccupancyQuadtree_Build";
 
-struct Options {
+struct Options : erl::common::Yamlable<Options> {
     std::string gazebo_train_folder = kDataDir / "gazebo";
     std::string gazebo_test_file = kDataDir / "gazebo_test.dat";
     std::string house_expo_map_file = kDataDir / "house_expo_room_1451.json";
     std::string house_expo_traj_file = kDataDir / "house_expo_room_1451.csv";
     std::string ucsd_fah_2d_file = kDataDir / "ucsd_fah_2d.dat";
-    bool use_gazebo_room_2d = false;
-    bool use_house_expo_lidar_2d = false;
-    bool use_ucsd_fah_2d = false;
+    std::string dataset_name = "gazebo";
     bool hold = false;
     int stride = 1;
     Dtype quadtree_resolution = 0.05;
     bool quadtree_lazy_eval = false;  // bad, slower
     Dtype map_resolution = 0.025;
+
+    ERL_REFLECT_SCHEMA(
+        Options,
+        ERL_REFLECT_MEMBER(Options, gazebo_train_folder),
+        ERL_REFLECT_MEMBER(Options, gazebo_test_file),
+        ERL_REFLECT_MEMBER(Options, house_expo_map_file),
+        ERL_REFLECT_MEMBER(Options, house_expo_traj_file),
+        ERL_REFLECT_MEMBER(Options, ucsd_fah_2d_file),
+        ERL_REFLECT_MEMBER(Options, dataset_name),
+        ERL_REFLECT_MEMBER(Options, hold),
+        ERL_REFLECT_MEMBER(Options, stride),
+        ERL_REFLECT_MEMBER(Options, quadtree_resolution),
+        ERL_REFLECT_MEMBER(Options, quadtree_lazy_eval),
+        ERL_REFLECT_MEMBER(Options, map_resolution));
 };
 
-static Options g_options;
+Options g_options;
 
 TEST(OccupancyQuadtree, Build) {
     GTEST_PREPARE_OUTPUT_DIR();
@@ -81,7 +93,7 @@ TEST(OccupancyQuadtree, Build) {
     };
 
     std::string tree_name;
-    if (g_options.use_gazebo_room_2d) {
+    if (g_options.dataset_name == "gazebo") {
         tree_name = "gazebo";
         // load raw data
         auto train_data_loader =
@@ -107,7 +119,7 @@ TEST(OccupancyQuadtree, Build) {
         }
         bar->Close();
         trajectory.conservativeResize(2, j);
-    } else if (g_options.use_house_expo_lidar_2d) {
+    } else if (g_options.dataset_name == "house_expo_lidar_2d") {
         tree_name =
             std::filesystem::path(g_options.house_expo_map_file).stem().filename().string() + "_2d";
         // load raw data
@@ -255,62 +267,7 @@ TEST(OccupancyQuadtree, Build) {
 int
 main(int argc, char *argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
-    try {
-        namespace po = boost::program_options;
-        po::options_description desc;
-        // clang-format off
-        desc.add_options()
-            ("help", "produce help message")
-            ("use-gazebo-data", po::bool_switch(&g_options.use_gazebo_room_2d)->default_value(g_options.use_gazebo_room_2d), "Use Gazebo data")
-            ("use-house-expo-data", po::bool_switch(&g_options.use_house_expo_lidar_2d)->default_value(g_options.use_house_expo_lidar_2d), "Use HouseExpo data")
-            ("use-ros-bag-data", po::bool_switch(&g_options.use_ucsd_fah_2d)->default_value(g_options.use_ucsd_fah_2d), "Use ROS bag data")
-            ("stride", po::value<int>(&g_options.stride)->default_value(g_options.stride), "stride for running the sequence")
-            ("quadtree-resolution", po::value<Dtype>(&g_options.quadtree_resolution)->default_value(g_options.quadtree_resolution), "Quadtree resolution")
-            ("quadtree-lazy-eval", po::bool_switch(&g_options.quadtree_lazy_eval)->default_value(g_options.quadtree_lazy_eval), "Quadtree lazy evaluation")
-            ("map-resolution", po::value<Dtype>(&g_options.map_resolution)->default_value(g_options.map_resolution), "Map resolution")
-            ("hold", po::bool_switch(&g_options.hold)->default_value(g_options.hold), "Hold the test until a key is pressed")
-            (
-                "house-expo-map-file",
-                po::value<std::string>(&g_options.house_expo_map_file)->default_value(g_options.house_expo_map_file)->value_name("file"),
-                "HouseExpo map file"
-            )(
-                "house-expo-traj-file",
-                po::value<std::string>(&g_options.house_expo_traj_file)->default_value(g_options.house_expo_traj_file)->value_name("file"),
-                "HouseExpo trajectory file"
-            )(
-                "gazebo-train-file",
-                po::value<std::string>(&g_options.gazebo_train_folder)->default_value(g_options.gazebo_train_folder)->value_name("file"),
-                "Gazebo train data file"
-            )(
-                "gazebo-test-file",
-                po::value<std::string>(&g_options.gazebo_test_file)->default_value(g_options.gazebo_test_file)->value_name("file"),
-                "Gazebo test data file"
-            )(
-                "ros-bag-csv-file",
-                po::value<std::string>(&g_options.ucsd_fah_2d_file)->default_value(g_options.ucsd_fah_2d_file)->value_name("file"),
-                "ROS bag csv file"
-            );
-        // clang-format on
-
-        po::variables_map vm;
-        po::store(po::command_line_parser(argc, argv).options(desc).run(), vm);
-        if (vm.count("help")) {
-            std::cout << "Usage: " << argv[0] << " [options]" << std::endl << desc << std::endl;
-            return 0;
-        }
-        po::notify(vm);
-        if (g_options.use_gazebo_room_2d + g_options.use_house_expo_lidar_2d +
-                g_options.use_ucsd_fah_2d !=
-            1) {
-            std::cerr << "Please specify one of --use-gazebo-data, --use-house-expo-data, "
-                         "--use-ros-bag-data."
-                      << std::endl;
-            return 1;
-        }
-    } catch (std::exception &e) {
-        std::cerr << e.what() << "\n";
-        return 1;
-    }
+    g_options.FromCommandLine(argc, argv);
     g_window_name = argv[0];
     return RUN_ALL_TESTS();
 }

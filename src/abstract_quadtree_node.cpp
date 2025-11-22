@@ -70,6 +70,16 @@ namespace erl::geometry {
         return Factory::GetInstance().Create(node_type, depth, child_index);
     }
 
+    std::ostream &
+    AbstractQuadtreeNode::Print(std::ostream &os) const {
+        os                                         //
+            << "NodeType: " << GetNodeType()       //
+            << ", Depth: " << m_depth_             //
+            << ", ChildIndex: " << m_child_index_  //
+            << ", NumChildren: " << m_num_children_;
+        return os;
+    }
+
     bool
     AbstractQuadtreeNode::operator==(const AbstractQuadtreeNode &other) const {
         // We don't do polymorphic check because it is expensive to do so here.

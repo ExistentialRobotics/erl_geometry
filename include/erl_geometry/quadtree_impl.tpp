@@ -363,7 +363,8 @@ namespace erl::geometry {
     template<class Node, class Interface, class InterfaceSetting>
     QuadtreeKey::KeyType
     QuadtreeImpl<Node, Interface, InterfaceSetting>::CoordToKey(const Dtype coordinate) const {
-        return static_cast<uint32_t>(std::floor(coordinate * m_resolution_inv_)) +
+        return static_cast<uint32_t>(
+                   static_cast<int64_t>(std::floor(coordinate * m_resolution_inv_))) +
                m_tree_key_offset_;
     }
 
@@ -378,7 +379,8 @@ namespace erl::geometry {
             "Depth must be in [0, %u], but got %u.\n",
             tree_depth,
             depth);
-        const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
+        const uint32_t keyval =  // auto cast from real to unsigned integer is undefined behavior
+            static_cast<uint32_t>(static_cast<int64_t>(std::floor(coordinate * m_resolution_inv_)));
         const uint32_t diff = tree_depth - depth;
         if (!diff) { return keyval + m_tree_key_offset_; }
         return ((keyval >> diff) << diff) + static_cast<uint32_t>(1 << (diff - 1)) +
@@ -2602,6 +2604,61 @@ namespace erl::geometry {
         }
 
         return s;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    std::ostream &
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::Print(std::ostream &os) const {
+        if (m_root_ == nullptr) {
+            os << "Empty quadtree.\n";
+            return os;
+        }
+        std::vector<std::tuple<QuadtreeKey, int, const Node *, std::string, bool>> nodes_stack;
+        nodes_stack.push_back({CoordToKey(0.0, 0.0, 0.0), -1, m_root_.get(), "", true});
+        const char *last_child_prefix = "└── ";
+        const char *child_prefix = "├── ";
+        const char *last_indent = "    ";
+        const char *indent = "│   ";
+        while (!nodes_stack.empty()) {
+            auto [key, child_index, node, prefix, last_child] = nodes_stack.back();
+            nodes_stack.pop_back();
+            // print prefix, node address, and node data
+            os << prefix;
+            if (child_index == -1) {
+                os << "root:";
+            } else {
+                os << (last_child ? last_child_prefix : child_prefix) << child_index << ':';
+            }
+            os                      //
+                << '@' << std::hex  // print the address of the base class pointer for debugging
+                << reinterpret_cast<uint64_t>(static_cast<const AbstractQuadtreeNode *>(node))
+                << std::dec;
+            if (node == nullptr) { continue; }
+            os  //
+                << std::string(key)
+                << " [Center: " << this->KeyToCoord(key, node->GetDepth()).transpose()
+                << ", Size: " << this->GetNodeSize(node->GetDepth()) << "]";
+            os << " [";
+            node->Print(os);
+            os << "]\n";
+            if (!node->HasAnyChild()) { continue; }
+            int num_children = 0;
+            QuadtreeKey::KeyType center_offset_key = m_tree_key_offset_ >> (node->GetDepth() + 1);
+            for (int i = 3; i >= 0; --i) {
+                if (!node->HasChild(i)) { continue; }
+                const bool next_last_child = (num_children == 0);
+                std::string next_prefix;
+                if (child_index >= 0) {
+                    next_prefix = prefix + (last_child ? last_indent : indent);
+                }
+                QuadtreeKey child_key;
+                QuadtreeKey::ComputeChildKey(i, center_offset_key, key, child_key);
+                nodes_stack.push_back(
+                    {child_key, i, GetNodeChild(node, i), next_prefix, next_last_child});
+                ++num_children;
+            }
+        }
+        return os;
     }
 
     template<class Node, class Interface, class InterfaceSetting>

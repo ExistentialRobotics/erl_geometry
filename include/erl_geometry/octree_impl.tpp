@@ -402,7 +402,10 @@ namespace erl::geometry {
     template<class Node, class Interface, class InterfaceSetting>
     OctreeKey::KeyType
     OctreeImpl<Node, Interface, InterfaceSetting>::CoordToKey(const Dtype coordinate) const {
-        return static_cast<uint32_t>(std::floor(coordinate * m_resolution_inv_)) +
+        // static_cast from float/double to uint32_t is undefined behavior, so we need to cast it to
+        // signed integer first
+        return static_cast<uint32_t>(
+                   static_cast<int64_t>(std::floor(coordinate * m_resolution_inv_))) +
                m_tree_key_offset_;
     }
 
@@ -417,7 +420,8 @@ namespace erl::geometry {
             "Depth must be in [0, %u], but got %u.\n",
             tree_depth,
             depth);
-        const uint32_t keyval = std::floor(coordinate * m_resolution_inv_);
+        const uint32_t keyval =  // auto cast from real to unsigned integer is undefined behavior
+            static_cast<uint32_t>(static_cast<int64_t>(std::floor(coordinate * m_resolution_inv_)));
         const uint32_t diff = tree_depth - depth;
         if (!diff) { return keyval + m_tree_key_offset_; }
         return ((keyval >> diff) << diff) + static_cast<uint32_t>(1 << (diff - 1)) +
@@ -3076,7 +3080,7 @@ namespace erl::geometry {
     std::ostream &
     OctreeImpl<Node, Interface, InterfaceSetting>::Print(std::ostream &os) const {
         if (m_root_ == nullptr) {
-            ERL_INFO("Empty octree.\n");
+            os << "Empty octree.\n";
             return os;
         }
         std::vector<std::tuple<OctreeKey, int, const Node *, std::string, bool>> nodes_stack;
@@ -3095,8 +3099,8 @@ namespace erl::geometry {
             } else {
                 os << (last_child ? last_child_prefix : child_prefix) << child_index << ':';
             }
-            os  //
-                << '@' << std::hex
+            os                      //
+                << '@' << std::hex  // print the address of the base class pointer for debugging
                 << reinterpret_cast<uint64_t>(static_cast<const AbstractOctreeNode *>(node))
                 << std::dec;
             if (node == nullptr) { continue; }
