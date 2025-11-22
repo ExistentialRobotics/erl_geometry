@@ -262,7 +262,7 @@ namespace erl::geometry {
                fast,                   \
                joggle_inputs)
         for (long i = 0; i < num_view_positions; ++i) {
-            HiddenPointRemoval(
+            HiddenPointRemoval<double>(
                 points,
                 view_positions.col(i),
                 radii[i],

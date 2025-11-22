@@ -19,11 +19,11 @@ BindHiddenPointRemoval(py::module &m) {
              if (return_meshes) {
                  Eigen::Matrix3Xl mesh_triangles;
                  Eigen::Matrix3Xd mesh_vertices;
-                 HiddenPointRemoval(points, view_position, radius, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs);
+                 HiddenPointRemoval<double>(points, view_position, radius, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs);
                  result["triangles"] = mesh_triangles;
                  result["vertices"] = mesh_vertices;
              } else {
-                 HiddenPointRemoval(points, view_position, radius, visible_point_indices, fast, joggle_inputs);
+                 HiddenPointRemoval<double, 3>(points, view_position, radius, visible_point_indices, fast, joggle_inputs);
              }
              result["visible_point_indices"] = visible_point_indices;
              return result;
@@ -56,11 +56,11 @@ BindHiddenPointRemoval(py::module &m) {
                 if (return_meshes) {
                     std::vector<Eigen::Matrix3Xl> mesh_triangles;
                     std::vector<Eigen::Matrix3Xd> mesh_vertices;
-                    ParallelHiddenPointRemoval(points, view_positions, radii, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs);
+                    ParallelHiddenPointRemoval<double>(points, view_positions, radii, mesh_triangles, mesh_vertices, visible_point_indices, fast, joggle_inputs);
                     result["triangles"] = mesh_triangles;
                     result["vertices"] = mesh_vertices;
                 } else {
-                    ParallelHiddenPointRemoval(points, view_positions, radii, visible_point_indices, fast, joggle_inputs);
+                    ParallelHiddenPointRemoval<double>(points, view_positions, radii, visible_point_indices, fast, joggle_inputs);
                 }
                 result["visible_point_indices"] = visible_point_indices;
                 return result;

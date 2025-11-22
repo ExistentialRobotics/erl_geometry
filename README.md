@@ -2,6 +2,9 @@
 
 [![Tags](https://img.shields.io/github/v/tag/ExistentialRobotics/erl_geometry?label=version)](https://github.com/ExistentialRobotics/erl_geometry/tags)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Linux](https://img.shields.io/badge/Linux-yes-green)](https://www.linux.org/)
+[![macOS](https://img.shields.io/badge/macOS-yes-green)](https://www.apple.com/macos/)
+
 [![ROS1](https://img.shields.io/badge/ROS1-noetic-blue)](http://wiki.ros.org/)
 [![ROS2](https://img.shields.io/badge/ROS2-humble-blue)](https://docs.ros.org/)
 [![ROS2](https://img.shields.io/badge/ROS2-jazzy-blue)](https://docs.ros.org/)
