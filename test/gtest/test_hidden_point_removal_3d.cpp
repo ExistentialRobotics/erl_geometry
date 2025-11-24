@@ -12,6 +12,8 @@
 #include <open3d/visualization/utility/DrawGeometry.h>
 #include <open3d/visualization/visualizer/Visualizer.h>
 
+#include <thread>
+
 struct OctreeNode : public erl::geometry::OccupancyOctreeNode {
     std::size_t geometry_id = -1;
     std::size_t vertex_id = -1;
