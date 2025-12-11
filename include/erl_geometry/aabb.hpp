@@ -98,53 +98,36 @@ struct YAML::convert<erl::geometry::Aabb<Dtype, Dim>> {
 
 template<typename Dtype, int Dim>
 struct erl::common::program_options::ParseOption<erl::geometry::Aabb<Dtype, Dim>>
-    : erl::common::program_options::ParseOptionBase {
+    : ParseOptionBase {
+
+    using T = erl::geometry::Aabb<Dtype, Dim>;
+
+    ParseOption<typename T::Point> center_parser;
+    ParseOption<typename T::Point> half_sizes_parser;
+
+    ParseOption(std::string option_name_in, ProgramOptionsData *po_data_in, T *member_ptr_in)
+        : ParseOptionBase(std::move(option_name_in), po_data_in, member_ptr_in),
+          center_parser(GetBoostOptionName(option_name, "center"), po_data, &member_ptr_in->center),
+          half_sizes_parser(
+              GetBoostOptionName(option_name, "half_sizes"),
+              po_data,
+              &member_ptr_in->half_sizes) {}
+
     void
-    Run(ProgramOptionsData &po_data,
-        const std::string &option_name,
-        erl::geometry::Aabb<Dtype, Dim> &member) {
+    Run() override {
 
-        std::vector<Dtype> center;
-        std::vector<Dtype> half_sizes;
+        center_parser.Run();
+        half_sizes_parser.Run();
 
-        po_data.desc.add_options()(
-            GetBoostOptionName(option_name, "center").c_str(),
-            po::value<std::vector<Dtype>>()->multitoken()->notifier(
-                [&center](const std::vector<Dtype> &vals) { center = vals; }),
-            "Center of the AABB");
-
-        po_data.desc.add_options()(
-            GetBoostOptionName(option_name, "half_sizes").c_str(),
-            po::value<std::vector<Dtype>>()->multitoken()->notifier(
-                [&half_sizes](const std::vector<Dtype> &vals) { half_sizes = vals; }),
-            "Half sizes of the AABB");
-
-        po_data.Parse();
-
-        if (center.empty() && half_sizes.empty()) { return; }
-
-        ERL_ASSERTM(
-            center.size() == static_cast<std::size_t>(Dim),
-            "Expecting {} values for {}.center, got {}",
-            Dim,
-            option_name,
-            center.size());
-        ERL_ASSERTM(
-            half_sizes.size() == static_cast<std::size_t>(Dim),
-            "Expecting {} values for {}.half_sizes, got {}",
-            Dim,
-            option_name,
-            half_sizes.size());
+        T &member = *static_cast<T *>(member_ptr);
 
         for (int i = 0; i < Dim; ++i) {
             ERL_ASSERTM(
-                half_sizes[i] > 0,
+                member.half_sizes[i] > 0,
                 "Half size must be non-negative for {}.half_sizes[{}], got {}",
                 option_name,
                 i,
-                half_sizes[i]);
-            member.center[i] = center[i];
-            member.half_sizes[i] = half_sizes[i];
+                member.half_sizes[i]);
         }
 
         member = erl::geometry::Aabb<Dtype, Dim>(member.center, member.half_sizes);

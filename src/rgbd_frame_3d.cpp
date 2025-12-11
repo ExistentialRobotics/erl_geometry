@@ -12,9 +12,11 @@ namespace erl::geometry {
         const Eigen::Ref<const Matrix3> &rotation,
         const Eigen::Ref<const Vector3> &translation,
         const MatrixX &depth,
-        const cv::Mat &rgb) {
+        const cv::Mat &rgb,
+        const bool is_rgb) {
         Super::UpdateRanges(rotation, translation, depth);
         rgb.convertTo(m_rgb_, CV_8UC3);
+        if (!is_rgb) { cv::cvtColor(m_rgb_, m_rgb_, cv::COLOR_BGR2RGB); }
     }
 
     template<typename Dtype>

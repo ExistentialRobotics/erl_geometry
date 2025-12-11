@@ -108,6 +108,77 @@ namespace erl::geometry {
         return box;
     }
 
+    std::shared_ptr<open3d::geometry::TriangleMesh>
+    CreateCameraMesh(
+        const double img_width,
+        const double img_height,
+        const double focal_length,
+        const double scale,
+        const double frame_thickness,
+        const Eigen::Vector3d &frame_color,
+        const bool with_axis) {
+
+        using namespace open3d::geometry;
+
+        const double width = img_width * scale;
+        const double height = img_height * scale;
+        const double len = focal_length * scale;
+        const double half_w = 0.5 * width;
+        const double half_h = 0.5 * height;
+        const double edge_f_len = std::sqrt(len * len + half_w * half_w + half_h * half_h);
+
+        auto mesh = std::make_shared<TriangleMesh>();
+        auto edge_w = *TriangleMesh::CreateCylinder(frame_thickness, width + 2.0 * frame_thickness);
+        auto edge_h = *TriangleMesh::CreateCylinder(frame_thickness, height + frame_thickness);
+        auto edge_f = *TriangleMesh::CreateCylinder(frame_thickness, edge_f_len);
+
+        edge_w
+            .Rotate(
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitY()).toRotationMatrix(),
+                {0, 0, 0})
+            .Translate({0, half_h, len});
+        *mesh += edge_w;
+        edge_w.Translate({0, -height, 0});
+        *mesh += edge_w;
+
+        edge_h
+            .Rotate(
+                Eigen::AngleAxisd(M_PI_2, Eigen::Vector3d::UnitX()).toRotationMatrix(),
+                {0, 0, 0})
+            .Translate({half_w, 0, len});
+        *mesh += edge_h;
+        edge_h.Translate({-width, 0, 0});
+        *mesh += edge_h;
+
+        edge_f.Translate({0.0, 0.0, 0.5 * edge_f_len});
+        for (auto dir: {
+                 Eigen::Vector3d(half_w, half_h, len),
+                 Eigen::Vector3d(-half_w, half_h, len),
+                 Eigen::Vector3d(-half_w, -half_h, len),
+                 Eigen::Vector3d(half_w, -half_h, len),
+             }) {
+
+            dir.normalize();
+            Eigen::Vector3d axis = dir.cross(Eigen::Vector3d::UnitZ());
+            const double norm = axis.norm();
+            double angle = 0.0;
+            if (norm < 1.e-8) {
+                axis = Eigen::Vector3d::UnitX();
+            } else {
+                axis /= norm;
+                angle = std::asin(norm);
+            }
+            auto edge_f_rotated = edge_f;
+            edge_f_rotated.Rotate(Eigen::AngleAxisd(angle, axis).toRotationMatrix(), {0, 0, 0});
+            *mesh += edge_f_rotated;
+        }
+
+        mesh->PaintUniformColor(frame_color);
+
+        if (with_axis) { *mesh += *TriangleMesh::CreateCoordinateFrame(half_w); }
+        return mesh;
+    }
+
     void
     GetOrientedBoundingBoxWithAxisUp(
         const open3d::geometry::OrientedBoundingBox &obb,

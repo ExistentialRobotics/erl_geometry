@@ -18,12 +18,21 @@ namespace erl::geometry {
 
         explicit RgbdFrame3D(std::shared_ptr<Setting> setting);
 
+        /**
+         *
+         * @param rotation orientation of the optical frame.
+         * @param translation translation of the optical frame.
+         * @param depth depth image.
+         * @param rgb color image in BGR format if is_rgb is false, otherwise in RGB format.
+         * @param is_rgb if true, the input color image is in RGB format; if false, in BGR format.
+         */
         void
         UpdateRgbd(
             const Eigen::Ref<const Matrix3> &rotation,
             const Eigen::Ref<const Vector3> &translation,
             const MatrixX &depth,
-            const cv::Mat &rgb);
+            const cv::Mat &rgb,
+            bool is_rgb = true);
 
         void
         ConvertToPointCloud(

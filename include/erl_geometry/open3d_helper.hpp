@@ -17,6 +17,16 @@ namespace erl::geometry {
     std::shared_ptr<open3d::geometry::TriangleMesh>
     CreateUnitBoxFrameMesh(double edge_radius);
 
+    std::shared_ptr<open3d::geometry::TriangleMesh>
+    CreateCameraMesh(
+        double img_width = 1200,
+        double img_height = 680,
+        double focal_length = 600,
+        double scale = 0.0007,
+        double frame_thickness = 0.02,
+        const Eigen::Vector3d &frame_color = {0.0, 0.0, 0.0},
+        bool with_axis = true);
+
     /**
      * Rotates the oriented bounding box such that the specified axis is aligned with the up
      * direction.
