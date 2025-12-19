@@ -1,203 +1,98 @@
-#include "erl_common/block_timer.hpp"
+#include "test_occupancy_octree_build_impl.hpp"
+
 #include "erl_common/test_helper.hpp"
 #include "erl_geometry/newer_college.hpp"
-#include "erl_geometry/occupancy_octree.hpp"
-#include "erl_geometry/occupancy_octree_drawer.hpp"
-#include "erl_geometry/open3d_visualizer_wrapper.hpp"
 
-#include <open3d/geometry/VoxelGrid.h>
-#include <open3d/io/TriangleMeshIO.h>
+template<typename Dtype>
+struct TestOccupancyOctreeBuildWithNewerCollege : TestOccupancyOctreeBuildImpl<Dtype> {
+    using Super = TestOccupancyOctreeBuildImpl<Dtype>;
 
-#include <filesystem>
+    struct Options : public erl::common::Yamlable<Options, typename Super::Options> {
+        std::string data_dir;
 
-// parameters
-#define WINDOW_NAME "OccupancyOctree_Build"
+        ERL_REFLECT_SCHEMA(Options, ERL_REFLECT_MEMBER(Options, data_dir));
 
-struct Options : public erl::common::Yamlable<Options> {
-    std::string data_dir = ERL_GEOMETRY_ROOT_DIR "/data/newer_college";
-    int animation_interval = 2;
-    std::size_t max_point_cloud_size = 1000000;
-    int stride = 1;
-    long max_wp_idx = erl::geometry::NewerCollege::kNumFrames;
-    float scaling = 1.0f;
-    float min_range = 0.6f;
-    float max_range = 35.0f;
-    bool draw_tree_grid = false;
-    bool hold = false;
-
-    ERL_REFLECT_SCHEMA(
-        Options,
-        ERL_REFLECT_MEMBER(Options, data_dir),
-        ERL_REFLECT_MEMBER(Options, animation_interval),
-        ERL_REFLECT_MEMBER(Options, max_point_cloud_size),
-        ERL_REFLECT_MEMBER(Options, stride),
-        ERL_REFLECT_MEMBER(Options, max_wp_idx),
-        ERL_REFLECT_MEMBER(Options, scaling),
-        ERL_REFLECT_MEMBER(Options, min_range),
-        ERL_REFLECT_MEMBER(Options, max_range),
-        ERL_REFLECT_MEMBER(Options, draw_tree_grid),
-        ERL_REFLECT_MEMBER(Options, hold));
-};
-
-Options options;
-
-using Dtype = float;
-using AbstractOctree = erl::geometry::AbstractOctree<Dtype>;
-using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
-using OccupancyOctreeNode = erl::geometry::OccupancyOctreeNode;
-using OccupancyOctreeDrawer = erl::geometry::OccupancyOctreeDrawer<OccupancyOctree>;
-using Open3dVisualizerWrapper = erl::geometry::Open3dVisualizerWrapper;
-using VectorX = Eigen::VectorX<Dtype>;
-using Vector3 = Eigen::Vector3<Dtype>;
-using MatrixX = Eigen::MatrixX<Dtype>;
-using Matrix3 = Eigen::Matrix3<Dtype>;
-using Matrix3X = Eigen::Matrix3X<Dtype>;
-using Matrix4 = Eigen::Matrix4<Dtype>;
-
-TEST(OccupancyOctree, BuildNewerCollege) {
-    options.max_wp_idx = std::min(options.max_wp_idx, erl::geometry::NewerCollege::kNumFrames);
-
-    GTEST_PREPARE_OUTPUT_DIR();
-    using namespace erl::common;
-    using namespace erl::common::serialization;
-
-    erl::geometry::NewerCollege dataset(options.data_dir);
-
-    auto octree_setting = std::make_shared<OccupancyOctree::Setting>();
-    ASSERT_TRUE(
-        octree_setting->FromYamlFile(ERL_GEOMETRY_ROOT_DIR "/config/octree_newer_college.yaml"));
-    octree_setting->use_change_detection = true;
-    octree_setting->resolution *= options.scaling;
-
-    auto octree = std::make_shared<OccupancyOctree>(octree_setting);
-    const auto visualizer_setting = std::make_shared<Open3dVisualizerWrapper::Setting>();
-    visualizer_setting->window_name = WINDOW_NAME;
-    visualizer_setting->mesh_show_back_face = false;
-    Open3dVisualizerWrapper visualizer(visualizer_setting);
-    auto point_cloud = std::make_shared<open3d::geometry::PointCloud>();
-    auto line_set_traj = std::make_shared<open3d::geometry::LineSet>();
-    auto obb = std::make_shared<open3d::geometry::AxisAlignedBoundingBox>(
-        dataset.GetGroundTruthMesh()->GetAxisAlignedBoundingBox());
-    obb->color_ = {1, 0, 0};
-    std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries =
-        OccupancyOctreeDrawer::GetBlankGeometries();
-    geometries.push_back(point_cloud);
-    geometries.push_back(line_set_traj);
-    geometries.push_back(obb);
-    visualizer.AddGeometries(geometries);
-
-    auto drawer_setting = std::make_shared<OccupancyOctreeDrawer::Setting>();
-    drawer_setting->scaling = 1.0 / options.scaling;
-    drawer_setting->area_min = dataset.GetMapMin().array() * options.scaling;
-    drawer_setting->area_max = dataset.GetMapMax().array() * options.scaling;
-    drawer_setting->occupied_only = true;
-    OccupancyOctreeDrawer drawer(drawer_setting);
-    drawer.SetOctree(octree);
-
-    long idx = 0;
-    bool octree_saved = false;
-    int animation_cnt = 0;
-    double mean_insert_time = 0;
-    auto callback = [&](Open3dVisualizerWrapper *wrapper, open3d::visualization::Visualizer *vis) {
-        if (idx >= options.max_wp_idx) {
-            if (octree_saved) {
-                ERL_WARN_ONCE("callback is still called after octree is saved.");
-                return false;
-            }
-            EXPECT_TRUE(
-                Serialization<OccupancyOctree>::Write(
-                    test_output_dir / "newer_college.ot",
-                    octree));
-            EXPECT_TRUE(
-                Serialization<OccupancyOctree>::Write(
-                    test_output_dir / "newer_college.bt",
-                    [&](std::ostream &s) -> bool { return octree->WriteBinary(s); }));
-            octree_saved = true;
-            wrapper->ClearGeometries();
-
-            drawer.DrawLeaves(geometries);
-            geometries.push_back(point_cloud);
-            geometries.push_back(line_set_traj);
-            wrapper->AddGeometries(geometries);
-            vis->UpdateGeometry();
-            wrapper->SetAnimationCallback(nullptr);  // stop calling this callback
-            if (!options.hold) { vis->Close(); }
-            return false;
+        bool
+        PostDeserialization() override {
+            if (!Super::Options::PostDeserialization()) { return false; }
+            ERL_ASSERTM(
+                !data_dir.empty(),
+                "Please provide the Newer College dataset directory via --data_dir");
+            return true;
         }
-
-        const auto t_start = std::chrono::high_resolution_clock::now();
-        auto frame = dataset[idx];
-        idx += options.stride;
-
-        std::cout << "==== " << idx << " ====" << std::endl;
-        Eigen::Matrix3Xd points_in_world = frame.GetPointsInWorldFrame();
-        const Dtype min_range = 0.6f * options.scaling;
-        const Dtype max_range = 35.0f * options.scaling;
-
-        double dt = 0;
-        line_set_traj->points_.emplace_back(frame.translation);
-        if (line_set_traj->points_.size() > 1) {
-            line_set_traj->lines_.emplace_back(
-                line_set_traj->points_.size() - 2,
-                line_set_traj->points_.size() - 1);
-        }
-
-        point_cloud->points_.clear();
-        point_cloud->points_.reserve(points_in_world.cols());
-        for (int i = 0; i < points_in_world.cols(); ++i) {
-            point_cloud->points_.emplace_back(points_in_world.col(i));
-        }
-
-        octree->ClearChangedKeys();
-        {
-            ERL_BLOCK_TIMER_MSG_TIME("Insert time", dt);
-            constexpr bool with_count = false;
-            constexpr bool parallel = true;
-            constexpr bool lazy_eval = true;
-            constexpr bool discrete = true;
-            octree->InsertPointCloud(
-                points_in_world.cast<Dtype>() * options.scaling,
-                frame.translation.cast<Dtype>() * options.scaling,
-                min_range,
-                max_range,
-                with_count,
-                parallel,
-                lazy_eval,
-                discrete);
-            octree->UpdateInnerOccupancy();
-            octree->Prune();
-        }
-        mean_insert_time = (mean_insert_time * animation_cnt + dt) / (animation_cnt + 1);
-        std::cout << "Number of points: " << frame.points.cols() << std::endl;
-        std::cout << "Mean insert time: " << mean_insert_time << " ms." << std::endl;
-
-        if (options.draw_tree_grid) {
-            drawer.DrawTree(geometries);
-        } else {
-            drawer.DrawLeaves(geometries);
-        }
-
-        line_set_traj->PaintUniformColor({1, 0, 0});
-        if (line_set_traj->lines_.empty()) { vis->ResetViewPoint(true); }
-        if (point_cloud->points_.size() > options.max_point_cloud_size) {
-            point_cloud->points_.swap(point_cloud->RandomDownSample(0.5)->points_);
-        }
-
-        const auto t_end = std::chrono::high_resolution_clock::now();
-        const auto duration_total =
-            std::chrono::duration<double, std::milli>(t_end - t_start).count();
-        std::cout << "Callback time: " << duration_total << " ms." << std::endl;
-
-        return animation_cnt++ % options.animation_interval == 0;
     };
 
-    visualizer.SetAnimationCallback(callback);
-    visualizer.Show();
+private:
+    std::shared_ptr<Options> options = nullptr;
+    erl::geometry::NewerCollege dataset;
+    erl::geometry::NewerCollege::Frame frame;
+
+public:
+    explicit TestOccupancyOctreeBuildWithNewerCollege(std::shared_ptr<Options> options_in)
+        : Super(options_in), options(options_in), dataset(options->data_dir) {
+
+        options->min_range = 0.06f;
+        options->max_range = 35.0f;
+
+        if (options->max_wp_idx < 0) {
+            options->max_wp_idx = erl::geometry::NewerCollege::kNumFrames;
+        } else {
+            options->max_wp_idx =
+                std::min(options->max_wp_idx, erl::geometry::NewerCollege::kNumFrames);
+        }
+    }
+
+    TestOccupancyOctreeBuildWithNewerCollege(const TestOccupancyOctreeBuildWithNewerCollege &) =
+        delete;
+    TestOccupancyOctreeBuildWithNewerCollege &
+    operator=(const TestOccupancyOctreeBuildWithNewerCollege &) = delete;
+    TestOccupancyOctreeBuildWithNewerCollege(TestOccupancyOctreeBuildWithNewerCollege &&) = delete;
+    TestOccupancyOctreeBuildWithNewerCollege &
+    operator=(const TestOccupancyOctreeBuildWithNewerCollege &&) = delete;
+
+    ~TestOccupancyOctreeBuildWithNewerCollege() override = default;
+
+    Eigen::Vector3d
+    GetMapMin() const override {
+        return erl::geometry::NewerCollege::GetMapMin();
+    }
+
+    Eigen::Vector3d
+    GetMapMax() const override {
+        return erl::geometry::NewerCollege::GetMapMax();
+    }
+
+    Eigen::Matrix3Xd
+    LoadPcdInWorldFrame() override {
+        frame = dataset[this->idx];
+        return frame.GetPointsInWorldFrame();
+    }
+
+    Eigen::Vector3d
+    LoadSensorTranslation() override {
+        return frame.translation;
+    }
+};
+
+static int g_argc = 0;
+static char **g_argv = nullptr;
+
+TEST(OccupancyOctree, BuildNewerCollege) {
+    GTEST_PREPARE_OUTPUT_DIR();
+    using Test = TestOccupancyOctreeBuildWithNewerCollege<float>;
+    const auto options = std::make_shared<Test::Options>();
+    options->FromCommandLine(g_argc, g_argv);
+    ERL_INFO("Options:\n{}", options->AsYamlString());
+    Test test(options);
+    test.visualizer_setting->window_name = test_output_dir.string();
+    test.test_output_dir = test_output_dir;
+    test.Run();
 }
 
 int
 main(int argc, char *argv[]) {
     testing::InitGoogleTest(&argc, argv);
-    options.FromCommandLine(argc, argv);
+    g_argc = argc;
+    g_argv = argv;
     return RUN_ALL_TESTS();
 }

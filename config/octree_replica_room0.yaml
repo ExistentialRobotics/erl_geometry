@@ -1,0 +1,12 @@
+tree_depth: 16
+log_odd_min: -10
+log_odd_max: 30
+log_odd_hit: 0.9
+log_odd_miss: -0.1
+log_odd_occ_threshold: 0
+resolution: 0.08
+use_change_detection: false
+use_aabb_limit: false
+aabb:
+    center: [ 0, 0, 0 ]
+    half_sizes: [ 0, 0, 0 ]

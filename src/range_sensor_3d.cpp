@@ -85,7 +85,10 @@ namespace erl::geometry {
                 } else {
                     Dtype &range = ranges_mat(u, v);
                     range = ranges[i] / scales.data()[i];
-                    if (add_noise) { range += distribution(generator); }
+                    if (add_noise && range > 0) {
+                        range += distribution(generator);
+                        if (range < 0) { range = 0; }
+                    }
                     if (cache_normals) {
                         Vector3 &normal = m_normals_(u, v);
                         const long ii = i * 3;

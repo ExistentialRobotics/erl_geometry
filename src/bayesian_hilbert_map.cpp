@@ -625,7 +625,7 @@ namespace erl::geometry {
                 // grad = grad_phi_x @ grad_phi_h @ grad_prob_h
                 // phi: n x (n * (Dim + 1))
                 grad_ptr[d] = 0;
-                Dtype *grad_phi_x = phi.col(j).data();
+                const Dtype *grad_phi_x = phi.col(j).data();
                 for (long k = 0; k < n_hinged; ++k) {
                     const Dtype tmp = 0.125f * kPI * t1 * beta_ptr[k] / t2;
                     grad_ptr[d] += grad_phi_x[k] * (mu_ptr[k] - tmp) / t3;

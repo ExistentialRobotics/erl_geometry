@@ -206,7 +206,7 @@ touch CMakeLists.txt
 Add the following lines to your `CMakeLists.txt`:
 
 ```cmake
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.16)
 project(<your_project_name>)
 add_subdirectory(src/erl_cmake_tools)
 add_subdirectory(src/erl_common)

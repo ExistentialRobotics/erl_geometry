@@ -16,7 +16,8 @@ BindRgbdFrame3DImpl(const py::module &m, const char *name) {
             py::arg("rotation"),
             py::arg("translation"),
             py::arg("depth"),
-            py::arg("rgb"))
+            py::arg("rgb"),
+            py::arg("is_rgb"))
         .def(
             "convert_to_point_cloud",
             [](const T &self, const bool in_world_frame) {

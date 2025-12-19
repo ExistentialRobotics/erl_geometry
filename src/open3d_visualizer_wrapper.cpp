@@ -63,7 +63,7 @@ namespace erl::geometry {
     Open3dVisualizerWrapper::SetViewStatus(const std::filesystem::path &view_status_file) const {
         if (std::filesystem::exists(view_status_file)) {
             std::ifstream ifs(view_status_file);
-            auto json_str =
+            const auto json_str =
                 std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
             m_visualizer_->SetViewStatus(json_str);
             return;

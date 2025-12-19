@@ -1,18 +1,23 @@
 #include "test_occupancy_octree_build_impl.hpp"
 
 #include "erl_common/test_helper.hpp"
-#include "erl_geometry/cow_and_lady.hpp"
+#include "erl_geometry/depth_frame_3d.hpp"
+#include "erl_geometry/replica_rgbd.hpp"
 
 template<typename Dtype>
-struct TestOccupancyOctreeBuildWithCowAndLady : TestOccupancyOctreeBuildImpl<Dtype> {
+struct TestOccupancyOctreeBuildWithReplicaRgbd : TestOccupancyOctreeBuildImpl<Dtype> {
     using Super = TestOccupancyOctreeBuildImpl<Dtype>;
-    using CowAndLady = erl::geometry::CowAndLady;
+    using ReplicaRgbd = erl::geometry::ReplicaRgbd;
     using DepthFrame = erl::geometry::DepthFrame3Dd;
 
     struct Options : public erl::common::Yamlable<Options, typename Super::Options> {
         std::string data_dir;
+        std::string scene_name;
 
-        ERL_REFLECT_SCHEMA(Options, ERL_REFLECT_MEMBER(Options, data_dir));
+        ERL_REFLECT_SCHEMA(
+            Options,
+            ERL_REFLECT_MEMBER(Options, data_dir),
+            ERL_REFLECT_MEMBER(Options, scene_name));
 
         bool
         PostDeserialization() override {
@@ -20,26 +25,30 @@ struct TestOccupancyOctreeBuildWithCowAndLady : TestOccupancyOctreeBuildImpl<Dty
             ERL_ASSERTM(
                 !data_dir.empty(),
                 "Please provide the Newer College dataset directory via --data_dir");
+            ERL_ASSERTM(!scene_name.empty(), "Please provide the scene name via --scene_name");
             return true;
         }
     };
 
 private:
     std::shared_ptr<Options> options = nullptr;
-    CowAndLady dataset;
-    CowAndLady::Frame frame;
+    ReplicaRgbd dataset;
+    ReplicaRgbd::Frame frame;
     DepthFrame depth_frame;
 
 public:
-    explicit TestOccupancyOctreeBuildWithCowAndLady(std::shared_ptr<Options> options_in)
-        : Super(options_in), options(options_in), dataset(options->data_dir), depth_frame([] {
+    explicit TestOccupancyOctreeBuildWithReplicaRgbd(std::shared_ptr<Options> options_in)
+        : Super(options_in),
+          options(options_in),
+          dataset(options->data_dir, options->scene_name),
+          depth_frame([] {
               auto depth_frame_setting = std::make_shared<DepthFrame::Setting>();
-              depth_frame_setting->camera_intrinsic.image_height = CowAndLady::kImageHeight;
-              depth_frame_setting->camera_intrinsic.image_width = CowAndLady::kImageWidth;
-              depth_frame_setting->camera_intrinsic.camera_fx = CowAndLady::kCameraFx;
-              depth_frame_setting->camera_intrinsic.camera_fy = CowAndLady::kCameraFy;
-              depth_frame_setting->camera_intrinsic.camera_cx = CowAndLady::kCameraCx;
-              depth_frame_setting->camera_intrinsic.camera_cy = CowAndLady::kCameraCy;
+              depth_frame_setting->camera_intrinsic.image_height = ReplicaRgbd::kImageHeight;
+              depth_frame_setting->camera_intrinsic.image_width = ReplicaRgbd::kImageWidth;
+              depth_frame_setting->camera_intrinsic.camera_fx = ReplicaRgbd::kCameraFx;
+              depth_frame_setting->camera_intrinsic.camera_fy = ReplicaRgbd::kCameraFy;
+              depth_frame_setting->camera_intrinsic.camera_cx = ReplicaRgbd::kCameraCx;
+              depth_frame_setting->camera_intrinsic.camera_cy = ReplicaRgbd::kCameraCy;
               return depth_frame_setting;
           }()) {
 
@@ -47,20 +56,21 @@ public:
         options->max_range = 4.0f;
 
         if (options->max_wp_idx < 0) {
-            options->max_wp_idx = CowAndLady::kEndIdx;
+            options->max_wp_idx = dataset.Size();
         } else {
-            options->max_wp_idx = std::min(options->max_wp_idx, CowAndLady::kEndIdx);
+            options->max_wp_idx = std::min(options->max_wp_idx, dataset.Size());
         }
     }
 
-    TestOccupancyOctreeBuildWithCowAndLady(const TestOccupancyOctreeBuildWithCowAndLady &) = delete;
-    TestOccupancyOctreeBuildWithCowAndLady &
-    operator=(const TestOccupancyOctreeBuildWithCowAndLady &) = delete;
-    TestOccupancyOctreeBuildWithCowAndLady(TestOccupancyOctreeBuildWithCowAndLady &&) = delete;
-    TestOccupancyOctreeBuildWithCowAndLady &
-    operator=(const TestOccupancyOctreeBuildWithCowAndLady &&) = delete;
+    TestOccupancyOctreeBuildWithReplicaRgbd(const TestOccupancyOctreeBuildWithReplicaRgbd &) =
+        delete;
+    TestOccupancyOctreeBuildWithReplicaRgbd &
+    operator=(const TestOccupancyOctreeBuildWithReplicaRgbd &) = delete;
+    TestOccupancyOctreeBuildWithReplicaRgbd(TestOccupancyOctreeBuildWithReplicaRgbd &&) = delete;
+    TestOccupancyOctreeBuildWithReplicaRgbd &
+    operator=(const TestOccupancyOctreeBuildWithReplicaRgbd &&) = delete;
 
-    ~TestOccupancyOctreeBuildWithCowAndLady() override = default;
+    ~TestOccupancyOctreeBuildWithReplicaRgbd() override = default;
 
     Eigen::Vector3d
     GetMapMin() const override {
@@ -91,9 +101,9 @@ public:
 static int g_argc = 0;
 static char **g_argv = nullptr;
 
-TEST(OccupancyOctree, BuildCowAndLady) {
+TEST(OccupancyOctree, BuildReplicaRgbd) {
     GTEST_PREPARE_OUTPUT_DIR();
-    using Test = TestOccupancyOctreeBuildWithCowAndLady<float>;
+    using Test = TestOccupancyOctreeBuildWithReplicaRgbd<float>;
     const auto options = std::make_shared<Test::Options>();
     options->FromCommandLine(g_argc, g_argv);
     ERL_INFO("Options:\n{}", options->AsYamlString());

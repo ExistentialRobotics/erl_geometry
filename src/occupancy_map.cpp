@@ -34,7 +34,7 @@ namespace erl::geometry {
 
         for (std::size_t i = 0; i < npts; ++i) {
             if (max_num_rays > 0 && rays.size() >= max_num_rays) { break; }
-            long idx;
+            long idx = 0;
             if (sampling) {
                 const std::size_t idx1 = idx_distribution(generator) % (npts - i);
                 idx = static_cast<long>(npts - 1 - i);
@@ -44,7 +44,7 @@ namespace erl::geometry {
                 idx = point_indices.empty() ? static_cast<long>(i) : point_indices[i];
             }
 
-            VectorD point = points.col(idx);
+            const VectorD point = points.col(idx);
             VectorD v = point - sensor_position;
             Dtype dist = v.norm();
             v /= dist;  // normalize the vector
@@ -118,20 +118,20 @@ namespace erl::geometry {
         for (; i < rays.size(); ++i) {
             if (num_samples >= n_to_sample) { break; }  // already sampled enough points
 
-            std::size_t idx2 = rays.size() - 1 - i;  // index of the ray to use
+            const std::size_t idx2 = rays.size() - 1 - i;  // index of the ray to use
             // move the used ray to the back of the list
             if (random) {
-                std::size_t idx1 = ray_distribution(generator) % (rays.size() - i);
+                const std::size_t idx1 = ray_distribution(generator) % (rays.size() - i);
                 std::swap(rays[idx1], rays[idx2]);
             } else {
-                std::size_t idx1 = 0;
+                constexpr std::size_t idx1 = 0;
                 std::swap(rays[idx1], rays[idx2]);  // equivalent to reverse iteration
             }
             const auto &[p1, p2, hit_flag, num_free_points, d1, d2] = rays[idx2];
 
             if (hit_flag && num_hit < num_hit_to_sample) {
                 std::memcpy(points_ptr, p2.data(), sizeof(Dtype) * Dim);  // save the hit point
-                *labels_ptr++ = 1.0f;                                     // label as occupied
+                *(labels_ptr++) = 1.0f;                                   // label as occupied
                 points_ptr += Dim;  // move to the next position
                 ++num_hit;
                 ++num_samples;

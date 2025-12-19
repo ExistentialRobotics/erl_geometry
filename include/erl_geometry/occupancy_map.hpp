@@ -52,7 +52,7 @@ namespace erl::geometry {
         };
 
         /**
-         *
+         * Collect rays that intersect with the map boundary and compute free point sampling ranges.
          * @param sensor_position the position of the sensor in the world frame.
          * @param points the point cloud in the world frame of the sensor measurement.
          * @param point_indices the indices of the points in the point cloud to sample. If empty,

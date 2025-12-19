@@ -23,7 +23,7 @@ namespace erl::geometry {
         double img_height = 680,
         double focal_length = 600,
         double scale = 0.0007,
-        double frame_thickness = 0.02,
+        double frame_thickness = 0.01,
         const Eigen::Vector3d &frame_color = {0.0, 0.0, 0.0},
         bool with_axis = true);
 
