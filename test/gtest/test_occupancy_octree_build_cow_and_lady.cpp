@@ -31,7 +31,7 @@ private:
     DepthFrame depth_frame;
 
 public:
-    explicit TestOccupancyOctreeBuildWithCowAndLady(std::shared_ptr<Options> options_in)
+    explicit TestOccupancyOctreeBuildWithCowAndLady(const std::shared_ptr<Options> &options_in)
         : Super(options_in), options(options_in), dataset(options->data_dir), depth_frame([] {
               auto depth_frame_setting = std::make_shared<DepthFrame::Setting>();
               depth_frame_setting->camera_intrinsic.image_height = CowAndLady::kImageHeight;
@@ -43,8 +43,8 @@ public:
               return depth_frame_setting;
           }()) {
 
-        options->min_range = 0.1f;
-        options->max_range = 4.0f;
+        options->min_range = 0.05f;
+        options->max_range = 8.0f;
 
         if (options->max_wp_idx < 0) {
             options->max_wp_idx = CowAndLady::kEndIdx;
@@ -62,12 +62,12 @@ public:
 
     ~TestOccupancyOctreeBuildWithCowAndLady() override = default;
 
-    Eigen::Vector3d
+    [[nodiscard]] Eigen::Vector3d
     GetMapMin() const override {
         return dataset.GetMapMin();
     }
 
-    Eigen::Vector3d
+    [[nodiscard]] Eigen::Vector3d
     GetMapMax() const override {
         return dataset.GetMapMax();
     }

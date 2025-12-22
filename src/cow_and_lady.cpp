@@ -3,13 +3,14 @@
 #include "erl_common/angle_utils.hpp"
 #include "erl_common/opencv.hpp"
 #include "erl_common/progress_bar.hpp"
+#include "erl_geometry/occupancy_octree.hpp"
+#include "erl_geometry/occupancy_octree_drawer.hpp"
 
 #include <open3d/core/EigenConverter.h>
 #include <open3d/geometry/PointCloud.h>
 #include <open3d/io/PointCloudIO.h>
 #include <open3d/pipelines/registration/ColoredICP.h>
 #include <open3d/pipelines/registration/Registration.h>
-#include <open3d/visualization/utility/DrawGeometry.h>
 
 #include <utility>
 
@@ -18,9 +19,7 @@ namespace erl::geometry {
         : m_directory_(std::move(directory)),
           m_pcd_gt_(open3d::io::CreatePointCloudFromFile(m_directory_ / "cow_and_lady_gt.ply")),
           m_pose_data_(common::LoadEigenMatrixFromBinaryFile<double>(m_directory_ / "poses.dat")),
-          m_use_icp_poses_(use_icp_poses),
-          m_start_idx(kStartIdx),
-          m_end_idx(kEndIdx) {
+          m_use_icp_poses_(use_icp_poses) {
         if (m_use_icp_poses_) {
             const std::string pose_icp_filename = m_directory_ / "poses_icp.dat";
             if (!std::filesystem::exists(pose_icp_filename)) {
@@ -77,8 +76,8 @@ namespace erl::geometry {
                     if (depth_ptr[v] <= 0 || !std::isfinite(depth_ptr[v])) { continue; }
 
                     pcd->points_.emplace_back(
-                        (u - kCameraCx) * depth_ptr[v] / kCameraFx,
-                        (v - kCameraCy) * depth_ptr[v] / kCameraFy,
+                        (static_cast<double>(u) - kCameraCx) * depth_ptr[v] / kCameraFx,
+                        (static_cast<double>(v) - kCameraCy) * depth_ptr[v] / kCameraFy,
                         depth_ptr[v]);
 
                     const cv::Vec3b &pixel =
@@ -140,6 +139,126 @@ namespace erl::geometry {
             error_filename,
             error_data.transpose(),
             common::EigenTextFormat::kCsvFmt);
+    }
+
+    void
+    CowAndLady::ComputePcdPointNormals(const std::string &pcd_path) const {
+        const auto frame_setting = std::make_shared<DepthFrame3Dd::Setting>();
+        frame_setting->camera_intrinsic.image_height = kImageHeight;
+        frame_setting->camera_intrinsic.image_width = kImageWidth;
+        frame_setting->camera_intrinsic.camera_fx = kCameraFx;
+        frame_setting->camera_intrinsic.camera_fy = kCameraFy;
+        frame_setting->camera_intrinsic.camera_cx = kCameraCx;
+        frame_setting->camera_intrinsic.camera_cy = kCameraCy;
+        frame_setting->valid_range_min = 0.05;
+        frame_setting->valid_range_max = 4.0;
+        DepthFrame3Dd depth_frame(frame_setting);
+
+        std::cout << "Computing point normals..." << std::endl;
+        m_pcd_gt_->EstimateNormals();
+
+        std::cout << "Checking point normals consistency with depth frames..." << std::endl;
+        std::vector<long> observation_cnt(m_pcd_gt_->points_.size(), 0);
+        std::vector<long> correct_cnt(observation_cnt.size(), 0);
+        const auto pbar_setting = std::make_shared<common::ProgressBar::Setting>();
+        pbar_setting->description = "Check point normals";
+        pbar_setting->total = Size();
+        pbar_setting->line_width = 160;
+        const auto pbar = common::ProgressBar::Open(pbar_setting);
+        KdTree3d kdtree(
+            m_pcd_gt_->points_.data()->data(),
+            static_cast<long>(m_pcd_gt_->points_.size()));
+
+        for (long i = 0; i < Size(); ++i) {
+            const Frame frame = (*this)[i];
+            depth_frame.UpdateRanges(frame.rotation, frame.translation, frame.depth);
+
+            // find nearest neighbors for each hit point
+            std::vector<long> indices(depth_frame.GetNumHitRays(), -1);
+#pragma omp parallel for default(none) shared(depth_frame, kdtree, indices)
+            for (long j = 0; j < depth_frame.GetNumHitRays(); ++j) {
+                const Eigen::Vector3d &point = depth_frame.GetHitPointsWorld()[j];
+                std::vector<long> knn_indices;
+                std::vector<double> knn_dists;
+                const long k = kdtree.Knn(1, point, knn_indices, knn_dists);
+                if (k > 0 && std::sqrt(knn_dists[0]) < 0.01) { indices[j] = knn_indices[0]; }
+            }
+
+            // remove duplicate indices
+            std::unordered_set<long> unique_indices;
+            unique_indices.reserve(indices.size());
+            unique_indices.insert(indices.begin(), indices.end());
+            indices.clear();
+            indices.insert(indices.end(), unique_indices.begin(), unique_indices.end());
+
+            // count observations and correct normals
+#pragma omp parallel for default(none) shared(indices, frame, kdtree, observation_cnt, correct_cnt)
+            for (const long &j: indices) {
+                if (j < 0) { continue; }
+                ++observation_cnt[j];
+                const Eigen::Vector3d v = m_pcd_gt_->points_[j] - frame.translation;
+                if (v.dot(m_pcd_gt_->normals_[j]) < 0) { ++correct_cnt[j]; }
+            }
+            pbar->Update();
+        }
+        pbar->Close();
+
+        open3d::geometry::PointCloud pcd;
+        pcd.points_.reserve(m_pcd_gt_->points_.size());
+        pcd.normals_.reserve(m_pcd_gt_->points_.size());
+        pcd.colors_.reserve(m_pcd_gt_->points_.size());
+        for (std::size_t i = 0; i < m_pcd_gt_->points_.size(); ++i) {
+            if (observation_cnt[i] == 0) { continue; }  // unobserved point
+            const double correct_ratio =
+                static_cast<double>(correct_cnt[i]) / static_cast<double>(observation_cnt[i]);
+            pcd.points_.push_back(m_pcd_gt_->points_[i]);
+            pcd.colors_.push_back(m_pcd_gt_->colors_[i]);
+            if (correct_ratio < 0.5) {
+                // flip normal
+                pcd.normals_.emplace_back(-m_pcd_gt_->normals_[i]);
+            } else {
+                pcd.normals_.push_back(m_pcd_gt_->normals_[i]);
+            }
+        }
+
+        ERL_INFO(
+            "Removed {} points with invalid normals",
+            m_pcd_gt_->points_.size() - pcd.points_.size());
+
+        kdtree.SetDataMatrix(pcd.points_.data()->data(), static_cast<long>(pcd.points_.size()));
+
+        std::cout << "Checking point normals consistency with neighbors..." << std::endl;
+
+        constexpr int max_iters = 100;
+        int iter = 0;
+        while (iter < max_iters) {
+            std::cout << "Iteration " << iter << "/" << max_iters << std::endl;
+            ++iter;
+            volatile bool any_flip = false;  // racing condition is acceptable here
+#pragma omp parallel for default(none) shared(pcd, kdtree, any_flip)
+            for (std::size_t i = 0; i < pcd.points_.size(); ++i) {
+                std::vector<long> indices;
+                std::vector<double> dists;
+                const long k = kdtree.Knn(15, pcd.points_[i], indices, dists);
+                std::size_t votes = 0;
+                for (long j = 1; j < k; ++j) {
+                    const Eigen::Vector3d &neighbor_normal = pcd.normals_[indices[j]];
+                    if (pcd.normals_[i].dot(neighbor_normal) > 0) { votes++; }
+                }
+                if (votes < static_cast<std::size_t>(k / 2)) {
+                    pcd.normals_[i] = -pcd.normals_[i];
+                    any_flip = true;
+                }
+            }
+            if (!any_flip) { break; }  // converged
+        }
+
+        std::cout << "Saving point cloud with normals to " << pcd_path << std::endl;
+        const std::filesystem::path path = pcd_path;
+        std::filesystem::create_directories(path.parent_path());
+        if (!open3d::io::WritePointCloud(pcd_path, pcd)) {
+            ERL_WARN("Failed to save point cloud with normals to {}", pcd_path);
+        }
     }
 
     bool

@@ -1,0 +1,2 @@
+python ../../scripts/point_cloud_to_mesh.py cow_and_lady_gt_with_normals.ply cow_and_lady_gt_mesh.ply --depth 11 --point-weight 15.0 --samples-per-node 2 --remove-vertices-not-in-pcd
+python ../../scripts/point_cloud_to_mesh.py cow_and_lady_gt_with_normals.ply cow_and_lady_gt_mesh0.ply --depth 11 --point-weight 15.0 --samples-per-node 2

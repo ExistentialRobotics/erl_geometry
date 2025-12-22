@@ -2,8 +2,6 @@
 
 #include "depth_frame_3d.hpp"
 
-#include "erl_common/opencv.hpp"
-
 #include <open3d/geometry/Geometry3D.h>
 #include <open3d/geometry/PointCloud.h>
 
@@ -22,6 +20,8 @@ namespace erl::geometry {
         long m_end_idx = kEndIdx;
 
     public:
+        static constexpr double kValidRangeMin = 0.1;
+        static constexpr double kValidRangeMax = 3.5;
         static constexpr long kImageWidth = 640;
         static constexpr long kImageHeight = 480;
         static constexpr double kCameraFx = 525.0;
@@ -31,6 +31,7 @@ namespace erl::geometry {
         static constexpr long kStartIdx = 90;
         static constexpr long kEndIdx = 2684;  // 2829 - 145
 
+        // transformation from camera optical frame to vicon sensor frame
         inline static const Eigen::Matrix4d sk_Transform_ = []() -> Eigen::Matrix4d {
             Eigen::Matrix4d transform;
             // clang-format off
@@ -41,6 +42,11 @@ namespace erl::geometry {
             // clang-format on
             return transform;
         }();
+
+        inline static const Eigen::Vector3d kCowBoundingBoxMin{-1.8, -1.8, 0.0};
+        inline static const Eigen::Vector3d kCowBoundingBoxMax{0.35, 0.4, 1.35};
+        inline static const Eigen::Vector3d kLadyBoundingBoxMin{1.0, -1.0, 0.0};
+        inline static const Eigen::Vector3d kLadyBoundingBoxMax{2.2, 0.0, 1.8};
 
         struct Frame {
             bool valid = true;
@@ -124,8 +130,11 @@ namespace erl::geometry {
         void
         GenerateIcpResults() const;
 
+        void
+        ComputePcdPointNormals(const std::string &pcd_path) const;
+
     private:
         [[nodiscard]] bool
-        LoadData(long index, Frame& frame) const;
+        LoadData(long index, Frame &frame) const;
     };
 }  // namespace erl::geometry

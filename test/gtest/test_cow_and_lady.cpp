@@ -3,7 +3,6 @@
 #include "erl_geometry/cow_and_lady.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
 
-#include <boost/program_options.hpp>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
 #include <open3d/io/TriangleMeshIO.h>
@@ -132,7 +131,7 @@ TEST(CowAndLady, Load) {
 
 TEST(CowAndLady, Align) {
     GTEST_PREPARE_OUTPUT_DIR();
-    erl::geometry::CowAndLady cow_and_lady(g_options.directory, false);
+    const erl::geometry::CowAndLady cow_and_lady(g_options.directory, false);
 
     auto depth = cow_and_lady[g_options.frame_depth].depth_jet;
     auto color = cow_and_lady[g_options.frame_rgb].color;
@@ -148,7 +147,8 @@ TEST(CowAndLady, Align) {
         cv::addWeighted(depth, 0.5, color, 0.5, 0, overlap);
         cv::imshow("overlap", overlap);
 
-        cv::Mat depth_edge, color_edge;
+        cv::Mat depth_edge;
+        cv::Mat color_edge;
         cv::Canny(depth, depth_edge, 100, 200);  // use as the red channel
         cv::Canny(color, color_edge, 100, 200);  // use as the green channel
 
@@ -163,6 +163,39 @@ TEST(CowAndLady, Align) {
 
         cv::waitKey(10);
     }
+}
+
+TEST(CowAndLady, ComputePcdPointNormals) {
+    GTEST_PREPARE_OUTPUT_DIR();
+    const erl::geometry::CowAndLady cow_and_lady(g_options.directory, false);
+    cow_and_lady.ComputePcdPointNormals(
+        ERL_GEOMETRY_ROOT_DIR "/data/cow_and_lady/cow_and_lady_gt_with_normals.ply");
+}
+
+TEST(CowAndLady, CropCowAndLady) {
+    const auto mesh0 = open3d::io::CreateMeshFromFile(
+        ERL_GEOMETRY_ROOT_DIR "/data/cow_and_lady/cow_and_lady_gt_mesh0.ply");
+
+    using namespace erl::geometry;
+    using namespace open3d::geometry;
+    const AxisAlignedBoundingBox cow_bounding_box(
+        CowAndLady::kCowBoundingBoxMin,
+        CowAndLady::kCowBoundingBoxMax);
+    const AxisAlignedBoundingBox lady_bounding_box(
+        CowAndLady::kLadyBoundingBoxMin,
+        CowAndLady::kLadyBoundingBoxMax);
+
+    const auto mesh_cow = mesh0->Crop(cow_bounding_box);
+    const auto mesh_lady = mesh0->Crop(lady_bounding_box);
+    const auto axes = TriangleMesh::CreateCoordinateFrame(0.5);
+    const auto cow_bbox_lines = LineSet::CreateFromAxisAlignedBoundingBox(cow_bounding_box);
+    const auto lady_bbox_lines = LineSet::CreateFromAxisAlignedBoundingBox(lady_bounding_box);
+    cow_bbox_lines->PaintUniformColor({1, 0, 0});
+    lady_bbox_lines->PaintUniformColor({0, 1, 0});
+
+    open3d::visualization::DrawGeometries(
+        {mesh_cow, mesh_lady, axes, cow_bbox_lines, lady_bbox_lines},
+        "Cropped Cow and Lady Meshes");
 }
 
 int
