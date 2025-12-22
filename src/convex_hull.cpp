@@ -16,7 +16,7 @@ namespace erl::geometry {
         ERL_ASSERTM(num_points > 0, "num_points = {}, it should be > 0.", num_points);
 
         // calculate convex hull
-        orgQhull::Qhull qhull("", dim, num_points, points, options.c_str());
+        const orgQhull::Qhull qhull("", dim, num_points, points, options.c_str());
         ERL_DEBUG_ASSERT(qhull.initialized(), "qhull is not initialized.");
 
         if (qhull.vertexCount() == 0) {
@@ -48,11 +48,11 @@ namespace erl::geometry {
         // qhull_points.append(static_cast<int>(num_points * 3), point_data);
 
         // calculate convex hull
-        orgQhull::Qhull qhull("", 3, num_points, points, options.c_str());
+        const orgQhull::Qhull qhull("", 3, num_points, points, options.c_str());
         ERL_DEBUG_ASSERT(qhull.initialized(), "qhull is not initialized.");
 
         // load result from qhull
-        orgQhull::QhullFacetList facets = qhull.facetList();
+        const orgQhull::QhullFacetList facets = qhull.facetList();
         mesh_triangles.resize(3, static_cast<long>(facets.size()));
         mesh_vertices.resize(3, static_cast<long>(facets.size() * 3));
         std::unordered_map<long, long> indices_map;  // original_id -> new_id
@@ -61,14 +61,14 @@ namespace erl::geometry {
         hull_pt_map.clear();
         hull_pt_map.reserve(num_points);
         Eigen::Map<const Eigen::Matrix3Xd> points_mat(points, 3, num_points);
-        for (orgQhull::QhullFacet &facet: facets) {
+        for (const orgQhull::QhullFacet &facet: facets) {
             if (!facet.isGood()) { continue; }  // skip degenerate facets
-            orgQhull::QhullVertexSet vertices = facet.vertices();
+            const orgQhull::QhullVertexSet vertices = facet.vertices();
 
             long triangle_subscript = 0;
             for (const orgQhull::QhullVertex &vertex: vertices) {
                 // index of the point in the original point cloud
-                long point_id = vertex.point().id();
+                const long point_id = vertex.point().id();
                 mesh_triangles(triangle_subscript, triangle_index) = point_id;
                 if (auto new_id = static_cast<long>(indices_map.size());
                     indices_map.try_emplace(point_id, new_id).second) {
@@ -89,7 +89,7 @@ namespace erl::geometry {
         mesh_vertices.conservativeResize(3, num_hull_points);
 
         // adjust triangle vertex order
-        long num_triangles = mesh_triangles.cols();
+        const long num_triangles = mesh_triangles.cols();
         for (long i = 0; i < num_triangles; ++i) {
             auto triangle = mesh_triangles.col(i);
             triangle[0] = indices_map[triangle[0]];

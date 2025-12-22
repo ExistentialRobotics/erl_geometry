@@ -29,9 +29,9 @@ namespace erl::geometry {
             const Dtype ky2 = vertices(1, i + 1);
 
             if (ky1 <= ky) {
-                if ((ky2 > ky) && is_left(kx, ky, kx1, ky1, kx2, ky2)) { wn++; }
+                if ((ky2 > ky) && is_left(kx, ky, kx1, ky1, kx2, ky2)) { ++wn; }
             } else if ((ky2 <= ky) && is_left(kx, ky, kx2, ky2, kx1, ky1)) {
-                wn--;
+                --wn;
             }
         }
         // the last vertex and the first vertex composite the last polygon segment
@@ -41,12 +41,12 @@ namespace erl::geometry {
         const Dtype ky2 = vertices(1, 0);
 
         if (ky1 <= ky) {
-            if ((ky2 > ky) && is_left(kx, ky, kx1, ky1, kx2, ky2)) { wn++; }
+            if ((ky2 > ky) && is_left(kx, ky, kx1, ky1, kx2, ky2)) { ++wn; }
         } else if ((ky2 <= ky) && is_left(kx, ky, kx2, ky2, kx1, ky1)) {
-            wn--;
+            --wn;
         }
 
-        return wn;  // positive winding number <==> inside the polygon defined by `vertices`
+        return wn;  // non-zero winding number <==> inside the polygon defined by `vertices`
     }
 
     template int

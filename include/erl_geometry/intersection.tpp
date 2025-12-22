@@ -26,11 +26,11 @@ namespace erl::geometry {
         Dtype dist = (dy_21 * dx_20 - dy_20 * dx_21) / std::sqrt(d);
         dist = std::abs(dist);
 
-        if (lam > 1.) {
+        if (lam > 1.0f) {
             const Dtype dx_10 = x1 - x0;
             const Dtype dy_10 = y1 - y0;
             dist = std::sqrt(dx_10 * dx_10 + dy_10 * dy_10);
-        } else if (lam < 0.) {
+        } else if (lam < 0.0f) {
             dist = std::sqrt(dx_20 * dx_20 + dy_20 * dy_20);
         }
 

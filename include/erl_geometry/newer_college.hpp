@@ -11,8 +11,8 @@ namespace erl::geometry {
 
     class NewerCollege {
     public:
-        static constexpr long kNumAzimuthLines = 1024;
         static constexpr long kNumFrames = 1988;
+        static constexpr long kNumAzimuthLines = 1024;
         static constexpr long kNumElevationLines = 128;
         static constexpr double kVerticalFov = M_PI_2;
         inline static const Eigen::Matrix4d kOrientedBoundingBoxPose = []() -> Eigen::Matrix4d {
