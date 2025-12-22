@@ -176,7 +176,7 @@ namespace erl::geometry {
             ERL_ASSERT_PTR(m_tree_);
             nanoflann::SearchParameters params;
             params.sorted = sorted;
-            m_tree_->radiusSearch(point.data(), radius, indices_dists, params);
+            m_tree_->radiusSearch(point.data(), radius * radius, indices_dists, params);
         }
 
         [[nodiscard]] IndexType
@@ -195,7 +195,12 @@ namespace erl::geometry {
                 indices_out.setConstant(-1);
             }
             if (metric_out.size() < k) { metric_out.resize(k); }
-            k = m_tree_->rknnSearch(point.data(), k, indices_out.data(), metric_out.data(), radius);
+            k = m_tree_->rknnSearch(
+                point.data(),
+                k,
+                indices_out.data(),
+                metric_out.data(),
+                radius * radius);
             return k;
         }
 
@@ -210,7 +215,12 @@ namespace erl::geometry {
             ERL_ASSERT_PTR(m_tree_);
             indices_out.resize(k, -1);
             metric_out.resize(k);
-            k = m_tree_->rknnSearch(point.data(), k, indices_out.data(), metric_out.data(), radius);
+            k = m_tree_->rknnSearch(
+                point.data(),
+                k,
+                indices_out.data(),
+                metric_out.data(),
+                radius * radius);
             return k;
         }
 

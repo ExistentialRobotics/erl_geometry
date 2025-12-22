@@ -362,6 +362,15 @@ Examples:
         dest="remove_non_manifold",
         help="Don't remove non-manifold edges",
     )
+    parser.add_argument(
+        "--remove-vertices-not-in-pcd", action="store_true", help="Remove vertices not in the original point cloud"
+    )
+    parser.add_argument(
+        "--not-in-pcd-threshold",
+        type=float,
+        default=0.05,
+        help="Threshold distance to consider a vertex not in the original point cloud (default: 0.05)",
+    )
     parser.add_argument("--smooth", type=int, default=0, help="Number of Laplacian smoothing iterations (default: 0)")
 
     # Other options
@@ -423,6 +432,23 @@ Examples:
 
         # Save the result
         save_mesh(ms, args.output)
+
+        if args.remove_vertices_not_in_pcd:
+            print("Removing vertices not in the original point cloud...")
+            original_pcd = o3d.io.read_point_cloud(args.input)
+            mesh = o3d.io.read_triangle_mesh(args.output)
+            mesh_vertices = np.asarray(mesh.vertices)
+
+            pcd_kd_tree = o3d.geometry.KDTreeFlann(original_pcd)
+            mask = []
+            threshold = args.not_in_pcd_threshold**2
+            for vertex in mesh_vertices:
+                [_, idx, dist] = pcd_kd_tree.search_knn_vector_3d(vertex, 1)
+                mask.append(dist[0] > threshold)
+
+            mesh.remove_vertices_by_mask(mask)
+            o3d.io.write_triangle_mesh(args.output, mesh)
+            print(f"Updated mesh saved to: {args.output}")
 
         print("Surface reconstruction completed successfully!")
 
