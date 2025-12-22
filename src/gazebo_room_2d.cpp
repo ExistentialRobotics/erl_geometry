@@ -2,6 +2,7 @@
 
 #include "erl_common/eigen.hpp"
 #include "erl_geometry/polygon_to_mesh.hpp"
+#include "erl_geometry/space_2d.hpp"
 
 #include <open3d/geometry/LineSet.h>
 #include <open3d/t/geometry/LineSet.h>
@@ -46,9 +47,9 @@ namespace erl::geometry {
 
     GazeboRoom2D::TestDataFrame::TestDataFrame(const std::string &path) {
         auto data = erl::common::LoadBinaryFile<char>(path);
-        auto data_ptr = data.data();
-        int numel_px;
-        int numel_p_res;
+        auto *data_ptr = data.data();
+        int numel_px = 0;
+        int numel_p_res = 0;
         double *px;
 
         ReadVar(data_ptr, numel_px);
@@ -88,46 +89,11 @@ namespace erl::geometry {
     std::shared_ptr<open3d::geometry::TriangleMesh>
     GazeboRoom2D::ExtrudeTo3D(const double room_height, const bool add_ceiling) {
         open3d::geometry::LineSet wall_line_set;
-        wall_line_set.points_ = {
-            {-3.10, 1.71, 0.0},
-            {6.58, 2.58, 0.0},
-            {6.9, -1.23, 0.0},
-            {3.95, -1.49, 0.0},
-            {4.02, -2.65, 0.0},
-            {8.17, -2.27, 0.0},
-            {7.73, 2.67, 0.0},
-            {16.53, 3.43, 0.0},
-            {17.99, -12.27, 0.0},
-            {-1.77, -14.04, 0.0},
-            {-2.07, -10.20, 0.0},
-            {3.84, -9.69, 0.0},
-            {3.65, -7.57, 0.0},
-            {-2.36, -8.05, 0.0},  // outer wall
-            {10.42, -6.03, 0.0},
-            {10.68, -9.06, 0.0},
-            {13.84, -8.81, 0.0},
-            {13.48, -5.71, 0.0},  // inner wall
-        };
-        wall_line_set.lines_ = {
-            {0, 1},
-            {1, 2},
-            {2, 3},
-            {3, 4},
-            {4, 5},
-            {5, 6},
-            {6, 7},
-            {7, 8},
-            {8, 9},
-            {9, 10},
-            {10, 11},
-            {11, 12},
-            {12, 13},
-            {13, 0},  // outer wall
-            {14, 15},
-            {15, 16},
-            {16, 17},
-            {17, 14},  // inner wall
-        };
+        wall_line_set.points_.reserve(kWallCorners.size());
+        for (const auto &corner: kWallCorners) {
+            wall_line_set.points_.emplace_back(corner[0], corner[1], 0.0);
+        }
+        wall_line_set.lines_ = kWallSegments;
         const auto wall_line_set_t = open3d::t::geometry::LineSet::FromLegacy(wall_line_set);
         const open3d::core::Tensor z_dir(std::vector<double>{0.0, 0.0, room_height});
         auto wall_mesh = wall_line_set_t.ExtrudeLinear(z_dir).ToLegacy();
@@ -137,11 +103,13 @@ namespace erl::geometry {
         std::vector<std::vector<Eigen::Vector2d>> polygons(2);
         polygons[0].reserve(14);
         for (int i = 0; i < 14; ++i) {
-            polygons[0].emplace_back(wall_line_set.points_[i][0], wall_line_set.points_[i][1]);
+            const int j = wall_line_set.lines_[i][0];
+            polygons[0].emplace_back(wall_line_set.points_[j][0], wall_line_set.points_[j][1]);
         }
         polygons[1].reserve(4);
         for (int i = 14; i < 18; ++i) {
-            polygons[1].emplace_back(wall_line_set.points_[i][0], wall_line_set.points_[i][1]);
+            const int j = wall_line_set.lines_[i][0];
+            polygons[1].emplace_back(wall_line_set.points_[j][0], wall_line_set.points_[j][1]);
         }
         auto ground_mesh = PolygonToMesh(polygons, 0.0, true);
         ground_mesh->PaintUniformColor({0.67, 0.33, 0.0});  // brown
@@ -150,11 +118,30 @@ namespace erl::geometry {
         *room_mesh += *ground_mesh;
 
         if (add_ceiling) {
-            auto ceiling_mesh = PolygonToMesh(polygons, room_height, false);
+            const auto ceiling_mesh = PolygonToMesh(polygons, room_height, false);
             ceiling_mesh->PaintUniformColor({1.0, 1.0, 0.67});  // light yellow
             *room_mesh += *ceiling_mesh;
         }
         return room_mesh;
+    }
+
+    Eigen::VectorXd
+    GazeboRoom2D::ComputeSdf(const Eigen::Ref<const Eigen::Matrix2Xd> &positions) {
+        Eigen::Matrix2Xd obj1(2, 14);
+        for (int i = 0; i < 14; ++i) {
+            const int j = kWallSegments[i][0];
+            obj1.col(i) = kWallCorners[j];
+        }
+        Eigen::Matrix2Xd obj2(2, 4);
+        for (int i = 0; i < 4; ++i) {
+            const int j = kWallSegments[14 + i][0];
+            obj2.col(i) = kWallCorners[j];
+        }
+        Eigen::VectorXb outside_flags(2);
+        outside_flags[0] = false;
+        outside_flags[1] = true;
+        const Space2D space_2d({obj1, obj2}, outside_flags);
+        return space_2d.ComputeSdf(positions, Space2D::SignMethod::kPolygon, false, true);
     }
 
 }  // namespace erl::geometry
