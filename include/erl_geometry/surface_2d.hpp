@@ -38,6 +38,12 @@ namespace erl::geometry {
         }
 
         Surface2D(const Surface2D &surface) = default;
+        Surface2D &
+        operator=(const Surface2D &surface) = default;
+        Surface2D(Surface2D &&surface) noexcept = default;
+        Surface2D &
+        operator=(Surface2D &&surface) = default;
+        ~Surface2D() = default;
 
         [[nodiscard]] long
         GetNumVertices() const {
@@ -106,7 +112,8 @@ namespace erl::geometry {
             const long n_obj_vtx = object_to_vertices.size();
             for (long i = 0; i < n_obj_vtx; ++i) {
                 if (object_to_vertices[i] != idx_vertex_0) { continue; }
-                int idx_vertex_1, idx_vertex_2;
+                int idx_vertex_1 = 0;
+                int idx_vertex_2 = 0;
                 if (i == 0) {
                     idx_vertex_1 = object_to_vertices[n_obj_vtx - 1];
                     idx_vertex_2 = object_to_vertices[1];

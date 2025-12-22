@@ -51,13 +51,36 @@ namespace erl::geometry {
             : m_surface_(std::make_shared<Surface2D>(*other.m_surface_)),
               m_kdtree_(std::make_unique<KdTree>(2, other.m_kdtree_->m_data_matrix)) {}
 
+        Space2D &
+        operator=(const Space2D &other) {
+            if (this != &other) {
+                m_surface_ = std::make_shared<Surface2D>(*other.m_surface_);
+                m_kdtree_ = std::make_unique<KdTree>(2, other.m_kdtree_->m_data_matrix);
+            }
+            return *this;
+        }
+
+        Space2D(Space2D &&other) noexcept
+            : m_surface_(std::move(other.m_surface_)), m_kdtree_(std::move(other.m_kdtree_)) {}
+
+        Space2D &
+        operator=(Space2D &&other) noexcept {
+            if (this != &other) {
+                m_surface_ = std::move(other.m_surface_);
+                m_kdtree_ = std::move(other.m_kdtree_);
+            }
+            return *this;
+        }
+
+        ~Space2D() = default;
+
         [[nodiscard]] const std::shared_ptr<Surface2D> &
         GetSurface() const {
             return m_surface_;
         }
 
         void
-        Translate(const Eigen::Vector2d &translation) {
+        Translate(const Eigen::Vector2d &translation) const {
             m_surface_->Translate(translation);
         }
 

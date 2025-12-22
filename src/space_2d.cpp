@@ -100,8 +100,7 @@ namespace erl::geometry {
             const auto n = static_cast<int>(ordered_object_vertices[i].cols());
 
             for (int j = 0; j < n; ++j) {
-                vertices(0, vertex_idx_0 + j) = ordered_object_vertices[i](0, j);
-                vertices(1, vertex_idx_0 + j) = ordered_object_vertices[i](1, j);
+                vertices.col(vertex_idx_0 + j) = ordered_object_vertices[i].col(j);
                 lines_to_vertices(0, line_idx_0 + j) = vertex_idx_0 + j;
                 lines_to_vertices(1, line_idx_0 + j) = lines_to_vertices(0, line_idx_0 + j) + 1;
             }
@@ -229,7 +228,8 @@ namespace erl::geometry {
     shared(grid_map_info, sign_method, use_kdtree, sdf)
         for (int v = 0; v < grid_map_info.Height(); ++v) {
             for (int u = 0; u < grid_map_info.Width(); ++u) {
-                Eigen::Vector2d q = grid_map_info.PixelToMeterForPoints(Eigen::Vector2i(u, v));
+                const Eigen::Vector2d q =
+                    grid_map_info.PixelToMeterForPoints(Eigen::Vector2i(u, v));
                 sdf(v, u) = use_kdtree ? ComputeSdfWithKdtree(q, sign_method)
                                        : ComputeSdfGreedily(q, sign_method);
             }
@@ -269,8 +269,9 @@ namespace erl::geometry {
      */
     double
     Space2D::ComputeSdfWithKdtree(const Eigen::Vector2d &q, const SignMethod sign_method) const {
-        double sdf;
-        long idx_vertex_0 = 0, idx_vertex_1 = 0;
+        double sdf = 0.0;
+        long idx_vertex_0 = 0;
+        long idx_vertex_1 = 0;
         m_kdtree_->query(q.data(), 1, &idx_vertex_0, &sdf);
         sdf = std::sqrt(sdf);
 
@@ -328,9 +329,10 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector2d> &q,
         const SignMethod sign_method) const {
         double sdf = std::numeric_limits<double>::infinity();
-        int idx_vertex_0 = 0, idx_vertex_1 = 0;
+        int idx_vertex_0 = 0;
+        int idx_vertex_1 = 0;
 
-        for (int j = 1; j < m_surface_->GetNumLines(); ++j) {
+        for (int j = 0; j < m_surface_->GetNumLines(); ++j) {
             const auto &line = m_surface_->lines_to_vertices.col(j);
             const auto &v0 = m_surface_->vertices.col(line.x());
             const auto &v1 = m_surface_->vertices.col(line.y());
@@ -395,8 +397,9 @@ namespace erl::geometry {
             Eigen::Vector2d d = query_directions.col(i);
             d.normalize();
             const long n_lines = m_surface_->GetNumLines();
-            double lam, t;
-            bool intersected;
+            double lam = 0;
+            double t = 0;
+            bool intersected = false;
             ddf[i] = std::numeric_limits<double>::infinity();
             for (int j = 0; j < n_lines; ++j) {
                 ComputeIntersectionBetweenRayAndLine2D<double>(
@@ -642,8 +645,9 @@ namespace erl::geometry {
         const Eigen::Ref<const Eigen::Vector2d> &q,
         const int vertex_0_idx) const {
         const auto &idx_object = m_surface_->vertices_to_objects(vertex_0_idx);
-        const bool wn = WindingNumber<double>(q, m_surface_->GetObjectVertices(idx_object));
-        return wn == m_surface_->outside_flags[idx_object];
+        const bool inside =
+            WindingNumber<double>(q, m_surface_->GetObjectVertices(idx_object)) != 0;
+        return inside == m_surface_->outside_flags[idx_object];
     }
 
     void
