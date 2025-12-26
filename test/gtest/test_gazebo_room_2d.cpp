@@ -300,7 +300,9 @@ TEST(GazeboRoom2D, ComputeSdf) {
         GazeboRoom2D::kOrientedBoundingBoxSize / 2,
         Eigen::Vector2d::Constant(0.02),
         Eigen::Vector2i::Constant(10));
-    const Eigen::Isometry2d pose(GazeboRoom2D::kOrientedBoundingBoxPose);
+    Eigen::Isometry2d pose;
+    pose.linear() = GazeboRoom2D::kOrientedBoundingBoxRotation;
+    pose.translation() = GazeboRoom2D::kOrientedBoundingBoxCenter;
     const Eigen::Matrix2Xd positions = pose * grid_map_info.GenerateMeterCoordinates(false);
     sdf = GazeboRoom2D::ComputeSdf(positions);
     ERL_INFO("SDF stats (OBB): Min: {:.3f}, Max: {:.3f}", sdf.minCoeff(), sdf.maxCoeff());

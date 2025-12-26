@@ -11,6 +11,13 @@
 #include <functional>
 
 namespace erl::geometry {
+    class Open3dVisualizerWithKeyCallback
+        : public open3d::visualization::VisualizerWithKeyCallback {
+    public:
+        GLFWwindow *
+        GetWindow() const;
+    };
+
     class Open3dVisualizerWrapper {
 
     public:
@@ -52,7 +59,7 @@ namespace erl::geometry {
 
     private:
         std::shared_ptr<Setting> m_setting_ = nullptr;
-        std::shared_ptr<open3d::visualization::VisualizerWithKeyCallback> m_visualizer_ = nullptr;
+        std::shared_ptr<Open3dVisualizerWithKeyCallback> m_visualizer_ = nullptr;
         std::shared_ptr<open3d::geometry::TriangleMesh> m_axis_mesh_ = nullptr;
         std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)>
             m_keyboard_callback_ = nullptr;
@@ -70,6 +77,9 @@ namespace erl::geometry {
 
         [[nodiscard]] std::shared_ptr<open3d::visualization::VisualizerWithKeyCallback>
         GetVisualizer() const;
+
+        [[nodiscard]] GLFWwindow *
+        GetWindow() const;
 
         void
         SetKeyboardCallback(

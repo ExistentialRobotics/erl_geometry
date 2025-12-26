@@ -181,8 +181,11 @@ namespace erl::geometry {
         }
     }
 
-    static void
-    SortLinesToObjects(Eigen::Matrix2Xi &lines_to_vertices, Eigen::Matrix2Xi &objects_to_lines) {
+    void
+    MarchingSquares::SortLinesToObjects(
+        Eigen::Matrix2Xi &lines_to_vertices,
+        Eigen::Matrix2Xi &objects_to_lines) {
+
         const long num_lines = lines_to_vertices.cols();
         // estimated maximum number of objects
         objects_to_lines.setConstant(2, num_lines + 1, -1);
@@ -360,7 +363,7 @@ namespace erl::geometry {
         }
 
         // 4. find objects
-        SortLinesToObjects(lines_to_vertices, objects_to_lines);
+        MarchingSquares::SortLinesToObjects(lines_to_vertices, objects_to_lines);
     }
 
     int

@@ -7,6 +7,11 @@
 
 namespace erl::geometry {
 
+    GLFWwindow *
+    Open3dVisualizerWithKeyCallback::GetWindow() const {
+        return this->window_;
+    }
+
     Open3dVisualizerWrapper::Open3dVisualizerWrapper(std::shared_ptr<Setting> setting)
         : m_setting_(std::move(setting)) {
         if (!m_setting_) { m_setting_ = std::make_shared<Setting>(); }
@@ -32,6 +37,11 @@ namespace erl::geometry {
     std::shared_ptr<open3d::visualization::VisualizerWithKeyCallback>
     Open3dVisualizerWrapper::GetVisualizer() const {
         return m_visualizer_;
+    }
+
+    GLFWwindow *
+    Open3dVisualizerWrapper::GetWindow() const {
+        return m_visualizer_->GetWindow();
     }
 
     void
@@ -112,7 +122,7 @@ namespace erl::geometry {
 
     void
     Open3dVisualizerWrapper::Init() {
-        m_visualizer_ = std::make_shared<open3d::visualization::VisualizerWithKeyCallback>();
+        m_visualizer_ = std::make_shared<Open3dVisualizerWithKeyCallback>();
         ERL_ASSERTM(
             m_visualizer_->CreateVisualizerWindow(
                 m_setting_->window_name,

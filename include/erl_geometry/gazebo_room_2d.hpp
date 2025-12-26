@@ -61,16 +61,17 @@ namespace erl::geometry {
             {12, 8},
             {8, 9},
         };
-        inline static const Eigen::Matrix3d kOrientedBoundingBoxPose = []() -> Eigen::Matrix3d {
+        inline static const Eigen::Matrix2d kOrientedBoundingBoxRotation = []() -> Eigen::Matrix2d {
             // obtained from GazeboRoom2D.ComputeOrientedBoundingBox in test_gazebo_room_2d.cpp
-            Eigen::Matrix3d pose;
+            Eigen::Matrix2d rot;
             // clang-format off
-            pose << 0.9962470, -0.0865519, 7.4550,
-                    0.0865519, 0.99624700, -5.265,
-                            0,          0,      1;
+            rot << 0.9962470, -0.0865519,
+                   0.0865519, 0.99624700;
             // clang-format on
-            return pose;
+            return rot;
         }();
+        static constexpr double kOrientedBoundingBoxRotationAngle = 0.08666035900008191;  // rad
+        inline static const Eigen::Vector2d kOrientedBoundingBoxCenter = {7.4550, -5.265};
         inline static const Eigen::Vector2d kOrientedBoundingBoxSize = {20.1422, 16.2087};
 
         struct TrainDataFrame {

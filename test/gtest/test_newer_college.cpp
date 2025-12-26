@@ -3,19 +3,28 @@
 #include "erl_geometry/newer_college.hpp"
 #include "erl_geometry/open3d_visualizer_wrapper.hpp"
 
-#include <boost/program_options.hpp>
 #include <open3d/geometry/LineSet.h>
 #include <open3d/geometry/PointCloud.h>
 
-std::string newer_college_directory = ERL_GEOMETRY_ROOT_DIR "/data/newer_college";
-long stride = 1;
-long max_wp_idx = erl::geometry::NewerCollege::Size() - 1;
+struct Options : erl::common::Yamlable<Options> {
+    std::string newer_college_directory = ERL_GEOMETRY_ROOT_DIR "/data/newer_college";
+    long stride = 1;
+    long max_wp_idx = erl::geometry::NewerCollege::Size() - 1;
+
+    ERL_REFLECT_SCHEMA(
+        Options,
+        ERL_REFLECT_MEMBER(Options, newer_college_directory),
+        ERL_REFLECT_MEMBER(Options, stride),
+        ERL_REFLECT_MEMBER(Options, max_wp_idx));
+};
+
+static Options options;
 
 TEST(NewerCollege, Load) {
     GTEST_PREPARE_OUTPUT_DIR();
 
     using namespace erl::geometry;
-    NewerCollege newer_college(newer_college_directory);
+    NewerCollege newer_college(options.newer_college_directory);
     cv::Mat range_img;
     cv::Mat range_img_jet;
     auto gt_mesh = newer_college.GetGroundTruthMesh();
@@ -25,7 +34,7 @@ TEST(NewerCollege, Load) {
     long idx = 0;
     auto callback = [&](Open3dVisualizerWrapper *wrapper,
                         open3d::visualization::Visualizer *vis) -> bool {
-        if (idx >= max_wp_idx) {
+        if (idx >= options.max_wp_idx) {
             wrapper->SetAnimationCallback(nullptr);
             return false;
         }
@@ -59,7 +68,7 @@ TEST(NewerCollege, Load) {
             vis->UpdateGeometry(line_set);
         }
 
-        idx += stride;
+        idx += options.stride;
 
         return true;
     };
@@ -77,39 +86,9 @@ TEST(NewerCollege, Load) {
 int
 main(int argc, char *argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
-    try {
-        namespace po = boost::program_options;
-        po::options_description desc;
-        // clang-format off
-        desc.add_options()
-        ("help,h", "Show help message")
-        (
-            "directory",
-            po::value<std::string>(&newer_college_directory),
-            "Directory containing the Newer College dataset")
-        (
-            "stride",
-            po::value<long>(&stride)->default_value(1),
-            "Stride for loading frames (default: 1, load every frame)")
-        (
-            "max_wp_idx",
-            po::value<long>(&max_wp_idx)->default_value(max_wp_idx),
-            "Maximum waypoint index to load (default: last frame)");
-        // clang-format on
-
-        po::variables_map vm;
-        po::store(po::parse_command_line(argc, argv, desc), vm);
-        po::notify(vm);
-
-        if (vm.count("help")) {
-            std::cout << desc << std::endl;
-            return 0;
-        }
-
-    } catch (const std::exception &e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
+    if (!options.FromCommandLine(argc, argv)) {
+        ERL_ERROR("Failed to parse command line arguments");
+        return -1;
     }
-
     return RUN_ALL_TESTS();
 }

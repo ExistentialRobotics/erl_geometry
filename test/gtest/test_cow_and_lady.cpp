@@ -196,6 +196,12 @@ TEST(CowAndLady, CropCowAndLady) {
     open3d::visualization::DrawGeometries(
         {mesh_cow, mesh_lady, axes, cow_bbox_lines, lady_bbox_lines},
         "Cropped Cow and Lady Meshes");
+
+    const AxisAlignedBoundingBox scene_bounding_box(
+        CowAndLady::kSceneBoundingBoxMin,
+        CowAndLady::kSceneBoundingBoxMax);
+    const auto mesh_scene = mesh0->Crop(scene_bounding_box);
+    open3d::visualization::DrawGeometries({mesh_scene, axes}, "Cropped Scene Mesh");
 }
 
 int

@@ -2,7 +2,6 @@
 
 #include "depth_frame_3d.hpp"
 
-#include <open3d/geometry/Geometry3D.h>
 #include <open3d/geometry/PointCloud.h>
 
 #include <filesystem>
@@ -43,6 +42,8 @@ namespace erl::geometry {
             return transform;
         }();
 
+        inline static const Eigen::Vector3d kSceneBoundingBoxMin{-2.0, -2.7, 0.0};
+        inline static const Eigen::Vector3d kSceneBoundingBoxMax{2.2, 0.4, 1.8};
         inline static const Eigen::Vector3d kCowBoundingBoxMin{-1.8, -1.8, 0.0};
         inline static const Eigen::Vector3d kCowBoundingBoxMax{0.35, 0.4, 1.35};
         inline static const Eigen::Vector3d kLadyBoundingBoxMin{1.0, -1.0, 0.0};
