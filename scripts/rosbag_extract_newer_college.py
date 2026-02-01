@@ -17,7 +17,10 @@ from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Header
 from tqdm import tqdm
 
-# example: python rosbag_extract_newer_college.py --filename <cow_and_lady_dir>/data.bag --output-dir <cow_and_lady_dir>
+# example: python rosbag_extract_newer_college.py \
+#   --rosbag <newer_college_dir>/2021-07-01-10-37-38-quad-easy.bag \
+#   --gt-pose-file <newer_college_dir>/ground_truth/gt-nc-quad-easy.csv \
+#   --output-dir <processed_newer_college_dir>
 
 oRc = np.array(
     [
@@ -70,6 +73,37 @@ def get_camera_optical_poses(lidar_pose: np.ndarray) -> List[np.ndarray]:
         camera_pose = lidar_pose @ pose  # world -> lidar -> camera -> optical
         camera_poses.append(camera_pose)
     return camera_poses
+
+
+def get_ring_indices(lidar_points: np.ndarray) -> np.ndarray:
+    indices = np.zeros(lidar_points.shape[0], dtype=np.int32)
+    indices.fill(-1)
+
+    dist = np.linalg.norm(lidar_points, axis=1)
+    valid_mask = (dist > 0) & np.isfinite(dist)
+    lidar_points = lidar_points[valid_mask]
+    dist = dist[valid_mask]
+    dirs = lidar_points / dist[:, np.newaxis]
+    azimuths = np.arctan2(dirs[:, 1], dirs[:, 0])  # [-pi, pi)
+    elevations = np.arcsin(dirs[:, 2])  # [-pi/2, pi/2]
+    azimuth_res = 2 * np.pi / 1024.0
+    elevation_res = np.pi / 256.0  # 90 degrees / 128 lines
+    azimuth_indices = np.floor((azimuths + np.pi) / azimuth_res).astype(np.int32) % 1024
+    elevation_indices = np.floor((elevations + np.pi / 4) / elevation_res).astype(np.int32) % 128
+
+    # print(f"azimuth_indices min: {azimuth_indices.min()}, max: {azimuth_indices.max()}")
+    # print(f"elevation_indices min: {elevation_indices.min()}, max: {elevation_indices.max()}")
+
+    ring_indices = (127 - elevation_indices) * 1024 + azimuth_indices
+    indices[valid_mask] = ring_indices
+    return indices
+
+
+def reorder_with_ring_indices(data: np.ndarray, ring_indices: np.ndarray) -> np.ndarray:
+    reordered_data = np.zeros_like(data)
+    valid_mask = ring_indices >= 0
+    reordered_data[ring_indices[valid_mask]] = data[valid_mask]
+    return reordered_data
 
 
 def get_depth_images(
@@ -209,6 +243,14 @@ def main():
         for i in range(4):
             os.makedirs(os.path.join(depth_output_dir, f"cam{i}"), exist_ok=True)
 
+    intensity_output_dir = os.path.join(output_dir, "intensity")
+    if not os.path.exists(intensity_output_dir):
+        os.makedirs(intensity_output_dir, exist_ok=True)
+
+    range_output_dir = os.path.join(output_dir, "range")
+    if not os.path.exists(range_output_dir):
+        os.makedirs(range_output_dir, exist_ok=True)
+
     bag = rosbag.Bag(rosbag_file, "r")
     # list all topics
     type_and_topic_info_list = bag.get_type_and_topic_info()
@@ -259,6 +301,7 @@ def main():
     camera_poses = [[] for _ in range(4)]
     all_pts = []
     seq = 0
+    plt_images = []
     for topic, msg_pc, time_stamp in tqdm(
         bag.read_messages(topics=[sensor_topic]),
         total=bag.get_message_count(sensor_topic),
@@ -281,31 +324,92 @@ def main():
             tqdm.write(f"Error: {e}")
             continue
 
-        pts = list(point_cloud2.read_points(msg_pc, field_names=("x", "y", "z"), skip_nans=False))
-        pts = np.array(pts, dtype=np.float64)
+        data = list(
+            point_cloud2.read_points(
+                msg_pc,
+                field_names=("x", "y", "z", "intensity", "ring", "range"),
+                skip_nans=False,
+            )
+        )
+        data = np.array(data, dtype=np.float64)
 
+        pts = data[:, :3]
         distances = np.linalg.norm(pts, axis=1)
-        mask = np.isfinite(distances) & (distances > 0)
-        dist = np.copy(distances).reshape(128, 1024)
-        dist[~np.isfinite(dist)] = 0.0  # set NaN to 0
+        mask = np.isfinite(distances)
+        distances[~mask] = 0.0  # set inf to 0
+        mask = mask & (distances > 0)
+
+        intensity = data[:, 3]
+        ring = data[:, 4].astype(np.int32)
+        ranges = data[:, 5]
+
+        ring_indices = get_ring_indices(pts)
+
+        intensity_image = reorder_with_ring_indices(intensity, ring_indices).reshape(128, 1024)
+
+        range_image = np.zeros(128 * 1024, dtype=np.float32)
+        range_image[ring] = ranges
+        range_image[range_image > 80] = 0.0  # set max range to 80m
+        range_image = range_image.reshape(128, 1024)
+
+        dist_image = reorder_with_ring_indices(distances, ring_indices).reshape(128, 1024)
+
+        print(f"Intensity min: {intensity.min()}, max: {intensity.max()}")
+        print(f"Range min: {range_image.min()}, max: {range_image.max()}")
+        print(f"Distance min: {distances.min()}, max: {distances.max()}")
+
+        import matplotlib.pyplot as plt
+
+        if len(plt_images) == 0:
+            plt.figure()
+            plt_images.append(plt.imshow(intensity_image, cmap="jet"))
+            plt.title("Intensity Image")
+            plt.colorbar()
+
+            plt.figure()
+            plt_images.append(plt.imshow(range_image, cmap="jet"))
+            plt.title("Range Image")
+            plt.colorbar()
+
+            plt.figure()
+            plt_images.append(plt.imshow(dist_image, cmap="jet"))
+            plt.title("Distance Image")
+            plt.colorbar()
+
+            plt.figure()
+            plt_images.append(plt.imshow(ring.reshape(128, 1024), cmap="jet"))
+            plt.title("Ring Image")
+            plt.colorbar()
+
+            plt.figure()
+            plt_images.append(plt.imshow(ring_indices.reshape(128, 1024), cmap="jet"))
+            plt.title("Ring Indices Image")
+            plt.colorbar()
+        else:
+            plt_images[0].set_data(intensity_image)
+            plt_images[1].set_data(range_image)
+            plt_images[2].set_data(dist_image)
+            plt_images[3].set_data(ring.reshape(128, 1024))
+            plt_images[4].set_data(ring_indices.reshape(128, 1024))
+        plt.pause(0.01)
 
         # save point cloud
         pcd = o3d.geometry.PointCloud()
         if args.save_clean:
-            pts_tmp = pts[mask]
+            pts_tmp = pts[mask][:, :3]
             if len(pts_tmp) == 0:
                 tqdm.write(f"Skipping seq {seq} due to no valid points")
                 continue
             pcd.points = o3d.utility.Vector3dVector(pts_tmp)
         else:
-            pcd.points = o3d.utility.Vector3dVector(pts)
+            pcd.points = o3d.utility.Vector3dVector(pts[:, :3])
         pcd_file = os.path.join(ply_output_dir, f"{seq:04d}.ply")
         o3d.io.write_point_cloud(pcd_file, pcd, write_ascii=False)  # non-ascii makes reading faster!
 
         # save depth images and camera poses
         lidar_pose = transform_to_matrix(pose)
         cam_poses = get_camera_optical_poses(lidar_pose)
-        depth_images = get_depth_images(pts, 256, 128, camera_intrinsic)
+        depth_images = get_depth_images(pts[:, :3], 256, 128, camera_intrinsic)
 
         for i in range(4):
             cam_pose = cam_poses[i]

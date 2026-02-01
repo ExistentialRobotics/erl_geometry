@@ -1,5 +1,7 @@
 #include "erl_geometry/replica_rgbd.hpp"
 
+#include "erl_common/random.hpp"
+#include "erl_geometry/range_sensor_noise.hpp"
 #include "erl_geometry/rgbd_camera_3d.hpp"
 
 #include <open3d/io/TriangleMeshIO.h>

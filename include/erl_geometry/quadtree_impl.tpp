@@ -281,7 +281,7 @@ namespace erl::geometry {
     QuadtreeImpl<Node, Interface, InterfaceSetting>::GetNodeSize(const uint32_t depth) const {
         ERL_DEBUG_ASSERT(
             depth <= m_setting_->tree_depth,
-            "Depth must be in [0, %u], but got %u.",
+            "Depth must be in [0, {}], but got {}.",
             m_setting_->tree_depth,
             depth);
         return m_size_lookup_table_[depth];
@@ -376,7 +376,7 @@ namespace erl::geometry {
         const uint32_t tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t keyval =  // auto cast from real to unsigned integer is undefined behavior
@@ -498,7 +498,7 @@ namespace erl::geometry {
         const uint32_t tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t level = tree_depth - depth;
@@ -516,7 +516,7 @@ namespace erl::geometry {
         if (depth == tree_depth) { return key; }
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t level = tree_depth - depth;
@@ -878,7 +878,7 @@ namespace erl::geometry {
         uint32_t next_depth = node_depth + 1;
         ERL_DEBUG_ASSERT(
             next_depth <= m_max_node_depth_,
-            "Wrong depth: %u (max: %u).\n",
+            "Wrong depth: {} (max: {}).\n",
             next_depth,
             m_max_node_depth_);
         QuadtreeKey next_key;
@@ -1032,7 +1032,7 @@ namespace erl::geometry {
         uint32_t next_depth = node_depth + 1;
         ERL_DEBUG_ASSERT(
             next_depth <= this->m_max_node_depth_,
-            "Wrong depth: %u (max: %u).\n",
+            "Wrong depth: {} (max: {}).\n",
             next_depth,
             this->m_max_node_depth_);
         QuadtreeKey next_key;

@@ -96,6 +96,7 @@ struct YAML::convert<erl::geometry::Aabb<Dtype, Dim>> {
     }
 };
 
+#ifdef ERL_USE_BOOST
 template<typename Dtype, int Dim>
 struct erl::common::program_options::ParseOption<erl::geometry::Aabb<Dtype, Dim>>
     : ParseOptionBase {
@@ -133,6 +134,7 @@ struct erl::common::program_options::ParseOption<erl::geometry::Aabb<Dtype, Dim>
         member = erl::geometry::Aabb<Dtype, Dim>(member.center, member.half_sizes);
     }
 };
+#endif
 
 #ifdef ERL_ROS_VERSION_1
 template<typename Dtype, int Dim>

@@ -18,12 +18,13 @@ namespace erl::geometry {
         (void) points;
 #pragma omp parallel for default(none) schedule(static) shared(range_matrix, a_res, e_res)
         for (long i = 0; i < points.cols(); ++i) {
-            Eigen::Vector3d p = points.col(i);
+            const Eigen::Vector3d p = points.col(i);
             const double r = p.norm();
-            double azimuth, elevation;
+            double azimuth = 0.0;
+            double elevation = 0.0;
             common::DirectionToAzimuthElevation<double>(p / r, azimuth, elevation);
-            long a_idx = static_cast<long>(std::floor((azimuth + M_PI) / a_res));
-            long e_idx = static_cast<long>(std::floor((elevation - e_min) / e_res));
+            const long a_idx = static_cast<long>(std::floor((azimuth + M_PI) / a_res));
+            const long e_idx = static_cast<long>(std::floor((elevation - e_min) / e_res));
             if (a_idx < 0 || a_idx >= kNumAzimuthLines || e_idx < 0 ||
                 e_idx >= kNumElevationLines) {
                 continue;
@@ -42,7 +43,7 @@ namespace erl::geometry {
 
     NewerCollege::NewerCollege(std::filesystem::path directory)
         : m_directory_(std::move(directory)) {
-        std::filesystem::path csv_path = m_directory_ / "poses.csv";
+        const std::filesystem::path csv_path = m_directory_ / "poses.csv";
         m_poses_ = common::LoadEigenMatrixFromTextFile<double, 7>(
             csv_path,
             common::EigenTextFormat::kCsvFmt,

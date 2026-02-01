@@ -73,6 +73,10 @@ TestFindVoxelIndicesTorch() {
 }
 
 TEST(FindVoxelIndices, Torch) {
+    ERL_INFO("GPU Warmup...");
+    TestFindVoxelIndicesTorch<2>();
+    ERL_INFO("Ignore the above timing for GPU warmup.");
+
     TestFindVoxelIndicesTorch<2>();
     TestFindVoxelIndicesTorch<3>();
 }

@@ -1,12 +1,22 @@
-tree_depth: 16
+tree_depth: 10 # 16
 log_odd_min: -10
-log_odd_max: 20
-log_odd_hit: 0.9
-log_odd_miss: -0.05
-log_odd_occ_threshold: 5
-resolution: 0.7
+log_odd_max: 100
+log_odd_hit: 0.85
+log_odd_miss: -0.2
+log_odd_occ_threshold: 25
+resolution: 0.7 # 0.6
 use_change_detection: false
 use_aabb_limit: false
 aabb:
     center: [ 0, 0, 0 ]
     half_sizes: [ 0, 0, 0 ]
+# min_range: 0.8
+# max_range: 25.0
+# tree_depth | resolution (m) | mean_insert_time (ms)
+# 16         | 0.5            | 19.2
+# 10         | 0.5            | 13.3
+# 10         | 0.7            | 6.7
+# 10         | 0.6            | 8.6
+# 10         | 0.55           | 12.9
+# 16         | 0.7            | 7.0
+# 10         | 0.4            | 23.0

@@ -57,7 +57,7 @@ TEST(SemiSparseOctree, Build) {
     using TreeDrawer = SemiSparseOctreeDrawer<SemiSparseOctreeD>;
 
     auto setting = std::make_shared<SemiSparseNdTreeSetting>();
-    setting->tree_depth = 8;
+    setting->tree_depth = 11;
     setting->semi_sparse_depth = 2;
     setting->resolution = 0.05;
     setting->init_voxel_num = 1000;
@@ -141,7 +141,7 @@ TEST(SemiSparseOctree, Build) {
     Eigen::VectorX<int64_t> found_node_indices;
     double dt;
     {
-        ERL_BLOCK_TIMER_MSG_TIME("Find voxel indices", dt);
+        const ERL_BLOCK_TIMER_MSG_TIME("Find voxel indices", dt);
         found_node_indices =
             tree->FindVoxelIndices(&points[0][0], static_cast<long>(points.size()), true);
     }

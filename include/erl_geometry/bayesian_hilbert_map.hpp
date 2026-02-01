@@ -212,11 +212,22 @@ namespace erl::geometry {
             const VectorX &labels,
             long num_points);
 
+        /**
+         * @param n_points number of points in the dataset.
+         * @param skip_m_step if true, skip the M-step and only run the E-step. This saves time
+         * when it is the last iteration of the EM algorithm.
+         */
         void
-        RunExpectationMaximizationIteration(long n_points);
+        RunExpectationMaximizationIteration(long n_points, bool skip_m_step = false);
 
+        /**
+         * Sparse version of RunExpectationMaximizationIteration.
+         * @param num_points number of points in the dataset.
+         * @param skip_m_step if true, skip the M-step and only run the E-step. This saves time
+         * when it is the last iteration of the EM algorithm.
+         */
         void
-        RunExpectationMaximizationIterationSparse(long num_points);
+        RunExpectationMaximizationIterationSparse(long num_points, bool skip_m_step = false);
 
         bool
         Update(

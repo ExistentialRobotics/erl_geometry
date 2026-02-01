@@ -22,12 +22,15 @@
     - [LogOdd](include/erl_geometry/logodd.hpp): implementation of log odd.
     - [Log Odd Map](include/erl_geometry/log_odd_map.hpp): occupancy grid map based on log odd.
     - [Log Odd Map 2D](include/erl_geometry/log_odd_map_2d.hpp): 2D occupancy grid map based on log odd.
-    - [Bayesian Hilbert Map](include/erl_geometry/bayesian_hilbert_map.hpp): probabilistic occupancy mapping using Hilbert space embeddings.
-    - [Bayesian Hilbert Map Torch](include/erl_geometry/bayesian_hilbert_map_torch.hpp): PyTorch-based implementation of Bayesian Hilbert Map.
+    - [Bayesian Hilbert Map](include/erl_geometry/bayesian_hilbert_map.hpp): probabilistic occupancy mapping using
+      Hilbert space embeddings.
+    - [Bayesian Hilbert Map Torch](include/erl_geometry/bayesian_hilbert_map_torch.hpp): PyTorch-based implementation of
+      Bayesian Hilbert Map.
 - Occupancy Quadtree: developed based on [Octomap](https://octomap.github.io/)
     - [Occupancy Quadtree](include/erl_geometry/occupancy_quadtree.hpp): implementation of occupancy
       quadtree.
-    - [Colored Occupancy Quadtree](include/erl_geometry/colored_occupancy_quadtree.hpp): occupancy quadtree with color information.
+    - [Colored Occupancy Quadtree](include/erl_geometry/colored_occupancy_quadtree.hpp): occupancy quadtree with color
+      information.
     - [PyObject Occupancy Quadtree](python/binding/pyobject_occupancy_quadtree.hpp): occupancy
       quadtree that supports
       tagging Python object to quadtree nodes.
@@ -48,18 +51,22 @@
     - [Occupancy Quadtree Node](include/erl_geometry/occupancy_quadtree_node.hpp): implementation of
       quadtree node with
       occupancy data.
-    - [Colored Occupancy Quadtree Node](include/erl_geometry/colored_occupancy_quadtree_node.hpp): occupancy quadtree node with color data.
-    - [PyObject Occupancy Quadtree Node](python/binding/pyobject_occupancy_quadtree_node.hpp): occupancy quadtree node that supports tagging Python object.
+    - [Colored Occupancy Quadtree Node](include/erl_geometry/colored_occupancy_quadtree_node.hpp): occupancy quadtree
+      node with color data.
+    - [PyObject Occupancy Quadtree Node](python/binding/pyobject_occupancy_quadtree_node.hpp): occupancy quadtree node
+      that supports tagging Python object.
     - [Abstract Quadtree Drawer](include/erl_geometry/abstract_quadtree_drawer.hpp): abstract class
       for quadtree drawer.
     - [Occupancy Quadtree Drawer](include/erl_geometry/occupancy_quadtree_drawer.hpp): visualization
       of occupancy
       quadtree.
-    - [Occupancy ND Tree Batch Ray Caster](include/erl_geometry/occupancy_nd_tree_batch_ray_caster.hpp): batch ray casting for N-dimensional occupancy trees.
+    - [Occupancy ND Tree Batch Ray Caster](include/erl_geometry/occupancy_nd_tree_batch_ray_caster.hpp): batch ray
+      casting for N-dimensional occupancy trees.
 - Occupancy Octree: developed based on [Octomap](https://octomap.github.io/)
     - [Occupancy Octree](include/erl_geometry/occupancy_octree.hpp): implementation of occupancy
       octree.
-    - [Colored Occupancy Octree](include/erl_geometry/colored_occupancy_octree.hpp): occupancy octree with color information.
+    - [Colored Occupancy Octree](include/erl_geometry/colored_occupancy_octree.hpp): occupancy octree with color
+      information.
     - [PyObject Occupancy Octree](python/binding/pyobject_occupancy_octree.hpp): occupancy octree
       that supports
       tagging Python object to octree nodes.
@@ -79,17 +86,32 @@
     - [Occupancy Octree Node](include/erl_geometry/occupancy_octree_node.hpp): implementation of
       octree node with
       occupancy data.
-    - [Colored Occupancy Octree Node](include/erl_geometry/colored_occupancy_octree_node.hpp): occupancy octree node with color data.
-    - [PyObject Occupancy Octree Node](python/binding/pyobject_occupancy_octree_node.hpp): occupancy octree node that supports tagging Python object.
+    - [Colored Occupancy Octree Node](include/erl_geometry/colored_occupancy_octree_node.hpp): occupancy octree node
+      with color data.
+    - [PyObject Occupancy Octree Node](python/binding/pyobject_occupancy_octree_node.hpp): occupancy octree node that
+      supports tagging Python object.
     - [Abstract Octree Drawer](include/erl_geometry/abstract_octree_drawer.hpp): abstract class for
       octree drawer.
     - [Occupancy Octree Drawer](include/erl_geometry/occupancy_octree_drawer.hpp): visualization of
       occupancy octree.
+- Semi-Sparse Quadtree/Octree
+    - [Semi-Sparse Quadtree](include/erl_geometry/semi_sparse_quadtree.hpp): implementation of
+      semi-sparse quadtree.
+    - [Semi-Sparse Octree](include/erl_geometry/semi_sparse_octree.hpp): implementation of
+      semi-sparse octree.
+- Quadtree/Octree Indexing
+    - [Morton Code](include/erl_geometry/libmorton/morton.h): encode/decode Morton code for
+      quadtree/octree indexing. Thanks to [libmorton](https://github.com/Forceflow/libmorton).
+    - [Morton Code on CUDA](include/erl_geometry/libmorton_cuda/morton.cuh): encode/decode Morton code using CUDA.
+    - [Voxel Lookup on CPU](include/erl_geometry/find_voxel_indices.hpp): find a voxel from its morton code on CPU.
+    - [Voxel Lookup on CUDA](include/erl_geometry/find_voxel_indices.cuh): find a voxel from its morton code using CUDA.
 - Collision Detection
     - [Winding Number](include/erl_geometry/winding_number.hpp): check if a point is in a polygon.
 - Geometric Primitives
-    - [Primitives 2D](include/erl_geometry/primitives_2d.hpp): 2D geometric primitives including lines, segments, rays, rectangles, and ellipses.
-    - [Primitives 3D](include/erl_geometry/primitives_3d.hpp): 3D geometric primitives including planes, triangles, boxes, and ellipsoids.
+    - [Primitives 2D](include/erl_geometry/primitives_2d.hpp): 2D geometric primitives including lines, segments, rays,
+      rectangles, and ellipses.
+    - [Primitives 3D](include/erl_geometry/primitives_3d.hpp): 3D geometric primitives including planes, triangles,
+      boxes, and ellipsoids.
     - [Intersection](include/erl_geometry/intersection.hpp): compute intersections between geometric primitives.
 - Signed Distance Functions (SDF)
     - [Mesh SDF](include/erl_geometry/mesh_sdf.hpp): compute signed distance function from triangle mesh.
@@ -97,7 +119,8 @@
 - Surface Extraction
     - [Marching Squares](include/erl_geometry/marching_squares.hpp): extract surface from 2D scalar
       field.
-    - [Marching Cubes](include/erl_geometry/marching_cubes.hpp): extract surface from 3D scalar field using marching cubes algorithm.
+    - [Marching Cubes](include/erl_geometry/marching_cubes.hpp): extract surface from 3D scalar field using marching
+      cubes algorithm.
 - Polygon Triangulation
     - [EarCut](include/erl_geometry/earcut.hpp): triangulate a polygon even with holes.
     - [Convert Polygon to Triangle Mesh](include/erl_geometry/polygon_to_mesh.hpp): triangulate a
@@ -110,7 +133,8 @@
     - [Camera Intrinsic](include/erl_geometry/camera_intrinsic.hpp): camera intrinsic parameters and projection models.
     - [Camera Base 3D](include/erl_geometry/camera_base_3d.hpp): base class for 3D camera models.
     - [Range Sensor 3D](include/erl_geometry/range_sensor_3d.hpp): 3D range sensor simulation.
-    - [Range Sensor Frame 3D](include/erl_geometry/range_sensor_frame_3d.hpp): data structure for 3D range sensor measurements.
+    - [Range Sensor Frame 3D](include/erl_geometry/range_sensor_frame_3d.hpp): data structure for 3D range sensor
+      measurements.
 - 2D Point Cloud Processing
     - [Surface 2D](include/erl_geometry/surface_2d.hpp): data structure to store 2D surface
       consisting of points and
@@ -138,7 +162,8 @@
     - [Open3D Helper](include/erl_geometry/open3d_helper.hpp): helper functions for Open3D integration.
     - [Open3D Visualizer Wrapper](include/erl_geometry/open3d_visualizer_wrapper.hpp): wrapper for Open3D visualization.
 - Motion and Trajectory
-    - [Trajectory](include/erl_geometry/trajectory.hpp): data structures and utilities for 2D/3D trajectories and SE(2)/SE(3) poses.
+    - [Trajectory](include/erl_geometry/trajectory.hpp): data structures and utilities for 2D/3D trajectories and SE(2)
+      /SE(3) poses.
 - Datasets
     - [HouseExpoMap](include/erl_geometry/house_expo_map.hpp): load 2D map or 3D mesh from HouseExpo
       dataset.
@@ -154,14 +179,16 @@
       UCSD.
     - [CowAndLady](include/erl_geometry/cow_and_lady.hpp): a real 3D RGBD sequence provided
       by [ETH Zurich ASL](https://projects.asl.ethz.ch/datasets/doku.php?id=iros2017).
-    - [NewerCollege](include/erl_geometry/newer_college.hpp): a real 3D LiDAR dataset by [Oxford Robotics Institute](https://ori-drs.github.io/newer-college-dataset/).
+    - [NewerCollege](include/erl_geometry/newer_college.hpp): a real 3D LiDAR dataset
+      by [Oxford Robotics Institute](https://ori-drs.github.io/newer-college-dataset/).
 - Others
     - [Compute Intersections](include/erl_geometry/utils.hpp): utility functions for geometric computations.
     - [Euler Angle](include/erl_geometry/euler_angle.hpp): Euler angle conversions and utilities.
     - [Compute ConvexHull](include/erl_geometry/convex_hull.hpp): convex hull computation algorithms.
     - [Hidden Point Removal](include/erl_geometry/hidden_point_removal.hpp): remove hidden points from 3D point clouds.
     - [ND Tree Setting](include/erl_geometry/nd_tree_setting.hpp): configuration settings for N-dimensional trees.
-    - [Occupancy ND Tree Setting](include/erl_geometry/occupancy_nd_tree_setting.hpp): configuration settings for occupancy N-dimensional trees.
+    - [Occupancy ND Tree Setting](include/erl_geometry/occupancy_nd_tree_setting.hpp): configuration settings for
+      occupancy N-dimensional trees.
 
 ## Getting Started
 
@@ -235,6 +262,7 @@ source devel/setup.bash
 colcon build --packages-up-to erl_geometry
 source install/setup.bash
 ```
+
 See also 🚪[erl_geometry_ros](https://github.com/ExistentialRobotics/erl_geometry_ros) for additional ROS tools.
 
 ### Install As Python Package

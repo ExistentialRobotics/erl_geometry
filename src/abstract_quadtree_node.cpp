@@ -101,14 +101,14 @@ namespace erl::geometry {
 
     bool
     AbstractQuadtreeNode::HasChild(const uint32_t index) const {
-        ERL_DEBUG_ASSERT(index < 4, "Index must be in [0, 3], but got %u.", index);
+        ERL_DEBUG_ASSERT(index < 4, "Index must be in [0, 3], but got {}.", index);
         return m_children_[index] != nullptr;
     }
 
     AbstractQuadtreeNode *
     AbstractQuadtreeNode::CreateChild(const uint32_t child_index) {
-        ERL_DEBUG_ASSERT(child_index < 4, "Index must be in [0, 3], but got %u.", child_index);
-        ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child %u exists.", child_index);
+        ERL_DEBUG_ASSERT(child_index < 4, "Index must be in [0, 3], but got {}.", child_index);
+        ERL_DEBUG_ASSERT(m_children_[child_index] == nullptr, "Child {} exists.", child_index);
         m_children_[child_index] = this->Create(m_depth_ + 1, static_cast<int>(child_index));
         ++m_num_children_;
         return m_children_[child_index].get();
@@ -116,8 +116,8 @@ namespace erl::geometry {
 
     void
     AbstractQuadtreeNode::RemoveChild(const uint32_t child_index) {
-        ERL_DEBUG_ASSERT(child_index < 4, "Index must be in [0, 3], but got %u.", child_index);
-        ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "No child %u.", child_index);
+        ERL_DEBUG_ASSERT(child_index < 4, "Index must be in [0, 3], but got {}.", child_index);
+        ERL_DEBUG_ASSERT(m_children_[child_index] != nullptr, "No child {}.", child_index);
         m_children_[child_index] = nullptr;
         --m_num_children_;
     }

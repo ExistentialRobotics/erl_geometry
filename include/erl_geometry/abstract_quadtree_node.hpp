@@ -142,7 +142,7 @@ namespace erl::geometry {
         GetChild(const uint32_t child_index) {
             ERL_DEBUG_ASSERT(
                 child_index < 4,
-                "Child index must be in [0, 3], but got %u.",
+                "Child index must be in [0, 3], but got {}.",
                 child_index);
             return static_cast<Derived *>(m_children_[child_index].get());
         }
@@ -152,7 +152,7 @@ namespace erl::geometry {
         GetChild(const uint32_t child_index) const {
             ERL_DEBUG_ASSERT(
                 child_index < 4,
-                "Child index must be in [0, 3], but got %u.",
+                "Child index must be in [0, 3], but got {}.",
                 child_index);
             return static_cast<const Derived *>(m_children_[child_index].get());
         }

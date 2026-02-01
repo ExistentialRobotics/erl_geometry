@@ -264,7 +264,7 @@ namespace erl::geometry {
     bool
     CowAndLady::LoadData(long index, Frame &frame) const {
 
-        index = m_start_idx + index;
+        index = m_start_idx_ + index;
 
         auto
             &[valid,

@@ -6,73 +6,57 @@ namespace erl::geometry {
     EulerToRotation3D(Dtype a, Dtype b, Dtype c, EulerAngleOrder euler_angle_order) {
         const auto order = static_cast<int>(euler_angle_order);
 
+        // clang-format off
+
         /*
-         * rzyx (sxyz): yaw = a, pitch = b, roll = c, i = 0, j = 1, k = 2, cross(x, y) = z -->
-         * right-handed
-         *    / cos(a) cos(b), cos(a) sin(b) sin(c) - cos(c) sin(a), sin(a) sin(c) + cos(a) cos(c)
-         * sin(b) \ | | | cos(b) sin(a), cos(a) cos(c) + sin(a) sin(b) sin(c), cos(c) sin(a) sin(b)
-         * - cos(a) sin(c) | | |
-         *    \    -sin(b),                cos(b) sin(c),                        cos(b) cos(c) /
+         * rzyx (sxyz): yaw = a, pitch = b, roll = c, i = 0, j = 1, k = 2, cross(x, y) = z --> right-handed
+         * / cos(a) cos(b), cos(a) sin(b) sin(c) - cos(c) sin(a), sin(a) sin(c) + cos(a) cos(c) sin(b) \
+         * | cos(b) sin(a), cos(a) cos(c) + sin(a) sin(b) sin(c), cos(c) sin(a) sin(b)- cos(a) sin(c)  |
+         * \    -sin(b),                cos(b) sin(c),                        cos(b) cos(c)           /
          *
-         * rxyz (szyx): roll = a, pitch = b, yaw = c, i = 2, j = 1, k = 0, cross(z, y) = -x -->
-         * left-handed
-         *    /             cos(b) cos(c),                       -cos(b) sin(c), sin(b) \ | | |
-         * cos(a) sin(c) + cos(c) sin(a) sin(b), cos(a) cos(c) - sin(a) sin(b) sin(c), -cos(b)
-         * sin(a) | | |
-         *    \ sin(a) sin(c) - cos(a) cos(c) sin(b), cos(c) sin(a) + cos(a) sin(b) sin(c),  cos(a)
-         * cos(b) /
+         * rxyz (szyx): roll = a, pitch = b, yaw = c, i = 2, j = 1, k = 0, cross(z, y) = -x --> left-handed
+         * /             cos(b) cos(c),                       -cos(b) sin(c),                    sin(b) \
+         * | cos(a) sin(c) + cos(c) sin(a) sin(b), cos(a) cos(c) - sin(a) sin(b) sin(c), -cos(b) sin(a) |
+         * \ sin(a) sin(c) - cos(a) cos(c) sin(b), cos(c) sin(a) + cos(a) sin(b) sin(c),  cos(a) cos(b) /
          *
-         * rxzy (syzx): roll = a, yaw = b, pitch = c, i = 1, j = 2, k = 0, cross(y, z) = x -->
-         * right-handed /             cos(b) cos(c),               -sin(b),                cos(b)
-         * sin(c)
-         * \  <-- if a=-a, b=-b, c=-c, this is the same as rxyz | | | sin(a) sin(c) + cos(a) cos(c)
-         * sin(b), cos(a) cos(b), cos(a) sin(b) sin(c) - cos(c) sin(a) | | |
-         *    \ cos(c) sin(a) sin(b) - cos(a) sin(c), cos(b) sin(a), cos(a) cos(c) + sin(a) sin(b)
-         * sin(c) /
+         * rxzy (syzx): roll = a, yaw = b, pitch = c, i = 1, j = 2, k = 0, cross(y, z) = x --> right-handed
+         * /             cos(b) cos(c),               -sin(b),                           cos(b) sin(c) \  <-- if a=-a, b=-b, c=-c, this is the same as rxyz
+         * | sin(a) sin(c) + cos(a) cos(c) sin(b), cos(a) cos(b), cos(a) sin(b) sin(c) - cos(c) sin(a) |
+         * \ cos(c) sin(a) sin(b) - cos(a) sin(c), cos(b) sin(a), cos(a) cos(c) + sin(a) sin(b) sin(c) /
          *
-         * rzxy (syxz): yaw = a, roll = b, pitch = c, i = 1, j = 0, k = 2, cross(y, x) = -z -->
-         * left-handed
-         *    / cos(a) cos(c) - sin(a) sin(b) sin(c), -cos(b) sin(a), cos(a) sin(c) + cos(c) sin(a)
-         * sin(b) \ | | | cos(c) sin(a) + cos(a) sin(b) sin(c),  cos(a) cos(b), sin(a) sin(c) -
-         * cos(a) cos(c) sin(b) | | |
-         *    \            -cos(b) sin(c),                sin(b),                 cos(b) cos(c) /
+         * rzxy (syxz): yaw = a, roll = b, pitch = c, i = 1, j = 0, k = 2, cross(y, x) = -z --> left-handed
+         * / cos(a) cos(c) - sin(a) sin(b) sin(c), -cos(b) sin(a), cos(a) sin(c) + cos(c) sin(a) sin(b) \
+         * | cos(c) sin(a) + cos(a) sin(b) sin(c),  cos(a) cos(b), sin(a) sin(c) - cos(a) cos(c) sin(b) |
+         * \            -cos(b) sin(c),                sin(b),                            cos(b) cos(c) /
          *
          * Connection between static and relative order:
-         *      R_s(x, y, z) = R_r(z, y, x)
-         *      so, EulerToRotation3D(a, b, c, "sxyz") == EulerToRotation3D(c, b, a, "rzyx")
+         *  R_s(x, y, z) = R_r(z, y, x)
+         *  so, EulerToRotation3D(a, b, c, "sxyz") == EulerToRotation3D(c, b, a, "rzyx")
          * Note that Rot(angle).T = Rot(-angle)
-         *      R_rxyz = Rx Ry Rz
-         *      R_rxyz(m_alpha_, beta, gamma).T = Rz.T Ry.T Rx.T = R_rzyx(-gamma, -beta, -m_alpha_)
-         * = R_sxyz(-m_alpha_, -beta, -gamma) so, EulerToRotation3D(a, b, c, "rxyz") ==
-         * EulerToRotation3D(-a, -b, -c, "sxyz").T EulerToRotation3D(a, b, c, "sxzy") ==
-         * EulerToRotation3D(-a, -b, -c, "rxzy").T == EulerToRotation3D(-c, -b, -a, "syzx").T xzy is
-         * left-handed                                                                    yzx is
-         * right-handed
+         *  R_rxyz = Rx Ry Rz
+         *  R_rxyz(m_alpha_, beta, gamma).T = Rz.T Ry.T Rx.T = R_rzyx(-gamma, -beta, -m_alpha_) = R_sxyz(-m_alpha_, -beta, -gamma)
+         * So, EulerToRotation3D(a, b, c, "rxyz") == EulerToRotation3D(-a, -b, -c, "sxyz").T
+         *     EulerToRotation3D(a, b, c, "sxzy") == EulerToRotation3D(-a, -b, -c, "rxzy").T == EulerToRotation3D(-c, -b, -a, "syzx").T
+         *     xzy is left-handed
+         *     yzx is right-handed
          *
-         * rxyx' (sx'yx): roll = a, pitch = b, roll' = c, i = 0, j = 1, k = 2, cross(x, y) = z -->
-         * right-handed
-         *    /     cos(b),                 sin(b) sin(c),                         cos(c) sin(b) \ |
-         * | |  sin(a) sin(b), cos(a) cos(c) - cos(b) sin(a) sin(c), - cos(a) sin(c) - cos(b) cos(c)
-         * sin(a) | | |
-         *    \ -cos(a) sin(b), cos(c) sin(a) + cos(a) cos(b) sin(c),  cos(a) cos(b) cos(c) - sin(a)
-         * sin(c)  /
+         * rxyx' (sx'yx): roll = a, pitch = b, roll' = c, i = 0, j = 1, k = 2, cross(x, y) = z --> right-handed
+         * /     cos(b),                 sin(b) sin(c),                                     cos(c) sin(b) \
+         * |  sin(a) sin(b), cos(a) cos(c) - cos(b) sin(a) sin(c), - cos(a) sin(c) - cos(b) cos(c) sin(a) |
+         * \ -cos(a) sin(b), cos(c) sin(a) + cos(a) cos(b) sin(c),  cos(a) cos(b) cos(c) - sin(a) sin(c)  /
          *
-         * rzyz' (sz'yz): yaw = a, pitch = b, yaw' = c, i = 2, j = 1, k = 0, cross(z, y) = -x -->
-         * left-handed
-         *    / cos(a) cos(b) cos(c) - sin(a) sin(c), - cos(c) sin(a) - cos(a) cos(b) sin(c), cos(a)
-         * sin(b) \ | | | cos(a) sin(c) + cos(b) cos(c) sin(a),  cos(a) cos(c) - cos(b) sin(a)
-         * sin(c), sin(a) sin(b) | | |
-         *    \            -cos(c) sin(b),                         sin(b) sin(c), cos(b)
-         * /
+         * rzyz' (sz'yz): yaw = a, pitch = b, yaw' = c, i = 2, j = 1, k = 0, cross(z, y) = -x --> left-handed
+         * / cos(a) cos(b) cos(c) - sin(a) sin(c), -cos(c) sin(a) - cos(a) cos(b) sin(c), cos(a) sin(b) \
+         * | cos(a) sin(c) + cos(b) cos(c) sin(a),  cos(a) cos(c) - cos(b) sin(a) sin(c), sin(a) sin(b) |
+         * \            -cos(c) sin(b),                         sin(b) sin(c),                   cos(b) /
          *
-         * rxzx' (sx'zx): roll = a, yaw = b, roll' = c, i = 0, j = 2, k = 1, cross(x, z) = -y -->
-         * left-handed
-         *    /     cos(b),               -cos(c) sin(b),                         sin(b) sin(c) \ |
-         * | | cos(a) sin(b), cos(a) cos(b) cos(c) - sin(a) sin(c), - cos(c) sin(a) - cos(a) cos(b)
-         * sin(c) | | |
-         *    \ sin(a) sin(b), cos(a) sin(c) + cos(b) cos(c) sin(a),  cos(a) cos(c) - cos(b) sin(a)
-         * sin(c)  /
+         * rxzx' (sx'zx): roll = a, yaw = b, roll' = c, i = 0, j = 2, k = 1, cross(x, z) = -y --> left-handed
+         * /     cos(b),                         -cos(c) sin(b),                           sin(b) sin(c) \
+         * | cos(a) sin(b), cos(a) cos(b) cos(c) - sin(a) sin(c), - cos(c) sin(a) - cos(a) cos(b) sin(c) |
+         * \ sin(a) sin(b), cos(a) sin(c) + cos(b) cos(c) sin(a),  cos(a) cos(c) - cos(b) sin(a) sin(c)  /
          */
+
+        // clang-format on
 
         const bool is_relative = (order & 1 << 6) >> 6;  // 0b1xxxxxx
         int i = (order & 0b11 << 4) >> 4;

@@ -151,8 +151,8 @@ namespace erl::geometry {
         const Eigen::Ref<const VectorD> &sensor_position,
         const Eigen::Ref<const MatrixDX> &points,
         std::vector<long> &point_indices,
-        std::size_t max_num_rays,
-        long max_dataset_size,
+        const std::size_t max_num_rays,
+        const long max_dataset_size,
         long &num_samples,
         MatrixDX &dataset_points,
         VectorX &dataset_labels,
@@ -187,13 +187,14 @@ namespace erl::geometry {
             points.cols(),
             labels.size());
         PrepareExpectationMaximization(points, labels, num_points);
+        const int n_iter = m_setting_->num_em_iterations;
         if (m_setting_->use_sparse) {
-            for (int itr = 0; itr < m_setting_->num_em_iterations; ++itr) {
-                RunExpectationMaximizationIterationSparse(num_points);
+            for (int itr = 0; itr < n_iter; ++itr) {
+                RunExpectationMaximizationIterationSparse(num_points, itr == n_iter - 1);
             }
         } else {
-            for (int itr = 0; itr < m_setting_->num_em_iterations; ++itr) {
-                RunExpectationMaximizationIteration(num_points);
+            for (int itr = 0; itr < n_iter; ++itr) {
+                RunExpectationMaximizationIteration(num_points, itr == n_iter - 1);
             }
         }
         // release the memory
@@ -281,7 +282,10 @@ namespace erl::geometry {
 
     template<typename Dtype, int Dim>
     void
-    BayesianHilbertMap<Dtype, Dim>::RunExpectationMaximizationIteration(const long n_points) {
+    BayesianHilbertMap<Dtype, Dim>::RunExpectationMaximizationIteration(
+        const long n_points,
+        const bool skip_m_step) {
+
         ++m_iteration_cnt_;
 
         const long num_feat = m_mu_.rows();
@@ -314,6 +318,7 @@ namespace erl::geometry {
                 // mu' = sigma' * (mu / sigma + phi.T @ (labels - 0.5))
                 mu_ptr[i] = sigma_ptr[i] * alpha_ptr[i];
             }
+            if (skip_m_step) { return; }
             // M-Step: update xi
 #pragma omp parallel for default(none) shared(n_points, xi_ptr)
             for (long j = 0; j < n_points; ++j) {
@@ -333,7 +338,7 @@ namespace erl::geometry {
 #pragma omp parallel for default(none) shared(num_feat, n_points, alpha_ptr)
         for (long c = 0; c < num_feat; ++c) {  // loop over cols
             auto phi_c = m_phi_.col(c).head(n_points);
-            VectorX lam_phi = m_lambda_.head(n_points).cwiseProduct(phi_c);
+            const VectorX lam_phi = m_lambda_.head(n_points).cwiseProduct(phi_c);
             alpha_ptr[c] += m_labels_.head(n_points).dot(phi_c);
             Dtype *sigma_inv_ptr = m_sigma_inv_.col(c).data();
             sigma_inv_ptr[c] += lam_phi.dot(phi_c);
@@ -348,11 +353,12 @@ namespace erl::geometry {
         m_sigma_inv_mat_l_.transpose()
             .template triangularView<Eigen::Upper>()  //
             .solveInPlace(m_mu_);
+        if (skip_m_step) { return; }
         // M-Step: update xi
 #pragma omp parallel for default(none) shared(n_points, num_feat, xi_ptr)
         for (long j = 0; j < n_points; ++j) {
             auto phi_j = m_phi_transpose_.col(j).head(num_feat);
-            VectorX phi = phi_j;
+            const VectorX phi = phi_j;
             const Dtype a = phi.dot(m_mu_);
             m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solveInPlace(phi);
             xi_ptr[j] = std::sqrt(phi.squaredNorm() + a * a);
@@ -361,7 +367,10 @@ namespace erl::geometry {
 
     template<typename Dtype, int Dim>
     void
-    BayesianHilbertMap<Dtype, Dim>::RunExpectationMaximizationIterationSparse(long num_points) {
+    BayesianHilbertMap<Dtype, Dim>::RunExpectationMaximizationIterationSparse(
+        const long num_points,
+        const bool skip_m_step) {
+
         ++m_iteration_cnt_;
         const long num_feat = m_mu_.rows();
         Dtype *xi_ptr = m_xi_.data();
@@ -402,6 +411,7 @@ namespace erl::geometry {
             alpha_ptr[last_col] += m_labels_.head(num_points).sum();
             sigma_ptr[last_col] = 1.0f / sigma_inv_ptr[last_col];
             mu_ptr[last_col] = sigma_ptr[last_col] * alpha_ptr[last_col];
+            if (skip_m_step) { return; }
             // M-Step: update xi
 #pragma omp parallel for default(none) shared(num_points, xi_ptr)
             for (long j = 0; j < num_points; ++j) {
@@ -409,36 +419,38 @@ namespace erl::geometry {
                 xi_ptr[j] =
                     std::sqrt(m_phi_sq_transpose_sparse_.col(j).dot(m_sigma_.col(0)) + a * a);
             }
-        } else {
-            // non-diagonal sigma
-            // E-Step: calculate the posterior
+            return;
+        }
+
+        // non-diagonal sigma
+        // E-Step: calculate the posterior
 #pragma omp parallel for default(none) shared(num_feat, num_points, alpha_ptr)
-            for (long c = 0; c < num_feat; ++c) {  // loop over cols
-                auto phi_c = m_phi_sparse_.col(c).head(num_points);
-                VectorX lam_phi = phi_c.cwiseProduct(m_lambda_.head(num_points));
-                alpha_ptr[c] += phi_c.dot(m_labels_.head(num_points));
-                Dtype *sigma_inv_ptr = m_sigma_inv_.col(c).data();
-                sigma_inv_ptr[c] += phi_c.dot(lam_phi);
-                for (long r = c + 1; r < num_feat; ++r) {
-                    sigma_inv_ptr[r] += m_phi_sparse_.col(r).head(num_points).dot(lam_phi);
-                    // copy the upper triangular part to the lower triangular part
-                    m_sigma_inv_(c, r) = sigma_inv_ptr[r];
-                }
+        for (long c = 0; c < num_feat; ++c) {  // loop over cols
+            auto phi_c = m_phi_sparse_.col(c).head(num_points);
+            const VectorX lam_phi = phi_c.cwiseProduct(m_lambda_.head(num_points));
+            alpha_ptr[c] += phi_c.dot(m_labels_.head(num_points));
+            Dtype *sigma_inv_ptr = m_sigma_inv_.col(c).data();
+            sigma_inv_ptr[c] += phi_c.dot(lam_phi);
+            for (long r = c + 1; r < num_feat; ++r) {
+                sigma_inv_ptr[r] += m_phi_sparse_.col(r).head(num_points).dot(lam_phi);
+                // copy the upper triangular part to the lower triangular part
+                m_sigma_inv_(c, r) = sigma_inv_ptr[r];
             }
-            m_sigma_inv_mat_l_ = m_sigma_inv_.llt().matrixL();  // Cholesky decomposition
-            m_mu_ = m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solve(m_alpha_);
-            m_sigma_inv_mat_l_.transpose()
-                .template triangularView<Eigen::Upper>()  //
-                .solveInPlace(m_mu_);
-            // M-Step: update xi
+        }
+        m_sigma_inv_mat_l_ = m_sigma_inv_.llt().matrixL();  // Cholesky decomposition
+        m_mu_ = m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solve(m_alpha_);
+        m_sigma_inv_mat_l_.transpose()
+            .template triangularView<Eigen::Upper>()  //
+            .solveInPlace(m_mu_);
+        if (skip_m_step) { return; }
+        // M-Step: update xi
 #pragma omp parallel for default(none) shared(num_points, num_feat, xi_ptr)
-            for (long j = 0; j < num_points; ++j) {
-                auto phi_j = m_phi_transpose_sparse_.col(j).head(num_feat);
-                const Dtype a = phi_j.dot(m_mu_);
-                VectorX phi = phi_j;
-                m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solveInPlace(phi);
-                xi_ptr[j] = std::sqrt(phi.squaredNorm() + a * a);
-            }
+        for (long j = 0; j < num_points; ++j) {
+            auto phi_j = m_phi_transpose_sparse_.col(j).head(num_feat);
+            const Dtype a = phi_j.dot(m_mu_);
+            const VectorX phi = phi_j;
+            m_sigma_inv_mat_l_.template triangularView<Eigen::Lower>().solveInPlace(phi);
+            xi_ptr[j] = std::sqrt(phi.squaredNorm() + a * a);
         }
     }
 
@@ -679,7 +691,6 @@ namespace erl::geometry {
                 true,
                 phi);
             phi.data()[n_hinged] = 1.0f;  // add the bias term
-            // for (int i = 1; i <= Dim; ++i) { phi(n_hinged, i) = 0.0f; }
         } else {
             (void) m_kernel_->ComputeKtest(m_hinged_points_, n_hinged, point, 1, phi);
             phi.data()[n_hinged] = 1.0f;  // add the bias term
@@ -748,7 +759,7 @@ namespace erl::geometry {
             // grad = grad_phi_x @ grad_phi_h @ grad_prob_h
             // phi: n x (n * (Dim + 1))
             gradient[d] = 0;
-            Dtype *grad_phi_x = phi.col(j).data();
+            const Dtype *grad_phi_x = phi.col(j).data();
             for (long k = 0; k < n_hinged; ++k) {
                 gradient[d] += (mu_ptr[k] * t2 - kPI * t1 * beta_ptr[k]) * grad_phi_x[k];
             }
@@ -1145,7 +1156,7 @@ namespace erl::geometry {
                 // grad = grad_phi_x @ grad_phi_h @ grad_prob_h
                 // phi: n x (n * (Dim + 1))
                 grad_ptr[d] = 0;
-                Dtype *grad_phi_x = phi.col(j).data();
+                const Dtype *grad_phi_x = phi.col(j).data();
                 for (long k = 0; k < n_hinged; ++k) {
                     grad_ptr[d] += (mu_ptr[k] * t3 - M_PI * t1 * beta_ptr[k]) * grad_phi_x[k];
                 }
@@ -1334,7 +1345,7 @@ namespace erl::geometry {
         static const TokenReadFunctionPairs<BayesianHilbertMap> token_function_pairs = {
             {
                 "setting",
-                [](BayesianHilbertMap *self, std::istream &stream) {
+                [](const BayesianHilbertMap *self, std::istream &stream) {
                     return self->m_setting_->Read(stream) && stream.good();
                 },
             },

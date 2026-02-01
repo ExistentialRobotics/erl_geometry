@@ -31,8 +31,8 @@ public:
     explicit TestOccupancyOctreeBuildWithNewerCollege(std::shared_ptr<Options> options_in)
         : Super(options_in), options(options_in), dataset(options->data_dir) {
 
-        options->min_range = 0.06f;
-        options->max_range = 35.0f;
+        // options->min_range = 0.06f;
+        // options->max_range = 35.0f;
 
         if (options->max_wp_idx < 0) {
             options->max_wp_idx = erl::geometry::NewerCollege::kNumFrames;

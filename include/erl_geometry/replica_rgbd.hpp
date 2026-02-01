@@ -1,6 +1,7 @@
 #pragma once
 
 #include "erl_common/opencv.hpp"
+#include "erl_common/yaml.hpp"
 
 #include <filesystem>
 

@@ -8,8 +8,7 @@ namespace erl::geometry {
     template<typename Dtype, class Node, class Setting>
     SemiSparseOctreeBase<Dtype, Node, Setting>::SemiSparseOctreeBase(
         const std::shared_ptr<Setting> &setting)
-        : Super(setting),
-          m_setting_(setting) {
+        : Super(setting), m_setting_(setting) {
 
         m_parents_.resize(m_setting_->init_voxel_num);
         m_children_.resize(Eigen::NoChange, m_setting_->init_voxel_num);
@@ -141,12 +140,11 @@ namespace erl::geometry {
         int child_level = tree_depth - 1;
         const uint64_t code = key.ToMortonCode();
         uint64_t shift = (child_level << 1) + child_level;  // child_level * 3
-        uint64_t mask = 0b111 << shift;
+        uint64_t mask = 0b111ul << shift;
         while (child_level >= min_level) {
             if (const auto child_index = static_cast<int>((code & mask) >> shift);
                 node->HasChild(child_index)) {
                 node = this->GetNodeChild(node, child_index);
-                // node_index = m_children_[node_index][child_index];
                 node_index = m_children_(child_index, node_index);
             } else {
                 std::tie(node, node_index) = CreateNode(key, child_level, node, child_index);
@@ -210,7 +208,6 @@ namespace erl::geometry {
         return geometry::FindVoxelIndex<NodeIndex, uint64_t, 3>(
             key.ToMortonCode(),
             m_setting_->tree_depth - 1,
-            // m_children_[0].data()
             m_children_.data());
     }
 
@@ -223,8 +220,6 @@ namespace erl::geometry {
         const NodeIndex child_index) {
 
         if (m_recycled_node_indices_.empty()) {
-            // const auto node_index = static_cast<NodeIndex>(m_children_.size());
-
             const NodeIndex node_index = m_buf_head_;
             if (m_buf_head_ >= m_parents_.size()) {  // need to expand the buffers
                 const long new_size = 2 * m_buf_head_ + 1;
@@ -238,7 +233,7 @@ namespace erl::geometry {
             }
             m_parents_[m_buf_head_] = parent_node_index;
             m_children_.col(m_buf_head_).setConstant(-1);
-            m_voxels_.col(m_buf_head_) << key[0], key[1], key[2], (1 << level);
+            m_voxels_.col(m_buf_head_) << key[0], key[1], key[2], (1ul << level);
             m_vertices_.col(m_buf_head_).setConstant(-1);
             if (m_setting_->cache_voxel_centers) {
                 const auto r = static_cast<Dtype>(m_setting_->resolution);
@@ -266,7 +261,7 @@ namespace erl::geometry {
         const NodeIndex node_index = *it;
         m_recycled_node_indices_.erase(it);
         m_parents_[node_index] = parent_node_index;
-        m_voxels_.col(node_index) << key[0], key[1], key[2], (1 << level);
+        m_voxels_.col(node_index) << key[0], key[1], key[2], (1ul << level);
         if (m_setting_->cache_voxel_centers) {
             const auto r = static_cast<Dtype>(m_setting_->resolution);
             const auto key_offset = this->m_tree_key_offset_;
@@ -362,7 +357,7 @@ namespace erl::geometry {
 
         this->ExpandNode(node);
         const OctreeKey::KeyType child_level = m_setting_->tree_depth - depth - 1;
-        const OctreeKey::KeyType offset = (1 << child_level) >> 1;
+        const OctreeKey::KeyType offset = (1ul << child_level) >> 1;
         const NodeIndex parent_node_idx = node->GetNodeIndex();
         for (int i = 0; i < 8; ++i) {
             OctreeKey child_key;

@@ -320,7 +320,7 @@ namespace erl::geometry {
     OctreeImpl<Node, Interface, InterfaceSetting>::GetNodeSize(const uint32_t depth) const {
         ERL_DEBUG_ASSERT(
             depth <= m_setting_->tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             m_setting_->tree_depth,
             depth);
         return m_size_lookup_table_[depth];
@@ -417,7 +417,7 @@ namespace erl::geometry {
         const uint32_t tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t keyval =  // auto cast from real to unsigned integer is undefined behavior
@@ -550,7 +550,7 @@ namespace erl::geometry {
         const uint32_t tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t level = tree_depth - depth;
@@ -568,7 +568,7 @@ namespace erl::geometry {
         if (depth == tree_depth) { return key; }
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.\n",
+            "Depth must be in [0, {}], but got {}.\n",
             tree_depth,
             depth);
         const uint32_t level = tree_depth - depth;
@@ -1136,7 +1136,7 @@ namespace erl::geometry {
         uint32_t next_depth = node_depth + 1;
         ERL_DEBUG_ASSERT(
             next_depth <= this->m_max_node_depth_,
-            "Wrong depth: %u (max: %u).\n",
+            "Wrong depth: {} (max: {}).\n",
             next_depth,
             this->m_max_node_depth_);
         OctreeKey next_key;
@@ -1323,7 +1323,7 @@ namespace erl::geometry {
         : IteratorBase(tree, max_node_depth) {
         ERL_ASSERTM(
             cluster_depth <= this->m_max_node_depth_,
-            "Cluster max_node_depth %u is greater than max max_node_depth %u.\n",
+            "Cluster max_node_depth {} is greater than max max_node_depth {}.\n",
             cluster_depth,
             this->m_max_node_depth_);
 
@@ -2925,7 +2925,7 @@ namespace erl::geometry {
         auto &tree_depth = m_setting_->tree_depth;
         ERL_DEBUG_ASSERT(
             max_depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.",
+            "Depth must be in [0, {}], but got {}.",
             tree_depth,
             max_depth);
 
@@ -2981,7 +2981,7 @@ namespace erl::geometry {
         if (depth == 0) { depth = tree_depth; }
         ERL_DEBUG_ASSERT(
             depth <= tree_depth,
-            "Depth must be in [0, %u], but got %u.",
+            "Depth must be in [0, {}], but got {}.",
             tree_depth,
             depth);
         if (this->m_root_ == nullptr) {

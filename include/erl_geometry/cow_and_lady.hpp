@@ -15,8 +15,8 @@ namespace erl::geometry {
         std::shared_ptr<open3d::geometry::PointCloud> m_pcd_gt_;
         Eigen::MatrixXd m_pose_data_;
         bool m_use_icp_poses_ = false;
-        long m_start_idx = kStartIdx;
-        long m_end_idx = kEndIdx;
+        long m_start_idx_ = kStartIdx;
+        long m_end_idx_ = kEndIdx;
 
     public:
         static constexpr double kValidRangeMin = 0.1;
@@ -42,8 +42,10 @@ namespace erl::geometry {
             return transform;
         }();
 
-        inline static const Eigen::Vector3d kSceneBoundingBoxMin{-2.0, -2.7, 0.0};
-        inline static const Eigen::Vector3d kSceneBoundingBoxMax{2.2, 0.4, 1.8};
+        inline static const Eigen::Vector3d kSceneBoundingBox1Min{-2.0, -2.7, 0.0};
+        inline static const Eigen::Vector3d kSceneBoundingBox1Max{2.2, 0.4, 1.8};
+        inline static const Eigen::Vector3d kSceneBoundingBox2Min{-2.0, -2.8, 0.0};
+        inline static const Eigen::Vector3d kSceneBoundingBox2Max{3.0, 0.5, 2.6};
         inline static const Eigen::Vector3d kCowBoundingBoxMin{-1.8, -1.8, 0.0};
         inline static const Eigen::Vector3d kCowBoundingBoxMax{0.35, 0.4, 1.35};
         inline static const Eigen::Vector3d kLadyBoundingBoxMin{1.0, -1.0, 0.0};
@@ -78,17 +80,17 @@ namespace erl::geometry {
 
         [[nodiscard]] long
         Size() const {
-            return m_end_idx - m_start_idx;
+            return m_end_idx_ - m_start_idx_;
         }
 
         [[nodiscard]] long
         GetStartIndex() const {
-            return m_start_idx;
+            return m_start_idx_;
         }
 
         [[nodiscard]] long
         GetEndIndex() const {
-            return m_end_idx;
+            return m_end_idx_;
         }
 
         [[nodiscard]] bool
@@ -97,17 +99,17 @@ namespace erl::geometry {
                 ERL_WARN("Invalid start index: {}", start_index);
                 return false;
             }
-            m_start_idx = start_index;
+            m_start_idx_ = start_index;
             return true;
         }
 
         [[nodiscard]] bool
         SetEndIndex(long end_index) {
-            if (end_index <= m_start_idx || end_index > kEndIdx) {
+            if (end_index <= m_start_idx_ || end_index > kEndIdx) {
                 ERL_WARN("Invalid end index: {}", end_index);
                 return false;
             }
-            m_end_idx = end_index;
+            m_end_idx_ = end_index;
             return true;
         }
 

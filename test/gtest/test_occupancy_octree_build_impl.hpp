@@ -218,7 +218,7 @@ public:
             drawer->DrawLeaves(geometries);
         }
 
-        line_set_traj->PaintUniformColor({1, 0, 0});
+        line_set_traj->PaintUniformColor({0, 1, 0});
         if (line_set_traj->lines_.empty()) { vis->ResetViewPoint(true); }
         if (point_cloud->points_.size() > options->max_point_cloud_size) {
             point_cloud->points_.swap(point_cloud->RandomDownSample(0.5)->points_);

@@ -182,7 +182,7 @@ namespace erl::geometry {
     void
     GetOrientedBoundingBoxWithAxisUp(
         const open3d::geometry::OrientedBoundingBox &obb,
-        int up_axis_idx,
+        const int up_axis_idx,
         Eigen::Vector3d &box_center,
         Eigen::Matrix3d &box_rotation,
         Eigen::Vector3d &box_extent) {
