@@ -58,6 +58,9 @@ BindSemiSparseQuadtree(
         .def_property_readonly("voxel_centers", &Quadtree::GetVoxelCenters)
         .def_property_readonly("vertices", &Quadtree::GetVertices)
         .def_property_readonly("num_vertices", &Quadtree::GetVertexCount)
+        .def_property_readonly(
+            "num_independent_leaf_vertices",
+            &Quadtree::GetIndependentLeafVertexCount)
         .def_property_readonly("vertex_keys", &Quadtree::GetVertexKeys)
         .def(
             "insert_points",

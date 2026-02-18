@@ -46,30 +46,39 @@ TestFindVoxelIndicesTorch() {
         torch::from_blob(children.data(), {static_cast<long>(n_nodes), 1 << Dim}, torch::kInt64)
             .clone();
 
+    constexpr long n_repeats = 10;
+
     // test CPU version
     torch::Tensor voxel_indices;
-    double dt_cpu;
+    double dt_cpu = 0.0;
     {
-        ERL_BLOCK_TIMER_MSG_TIME("find voxel indices (CPU)", dt_cpu);
-        FindVoxelIndicesTorch(codes, Dim, level, children_tensor, true, voxel_indices);
+        const ERL_BLOCK_TIMER_MICRO_MSG_TIME("find voxel indices (CPU)", dt_cpu);
+        for (long i = 0; i < n_repeats; ++i) {
+            FindVoxelIndicesTorch(codes, Dim, level, children_tensor, true, voxel_indices);
+        }
     }
-    dt_cpu /= static_cast<double>(n_points);
-    std::cout << dt_cpu * 1e3 << " us per query (CPU)." << std::endl;
+    dt_cpu /= static_cast<double>(n_repeats);
+    std::cout << dt_cpu << " us (CPU)." << std::endl;
     ASSERT_TRUE(voxel_indices.equal(node_indices_gt));
 
     // test CUDA version
-    double dt_cuda;
+    double dt_cuda = 0.0;
     codes = codes.cuda();
     children_tensor = children_tensor.cuda();
     cudaDeviceSynchronize();
     {
-        ERL_BLOCK_TIMER_MSG_TIME("find voxel indices (CUDA)", dt_cuda);
-        FindVoxelIndicesTorch(codes, Dim, level, children_tensor, true, voxel_indices);
-        cudaDeviceSynchronize();
+        const ERL_BLOCK_TIMER_MICRO_MSG_TIME("find voxel indices (CUDA)", dt_cuda);
+        for (long i = 0; i < n_repeats; ++i) {
+            FindVoxelIndicesTorch(codes, Dim, level, children_tensor, true, voxel_indices);
+            cudaDeviceSynchronize();
+        }
     }
-    dt_cuda /= static_cast<double>(n_points);
-    std::cout << dt_cuda * 1e3 << " us per query (CUDA)." << std::endl;
+    dt_cuda /= static_cast<double>(n_repeats);
+    std::cout << dt_cuda << " us (CUDA)." << std::endl;
     ASSERT_TRUE(voxel_indices.cpu().equal(node_indices_gt));
+
+    const double ratio = dt_cpu / dt_cuda;
+    std::cout << "Speedup (CPU / CUDA): " << ratio << "x." << std::endl;
 }
 
 TEST(FindVoxelIndices, Torch) {

@@ -13,11 +13,15 @@ namespace erl::geometry {
         std::size_t init_voxel_num = 200000;  // initial number of voxels to allocate memory for
         bool cache_voxel_centers = false;     // whether to cache voxel centers
 
+        // whether the smallest leaf nodes have independent vertices or not
+        bool independent_smallest_leaf_vertex = false;
+
         ERL_REFLECT_SCHEMA(
             SemiSparseNdTreeSetting,
             ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, semi_sparse_depth),
             ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, init_voxel_num),
-            ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, cache_voxel_centers));
+            ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, cache_voxel_centers),
+            ERL_REFLECT_MEMBER(SemiSparseNdTreeSetting, independent_smallest_leaf_vertex));
 
         bool
         operator==(const NdTreeSetting &other) const override;

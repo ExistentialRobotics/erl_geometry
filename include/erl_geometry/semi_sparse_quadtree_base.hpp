@@ -37,16 +37,19 @@ namespace erl::geometry {
 
         NodeIndex m_buf_head_ = 0;
 
-        BufferParents m_parents_ = {};    // node index -> parent node index
-        BufferChildren m_children_ = {};  // node index -> child indices
-        BufferVoxels m_voxels_ = {};      // buffer for voxels (x,y,size)
-        Matrix2X m_voxel_centers_ = {};   // voxel centers, (x, y) is the metric coordinate
+        BufferParents m_parents_;    // node index -> parent node index
+        BufferChildren m_children_;  // node index -> child indices
+        BufferVoxels m_voxels_;      // buffer for voxels (x,y,size)
+        Matrix2X m_voxel_centers_;   // voxel centers, (x, y) is the metric coordinate
 
-        BufferVertices m_vertices_ = {};               // node index -> vertex indices
-        QuadtreeKeyLongMap m_key_to_vertex_map_ = {};  // map from key to vertex index
-        QuadtreeKeyVector m_vertex_keys_ = {};
+        BufferVertices m_vertices_;               // node index -> vertex indices
+        QuadtreeKeyLongMap m_key_to_vertex_map_;  // map from key to vertex index
+        QuadtreeKeyVector m_vertex_keys_;         // vertex index -> vertex key
 
-        absl::flat_hash_set<NodeIndex> m_recycled_node_indices_ = {};  // indices of recycled nodes
+        // Only used when IndependentSmallestLeafVertex is true
+        QuadtreeKeyLongMap m_key_to_vertex_map_leaf_;  // key -> vertex index
+
+        absl::flat_hash_set<NodeIndex> m_recycled_node_indices_;  // indices of recycled nodes
 
     public:
         SemiSparseQuadtreeBase() = delete;  // no default constructor
@@ -80,6 +83,9 @@ namespace erl::geometry {
 
         [[nodiscard]] std::size_t
         GetVertexCount() const;
+
+        [[nodiscard]] std::size_t
+        GetIndependentLeafVertexCount() const;
 
         [[nodiscard]] const QuadtreeKeyVector &
         GetVertexKeys() const;

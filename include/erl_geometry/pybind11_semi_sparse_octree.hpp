@@ -57,6 +57,9 @@ BindSemiSparseOctree(
         .def_property_readonly("voxel_centers", &Octree::GetVoxelCenters)
         .def_property_readonly("vertices", &Octree::GetVertices)
         .def_property_readonly("num_vertices", &Octree::GetVertexCount)
+        .def_property_readonly(
+            "num_independent_leaf_vertices",
+            &Octree::GetIndependentLeafVertexCount)
         .def_property_readonly("vertex_keys", &Octree::GetVertexKeys)
         .def(
             "insert_points",

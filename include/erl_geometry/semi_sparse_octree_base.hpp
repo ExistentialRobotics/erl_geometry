@@ -37,16 +37,19 @@ namespace erl::geometry {
 
         NodeIndex m_buf_head_ = 0;
 
-        BufferParents m_parents_ = {};    // node index -> parent node index
-        BufferChildren m_children_ = {};  // node index -> child indices
-        BufferVoxels m_voxels_ = {};      // voxels (x,y,z,size), (x, y, z) is the key
-        Matrix3X m_voxel_centers_ = {};   // voxel centers, (x, y, z) is the metric coordinate
+        BufferParents m_parents_;    // node index -> parent node index
+        BufferChildren m_children_;  // node index -> child indices
+        BufferVoxels m_voxels_;      // voxels (x,y,z,size), (x, y, z) is the key
+        Matrix3X m_voxel_centers_;   // voxel centers, (x, y, z) is the metric coordinate
 
-        BufferVertices m_vertices_ = {};             // node index -> vertex indices
-        OctreeKeyLongMap m_key_to_vertex_map_ = {};  // map from key to vertex index
-        OctreeKeyVector m_vertex_keys_ = {};
+        BufferVertices m_vertices_;             // node index -> vertex indices
+        OctreeKeyLongMap m_key_to_vertex_map_;  // map from key to vertex index
+        OctreeKeyVector m_vertex_keys_;         // vertex index -> vertex key
 
-        absl::flat_hash_set<NodeIndex> m_recycled_node_indices_ = {};  // indices of recycled nodes
+        // Only used when IndependentSmallestLeafVertex is true
+        OctreeKeyLongMap m_key_to_vertex_map_leaf_;  // key -> vertex index for the smallest leaves
+
+        absl::flat_hash_set<NodeIndex> m_recycled_node_indices_;  // indices of recycled nodes
 
     public:
         SemiSparseOctreeBase() = delete;  // no default constructor
@@ -80,6 +83,9 @@ namespace erl::geometry {
 
         [[nodiscard]] std::size_t
         GetVertexCount() const;
+
+        [[nodiscard]] std::size_t
+        GetIndependentLeafVertexCount() const;
 
         [[nodiscard]] const OctreeKeyVector &
         GetVertexKeys() const;
@@ -137,6 +143,12 @@ namespace erl::geometry {
             Node *parent = nullptr,
             int child_index = -1);
 
+        /**
+         *
+         * @param node_key key of the node to assign vertices
+         * @param node_idx index of the node in the voxel buffer
+         * @param level level of the node, used to determine the vertex sharing strategy
+         */
         void
         RecordVertices(const OctreeKey &node_key, NodeIndex node_idx, uint32_t level);
 

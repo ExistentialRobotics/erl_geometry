@@ -1,7 +1,6 @@
 #pragma once
 
 #include "find_voxel_indices.hpp"
-#include "semi_sparse_quadtree_base.hpp"
 
 namespace erl::geometry {
 
@@ -76,6 +75,12 @@ namespace erl::geometry {
     std::size_t
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::GetVertexCount() const {
         return m_vertex_keys_.size();
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::size_t
+    SemiSparseQuadtreeBase<Dtype, Node, Setting>::GetIndependentLeafVertexCount() const {
+        return m_key_to_vertex_map_leaf_.size();
     }
 
     template<typename Dtype, class Node, class Setting>
@@ -292,7 +297,7 @@ namespace erl::geometry {
         Node *parent,
         int child_index) {
 
-        NodeIndex node_index;
+        NodeIndex node_index = 0;
         Node *node = nullptr;
 
         const uint32_t depth = m_setting_->tree_depth - level;
@@ -329,6 +334,21 @@ namespace erl::geometry {
         const QuadtreeKey &node_key,
         const NodeIndex node_idx,
         uint32_t level) {
+
+        if (m_setting_->independent_smallest_leaf_vertex && level == 0) {
+            // we need to create 8 independent vertices for this leaf node.
+            // it will not share vertices with parent, but with siblings.
+            QuadtreeKey vertex_key;
+            for (int i = 0; i < 4; ++i) {
+                QuadtreeKey::ComputeVertexKey(i, level, node_key, vertex_key);
+                auto [it, inserted] =
+                    m_key_to_vertex_map_leaf_.try_emplace(vertex_key, m_vertex_keys_.size());
+                if (inserted) { m_vertex_keys_.push_back(vertex_key); }
+                m_vertices_(i, node_idx) = it->second;
+            }
+            return;
+        }
+
         QuadtreeKey vertex_key;
         for (int i = 0; i < 4; ++i) {
             QuadtreeKey::ComputeVertexKey(i, level, node_key, vertex_key);
