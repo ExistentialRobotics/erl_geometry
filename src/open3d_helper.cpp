@@ -194,7 +194,7 @@ namespace erl::geometry {
         Eigen::Vector3d up_axis = Eigen::Vector3d::Zero();
         up_axis[up_axis_idx] = 1.0;
 
-        Eigen::Vector3d score = obb.R_.transpose() * up_axis;
+        Eigen::Vector3d score = (obb.R_.transpose() * up_axis).cwiseAbs();
         long axis_idx = 0;
         if (score[axis_idx] < score[1]) { axis_idx = 1; }
         if (score[axis_idx] < score[2]) { axis_idx = 2; }
