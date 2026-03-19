@@ -20,7 +20,12 @@ BindPrimitives3D(const py::module &m) {
         .def("is_inside", &Primitive3D::IsInside, py::arg("point"));
 
     py::class_<Box, Primitive3D>(m, "Box")
-        .def(py::init<int, Eigen::Vector3d, Eigen::Vector3d, Eigen::Matrix3d>(), py::arg("id"), py::arg("center"), py::arg("half_sizes"), py::arg("rotation"))
+        .def(
+            py::init<int, Eigen::Vector3d, Eigen::Vector3d, Eigen::Matrix3d>(),
+            py::arg("id"),
+            py::arg("center"),
+            py::arg("half_sizes"),
+            py::arg("rotation"))
         .def_property("center", &Box::GetCenter, &Box::SetCenter)
         .def_property_readonly("half_sizes", &Box::GetHalfSizes)
         .def_property("rotation_matrix", &Box::GetRotationMatrix, &Box::SetRotationMatrix)
@@ -28,10 +33,18 @@ BindPrimitives3D(const py::module &m) {
         .def("rotate", &Box::Rotate, py::arg("rotation"));
 
     py::class_<Ellipsoid, Primitive3D>(m, "Ellipsoid")
-        .def(py::init<int, Eigen::Vector3d, Eigen::Vector3d, Eigen::Matrix3d>(), py::arg("id"), py::arg("center"), py::arg("radius"), py::arg("rotation"))
+        .def(
+            py::init<int, Eigen::Vector3d, Eigen::Vector3d, Eigen::Matrix3d>(),
+            py::arg("id"),
+            py::arg("center"),
+            py::arg("radius"),
+            py::arg("rotation"))
         .def_property("center", &Ellipsoid::GetCenter, &Ellipsoid::SetCenter)
         .def_property_readonly("radii", &Ellipsoid::GetRadii)
-        .def_property("rotation_matrix", &Ellipsoid::GetRotationMatrix, &Ellipsoid::SetRotationMatrix)
+        .def_property(
+            "rotation_matrix",
+            &Ellipsoid::GetRotationMatrix,
+            &Ellipsoid::SetRotationMatrix)
         .def("translate", &Ellipsoid::Translate, py::arg("translation"))
         .def("rotate", &Ellipsoid::Rotate, py::arg("rotation"));
 }

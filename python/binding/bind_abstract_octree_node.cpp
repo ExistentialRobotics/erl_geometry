@@ -2,7 +2,7 @@
 #include "erl_geometry/abstract_octree_node.hpp"
 
 void
-BindAbstractOctreeNode(const py::module& m) {
+BindAbstractOctreeNode(const py::module &m) {
     using namespace erl::geometry;
     py::class_<AbstractOctreeNode, py::RawPtrWrapper<AbstractOctreeNode>>(m, "AbstractOctreeNode")
         .def_property_readonly("node_type", &AbstractOctreeNode::GetNodeType)

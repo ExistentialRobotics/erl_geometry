@@ -6,6 +6,10 @@
 void
 BindPyObjectOccupancyOctree(const py::module &m) {
     using namespace erl::geometry;
-    BindOccupancyOctree<PyObjectOccupancyOctreeD, PyObjectOccupancyOctreeNode>(m, "PyObjectOccupancyOctreeD");
-    BindOccupancyOctree<PyObjectOccupancyOctreeF, PyObjectOccupancyOctreeNode>(m, "PyObjectOccupancyOctreeF");
+    BindOccupancyOctree<PyObjectOccupancyOctreeD, PyObjectOccupancyOctreeNode>(
+        m,
+        "PyObjectOccupancyOctreeD");
+    BindOccupancyOctree<PyObjectOccupancyOctreeF, PyObjectOccupancyOctreeNode>(
+        m,
+        "PyObjectOccupancyOctreeF");
 }

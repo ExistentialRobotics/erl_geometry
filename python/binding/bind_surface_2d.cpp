@@ -7,7 +7,12 @@ BindSurface2D(const py::module &m) {
 
     py::class_<Surface2D, std::shared_ptr<Surface2D>>(m, "Surface2D")
         .def(
-            py::init<Eigen::Matrix2Xd, Eigen::Matrix2Xd, Eigen::Matrix2Xi, Eigen::Matrix2Xi, Eigen::VectorXb>(),
+            py::init<
+                Eigen::Matrix2Xd,
+                Eigen::Matrix2Xd,
+                Eigen::Matrix2Xi,
+                Eigen::Matrix2Xi,
+                Eigen::VectorXb>(),
             py::arg("vertices"),
             py::arg("normals"),
             py::arg("lines2vertices"),

@@ -54,8 +54,7 @@ namespace erl::geometry {
         Eigen::Vector2d p1 = {0.0, 0.0};
 
         Line2D(const int id, Eigen::Vector2d p0, Eigen::Vector2d p1)
-            : p0(std::move(p0)),
-              p1(std::move(p1)) {
+            : p0(std::move(p0)), p1(std::move(p1)) {
             this->id = id;
         }
 
@@ -133,8 +132,7 @@ namespace erl::geometry {
         Eigen::Vector2d direction;
 
         Ray2D(const int id, Eigen::Vector2d origin, Eigen::Vector2d direction)
-            : origin(std::move(origin)),
-              direction(std::move(direction)) {
+            : origin(std::move(origin)), direction(std::move(direction)) {
             this->id = id;
         }
 
@@ -268,9 +266,7 @@ namespace erl::geometry {
             Eigen::Vector2d center,
             Eigen::Vector2d half_sizes,
             const double angle)
-            : m_center_(std::move(center)),
-              m_half_sizes_(std::move(half_sizes)),
-              m_angle_(angle) {
+            : m_center_(std::move(center)), m_half_sizes_(std::move(half_sizes)), m_angle_(angle) {
             this->id = id;
             UpdateMatrices();
         }
@@ -403,9 +399,7 @@ namespace erl::geometry {
             const double a,
             const double b,
             const double angle)
-            : m_center_(std::move(center)),
-              m_radii_(a, b),
-              m_angle_(angle) {
+            : m_center_(std::move(center)), m_radii_(a, b), m_angle_(angle) {
             this->id = id;
             UpdateMatrices();
         }

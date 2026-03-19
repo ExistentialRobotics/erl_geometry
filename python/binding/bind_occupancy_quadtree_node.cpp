@@ -5,5 +5,7 @@
 void
 BindOccupancyQuadtreeNode(const py::module &m) {
     using namespace erl::geometry;
-    BindOccupancyQuadtreeNode<OccupancyQuadtreeNode, AbstractQuadtreeNode>(m, "OccupancyQuadtreeNode");
+    BindOccupancyQuadtreeNode<OccupancyQuadtreeNode, AbstractQuadtreeNode>(
+        m,
+        "OccupancyQuadtreeNode");
 }

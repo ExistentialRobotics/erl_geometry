@@ -33,7 +33,10 @@ namespace erl::geometry {
         [[nodiscard]] std::unique_ptr<AbstractQuadtreeNode>
         Create(const uint32_t depth, const int child_index) const override {
             CheckRuntimeType<ColoredOccupancyQuadtreeNode>(this, /*debug_only*/ true);
-            return std::make_unique<ColoredOccupancyQuadtreeNode>(depth, child_index, /*log_odds*/ 0);
+            return std::make_unique<ColoredOccupancyQuadtreeNode>(
+                depth,
+                child_index,
+                /*log_odds*/ 0);
         }
 
         [[nodiscard]] std::unique_ptr<AbstractQuadtreeNode>

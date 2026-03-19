@@ -15,14 +15,18 @@ BindRgbdCamera3DImpl(const py::module &m, const char *name) {
         .def("add_mesh", &T::AddMesh, py::arg("mesh_path"))
         .def(
             "scan",
-            [](const T &self, const Eigen::Matrix3<Dtype> &orientation, const Eigen::Vector3<Dtype> &translation) {
+            [](const T &self,
+               const Eigen::Matrix3<Dtype> &orientation,
+               const Eigen::Vector3<Dtype> &translation) {
                 const auto [rgb, depth] = self.Scan(orientation, translation);
                 py::dict result;
                 result["rgb"] = rgb;
                 result["depth"] = depth;
                 return result;
             })
-        .def_property_readonly("ray_directions_in_frame", [](const T &self) { return py::cast_to_array(self.GetRayDirectionsInFrame()); });
+        .def_property_readonly("ray_directions_in_frame", [](const T &self) {
+            return py::cast_to_array(self.GetRayDirectionsInFrame());
+        });
 }
 
 void

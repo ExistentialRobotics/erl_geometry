@@ -6,6 +6,10 @@
 void
 BindPyObjectOccupancyQuadtree(const py::module &m) {
     using namespace erl::geometry;
-    BindOccupancyQuadtree<PyObjectOccupancyQuadtreeD, PyObjectOccupancyQuadtreeNode>(m, "PyObjectOccupancyQuadtreeD");
-    BindOccupancyQuadtree<PyObjectOccupancyQuadtreeF, PyObjectOccupancyQuadtreeNode>(m, "PyObjectOccupancyQuadtreeF");
+    BindOccupancyQuadtree<PyObjectOccupancyQuadtreeD, PyObjectOccupancyQuadtreeNode>(
+        m,
+        "PyObjectOccupancyQuadtreeD");
+    BindOccupancyQuadtree<PyObjectOccupancyQuadtreeF, PyObjectOccupancyQuadtreeNode>(
+        m,
+        "PyObjectOccupancyQuadtreeF");
 }

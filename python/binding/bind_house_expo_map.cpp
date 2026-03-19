@@ -12,7 +12,9 @@ BindHouseExpoMap(const py::module &m) {
         .def(py::init<const char *, double>(), py::arg("file"), py::arg("wall_thickness"))
         .def_property_readonly("file", &HouseExpoMap::GetFile)
         .def_property_readonly("room_id", &HouseExpoMap::GetRoomId)
-        .def_property_readonly("meter_space", py::overload_cast<>(&HouseExpoMap::GetMeterSpace, py::const_))
+        .def_property_readonly(
+            "meter_space",
+            py::overload_cast<>(&HouseExpoMap::GetMeterSpace, py::const_))
         .def(
             "to_json",
             [](const HouseExpoMap &map) {
@@ -23,8 +25,17 @@ BindHouseExpoMap(const py::module &m) {
         .def(
             "extrude_to_3d",
             [](const HouseExpoMap &map, const double room_height, const std::string &filename) {
-                const std::shared_ptr<open3d::geometry::TriangleMesh> mesh = map.ExtrudeTo3D(room_height);
-                open3d::io::WriteTriangleMesh(filename, *mesh, false, false, true, true, true, false);
+                const std::shared_ptr<open3d::geometry::TriangleMesh> mesh =
+                    map.ExtrudeTo3D(room_height);
+                open3d::io::WriteTriangleMesh(
+                    filename,
+                    *mesh,
+                    false,
+                    false,
+                    true,
+                    true,
+                    true,
+                    false);
             },
             py::arg("room_height"),
             py::arg("filename"));

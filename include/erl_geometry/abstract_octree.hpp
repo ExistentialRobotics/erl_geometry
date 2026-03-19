@@ -30,12 +30,12 @@ namespace erl::geometry {
 
         explicit AbstractOctree(std::shared_ptr<NdTreeSetting> setting);
 
-        AbstractOctree(const AbstractOctree& other) = default;
-        AbstractOctree&
-        operator=(const AbstractOctree& other) = default;
-        AbstractOctree(AbstractOctree&& other) = default;
-        AbstractOctree&
-        operator=(AbstractOctree&& other) = default;
+        AbstractOctree(const AbstractOctree &other) = default;
+        AbstractOctree &
+        operator=(const AbstractOctree &other) = default;
+        AbstractOctree(AbstractOctree &&other) = default;
+        AbstractOctree &
+        operator=(AbstractOctree &&other) = default;
 
         virtual ~AbstractOctree() = default;
 
@@ -52,7 +52,7 @@ namespace erl::geometry {
          * @return A new tree of the same type.
          */
         [[nodiscard]] virtual std::shared_ptr<AbstractOctree>
-        Create(const std::shared_ptr<NdTreeSetting>& setting) const = 0;
+        Create(const std::shared_ptr<NdTreeSetting> &setting) const = 0;
 
         /**
          * Create a new tree of the given type.
@@ -61,14 +61,14 @@ namespace erl::geometry {
          * @return
          */
         static std::shared_ptr<AbstractOctree>
-        CreateTree(const std::string& tree_id, const std::shared_ptr<NdTreeSetting>& setting);
+        CreateTree(const std::string &tree_id, const std::shared_ptr<NdTreeSetting> &setting);
 
         template<typename Derived>
         static std::enable_if_t<std::is_base_of_v<AbstractOctree, Derived>, bool>
-        Register(const std::string& tree_type = "") {
+        Register(const std::string &tree_type = "") {
             return Factory::GetInstance().template Register<Derived>(
                 tree_type,
-                [](const std::shared_ptr<NdTreeSetting>& setting) {
+                [](const std::shared_ptr<NdTreeSetting> &setting) {
                     auto tree_setting =
                         std::dynamic_pointer_cast<typename Derived::Setting>(setting);
                     if (setting == nullptr) {
@@ -98,17 +98,17 @@ namespace erl::geometry {
         ApplySetting() = 0;
 
         [[nodiscard]] bool
-        ReadSetting(std::istream& s) const;
+        ReadSetting(std::istream &s) const;
 
         void
-        WriteSetting(std::ostream& s) const;
+        WriteSetting(std::ostream &s) const;
 
         //-- comparison
         [[nodiscard]] virtual bool
-        operator==(const AbstractOctree& other) const = 0;
+        operator==(const AbstractOctree &other) const = 0;
 
         [[nodiscard]] bool
-        operator!=(const AbstractOctree& other) const;
+        operator!=(const AbstractOctree &other) const;
 
         //-- get tree information
         [[nodiscard]] uint32_t
@@ -133,16 +133,16 @@ namespace erl::geometry {
         GetMetricMin() const;
 
         void
-        GetMetricMin(Vector3& min);
+        GetMetricMin(Vector3 &min);
 
         void
-        GetMetricMin(Vector3& min) const;
+        GetMetricMin(Vector3 &min) const;
 
         virtual void
-        GetMetricMin(Dtype& x, Dtype& y, Dtype& z) = 0;
+        GetMetricMin(Dtype &x, Dtype &y, Dtype &z) = 0;
 
         virtual void
-        GetMetricMin(Dtype& x, Dtype& y, Dtype& z) const = 0;
+        GetMetricMin(Dtype &x, Dtype &y, Dtype &z) const = 0;
 
         Vector3
         GetMetricMax();
@@ -151,16 +151,16 @@ namespace erl::geometry {
         GetMetricMax() const;
 
         void
-        GetMetricMax(Vector3& max);
+        GetMetricMax(Vector3 &max);
 
         void
-        GetMetricMax(Vector3& max) const;
+        GetMetricMax(Vector3 &max) const;
 
         virtual void
-        GetMetricMax(Dtype& x, Dtype& y, Dtype& z) = 0;
+        GetMetricMax(Dtype &x, Dtype &y, Dtype &z) = 0;
 
         virtual void
-        GetMetricMax(Dtype& x, Dtype& y, Dtype& z) const = 0;
+        GetMetricMax(Dtype &x, Dtype &y, Dtype &z) const = 0;
 
         Aabb<Dtype, 3>
         GetMetricAabb();
@@ -175,28 +175,28 @@ namespace erl::geometry {
         GetMetricMinMax() const;
 
         void
-        GetMetricMinMax(Vector3& min, Vector3& max);
+        GetMetricMinMax(Vector3 &min, Vector3 &max);
 
         void
-        GetMetricMinMax(Vector3& min, Vector3& max) const;
+        GetMetricMinMax(Vector3 &min, Vector3 &max) const;
 
         virtual void
         GetMetricMinMax(
-            Dtype& min_x,
-            Dtype& min_y,
-            Dtype& min_z,
-            Dtype& max_x,
-            Dtype& max_y,
-            Dtype& max_z) = 0;
+            Dtype &min_x,
+            Dtype &min_y,
+            Dtype &min_z,
+            Dtype &max_x,
+            Dtype &max_y,
+            Dtype &max_z) = 0;
 
         virtual void
         GetMetricMinMax(
-            Dtype& min_x,
-            Dtype& min_y,
-            Dtype& min_z,
-            Dtype& max_x,
-            Dtype& max_y,
-            Dtype& max_z) const = 0;
+            Dtype &min_x,
+            Dtype &min_y,
+            Dtype &min_z,
+            Dtype &max_x,
+            Dtype &max_y,
+            Dtype &max_z) const = 0;
 
         Vector3
         GetMetricSize();
@@ -205,16 +205,16 @@ namespace erl::geometry {
         GetMetricSize() const;
 
         void
-        GetMetricSize(Vector3& size);
+        GetMetricSize(Vector3 &size);
 
         void
-        GetMetricSize(Vector3& size) const;
+        GetMetricSize(Vector3 &size) const;
 
         virtual void
-        GetMetricSize(Dtype& x, Dtype& y, Dtype& z) = 0;
+        GetMetricSize(Dtype &x, Dtype &y, Dtype &z) = 0;
 
         virtual void
-        GetMetricSize(Dtype& x, Dtype& y, Dtype& z) const = 0;
+        GetMetricSize(Dtype &x, Dtype &y, Dtype &z) const = 0;
 
         [[nodiscard]] virtual Dtype
         GetNodeSize(uint32_t depth) const = 0;
@@ -230,7 +230,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        Write(std::ostream& s) const;
+        Write(std::ostream &s) const;
 
         /**
          * Write all nodes to the output stream (without the file header) for a created tree.
@@ -238,8 +238,8 @@ namespace erl::geometry {
          * @param s
          * @return
          */
-        virtual std::ostream&
-        WriteData(std::ostream& s) const = 0;
+        virtual std::ostream &
+        WriteData(std::ostream &s) const = 0;
 
         /**
          * Generic read function to read an octree from a stream.
@@ -247,23 +247,23 @@ namespace erl::geometry {
          * @return An octree derived from AbstractOctree
          */
         bool
-        Read(std::istream& s);
+        Read(std::istream &s);
 
         /**
          * Read all nodes from the input steam (without the file header) for a created tree.
          */
-        virtual std::istream&
-        ReadData(std::istream& s) = 0;
+        virtual std::istream &
+        ReadData(std::istream &s) = 0;
 
-        virtual std::ostream&
-        Print(std::ostream& os) const = 0;
+        virtual std::ostream &
+        Print(std::ostream &os) const = 0;
 
         //-- search node
-        [[nodiscard]] virtual const AbstractOctreeNode*
+        [[nodiscard]] virtual const AbstractOctreeNode *
         SearchNode(Dtype x, Dtype y, Dtype z, uint32_t max_depth) const = 0;
 
-        [[nodiscard]] virtual const AbstractOctreeNode*
-        SearchNode(const OctreeKey& key, uint32_t max_depth) const = 0;
+        [[nodiscard]] virtual const AbstractOctreeNode *
+        SearchNode(const OctreeKey &key, uint32_t max_depth) const = 0;
 
         //-- iterators
         struct OctreeNodeIterator {
@@ -285,9 +285,9 @@ namespace erl::geometry {
             Next() = 0;
             [[nodiscard]] virtual bool
             IsValid() const = 0;
-            [[nodiscard]] virtual const AbstractOctreeNode*
+            [[nodiscard]] virtual const AbstractOctreeNode *
             GetNode() const = 0;
-            [[nodiscard]] virtual const OctreeKey&
+            [[nodiscard]] virtual const OctreeKey &
             GetKey() const = 0;
             [[nodiscard]] virtual OctreeKey
             GetIndexKey() const = 0;
@@ -297,7 +297,7 @@ namespace erl::geometry {
         GetTreeIterator(uint32_t max_depth) const = 0;
 
         [[nodiscard]] virtual std::shared_ptr<OctreeNodeIterator>
-        GetLeafInAabbIterator(const Aabb<Dtype, 3>& aabb, uint32_t max_depth) const = 0;
+        GetLeafInAabbIterator(const Aabb<Dtype, 3> &aabb, uint32_t max_depth) const = 0;
     };
 
     extern template class AbstractOctree<double>;

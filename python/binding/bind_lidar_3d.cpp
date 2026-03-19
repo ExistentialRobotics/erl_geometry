@@ -8,7 +8,10 @@ BindLidar3DImpl(const py::module &m, const char *name) {
     using T = Lidar3D<Dtype>;
 
     auto py_lidar = py::class_<T, RangeSensor3D<Dtype>, std::shared_ptr<T>>(m, name);
-    py::class_<typename T::Setting, erl::common::YamlableBase, std::shared_ptr<typename T::Setting>>(py_lidar, "Setting")
+    py::class_<
+        typename T::Setting,
+        erl::common::YamlableBase,
+        std::shared_ptr<typename T::Setting>>(py_lidar, "Setting")
         .def(py::init<>())
         .def_readwrite("azimuth_min", &T::Setting::azimuth_min)
         .def_readwrite("azimuth_max", &T::Setting::azimuth_max)

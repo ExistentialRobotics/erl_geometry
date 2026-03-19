@@ -42,8 +42,7 @@ namespace erl::geometry {
             const int id,
             const Eigen::Vector3d &center,
             const Eigen::Vector3d &half_sizes)
-            : Primitive3D(),
-              Aabb3Dd(center, half_sizes) {
+            : Primitive3D(), Aabb3Dd(center, half_sizes) {
             this->id = id;
         }
 

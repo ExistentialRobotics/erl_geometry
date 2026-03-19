@@ -5,8 +5,13 @@ void
 BindOpen3dHelper(py::module &m) {
     m.def(
         "create_ellipsoid_mesh",
-        [](const double a, const double b, const double c, const long num_azimuths, const long num_elevations) {
-            const auto mesh = erl::geometry::CreateEllipsoidMesh(a, b, c, num_azimuths, num_elevations);
+        [](const double a,
+           const double b,
+           const double c,
+           const long num_azimuths,
+           const long num_elevations) {
+            const auto mesh =
+                erl::geometry::CreateEllipsoidMesh(a, b, c, num_azimuths, num_elevations);
             return py::make_tuple(mesh->vertices_, mesh->triangles_);
         },
         py::arg("a"),

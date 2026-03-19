@@ -13,7 +13,11 @@ namespace erl::geometry {
         const double noise_std)
         : m_map_(map_file, wall_thickness),
           m_lidar_(lidar_setting, m_map_.GetMeterSpace()),
-          m_trajectory_(common::LoadEigenMatrixFromTextFile<double>(traj_file, common::EigenTextFormat::kCsvFmt, true)),
+          m_trajectory_(
+              common::LoadEigenMatrixFromTextFile<double>(
+                  traj_file,
+                  common::EigenTextFormat::kCsvFmt,
+                  true)),
           m_add_noise_(add_noise),
           m_noise_std_(noise_std) {}
 
@@ -24,7 +28,9 @@ namespace erl::geometry {
         Eigen::Matrix2d rotation = Eigen::Rotation2Dd(data[2]).toRotationMatrix();
         Eigen::VectorXd ranges = m_lidar_.Scan(rotation, translation, true);
         Eigen::VectorXd angles = m_lidar_.GetAngles();
-        if (m_add_noise_) { ranges += common::GenerateGaussianNoise(ranges.size(), 0.0, m_noise_std_); }
+        if (m_add_noise_) {
+            ranges += common::GenerateGaussianNoise(ranges.size(), 0.0, m_noise_std_);
+        }
         return {std::move(rotation), std::move(translation), std::move(angles), std::move(ranges)};
     }
 

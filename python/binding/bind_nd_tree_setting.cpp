@@ -3,7 +3,7 @@
 #include "erl_geometry/nd_tree_setting.hpp"
 
 void
-BindNdTreeSetting(const py::module& m) {
+BindNdTreeSetting(const py::module &m) {
     using namespace erl::common;
     using namespace erl::geometry;
     py::class_<NdTreeSetting, YamlableBase, std::shared_ptr<NdTreeSetting>>(m, "NdTreeSetting")

@@ -3,7 +3,7 @@
 #include "erl_geometry/pybind11_occupancy_octree.hpp"
 
 void
-BindOccupancyOctreeNode(const py::module& m) {
+BindOccupancyOctreeNode(const py::module &m) {
     using namespace erl::geometry;
     BindOccupancyOctreeNode<OccupancyOctreeNode, AbstractOctreeNode>(m, "OccupancyOctreeNode");
 }

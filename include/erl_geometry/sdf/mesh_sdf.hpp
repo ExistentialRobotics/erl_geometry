@@ -40,9 +40,9 @@ namespace erl::geometry {
         // the SQUARED shortest 3D point-to-line distance
         T
         dist_point2line(
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& p,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& a,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& b) {
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &p,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &a,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &b) {
             Eigen::Matrix<T, 1, 3> ap = p - a, ab = b - a;
             return (ap - (ap.dot(ab) / ab.squaredNorm()) * ab).squaredNorm();
         }
@@ -51,9 +51,9 @@ namespace erl::geometry {
         template<class T>
         T
         dist_point2lineseg(
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& p,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& a,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& b) {
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &p,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &a,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &b) {
             Eigen::Matrix<T, 1, 3> ap = p - a, ab = b - a;
             T t = ap.dot(ab) / ab.squaredNorm();
             t = std::max(T(0.0), std::min(T(1.0), t));
@@ -63,9 +63,9 @@ namespace erl::geometry {
         template<class T>
         Eigen::Matrix<T, 1, 3, Eigen::RowMajor>
         calc_normal(
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& a,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& b,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& c) {
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &a,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &b,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &c) {
             return (b - a).cross(c - a);
         }
 
@@ -76,11 +76,11 @@ namespace erl::geometry {
         // where normal is a normalized vector, area is magnitude
         Eigen::Matrix<T, 1, 3, Eigen::RowMajor>
         bary(
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& p,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& a,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& b,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& c,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& normal,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &p,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &a,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &b,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &c,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &normal,
             float area_abc) {
             float area_pbc = normal.dot((b - p).cross(c - p));
             float area_pca = normal.dot((c - p).cross(a - p));
@@ -99,11 +99,11 @@ namespace erl::geometry {
         // where normal is normalized vector, area is magnitude
         T
         dist_point2tri(
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& p,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& a,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& b,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& c,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>>& normal,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &p,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &a,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &b,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &c,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 3, Eigen::RowMajor>> &normal,
             float area) {
             const Eigen::Matrix<T, 1, 3> uvw = bary<T>(p, a, b, c, normal, area);
             if (uvw[0] < 0) { return dist_point2lineseg<T>(p, b, c); }
@@ -115,10 +115,10 @@ namespace erl::geometry {
         template<class T>
         Eigen::Matrix<T, 1, 3, Eigen::RowMajor>
         bary2d(
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>>& p,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>>& a,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>>& b,
-            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>>& c) {
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>> &p,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>> &a,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>> &b,
+            const Eigen::Ref<const Eigen::Matrix<T, 1, 2, Eigen::RowMajor>> &c) {
             Eigen::Matrix<T, 1, 2, Eigen::RowMajor> v0 = b - a, v1 = c - a, v2 = p - a;
             Eigen::Matrix<T, 1, 3> result;
             const float invden = 1.f / (v0.x() * v1.y() - v1.x() * v0.y());
@@ -160,16 +160,16 @@ namespace erl::geometry {
         // SDF/containment computation is robust to mesh self-intersections and
         // face winding but is slower.
         MeshSdf(
-            const Eigen::Ref<const Points>& verts,
-            const Eigen::Ref<const Triangles>& faces,
+            const Eigen::Ref<const Points> &verts,
+            const Eigen::Ref<const Triangles> &faces,
             bool use_open3d = true,
             bool robust = true,
             bool copy = false);
 
         template<typename T>
         MeshSdf(
-            const std::vector<Eigen::Vector3<T>>& verts,
-            const std::vector<Eigen::Vector3i>& faces,
+            const std::vector<Eigen::Vector3<T>> &verts,
+            const std::vector<Eigen::Vector3i> &faces,
             const bool use_open3d = true,
             const bool robust = true)
             : MeshSdf(
@@ -206,14 +206,14 @@ namespace erl::geometry {
         // mesh may be flipped.
         Vector
         operator()(
-            const Eigen::Ref<const Points>& points,
+            const Eigen::Ref<const Points> &points,
             bool trunc_aabb = false,
             std::size_t n_threads = std::thread::hardware_concurrency()) const;
 
         template<typename T>
         Eigen::VectorX<T>
         operator()(
-            const Eigen::Matrix3X<T>& points,
+            const Eigen::Matrix3X<T> &points,
             const bool trunc_aabb = false,
             const std::size_t n_threads = std::thread::hardware_concurrency()) const {
             using PointsT = Eigen::Matrix<T, Eigen::Dynamic, 3, Eigen::RowMajor>;
@@ -230,7 +230,7 @@ namespace erl::geometry {
         // input verts)
         [[nodiscard]] Eigen::VectorXi
         NearestNeighbor(
-            const Eigen::Ref<const Points>& points,
+            const Eigen::Ref<const Points> &points,
             std::size_t n_threads = std::thread::hardware_concurrency()) const;
 
         // Return 1 for each point inside/on the surface of the mesh and 0 for outside.
@@ -242,7 +242,7 @@ namespace erl::geometry {
         // has self-intersections.
         [[nodiscard]] Eigen::Matrix<bool, Eigen::Dynamic, 1>
         Contains(
-            const Eigen::Ref<const Points>& points,
+            const Eigen::Ref<const Points> &points,
             std::size_t n_threads = std::thread::hardware_concurrency()) const;
 
         // Call if vertex positions have been updated to rebuild the KD tree
@@ -258,7 +258,7 @@ namespace erl::geometry {
 
         /*** DATA ACCESSORS ***/
         // Get adjacent faces of point at verts[point_id]
-        [[nodiscard]] const std::vector<int>&
+        [[nodiscard]] const std::vector<int> &
         GetAdjFaces(int point_id) const;
 
         // Get the total surface area of mesh
@@ -266,12 +266,12 @@ namespace erl::geometry {
         GetSurfaceArea() const;
 
         // Get a vector of face areas, shape (num_faces)
-        [[nodiscard]] const Vector&
+        [[nodiscard]] const Vector &
         GetFaceAreas() const;
 
         // Get matrix of face normals, shape (num_faces, 3).
         // Normal of face i (from faces passed to constructor) is in row i
-        [[nodiscard]] const Points&
+        [[nodiscard]] const Points &
         GetFaceNormals() const;
 
         // Get AABB of entire mesh, shape (6).

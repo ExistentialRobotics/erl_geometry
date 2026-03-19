@@ -6,7 +6,7 @@
 
 template<class Tree>
 void
-BindOccupancyOctreeDrawer(const py::handle& m, const char* name) {
+BindOccupancyOctreeDrawer(const py::handle &m, const char *name) {
     using namespace erl::common;
     using namespace erl::geometry;
     using Drawer = OccupancyOctreeDrawer<Tree>;
@@ -22,24 +22,24 @@ BindOccupancyOctreeDrawer(const py::handle& m, const char* name) {
         .def("set_draw_leaf_callback", &Drawer::SetDrawLeafCallback, py::arg("callback"))
         .def(
             "draw_tree",
-            [](const Drawer& self) {
+            [](const Drawer &self) {
                 std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries;
                 self.DrawTree(geometries);
                 return geometries;
             })
         .def(
             "draw_leaves",
-            [](const Drawer& self) {
+            [](const Drawer &self) {
                 std::vector<std::shared_ptr<open3d::geometry::Geometry>> geometries;
                 self.DrawLeaves(geometries);
                 return geometries;
             })
         .def(
             "draw_tree",
-            py::overload_cast<const std::string&>(&AbstractOctreeDrawer::DrawTree, py::const_),
+            py::overload_cast<const std::string &>(&AbstractOctreeDrawer::DrawTree, py::const_),
             py::arg("filename"))
         .def(
             "draw_leaves",
-            py::overload_cast<const std::string&>(&AbstractOctreeDrawer::DrawLeaves, py::const_),
+            py::overload_cast<const std::string &>(&AbstractOctreeDrawer::DrawLeaves, py::const_),
             py::arg("filename"));
 }

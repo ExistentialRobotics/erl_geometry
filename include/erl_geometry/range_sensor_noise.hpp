@@ -1,9 +1,10 @@
 #pragma once
 
 #include "erl_common/random.hpp"
+
+#include <random>
 #include <thread>
 #include <vector>
-#include <random>
 
 namespace erl::geometry {
 

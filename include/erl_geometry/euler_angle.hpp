@@ -42,7 +42,7 @@ namespace erl::geometry {
     };
 
     EulerAngleOrder
-    GetEulerAngleOrder(const std::string& euler_order);
+    GetEulerAngleOrder(const std::string &euler_order);
 
     template<typename Dtype>
     Eigen::Matrix3<Dtype>

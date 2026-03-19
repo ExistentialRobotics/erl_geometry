@@ -9,7 +9,7 @@
 
 template<class Node, class NodeParent = void>
 std::enable_if_t<std::is_same_v<NodeParent, void>, py::class_<Node, py::RawPtrWrapper<Node>>>
-BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
+BindOccupancyQuadtreeNode(const py::module &m, const char *node_name) {
     py::class_<Node, py::RawPtrWrapper<Node>> node(m, node_name);
     node.def(
         "get_child",
@@ -20,7 +20,7 @@ BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
 
 template<class Node, class NodeParent>
 std::enable_if_t<!std::is_void_v<NodeParent>, py::class_<Node, NodeParent, py::RawPtrWrapper<Node>>>
-BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
+BindOccupancyQuadtreeNode(const py::module &m, const char *node_name) {
     py::class_<Node, NodeParent, py::RawPtrWrapper<Node>> node(m, node_name);
     node.def(
             "get_child",
@@ -38,12 +38,12 @@ BindOccupancyQuadtreeNode(const py::module& m, const char* node_name) {
 template<class Quadtree, class Node>
 auto
 BindOccupancyQuadtree(
-    const py::module& m,
-    const char* tree_name,
+    const py::module &m,
+    const char *tree_name,
     std::function<void(py::class_<
                        Quadtree,
                        erl::geometry::AbstractOccupancyQuadtree<typename Quadtree::DataType>,
-                       std::shared_ptr<Quadtree>>&)> additional_bindings = nullptr) {
+                       std::shared_ptr<Quadtree>> &)> additional_bindings = nullptr) {
 
     using namespace erl::common;
     using namespace erl::geometry;
@@ -87,13 +87,13 @@ BindOccupancyQuadtree(
     // OccupancyQuadtreeBase methods, except iterators
     tree.def(py::init<>())
         .def(
-            py::init<>([](const std::shared_ptr<typename Quadtree::Setting>& setting) {
+            py::init<>([](const std::shared_ptr<typename Quadtree::Setting> &setting) {
                 return std::make_shared<Quadtree>(setting);
             }),
             py::arg("setting"))
         .def(
             py::init<>(
-                [](const std::string& filename) { return std::make_shared<Quadtree>(filename); }),
+                [](const std::string &filename) { return std::make_shared<Quadtree>(filename); }),
             py::arg("filename"))
         .def_property_readonly(
             "setting",
@@ -132,7 +132,7 @@ BindOccupancyQuadtree(
             py::arg("lazy_eval"))
         .def(
             "sample_positions",
-            [](const Quadtree& self, std::size_t num_positions) {
+            [](const Quadtree &self, std::size_t num_positions) {
                 std::vector<Vector2> positions;
                 self.SamplePositions(num_positions, positions);
                 return positions;
@@ -140,17 +140,17 @@ BindOccupancyQuadtree(
             py::arg("num_positions"))
         .def(
             "cast_rays",
-            [](const Quadtree& self,
-               const Eigen::Ref<const Vector2>& position,
-               const Eigen::Ref<const Matrix2>& rotation,
-               const Eigen::Ref<const VectorX>& angles,
+            [](const Quadtree &self,
+               const Eigen::Ref<const Vector2> &position,
+               const Eigen::Ref<const Matrix2> &rotation,
+               const Eigen::Ref<const VectorX> &angles,
                bool ignore_unknown,
                Dtype max_range,
                bool prune_rays,
                bool parallel) -> py::dict {
                 std::vector<long> hit_ray_indices;
                 std::vector<Vector2> hit_positions;
-                std::vector<const Node*> hit_nodes;
+                std::vector<const Node *> hit_nodes;
                 {
                     py::gil_scoped_release release;
                     self.CastRays(
@@ -181,16 +181,16 @@ BindOccupancyQuadtree(
             py::arg("parallel"))
         .def(
             "cast_rays",
-            [](const Quadtree& self,
-               const Eigen::Ref<const Matrix2X>& positions,
-               const Eigen::Ref<const Matrix2X>& directions,
+            [](const Quadtree &self,
+               const Eigen::Ref<const Matrix2X> &positions,
+               const Eigen::Ref<const Matrix2X> &directions,
                bool ignore_unknown,
                Dtype max_range,
                bool prune_rays,
                bool parallel) -> py::dict {
                 std::vector<long> hit_ray_indices;
                 std::vector<Vector2> hit_positions;
-                std::vector<const Node*> hit_nodes;
+                std::vector<const Node *> hit_nodes;
                 {
                     py::gil_scoped_release release;
                     self.CastRays(
@@ -229,7 +229,7 @@ BindOccupancyQuadtree(
             py::arg("max_node_depths") = py::array_t<int>())
         .def(
             "cast_ray",
-            [](const Quadtree& self,
+            [](const Quadtree &self,
                Dtype px,
                Dtype py,
                Dtype vx,
@@ -237,7 +237,7 @@ BindOccupancyQuadtree(
                bool ignore_unknown,
                Dtype max_range) {
                 Dtype ex, ey;
-                const Node* hit_node =
+                const Node *hit_node =
                     self.CastRay(px, py, vx, vy, ignore_unknown, max_range, ex, ey);
                 py::dict result;
                 result["hit_node"] = hit_node;
@@ -260,7 +260,7 @@ BindOccupancyQuadtree(
             py::arg("lazy_eval"))
         .def(
             "update_node",
-            py::overload_cast<const QuadtreeKey&, bool, bool>(&Quadtree::UpdateNode),
+            py::overload_cast<const QuadtreeKey &, bool, bool>(&Quadtree::UpdateNode),
             py::arg("node_key"),
             py::arg("occupied"),
             py::arg("lazy_eval"))
@@ -273,7 +273,7 @@ BindOccupancyQuadtree(
             py::arg("lazy_eval"))
         .def(
             "update_node",
-            py::overload_cast<const QuadtreeKey&, float, bool>(&Quadtree::UpdateNode),
+            py::overload_cast<const QuadtreeKey &, float, bool>(&Quadtree::UpdateNode),
             py::arg("node_key"),
             py::arg("log_odds_delta"),
             py::arg("lazy_eval"))
@@ -287,7 +287,7 @@ BindOccupancyQuadtree(
 
     tree.def(
         "visualize",
-        [](std::shared_ptr<Quadtree>& self,
+        [](std::shared_ptr<Quadtree> &self,
            const bool leaf_only,
            std::optional<Eigen::Vector2f> area_min,
            std::optional<Eigen::Vector2f> area_max,

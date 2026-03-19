@@ -46,7 +46,7 @@ namespace erl::geometry {
         template<std::size_t I, typename T>
         struct Nth {
             static std::tuple_element_t<I, T>
-            Get(const T& t) {
+            Get(const T &t) {
                 return std::get<I>(t);
             }
         };
@@ -55,7 +55,7 @@ namespace erl::geometry {
         template<>
         struct Nth<0, Eigen::Vector2d> {
             static auto
-            Get(const Eigen::Vector2d& t) {
+            Get(const Eigen::Vector2d &t) {
                 return t[0];
             }
         };
@@ -63,7 +63,7 @@ namespace erl::geometry {
         template<>
         struct Nth<1, Eigen::Vector2d> {
             static auto
-            Get(const Eigen::Vector2d& t) {
+            Get(const Eigen::Vector2d &t) {
                 return t[1];
             }
         };
@@ -89,21 +89,23 @@ namespace erl::geometry {
             ~ObjectPool() { Clear(); }
 
             template<typename... Args>
-            T*
-            Construct(Args&&... args) {
+            T *
+            Construct(Args &&...args) {
                 if (m_current_index_ >= m_block_size_) {
                     m_current_block_ = AllocTraits::allocate(m_alloc_, m_block_size_);
                     m_allocations_.emplace_back(m_current_block_);
                     m_current_index_ = 0;
                 }
-                T* object = &m_current_block_[m_current_index_++];
+                T *object = &m_current_block_[m_current_index_++];
                 AllocTraits::construct(m_alloc_, object, std::forward<Args>(args)...);
                 return object;
             }
 
             void
             Reset(const std::size_t new_block_size) {
-                for (auto allocation: m_allocations_) { AllocTraits::deallocate(m_alloc_, allocation, m_block_size_); }
+                for (auto allocation: m_allocations_) {
+                    AllocTraits::deallocate(m_alloc_, allocation, m_block_size_);
+                }
                 m_allocations_.clear();
                 m_block_size_ = std::max<std::size_t>(1, new_block_size);
                 m_current_block_ = nullptr;
@@ -116,10 +118,10 @@ namespace erl::geometry {
             }
 
         private:
-            T* m_current_block_ = nullptr;
+            T *m_current_block_ = nullptr;
             std::size_t m_current_index_ = 1;
             std::size_t m_block_size_ = 1;
-            std::vector<T*> m_allocations_;
+            std::vector<T *> m_allocations_;
             Alloc m_alloc_;
             using AllocTraits = std::allocator_traits<Alloc>;
         };
@@ -130,30 +132,28 @@ namespace erl::geometry {
             const double y;
 
             // previous and next vertice nodes in a polygon ring
-            Node* prev = nullptr;
-            Node* next = nullptr;
+            Node *prev = nullptr;
+            Node *next = nullptr;
 
             // z-order curve value
             int32_t z = 0;
 
             // previous and next nodes in z-order
-            Node* prev_z = nullptr;
-            Node* next_z = nullptr;
+            Node *prev_z = nullptr;
+            Node *next_z = nullptr;
 
             // indicates whether this is a steiner point
             bool steiner = false;
 
             Node(N index, const double x, const double y)
-                : i(index),
-                  x(x),
-                  y(y) {}
+                : i(index), x(x), y(y) {}
 
-            Node(const Node&) = delete;
-            Node&
-            operator=(const Node&) = delete;
-            Node(Node&&) = delete;
-            Node&
-            operator=(Node&&) = delete;
+            Node(const Node &) = delete;
+            Node &
+            operator=(const Node &) = delete;
+            Node(Node &&) = delete;
+            Node &
+            operator=(Node &&) = delete;
         };
 
         ObjectPool<Node> m_nodes_;
@@ -164,23 +164,23 @@ namespace erl::geometry {
 
         template<typename Polygon>
         void
-        operator()(const Polygon& points);
+        operator()(const Polygon &points);
 
     private:
         // create a circular doubly linked list from polygon points in the specified winding order
         template<typename Ring>
-        Node*
-        LinkedList(const Ring& points, const bool clockwise) {
+        Node *
+        LinkedList(const Ring &points, const bool clockwise) {
             using Point = typename Ring::value_type;
             double sum = 0;
             const std::size_t len = points.size();
             std::size_t i, j;
-            Node* last = nullptr;
+            Node *last = nullptr;
 
             // calculate original winding order of a polygon ring
             for (i = 0, j = len > 0 ? len - 1 : 0; i < len; j = i++) {
-                const auto& p1 = points[i];
-                const auto& p2 = points[j];
+                const auto &p1 = points[i];
+                const auto &p2 = points[j];
                 const double p20 = earcut_util::Nth<0, Point>::Get(p2);
                 const double p10 = earcut_util::Nth<0, Point>::Get(p1);
                 const double p11 = earcut_util::Nth<1, Point>::Get(p1);
@@ -206,11 +206,11 @@ namespace erl::geometry {
         }
 
         // eliminate colinear or duplicate points
-        Node*
-        FilterPoints(Node* start, Node* end = nullptr) {
+        Node *
+        FilterPoints(Node *start, Node *end = nullptr) {
             if (end == nullptr) { end = start; }
 
-            Node* p = start;
+            Node *p = start;
             bool again;
             do {
                 again = false;
@@ -232,17 +232,17 @@ namespace erl::geometry {
 
         // main ear slicing loop which triangulates a polygon (given as a linked list)
         void
-        EarcutLinked(Node* ear, const int pass = 0) {
+        EarcutLinked(Node *ear, const int pass = 0) {
             if (ear == nullptr) { return; }
 
             // interlink polygon nodes in z-order
             if (pass == 0 && m_hashing_) { IndexCurve(ear); }
 
-            Node* stop = ear;
+            Node *stop = ear;
             // iterate through ears, slicing them one by one
             while (ear->prev != ear->next) {
-                Node* prev = ear->prev;
-                Node* next = ear->next;
+                Node *prev = ear->prev;
+                Node *next = ear->next;
 
                 if (m_hashing_ ? IsEarHashed(ear) : IsEar(ear)) {
                     // cut off the triangle
@@ -271,7 +271,8 @@ namespace erl::geometry {
                     // if this didn't work, try curing all small self-intersections locally
                     else if (pass == 1) {
                         ear = CureLocalIntersections(FilterPoints(ear));
-                        EarcutLinked(ear, 2);  // as a last resort, try splitting the remaining polygon into two
+                        // as a last resort, try splitting the remaining polygon into two
+                        EarcutLinked(ear, 2);
                     } else if (pass == 2) {
                         SplitEarcut(ear);
                     }
@@ -283,18 +284,21 @@ namespace erl::geometry {
 
         // check whether a polygon node forms a valid ear with adjacent nodes
         bool
-        IsEar(Node* ear) {
-            const Node* a = ear->prev;
-            const Node* b = ear;
-            const Node* c = ear->next;
+        IsEar(Node *ear) {
+            const Node *a = ear->prev;
+            const Node *b = ear;
+            const Node *c = ear->next;
 
             if (Area(a, b, c) >= 0) { return false; }  // reflex, can't be an ear
 
             // now make sure we don't have other points inside the potential ear
-            Node* p = ear->next->next;
+            Node *p = ear->next->next;
 
             while (p != ear->prev) {
-                if (PointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) && Area(p->prev, p, p->next) >= 0) { return false; }
+                if (PointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) &&
+                    Area(p->prev, p, p->next) >= 0) {
+                    return false;
+                }
                 p = p->next;
             }
 
@@ -302,10 +306,10 @@ namespace erl::geometry {
         }
 
         bool
-        IsEarHashed(Node* ear) {
-            const Node* a = ear->prev;
-            const Node* b = ear;
-            const Node* c = ear->next;
+        IsEarHashed(Node *ear) {
+            const Node *a = ear->prev;
+            const Node *b = ear;
+            const Node *c = ear->next;
 
             if (Area(a, b, c) >= 0) { return false; }  // reflex, can't be an ear
 
@@ -320,10 +324,12 @@ namespace erl::geometry {
             const int32_t max_z = ZOrder(max_tx, max_ty);
 
             // first look for points inside the triangle in increasing z-order
-            Node* p = ear->next_z;
+            Node *p = ear->next_z;
 
             while (p && p->z <= max_z) {
-                if (p != ear->prev && p != ear->next && PointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) && Area(p->prev, p, p->next) >= 0) {
+                if (p != ear->prev && p != ear->next &&
+                    PointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) &&
+                    Area(p->prev, p, p->next) >= 0) {
                     return false;
                 }
                 p = p->next_z;
@@ -333,7 +339,9 @@ namespace erl::geometry {
             p = ear->prev_z;
 
             while (p && p->z >= min_z) {
-                if (p != ear->prev && p != ear->next && PointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) && Area(p->prev, p, p->next) >= 0) {
+                if (p != ear->prev && p != ear->next &&
+                    PointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) &&
+                    Area(p->prev, p, p->next) >= 0) {
                     return false;
                 }
                 p = p->prev_z;
@@ -343,15 +351,16 @@ namespace erl::geometry {
         }
 
         // go through all polygon nodes and cure small local self-intersections
-        Node*
-        CureLocalIntersections(Node* start) {
-            Node* p = start;
+        Node *
+        CureLocalIntersections(Node *start) {
+            Node *p = start;
             do {
-                Node* a = p->prev;
-                Node* b = p->next->next;
+                Node *a = p->prev;
+                Node *b = p->next->next;
 
                 // a self-intersection where edge (v[i-1],v[i]) intersects (v[i+1],v[i+2])
-                if (!Equals(a, b) && Intersects(a, p, p->next, b) && LocallyInside(a, b) && LocallyInside(b, a)) {
+                if (!Equals(a, b) && Intersects(a, p, p->next, b) && LocallyInside(a, b) &&
+                    LocallyInside(b, a)) {
                     indices.emplace_back(a->i);
                     indices.emplace_back(p->i);
                     indices.emplace_back(b->i);
@@ -370,15 +379,15 @@ namespace erl::geometry {
 
         // try splitting polygon into two and triangulate them independently
         void
-        SplitEarcut(Node* start) {
+        SplitEarcut(Node *start) {
             // look for a valid diagonal that divides the polygon into two
-            Node* a = start;
+            Node *a = start;
             do {
-                Node* b = a->next->next;
+                Node *b = a->next->next;
                 while (b != a->prev) {
                     if (a->i != b->i && IsValidDiagonal(a, b)) {
                         // split the polygon in two by the diagonal
-                        Node* c = SplitPolygon(a, b);
+                        Node *c = SplitPolygon(a, b);
 
                         // filter colinear points around the cuts
                         a = FilterPoints(a, a->next);
@@ -397,33 +406,37 @@ namespace erl::geometry {
 
         // link every hole into the outer loop, producing a single-ring polygon without holes
         template<typename Polygon>
-        Node*
-        EliminateHoles(const Polygon& points, Node* outer_node) {
+        Node *
+        EliminateHoles(const Polygon &points, Node *outer_node) {
             const size_t len = points.size();
 
-            std::vector<Node*> queue;
+            std::vector<Node *> queue;
             for (size_t i = 1; i < len; i++) {
-                Node* list = LinkedList(points[i], false);
+                Node *list = LinkedList(points[i], false);
                 if (list) {
                     if (list == list->next) list->steiner = true;
                     queue.push_back(GetLeftmost(list));
                 }
             }
-            std::sort(queue.begin(), queue.end(), [](const Node* a, const Node* b) { return a->x < b->x; });
+            std::sort(queue.begin(), queue.end(), [](const Node *a, const Node *b) {
+                return a->x < b->x;
+            });
 
             // process holes from left to right
-            for (size_t i = 0; i < queue.size(); i++) { outer_node = EliminateHole(queue[i], outer_node); }
+            for (size_t i = 0; i < queue.size(); i++) {
+                outer_node = EliminateHole(queue[i], outer_node);
+            }
 
             return outer_node;
         }
 
         // find a bridge between vertices that connects hole with an outer ring and and link it
-        Node*
-        EliminateHole(Node* hole, Node* outer_node) {
-            Node* bridge = FindHoleBridge(hole, outer_node);
+        Node *
+        EliminateHole(Node *hole, Node *outer_node) {
+            Node *bridge = FindHoleBridge(hole, outer_node);
             if (!bridge) { return outer_node; }
 
-            Node* bridge_reverse = SplitPolygon(bridge, hole);
+            Node *bridge_reverse = SplitPolygon(bridge, hole);
 
             // filter collinear points around the cuts
             FilterPoints(bridge_reverse, bridge_reverse->next);
@@ -433,22 +446,25 @@ namespace erl::geometry {
         }
 
         // David Eberly's algorithm for finding a bridge between hole and outer polygon
-        Node*
-        FindHoleBridge(const Node* hole, Node* outer_node) {
-            Node* p = outer_node;
+        Node *
+        FindHoleBridge(const Node *hole, Node *outer_node) {
+            Node *p = outer_node;
             double hx = hole->x;
             double hy = hole->y;
             double qx = -std::numeric_limits<double>::infinity();
-            Node* m = nullptr;
+            Node *m = nullptr;
 
             // find a segment intersected by a ray from the hole's leftmost Vertex to the left;
             // segment's endpoint with lesser x will be potential connection Vertex
             do {
                 if (hy <= p->y && hy >= p->next->y && p->next->y != p->y) {
-                    if (const double x = p->x + (hy - p->y) * (p->next->x - p->x) / (p->next->y - p->y); x <= hx && x > qx) {
+                    if (const double x =
+                            p->x + (hy - p->y) * (p->next->x - p->x) / (p->next->y - p->y);
+                        x <= hx && x > qx) {
                         qx = x;
                         m = p->x < p->next->x ? p : p->next;
-                        if (x == hx) return m;  // hole touches outer segment; pick leftmost endpoint
+                        if (x == hx)
+                            return m;  // hole touches outer segment; pick leftmost endpoint
                     }
                 }
                 p = p->next;
@@ -456,11 +472,11 @@ namespace erl::geometry {
 
             if (!m) { return nullptr; }
 
-            // look for points inside the triangle of hole Vertex, segment intersection and endpoint;
-            // if there are no points found, we have a valid connection;
-            // otherwise choose the Vertex of the minimum angle with the ray as connection Vertex
+            // look for points inside the triangle of hole Vertex, segment intersection and
+            // endpoint; if there are no points found, we have a valid connection; otherwise choose
+            // the Vertex of the minimum angle with the ray as connection Vertex
 
-            const Node* stop = m;
+            const Node *stop = m;
             double tan_min = std::numeric_limits<double>::infinity();
 
             p = m;
@@ -468,10 +484,21 @@ namespace erl::geometry {
             const double my = m->y;
 
             do {
-                if (hx >= p->x && p->x >= mx && hx != p->x && PointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p->x, p->y)) {
+                if (hx >= p->x && p->x >= mx && hx != p->x &&
+                    PointInTriangle(
+                        hy < my ? hx : qx,
+                        hy,
+                        mx,
+                        my,
+                        hy < my ? qx : hx,
+                        hy,
+                        p->x,
+                        p->y)) {
 
                     if (const double tan_cur = std::abs(hy - p->y) / (hx - p->x);
-                        LocallyInside(p, hole) && (tan_cur < tan_min || (tan_cur == tan_min && (p->x > m->x || SectorContainsSector(m, p))))) {
+                        LocallyInside(p, hole) &&
+                        (tan_cur < tan_min ||
+                         (tan_cur == tan_min && (p->x > m->x || SectorContainsSector(m, p))))) {
                         m = p;
                         tan_min = tan_cur;
                     }
@@ -485,15 +512,15 @@ namespace erl::geometry {
 
         // whether sector in vertex m contains sector in vertex p in the same coordinates
         bool
-        SectorContainsSector(const Node* m, const Node* p) {
+        SectorContainsSector(const Node *m, const Node *p) {
             return Area(m->prev, m, p->prev) < 0 && Area(p->next, m, m->next) < 0;
         }
 
         // interlink polygon nodes in z-order
         void
-        IndexCurve(Node* start) {
+        IndexCurve(Node *start) {
             assert(start);
-            Node* p = start;
+            Node *p = start;
 
             do {
                 p->z = p->z ? p->z : ZOrder(p->x, p->y);
@@ -510,22 +537,22 @@ namespace erl::geometry {
 
         // Simon Tatham's linked list merge sort algorithm
         // http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
-        Node*
-        SortLinked(Node* list) {
+        Node *
+        SortLinked(Node *list) {
             ERL_DEBUG_ASSERT(list != nullptr, "list should not be nullptr.");
-            Node* e;
+            Node *e;
             uint32_t in_size = 1;
 
             while (true) {
-                Node* p = list;
+                Node *p = list;
                 list = nullptr;
-                Node* tail = nullptr;
+                Node *tail = nullptr;
                 int num_merges = 0;
 
                 while (p) {
                     ++num_merges;
                     // step `insize` places along from p
-                    Node* q = p;
+                    Node *q = p;
                     uint32_t p_size = 0;
                     for (uint32_t i = 0; i < in_size; ++i) {
                         ++p_size;
@@ -599,10 +626,10 @@ namespace erl::geometry {
         }
 
         // find the leftmost node of a polygon ring
-        Node*
-        GetLeftmost(Node* start) {
-            Node* p = start;
-            Node* leftmost = start;
+        Node *
+        GetLeftmost(Node *start) {
+            Node *p = start;
+            Node *leftmost = start;
             do {
                 if (p->x < leftmost->x || (p->x == leftmost->x && p->y < leftmost->y)) leftmost = p;
                 p = p->next;
@@ -622,34 +649,39 @@ namespace erl::geometry {
             const double cy,
             const double px,
             const double py) {
-            return (cx - px) * (ay - py) >= (ax - px) * (cy - py) && (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
+            return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
+                   (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
                    (bx - px) * (cy - py) >= (cx - px) * (by - py);
         }
 
         // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
         bool
-        IsValidDiagonal(const Node* a, const Node* b) {
-            return a->next->i != b->i && a->prev->i != b->i && !IntersectsPolygon(a, b) &&              // dones't intersect other edges
-                   ((LocallyInside(a, b) && LocallyInside(b, a) && MiddleInside(a, b) &&                // locally visible
-                     (Area(a->prev, a, b->prev) != 0.0 || Area(a, b->prev, b) != 0.0)) ||               // does not create opposite-facing sectors
-                    (Equals(a, b) && Area(a->prev, a, a->next) > 0 && Area(b->prev, b, b->next) > 0));  // special zero-length case
+        IsValidDiagonal(const Node *a, const Node *b) {
+            return a->next->i != b->i && a->prev->i != b->i &&
+                   !IntersectsPolygon(a, b) &&  // dones't intersect other edges
+                   ((LocallyInside(a, b) && LocallyInside(b, a) &&
+                     MiddleInside(a, b) &&  // locally visible
+                     (Area(a->prev, a, b->prev) != 0.0 ||
+                      Area(a, b->prev, b) != 0.0)) ||  // does not create opposite-facing sectors
+                    (Equals(a, b) && Area(a->prev, a, a->next) > 0 &&
+                     Area(b->prev, b, b->next) > 0));  // special zero-length case
         }
 
         // signed area of a triangle
         static double
-        Area(const Node* p, const Node* q, const Node* r) {
+        Area(const Node *p, const Node *q, const Node *r) {
             return (q->y - p->y) * (r->x - q->x) - (q->x - p->x) * (r->y - q->y);
         }
 
         // check if two points are equal
         static bool
-        Equals(const Node* p1, const Node* p2) {
+        Equals(const Node *p1, const Node *p2) {
             return p1->x == p2->x && p1->y == p2->y;
         }
 
         // check if two segments intersect
         bool
-        Intersects(const Node* p1, const Node* q1, const Node* p2, const Node* q2) {
+        Intersects(const Node *p1, const Node *q1, const Node *p2, const Node *q2) {
             const int o1 = Sign(Area(p1, q1, p2));
             const int o2 = Sign(Area(p1, q1, q2));
             const int o3 = Sign(Area(p2, q2, p1));
@@ -657,19 +689,23 @@ namespace erl::geometry {
 
             if (o1 != o2 && o3 != o4) return true;  // general case
 
-            if (o1 == 0 && OnSegment(p1, p2, q1)) return true;  // p1, q1 and p2 are collinear and p2 lies on p1q1
-            if (o2 == 0 && OnSegment(p1, q2, q1)) return true;  // p1, q1 and q2 are collinear and q2 lies on p1q1
-            if (o3 == 0 && OnSegment(p2, p1, q2)) return true;  // p2, q2 and p1 are collinear and p1 lies on p2q2
-            if (o4 == 0 && OnSegment(p2, q1, q2)) return true;  // p2, q2 and q1 are collinear and q1 lies on p2q2
+            if (o1 == 0 && OnSegment(p1, p2, q1))
+                return true;  // p1, q1 and p2 are collinear and p2 lies on p1q1
+            if (o2 == 0 && OnSegment(p1, q2, q1))
+                return true;  // p1, q1 and q2 are collinear and q2 lies on p1q1
+            if (o3 == 0 && OnSegment(p2, p1, q2))
+                return true;  // p2, q2 and p1 are collinear and p1 lies on p2q2
+            if (o4 == 0 && OnSegment(p2, q1, q2))
+                return true;  // p2, q2 and q1 are collinear and q1 lies on p2q2
 
             return false;
         }
 
         // for collinear points p, q, r, check if point q lies on segment pr
         static bool
-        OnSegment(const Node* p, const Node* q, const Node* r) {
-            return q->x <= std::max<double>(p->x, r->x) && q->x >= std::min<double>(p->x, r->x) && q->y <= std::max<double>(p->y, r->y) &&
-                   q->y >= std::min<double>(p->y, r->y);
+        OnSegment(const Node *p, const Node *q, const Node *r) {
+            return q->x <= std::max<double>(p->x, r->x) && q->x >= std::min<double>(p->x, r->x) &&
+                   q->y <= std::max<double>(p->y, r->y) && q->y >= std::min<double>(p->y, r->y);
         }
 
         static int
@@ -679,10 +715,12 @@ namespace erl::geometry {
 
         // check if a polygon diagonal intersects any polygon segments
         bool
-        IntersectsPolygon(const Node* a, const Node* b) {
-            const Node* p = a;
+        IntersectsPolygon(const Node *a, const Node *b) {
+            const Node *p = a;
             do {
-                if (p->i != a->i && p->next->i != a->i && p->i != b->i && p->next->i != b->i && Intersects(p, p->next, a, b)) return true;
+                if (p->i != a->i && p->next->i != a->i && p->i != b->i && p->next->i != b->i &&
+                    Intersects(p, p->next, a, b))
+                    return true;
                 p = p->next;
             } while (p != a);
 
@@ -691,19 +729,22 @@ namespace erl::geometry {
 
         // check if a polygon diagonal is locally inside the polygon
         bool
-        LocallyInside(const Node* a, const Node* b) {
-            return Area(a->prev, a, a->next) < 0 ? Area(a, b, a->next) >= 0 && Area(a, a->prev, b) >= 0 : Area(a, b, a->prev) < 0 || Area(a, a->next, b) < 0;
+        LocallyInside(const Node *a, const Node *b) {
+            return Area(a->prev, a, a->next) < 0
+                       ? Area(a, b, a->next) >= 0 && Area(a, a->prev, b) >= 0
+                       : Area(a, b, a->prev) < 0 || Area(a, a->next, b) < 0;
         }
 
         // check if the middle Vertex of a polygon diagonal is inside the polygon
         bool
-        MiddleInside(const Node* a, const Node* b) {
-            const Node* p = a;
+        MiddleInside(const Node *a, const Node *b) {
+            const Node *p = a;
             bool inside = false;
             double px = (a->x + b->x) / 2;
             double py = (a->y + b->y) / 2;
             do {
-                if (((p->y > py) != (p->next->y > py)) && (p->next->y != p->y) && (px < (p->next->x - p->x) * (py - p->y) / (p->next->y - p->y) + p->x)) {
+                if (((p->y > py) != (p->next->y > py)) && (p->next->y != p->y) &&
+                    (px < (p->next->x - p->x) * (py - p->y) / (p->next->y - p->y) + p->x)) {
                     inside = !inside;
                 }
                 p = p->next;
@@ -712,15 +753,15 @@ namespace erl::geometry {
             return inside;
         }
 
-        // link two polygon vertices with a bridge; if the vertices belong to the same ring, it splits
-        // polygon into two; if one belongs to the outer ring and another to a hole, it merges it into a
-        // single ring
-        Node*
-        SplitPolygon(Node* a, Node* b) {
-            Node* a2 = m_nodes_.Construct(a->i, a->x, a->y);
-            Node* b2 = m_nodes_.Construct(b->i, b->x, b->y);
-            Node* an = a->next;
-            Node* bp = b->prev;
+        // link two polygon vertices with a bridge; if the vertices belong to the same ring, it
+        // splits polygon into two; if one belongs to the outer ring and another to a hole, it
+        // merges it into a single ring
+        Node *
+        SplitPolygon(Node *a, Node *b) {
+            Node *a2 = m_nodes_.Construct(a->i, a->x, a->y);
+            Node *b2 = m_nodes_.Construct(b->i, b->x, b->y);
+            Node *an = a->next;
+            Node *bp = b->prev;
 
             a->next = b;
             b->prev = a;
@@ -737,11 +778,15 @@ namespace erl::geometry {
             return b2;
         }
 
-        // create a node and util::optionally link it with previous one (in a circular doubly linked list)
+        // create a node and util::optionally link it with previous one (in a circular doubly linked
+        // list)
         template<typename Point>
-        Node*
-        InsertNode(std::size_t i, const Point& pt, Node* last) {
-            Node* p = m_nodes_.Construct(static_cast<N>(i), earcut_util::Nth<0, Point>::Get(pt), earcut_util::Nth<1, Point>::Get(pt));
+        Node *
+        InsertNode(std::size_t i, const Point &pt, Node *last) {
+            Node *p = m_nodes_.Construct(
+                static_cast<N>(i),
+                earcut_util::Nth<0, Point>::Get(pt),
+                earcut_util::Nth<1, Point>::Get(pt));
 
             if (!last) {
                 p->prev = p;
@@ -758,7 +803,7 @@ namespace erl::geometry {
         }
 
         static void
-        RemoveNode(Node* p) {
+        RemoveNode(Node *p) {
             p->next->prev = p->prev;
             p->prev->next = p->next;
 
@@ -770,7 +815,7 @@ namespace erl::geometry {
     template<typename N>
     template<typename Polygon>
     void
-    Earcut<N>::operator()(const Polygon& points) {
+    Earcut<N>::operator()(const Polygon &points) {
         // reset
         indices.clear();
         vertices = 0;
@@ -789,15 +834,16 @@ namespace erl::geometry {
         m_nodes_.Reset(len * 3 / 2);
         indices.reserve(len + points[0].size());
 
-        Node* outer_node = LinkedList(points[0], true);
+        Node *outer_node = LinkedList(points[0], true);
         if (!outer_node || outer_node->prev == outer_node->next) return;
 
         if (points.size() > 1) outer_node = EliminateHoles(points, outer_node);
 
-        // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
+        // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon
+        // bbox
         m_hashing_ = threshold < 0;
         if (m_hashing_) {
-            Node* p = outer_node->next;
+            Node *p = outer_node->next;
             m_min_x_ = m_max_x_ = outer_node->x;
             m_min_y_ = m_max_y_ = outer_node->y;
             do {
@@ -810,7 +856,8 @@ namespace erl::geometry {
                 p = p->next;
             } while (p != outer_node);
 
-            // minX, minY and inv_size are later used to transform coords into integers for z-order calculation
+            // minX, minY and inv_size are later used to transform coords into integers for z-order
+            // calculation
             m_inv_size_ = std::max<double>(m_max_x_ - m_min_x_, m_max_y_ - m_min_y_);
             m_inv_size_ = m_inv_size_ != .0 ? 32767. / m_inv_size_ : .0;
         }
@@ -822,7 +869,7 @@ namespace erl::geometry {
 
     template<typename N = uint32_t, typename Polygon>
     std::vector<N>
-    RunEarcut(const Polygon& poly) {
+    RunEarcut(const Polygon &poly) {
         Earcut<N> earcut;
         earcut(poly);
         return std::move(earcut.indices);

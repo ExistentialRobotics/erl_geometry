@@ -2,9 +2,11 @@
 #include "erl_geometry/abstract_quadtree_node.hpp"
 
 void
-BindAbstractQuadtreeNode(const py::module& m) {
+BindAbstractQuadtreeNode(const py::module &m) {
     using namespace erl::geometry;
-    py::class_<AbstractQuadtreeNode, py::RawPtrWrapper<AbstractQuadtreeNode>>(m, "AbstractQuadtreeNode")
+    py::class_<AbstractQuadtreeNode, py::RawPtrWrapper<AbstractQuadtreeNode>>(
+        m,
+        "AbstractQuadtreeNode")
         .def_property_readonly("node_type", &AbstractQuadtreeNode::GetNodeType)
         .def_property_readonly("depth", &AbstractQuadtreeNode::GetDepth)
         .def_property_readonly("child_index", &AbstractQuadtreeNode::GetChildIndex)

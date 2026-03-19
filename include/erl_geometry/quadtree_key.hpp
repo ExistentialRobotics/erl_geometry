@@ -25,14 +25,14 @@ namespace erl::geometry {
         // Hash function for OctreeKey when used with absl containers.
         template<typename H>
         friend H
-        AbslHashValue(H h, const QuadtreeKey& key) {
+        AbslHashValue(H h, const QuadtreeKey &key) {
             return H::combine(std::move(h), key.m_k_[0], key.m_k_[1]);
         }
 
         // Hash function for OctreeKey when used with std hash containers.
         struct KeyHash {
             [[nodiscard]] std::size_t
-            operator()(const QuadtreeKey& key) const {
+            operator()(const QuadtreeKey &key) const {
                 return static_cast<std::size_t>(key.m_k_[0]) << 16 |
                        static_cast<std::size_t>(key.m_k_[1]);
             }
@@ -43,29 +43,29 @@ namespace erl::geometry {
         QuadtreeKey(const KeyType a, const KeyType b)
             : m_k_{a, b} {}
 
-        explicit QuadtreeKey(const uint64_t& morton_code) {
+        explicit QuadtreeKey(const uint64_t &morton_code) {
             uint_fast32_t x, y;
             libmorton::morton2D_64_decode(morton_code, x, y);
             m_k_[0] = static_cast<KeyType>(x);
             m_k_[1] = static_cast<KeyType>(y);
         }
 
-        QuadtreeKey(const QuadtreeKey& other)
+        QuadtreeKey(const QuadtreeKey &other)
             : m_k_{other.m_k_[0], other.m_k_[1]} {}
 
-        QuadtreeKey&
-        operator=(const QuadtreeKey& other) {
+        QuadtreeKey &
+        operator=(const QuadtreeKey &other) {
             if (this == &other) { return *this; }
             m_k_[0] = other.m_k_[0];
             m_k_[1] = other.m_k_[1];
             return *this;
         }
 
-        QuadtreeKey(QuadtreeKey&& other) noexcept
+        QuadtreeKey(QuadtreeKey &&other) noexcept
             : m_k_{std::exchange(other.m_k_[0], 0), std::exchange(other.m_k_[1], 0)} {}
 
-        QuadtreeKey&
-        operator=(QuadtreeKey&& other) noexcept {
+        QuadtreeKey &
+        operator=(QuadtreeKey &&other) noexcept {
             if (this == &other) { return *this; }
             m_k_[0] = std::exchange(other.m_k_[0], 0);
             m_k_[1] = std::exchange(other.m_k_[1], 0);
@@ -73,42 +73,42 @@ namespace erl::geometry {
         }
 
         [[nodiscard]] bool
-        operator==(const QuadtreeKey& other) const {
+        operator==(const QuadtreeKey &other) const {
             return !std::memcmp(m_k_, other.m_k_, sizeof(m_k_));
         }
 
         [[nodiscard]] bool
-        operator!=(const QuadtreeKey& other) const {
+        operator!=(const QuadtreeKey &other) const {
             return std::memcmp(m_k_, other.m_k_, sizeof(m_k_));
         }
 
-        KeyType&
+        KeyType &
         operator[](const uint32_t i) {
             return m_k_[i];
         }
 
-        [[nodiscard]] const KeyType&
+        [[nodiscard]] const KeyType &
         operator[](const uint32_t i) const {
             return m_k_[i];
         }
 
         [[nodiscard]] bool
-        operator<(const QuadtreeKey& other) const {
+        operator<(const QuadtreeKey &other) const {
             return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) < 0;
         }
 
         [[nodiscard]] bool
-        operator<=(const QuadtreeKey& other) const {
+        operator<=(const QuadtreeKey &other) const {
             return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) <= 0;
         }
 
         [[nodiscard]] bool
-        operator>(const QuadtreeKey& other) const {
+        operator>(const QuadtreeKey &other) const {
             return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) > 0;
         }
 
         [[nodiscard]] bool
-        operator>=(const QuadtreeKey& other) const {
+        operator>=(const QuadtreeKey &other) const {
             return std::memcmp(m_k_, other.m_k_, sizeof(m_k_)) >= 0;
         }
 
@@ -137,8 +137,8 @@ namespace erl::geometry {
         ComputeChildKey(
             const uint32_t pos,
             const KeyType center_offset_key,
-            const QuadtreeKey& parent_key,
-            QuadtreeKey& child_key) {
+            const QuadtreeKey &parent_key,
+            QuadtreeKey &child_key) {
             if (center_offset_key == 0) {
                 child_key.m_k_[0] = parent_key.m_k_[0] + ((pos & 1) ? 0 : -1);
                 child_key.m_k_[1] = parent_key.m_k_[1] + ((pos & 2) ? 0 : -1);
@@ -166,8 +166,8 @@ namespace erl::geometry {
         ComputeVertexKey(
             const uint32_t vertex_index,
             const uint32_t level,
-            const QuadtreeKey& voxel_key,
-            QuadtreeKey& vertex_key) {
+            const QuadtreeKey &voxel_key,
+            QuadtreeKey &vertex_key) {
 
             const KeyType voxel_size = 1 << level;
 
@@ -185,7 +185,7 @@ namespace erl::geometry {
          * @return
          */
         static int
-        ComputeChildIndex(const QuadtreeKey& key, const uint32_t level) {
+        ComputeChildIndex(const QuadtreeKey &key, const uint32_t level) {
             int pos = 0;
             const KeyType mask = 1 << level;
             if (key.m_k_[0] & mask) { pos += 1; }
@@ -195,10 +195,10 @@ namespace erl::geometry {
 
         static bool
         KeyInAabb(
-            const QuadtreeKey& key,
+            const QuadtreeKey &key,
             const KeyType center_offset_key,
-            const QuadtreeKey& aabb_min_key,
-            const QuadtreeKey& aabb_max_key) {
+            const QuadtreeKey &aabb_min_key,
+            const QuadtreeKey &aabb_max_key) {
             return aabb_min_key[0] <= key[0] + center_offset_key &&  //
                    aabb_min_key[1] <= key[1] + center_offset_key &&  //
                    aabb_max_key[0] >= key[0] - center_offset_key &&  //

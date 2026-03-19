@@ -22,12 +22,12 @@ namespace erl::geometry {
 
         explicit AbstractOccupancyOctree(std::shared_ptr<OccupancyNdTreeSetting> setting);
 
-        AbstractOccupancyOctree(const AbstractOccupancyOctree&) = default;
-        AbstractOccupancyOctree&
-        operator=(const AbstractOccupancyOctree&) = default;
-        AbstractOccupancyOctree(AbstractOccupancyOctree&&) = default;
-        AbstractOccupancyOctree&
-        operator=(AbstractOccupancyOctree&&) = default;
+        AbstractOccupancyOctree(const AbstractOccupancyOctree &) = default;
+        AbstractOccupancyOctree &
+        operator=(const AbstractOccupancyOctree &) = default;
+        AbstractOccupancyOctree(AbstractOccupancyOctree &&) = default;
+        AbstractOccupancyOctree &
+        operator=(AbstractOccupancyOctree &&) = default;
 
         //--IO
         /**
@@ -37,7 +37,7 @@ namespace erl::geometry {
          * @return
          */
         bool
-        WriteBinary(std::ostream& s, bool prune);
+        WriteBinary(std::ostream &s, bool prune);
 
         /**
          * Write the tree to a binary stream. The tree is not pruned before writing.
@@ -45,7 +45,7 @@ namespace erl::geometry {
          * @return
          */
         [[nodiscard]] bool
-        WriteBinary(std::ostream& s) const;
+        WriteBinary(std::ostream &s) const;
 
         /**
          * Write the actual tree data to a binary stream.
@@ -53,7 +53,7 @@ namespace erl::geometry {
          * @return
          */
         virtual bool
-        WriteBinaryData(std::ostream& s) const = 0;
+        WriteBinaryData(std::ostream &s) const = 0;
 
         /**
          * Read the tree from a binary stream.
@@ -61,28 +61,28 @@ namespace erl::geometry {
          * @return
          */
         bool
-        ReadBinary(std::istream& s);
+        ReadBinary(std::istream &s);
 
         virtual bool
-        ReadBinaryData(std::istream& s) = 0;
+        ReadBinaryData(std::istream &s) = 0;
 
         //-- occupancy queries
         [[nodiscard]] bool
-        IsNodeOccupied(const OccupancyOctreeNode* node) const;
+        IsNodeOccupied(const OccupancyOctreeNode *node) const;
 
         [[nodiscard]] bool
-        IsNodeAtThreshold(const OccupancyOctreeNode* node) const;
+        IsNodeAtThreshold(const OccupancyOctreeNode *node) const;
 
         //-- search
-        const OccupancyOctreeNode*
+        const OccupancyOctreeNode *
         GetHitOccupiedNode(
-            const Eigen::Ref<typename Super::Vector3>& p,
-            const Eigen::Ref<typename Super::Vector3>& v,
+            const Eigen::Ref<typename Super::Vector3> &p,
+            const Eigen::Ref<typename Super::Vector3> &v,
             bool ignore_unknown,
             Dtype max_range,
-            typename Super::Vector3& hit_position);
+            typename Super::Vector3 &hit_position);
 
-        [[nodiscard]] virtual const OccupancyOctreeNode*
+        [[nodiscard]] virtual const OccupancyOctreeNode *
         GetHitOccupiedNode(
             Dtype px,
             Dtype py,
@@ -92,9 +92,9 @@ namespace erl::geometry {
             Dtype vz,
             bool ignore_unknown,
             Dtype max_range,
-            Dtype& ex,
-            Dtype& ey,
-            Dtype& ez) const = 0;
+            Dtype &ex,
+            Dtype &ey,
+            Dtype &ez) const = 0;
 
         //-- update functions
         virtual void
