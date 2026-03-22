@@ -92,6 +92,7 @@ erl_add_tests(
     test_occupancy_quadtree_batch_ray_casting
     test_occupancy_quadtree_build
     test_occupancy_quadtree_build_from_image
+    test_occupancy_quadtree_extract_frontiers
     test_occupancy_quadtree_find_neighbors
     test_occupancy_quadtree_house_expo
     test_occupancy_quadtree_leaf_in_aabb

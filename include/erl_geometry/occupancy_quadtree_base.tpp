@@ -1226,4 +1226,251 @@ namespace erl::geometry {
 
         return s.good();
     }
+
+    template<typename Dtype, class Node, class Setting>
+    template<typename LeafIterator>
+    std::vector<typename OccupancyQuadtreeBase<Dtype, Node, Setting>::Frontier>
+    OccupancyQuadtreeBase<Dtype, Node, Setting>::ExtractFrontiersImpl(
+        LeafIterator it,
+        LeafIterator it_end,
+        const std::size_t min_num_vertices,
+        const bool sort_by_length) const {
+
+        // --- Step 0: Typedefs and helpers ---
+
+        struct EdgeSegment {
+            QuadtreeKey v0;
+            QuadtreeKey v1;
+        };
+
+        const auto setting = this->template GetSetting<OccupancyNdTreeSetting>();
+        const uint32_t tree_depth = setting->tree_depth;
+
+        // --- Step 1: Collect frontier edge segments ---
+        //
+        // For each free leaf, sweep each face (W/E/S/N) using the leaf neighbor
+        // iterators. The iterators enumerate all known leaf neighbors along the
+        // face in order. Gaps between known neighbors (and before/after them) are
+        // unknown regions -> frontier edge segments.
+        //
+        // We must distinguish "out of bounds" (no frontier) from "in bounds but no
+        // node" (frontier). ComputeXxxNeighborKey returns false for out-of-bounds.
+
+        std::vector<EdgeSegment> segments;
+
+        // Generic sweep: given a directional leaf neighbor iterator range and the
+        // face geometry, emit frontier edge segments for uncovered gaps.
+        // - varying_dim: the dimension that varies along the face (0=x, 1=y)
+        // - vary_min/vary_max: the extent of the face in key-space
+        // - make_vertex: maps a varying-dim key value to a QuadtreeKey on the face
+        const auto emit_frontier_gaps = [&](auto nit,
+                                            auto nit_end,
+                                            int varying_dim,
+                                            uint32_t vary_min,
+                                            uint32_t vary_max,
+                                            auto make_vertex) {
+            uint32_t current = vary_min;
+            for (; nit != nit_end; ++nit) {
+                const uint32_t nd = nit.GetDepth();
+                const uint32_t nl = tree_depth - nd;
+                const QuadtreeKey &nk = nit.GetKey();
+                uint32_t n_min = (nk[varying_dim] >> nl) << nl;
+                uint32_t n_max = n_min + (1u << nl);
+                // Clip to face range
+                n_min = std::max(n_min, vary_min);
+                n_max = std::min(n_max, vary_max);
+
+                if (n_min > current) {
+                    // Gap: frontier edge segment
+                    segments.push_back({make_vertex(current), make_vertex(n_min)});
+                }
+                current = std::max(current, n_max);
+            }
+            if (current < vary_max) {
+                segments.push_back({make_vertex(current), make_vertex(vary_max)});
+            }
+        };
+
+        for (; it != it_end; ++it) {
+            const Node *node = it.GetNode();
+            // Skip occupied nodes — only free leaves can be frontier cells
+            if (this->IsNodeOccupied(node)) { continue; }
+
+            const QuadtreeKey &key = it.GetKey();
+            const uint32_t depth = it.GetDepth();
+            const uint32_t level = tree_depth - depth;
+
+            // Cell AABB in key-space
+            const uint32_t cell_size = 1u << level;
+            const uint32_t kx_min = (key[0] >> level) << level;
+            const uint32_t ky_min = (key[1] >> level) << level;
+            const uint32_t kx_max = kx_min + cell_size;
+            const uint32_t ky_max = ky_min + cell_size;
+
+            QuadtreeKey neighbor_key;
+
+            // West face: x = kx_min, y varies [ky_min, ky_max]
+            if (this->ComputeWestNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_gaps(
+                    this->BeginWestLeafNeighbor(key, depth),
+                    this->EndWestLeafNeighbor(),
+                    /*varying_dim=*/1,
+                    ky_min,
+                    ky_max,
+                    [kx_min](uint32_t y) -> QuadtreeKey { return {kx_min, y}; });
+            }
+
+            // South face: y = ky_min, x varies [kx_min, kx_max]
+            if (this->ComputeSouthNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_gaps(
+                    this->BeginSouthLeafNeighbor(key, depth),
+                    this->EndSouthLeafNeighbor(),
+                    /*varying_dim=*/0,
+                    kx_min,
+                    kx_max,
+                    [ky_min](uint32_t x) -> QuadtreeKey { return {x, ky_min}; });
+            }
+
+            // East face: x = kx_max, y varies [ky_min, ky_max]
+            if (this->ComputeEastNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_gaps(
+                    this->BeginEastLeafNeighbor(key, depth),
+                    this->EndEastLeafNeighbor(),
+                    /*varying_dim=*/1,
+                    ky_min,
+                    ky_max,
+                    [kx_max](uint32_t y) -> QuadtreeKey { return {kx_max, y}; });
+            }
+
+            // North face: y = ky_max, x varies [kx_min, kx_max]
+            if (this->ComputeNorthNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_gaps(
+                    this->BeginNorthLeafNeighbor(key, depth),
+                    this->EndNorthLeafNeighbor(),
+                    /*varying_dim=*/0,
+                    kx_min,
+                    kx_max,
+                    [ky_max](uint32_t x) -> QuadtreeKey { return {x, ky_max}; });
+            }
+        }
+
+        if (segments.empty()) { return {}; }
+
+        // --- Step 2: Chain segments into frontier polylines ---
+        //
+        // Build an adjacency map from each endpoint to the segments that touch it.
+        // Then greedily chain segments: starting from an unvisited segment, grow the
+        // polyline forward by following the unique neighbor at each endpoint. Stop
+        // when we hit a branch point (degree > 2) or a dead end. Then grow backward
+        // from the other end of the starting segment. This avoids union-find and
+        // explicit branch-point sets entirely.
+
+        absl::flat_hash_map<QuadtreeKey, std::vector<std::size_t>> vertex_to_segments;
+        vertex_to_segments.reserve(segments.size() * 2);
+        for (std::size_t i = 0; i < segments.size(); ++i) {
+            vertex_to_segments[segments[i].v0].push_back(i);
+            vertex_to_segments[segments[i].v1].push_back(i);
+        }
+
+        // Follow the chain from `tip` by picking unvisited segments at non-branch
+        // endpoints. Appends vertices (excluding `tip` itself) to `chain`.
+        std::vector<bool> visited(segments.size(), false);
+        const auto grow_chain = [&](QuadtreeKey tip, std::vector<QuadtreeKey> &chain) {
+            while (true) {
+                const auto &adj = vertex_to_segments[tip];
+                if (adj.size() > 2) { break; }  // branch point: stop
+                bool advanced = false;
+                for (const std::size_t si: adj) {
+                    if (visited[si]) { continue; }
+                    visited[si] = true;
+                    const QuadtreeKey &next =
+                        (segments[si].v0 == tip) ? segments[si].v1 : segments[si].v0;
+                    chain.push_back(next);
+                    tip = next;
+                    advanced = true;
+                    break;
+                }
+                if (!advanced) { break; }
+            }
+        };
+
+        std::vector<Frontier> frontiers;
+
+        for (std::size_t i = 0; i < segments.size(); ++i) {
+            if (visited[i]) { continue; }
+            visited[i] = true;
+
+            // Grow forward from v1
+            std::vector<QuadtreeKey> forward;
+            grow_chain(segments[i].v1, forward);
+
+            // Grow backward from v0
+            std::vector<QuadtreeKey> backward;
+            grow_chain(segments[i].v0, backward);
+
+            // Assemble: backward (reversed) + v0 + v1 + forward
+            const std::size_t total = backward.size() + 2 + forward.size();
+            if (total < min_num_vertices) { continue; }
+
+            Frontier frontier(2, static_cast<Eigen::Index>(total));
+            Eigen::Index col = 0;
+            for (auto rit = backward.rbegin(); rit != backward.rend(); ++rit) {
+                frontier.col(col++) = this->KeyToVertexCoord(*rit);
+            }
+            frontier.col(col++) = this->KeyToVertexCoord(segments[i].v0);
+            frontier.col(col++) = this->KeyToVertexCoord(segments[i].v1);
+            for (const auto &v: forward) { frontier.col(col++) = this->KeyToVertexCoord(v); }
+
+            frontiers.push_back(std::move(frontier));
+        }
+
+        if (sort_by_length) {
+            // Sort by total edge length (descending)
+            std::vector<std::pair<std::size_t, Dtype>> index_length(frontiers.size());
+            for (std::size_t i = 0; i < frontiers.size(); ++i) {
+                Dtype len = 0;
+                for (Eigen::Index j = 1; j < frontiers[i].cols(); ++j) {
+                    len += (frontiers[i].col(j) - frontiers[i].col(j - 1)).norm();
+                }
+                index_length[i] = {i, len};
+            }
+            std::sort(index_length.begin(), index_length.end(), [](const auto &a, const auto &b) {
+                return a.second > b.second;
+            });
+            std::vector<Frontier> sorted;
+            sorted.reserve(frontiers.size());
+            for (const auto &[i, len]: index_length) { sorted.push_back(std::move(frontiers[i])); }
+            frontiers = std::move(sorted);
+        }
+
+        return frontiers;
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::vector<typename OccupancyQuadtreeBase<Dtype, Node, Setting>::Frontier>
+    OccupancyQuadtreeBase<Dtype, Node, Setting>::ExtractFrontiers(
+        const std::size_t min_num_vertices,
+        const bool sort_by_length) const {
+        return ExtractFrontiersImpl(
+            this->BeginLeaf(),
+            this->EndLeaf(),
+            min_num_vertices,
+            sort_by_length);
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::vector<typename OccupancyQuadtreeBase<Dtype, Node, Setting>::Frontier>
+    OccupancyQuadtreeBase<Dtype, Node, Setting>::ExtractFrontiers(
+        const Dtype aabb_min_x,
+        const Dtype aabb_min_y,
+        const Dtype aabb_max_x,
+        const Dtype aabb_max_y,
+        const std::size_t min_num_vertices,
+        const bool sort_by_length) const {
+        return ExtractFrontiersImpl(
+            this->BeginLeafInAabb(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y),
+            this->EndLeafInAabb(),
+            min_num_vertices,
+            sort_by_length);
+    }
 }  // namespace erl::geometry

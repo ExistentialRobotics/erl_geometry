@@ -44,6 +44,10 @@ namespace erl::geometry {
         using Vector2 = Eigen::Vector2<Dtype>;
         using VectorX = Eigen::VectorX<Dtype>;
 
+        /// A frontier is an ordered polyline (2 x N matrix) of vertices forming
+        /// the boundary between free and unknown space.
+        using Frontier = Eigen::Matrix2X<Dtype>;
+
         OccupancyQuadtreeBase() = delete;  // no default constructor
 
         explicit OccupancyQuadtreeBase(const std::shared_ptr<Setting> &setting);
@@ -68,6 +72,34 @@ namespace erl::geometry {
         //-- implement abstract methods
         void
         OnDeleteNodeChild(Node *node, Node *child, const QuadtreeKey & /*key*/) override;
+
+        //-- frontier extraction
+        /// Extract frontiers (boundaries between free and unknown space).
+        /// Each frontier is an ordered polyline of vertices forming the boundary.
+        /// @param min_num_vertices Minimum number of vertices for a frontier to be returned.
+        /// @param sort_by_length If true, sort frontiers by total edge length (descending).
+        /// @return Vector of frontiers.
+        [[nodiscard]] std::vector<Frontier>
+        ExtractFrontiers(std::size_t min_num_vertices = 1, bool sort_by_length = true) const;
+
+        /// Extract frontiers within an axis-aligned bounding box.
+        /// Free leaves intersecting the AABB are considered; the resulting polylines
+        /// may slightly exceed the AABB at cell boundaries.
+        /// @param aabb_min_x Minimum x coordinate of the query region.
+        /// @param aabb_min_y Minimum y coordinate of the query region.
+        /// @param aabb_max_x Maximum x coordinate of the query region.
+        /// @param aabb_max_y Maximum y coordinate of the query region.
+        /// @param min_num_vertices Minimum number of vertices for a frontier to be returned.
+        /// @param sort_by_length If true, sort frontiers by total edge length (descending).
+        /// @return Vector of frontiers.
+        [[nodiscard]] std::vector<Frontier>
+        ExtractFrontiers(
+            Dtype aabb_min_x,
+            Dtype aabb_min_y,
+            Dtype aabb_max_x,
+            Dtype aabb_max_y,
+            std::size_t min_num_vertices = 1,
+            bool sort_by_length = true) const;
 
         //-- Sample position
         /**
@@ -305,6 +337,14 @@ namespace erl::geometry {
         UpdateNode(const QuadtreeKey &key, float log_odds_delta, bool lazy_eval);
 
     private:
+        template<typename LeafIterator>
+        [[nodiscard]] std::vector<Frontier>
+        ExtractFrontiersImpl(
+            LeafIterator it,
+            LeafIterator it_end,
+            std::size_t min_num_vertices,
+            bool sort_by_length) const;
+
         Node *
         UpdateNodeRecurs(
             Node *node,

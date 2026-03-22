@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aabb.hpp"
 #include "log_odd_map.hpp"
 
 #include "erl_common/angle_utils.hpp"
@@ -195,13 +196,13 @@ namespace erl::geometry {
                     if (possibility_value > m_setting_->threshold_occupied) {
                         if (occupancy_value == static_cast<int>(CellType::kFree)) {
                             // kFree -> kOccupied
-                            m_num_free_cells_--;
-                            m_num_occupied_cells_++;
+                            --m_num_free_cells_;
+                            ++m_num_occupied_cells_;
                             free_mask_value = 0;
                         } else if (occupancy_value == static_cast<int>(CellType::kUnexplored)) {
                             // kUnexplored -> kOccupied
-                            m_num_unexplored_cells_--;
-                            m_num_occupied_cells_++;
+                            --m_num_unexplored_cells_;
+                            ++m_num_occupied_cells_;
                             unexplored_mask_value = 0;
                         }
                         occupancy_value = static_cast<int>(CellType::kOccupied);
@@ -209,13 +210,13 @@ namespace erl::geometry {
                     } else if (possibility_value < m_setting_->threshold_free) {
                         if (occupancy_value == static_cast<int>(CellType::kOccupied)) {
                             // kOccupied -> kFree
-                            m_num_occupied_cells_--;
-                            m_num_free_cells_++;
+                            --m_num_occupied_cells_;
+                            ++m_num_free_cells_;
                             occupied_mask_value = 0;
                         } else if (occupancy_value == static_cast<int>(CellType::kUnexplored)) {
                             // kUnexplored -> kFree
-                            m_num_unexplored_cells_--;
-                            m_num_free_cells_++;
+                            --m_num_unexplored_cells_;
+                            ++m_num_free_cells_;
                             unexplored_mask_value = 0;
                         }
                         occupancy_value = static_cast<int>(CellType::kFree);
@@ -225,6 +226,79 @@ namespace erl::geometry {
             }
 
             PostProcessMasks(position, theta);
+        }
+
+        /**
+         * @brief Update all cells within an axis-aligned bounding box with a specified log-odd
+         * value. The log-odd value is added to the existing log-odd value of each cell. The
+         * possibility map, occupancy map, masks, and cell counts are updated accordingly.
+         * @param aabb The axis-aligned bounding box in world frame (meters).
+         * @param log_odd The log-odd value to add to each cell within the AABB.
+         * @note PostProcessMasks() is not called in this function since PostProcessMasks() is
+         * designed for robot footprint cleaning with sensor observation, which is not the case for
+         * this function.
+         */
+        void
+        UpdateAabb(const Aabb<Dtype, 2> &aabb, Dtype log_odd) {
+            // convert AABB from metric to grid coordinates and clamp to map bounds
+            int x_min = m_grid_map_info_->MeterToGridAtDim(aabb.min()[0], 0);
+            int y_min = m_grid_map_info_->MeterToGridAtDim(aabb.min()[1], 1);
+            int x_max = m_grid_map_info_->MeterToGridAtDim(aabb.max()[0], 0);
+            int y_max = m_grid_map_info_->MeterToGridAtDim(aabb.max()[1], 1);
+
+            x_min = std::max(x_min, 0);
+            y_min = std::max(y_min, 0);
+            x_max = std::min(x_max, static_cast<int>(m_grid_map_info_->Shape(0)) - 1);
+            y_max = std::min(y_max, static_cast<int>(m_grid_map_info_->Shape(1)) - 1);
+
+            if (x_min > x_max || y_min > y_max) { return; }
+
+            for (int x = x_min; x <= x_max; ++x) {
+                for (int y = y_min; y <= y_max; ++y) {
+                    auto &log_odd_value = m_log_map_.at<Dtype>(x, y);
+                    auto &possibility_value = m_possibility_map_.at<Dtype>(x, y);
+                    auto &occupancy_value = m_occupancy_map_.at<uint8_t>(x, y);
+                    auto &free_mask_value = m_mask_.free_mask.template at<uint8_t>(x, y);
+                    auto &occupied_mask_value = m_mask_.occupied_mask.template at<uint8_t>(x, y);
+                    auto &unexplored_mask_value =
+                        m_mask_.unexplored_mask.template at<uint8_t>(x, y);
+
+                    log_odd_value += log_odd;
+                    if (log_odd_value < m_setting_->min_log_odd) {
+                        log_odd_value = m_setting_->min_log_odd;
+                    } else if (log_odd_value > m_setting_->max_log_odd) {
+                        log_odd_value = m_setting_->max_log_odd;
+                    }
+
+                    possibility_value = 1.0f / (1.0f + std::exp(-log_odd_value));
+
+                    if (possibility_value > m_setting_->threshold_occupied) {
+                        if (occupancy_value == static_cast<int>(CellType::kFree)) {
+                            --m_num_free_cells_;
+                            ++m_num_occupied_cells_;
+                            free_mask_value = 0;
+                        } else if (occupancy_value == static_cast<int>(CellType::kUnexplored)) {
+                            --m_num_unexplored_cells_;
+                            ++m_num_occupied_cells_;
+                            unexplored_mask_value = 0;
+                        }
+                        occupancy_value = static_cast<int>(CellType::kOccupied);
+                        occupied_mask_value = 1;
+                    } else if (possibility_value < m_setting_->threshold_free) {
+                        if (occupancy_value == static_cast<int>(CellType::kOccupied)) {
+                            --m_num_occupied_cells_;
+                            ++m_num_free_cells_;
+                            occupied_mask_value = 0;
+                        } else if (occupancy_value == static_cast<int>(CellType::kUnexplored)) {
+                            --m_num_unexplored_cells_;
+                            ++m_num_free_cells_;
+                            unexplored_mask_value = 0;
+                        }
+                        occupancy_value = static_cast<int>(CellType::kFree);
+                        free_mask_value = 1;
+                    }
+                }
+            }
         }
 
         /**
