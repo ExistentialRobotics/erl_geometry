@@ -1713,8 +1713,6 @@ namespace erl::geometry {
                                                   int lateral_dim,
                                                   uint32_t lateral_min,
                                                   uint32_t lateral_max,
-                                                  uint32_t kz_min,
-                                                  uint32_t kz_max,
                                                   OctreeKey::KeyType z_key_val) {
             // Collect neighbor coverage along the lateral dimension, filtered to
             // those that overlap the slice z-band [z_key_val, z_key_val+1).
@@ -1800,8 +1798,6 @@ namespace erl::geometry {
                     1,
                     ky_min,
                     ky_max,
-                    kz_min,
-                    kz_max,
                     z_key);
             }
 
@@ -1815,8 +1811,6 @@ namespace erl::geometry {
                     1,
                     ky_min,
                     ky_max,
-                    kz_min,
-                    kz_max,
                     z_key);
             }
 
@@ -1830,8 +1824,6 @@ namespace erl::geometry {
                     0,
                     kx_min,
                     kx_max,
-                    kz_min,
-                    kz_max,
                     z_key);
             }
 
@@ -1845,8 +1837,6 @@ namespace erl::geometry {
                     0,
                     kx_min,
                     kx_max,
-                    kz_min,
-                    kz_max,
                     z_key);
             }
         }
