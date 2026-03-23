@@ -79,6 +79,25 @@ namespace erl::geometry {
         [[nodiscard]] std::vector<Frontier>
         ExtractFrontiers(std::size_t min_num_triangles = 1, bool sort_by_area = true) const;
 
+        /// A 2D frontier polyline from a horizontal slice through the octree.
+        /// Each frontier is an ordered polyline (2 x N matrix) of XY vertices.
+        using SliceFrontier = Eigen::Matrix2X<Dtype>;
+
+        /// Extract 2D frontiers from a horizontal slice at a given z coordinate.
+        /// The slice intersects all free leaves whose z-range contains z_slice.
+        /// For each such leaf, the 4 lateral faces (W/E/S/N) are checked for
+        /// unknown neighbors, producing edge segments that are chained into
+        /// polylines — exactly like the quadtree frontier extraction.
+        /// @param z_slice The z coordinate of the horizontal slice.
+        /// @param min_num_vertices Minimum number of vertices for a frontier to be returned.
+        /// @param sort_by_length If true, sort frontiers by total edge length (descending).
+        /// @return Vector of 2D frontier polylines.
+        [[nodiscard]] std::vector<SliceFrontier>
+        ExtractSliceFrontiers(
+            Dtype z_slice,
+            std::size_t min_num_vertices = 1,
+            bool sort_by_length = true) const;
+
         /// Extract frontiers within an axis-aligned bounding box.
         /// Free leaves intersecting the AABB are considered; the resulting mesh
         /// may slightly exceed the AABB at cell boundaries.

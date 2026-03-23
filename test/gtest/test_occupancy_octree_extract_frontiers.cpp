@@ -12,7 +12,9 @@ using Dtype = double;
 using OccupancyOctree = erl::geometry::OccupancyOctree<Dtype>;
 using OccupancyOctreeDrawer = erl::geometry::OccupancyOctreeDrawer<OccupancyOctree>;
 using OctreeKey = erl::geometry::OctreeKey;
+using Vector2 = Eigen::Vector2<Dtype>;
 using Vector3 = Eigen::Vector3<Dtype>;
+using Matrix2X = Eigen::Matrix2X<Dtype>;
 using Matrix3X = Eigen::Matrix3X<Dtype>;
 using VectorX = Eigen::VectorX<Dtype>;
 
@@ -64,6 +66,36 @@ BuildSphereTree(const Dtype resolution = 0.1) {
         /*discrete=*/false);
 
     return tree;
+}
+
+/// Convert a SliceFrontier (2D polyline) to an Open3D LineSet at a given z height.
+static std::shared_ptr<open3d::geometry::LineSet>
+SliceFrontierToLineSet(
+    const OccupancyOctree::SliceFrontier &frontier,
+    Dtype z,
+    const Eigen::Vector3d &color) {
+    auto line_set = std::make_shared<open3d::geometry::LineSet>();
+    const auto n = frontier.cols();
+    line_set->points_.reserve(n);
+    for (Eigen::Index i = 0; i < n; ++i) {
+        line_set->points_.emplace_back(frontier(0, i), frontier(1, i), z);
+    }
+    line_set->lines_.reserve(n - 1);
+    for (Eigen::Index i = 0; i + 1 < n; ++i) {
+        line_set->lines_.emplace_back(static_cast<int>(i), static_cast<int>(i + 1));
+    }
+    line_set->PaintUniformColor(color);
+    return line_set;
+}
+
+/// Compute total edge length of a SliceFrontier polyline.
+static Dtype
+SliceFrontierLength(const OccupancyOctree::SliceFrontier &frontier) {
+    Dtype len = 0;
+    for (Eigen::Index i = 1; i < frontier.cols(); ++i) {
+        len += (frontier.col(i) - frontier.col(i - 1)).norm();
+    }
+    return len;
 }
 
 /// Compute total surface area of a frontier mesh.
@@ -447,4 +479,123 @@ TEST(OccupancyOctree, ExtractFrontiers_TriangleNormals) {
                 << ", normal " << normal.transpose() << ", cell_center " << cell_center.transpose();
         }
     }
+}
+
+// ==================== Slice Frontier Tests ====================
+
+TEST(OccupancyOctree, ExtractSliceFrontiers_EmptyTree) {
+    auto setting = std::make_shared<OccupancyOctree::Setting>();
+    setting->resolution = 0.1;
+    const OccupancyOctree tree(setting);
+
+    auto frontiers = tree.ExtractSliceFrontiers(0.0);
+    EXPECT_TRUE(frontiers.empty());
+}
+
+TEST(OccupancyOctree, ExtractSliceFrontiers_SingleFreeCell) {
+    auto setting = std::make_shared<OccupancyOctree::Setting>();
+    setting->resolution = 1.0;
+    auto tree = std::make_shared<OccupancyOctree>(setting);
+
+    tree->UpdateNode(0.0, 0.0, 0.0, /*occupied=*/false, /*lazy_eval=*/false);
+
+    // Slice through the cell's z-range should produce 4 edge segments
+    // (W/E/S/N faces), chained into polyline(s).
+    auto frontiers = tree->ExtractSliceFrontiers(0.0);
+    EXPECT_GT(frontiers.size(), 0u);
+
+    std::size_t total_vertices = 0;
+    for (const auto &f: frontiers) { total_vertices += f.cols(); }
+    // 4 edges around a cell: at least 4 unique corner vertices
+    EXPECT_GE(total_vertices, 4u);
+}
+
+TEST(OccupancyOctree, ExtractSliceFrontiers_NoFrontiersOutsideZ) {
+    auto setting = std::make_shared<OccupancyOctree::Setting>();
+    setting->resolution = 1.0;
+    auto tree = std::make_shared<OccupancyOctree>(setting);
+
+    tree->UpdateNode(0.0, 0.0, 0.0, /*occupied=*/false, /*lazy_eval=*/false);
+
+    // Slice far above the cell should produce no frontiers
+    auto frontiers = tree->ExtractSliceFrontiers(100.0);
+    EXPECT_TRUE(frontiers.empty());
+}
+
+TEST(OccupancyOctree, ExtractSliceFrontiers_SphereHasFrontiers) {
+    auto tree = BuildSphereTree(0.1);
+
+    // Slice through the center of the sphere
+    auto frontiers = tree->ExtractSliceFrontiers(0.0);
+    ASSERT_GT(frontiers.size(), 0u);
+    EXPECT_GT(frontiers[0].cols(), 2);
+}
+
+TEST(OccupancyOctree, ExtractSliceFrontiers_SortedByLength) {
+    auto tree = BuildSphereTree(0.1);
+    auto frontiers = tree->ExtractSliceFrontiers(0.0, /*min_num_vertices=*/1, /*sort_by_length=*/true);
+
+    for (std::size_t i = 1; i < frontiers.size(); ++i) {
+        EXPECT_GE(SliceFrontierLength(frontiers[i - 1]), SliceFrontierLength(frontiers[i]))
+            << "Slice frontiers not sorted by length at index " << i;
+    }
+}
+
+TEST(OccupancyOctree, ExtractSliceFrontiers_MinVerticesFiltering) {
+    auto tree = BuildSphereTree(0.1);
+
+    auto frontiers_all = tree->ExtractSliceFrontiers(0.0, 1);
+    auto frontiers_large = tree->ExtractSliceFrontiers(0.0, 20);
+
+    EXPECT_GE(frontiers_all.size(), frontiers_large.size());
+
+    for (const auto &f: frontiers_large) {
+        EXPECT_GE(static_cast<std::size_t>(f.cols()), 20u);
+    }
+}
+
+TEST(OccupancyOctree, ExtractSliceFrontiers_Visualization) {
+    GTEST_PREPARE_OUTPUT_DIR();
+    auto tree = BuildSphereTree(0.1);
+
+    constexpr Dtype z_slice = 0.0;
+    auto frontiers = tree->ExtractSliceFrontiers(z_slice);
+    ERL_INFO("Extracted {} slice frontiers at z={}", frontiers.size(), z_slice);
+    ASSERT_GT(frontiers.size(), 0u);
+
+    const Eigen::Vector3d colors[] = {
+        {1.0, 0.0, 0.0},  // red
+        {0.0, 0.0, 1.0},  // blue
+        {0.0, 0.8, 0.0},  // green
+        {1.0, 0.0, 1.0},  // magenta
+        {0.0, 0.8, 0.8},  // cyan
+        {1.0, 0.5, 0.0},  // orange
+    };
+    constexpr std::size_t num_colors = std::size(colors);
+
+    // Save all slice frontiers as line sets
+    open3d::geometry::LineSet combined_lines;
+    for (std::size_t fi = 0; fi < frontiers.size(); ++fi) {
+        auto ls = SliceFrontierToLineSet(frontiers[fi], z_slice, colors[fi % num_colors]);
+        combined_lines += *ls;
+    }
+    open3d::io::WriteLineSet(
+        (test_output_dir / "slice_frontiers.ply").string(), combined_lines, true);
+
+    // Save each frontier individually
+    for (std::size_t fi = 0; fi < std::min(frontiers.size(), num_colors); ++fi) {
+        auto ls = SliceFrontierToLineSet(frontiers[fi], z_slice, colors[fi % num_colors]);
+        open3d::io::WriteLineSet(
+            (test_output_dir / ("slice_frontier_" + std::to_string(fi) + ".ply")).string(),
+            *ls, true);
+    }
+
+    // Also save the 3D frontiers for comparison
+    auto frontiers_3d = tree->ExtractFrontiers();
+    open3d::geometry::TriangleMesh mesh_3d;
+    for (const auto &f: frontiers_3d) { mesh_3d += *FrontierToMesh(f, {0.5, 0.5, 0.5}); }
+    open3d::io::WriteTriangleMesh(
+        (test_output_dir / "frontiers_3d.ply").string(), mesh_3d, true);
+
+    ERL_INFO("Saved {} slice frontier line sets to {}", frontiers.size(), test_output_dir.string());
 }

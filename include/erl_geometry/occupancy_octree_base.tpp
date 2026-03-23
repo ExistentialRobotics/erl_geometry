@@ -1664,4 +1664,286 @@ namespace erl::geometry {
             sort_by_area);
     }
 
+    // ==================== Slice Frontier Extraction ====================
+
+    template<typename Dtype, class Node, class Setting>
+    std::vector<typename OccupancyOctreeBase<Dtype, Node, Setting>::SliceFrontier>
+    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractSliceFrontiers(
+        const Dtype z_slice,
+        const std::size_t min_num_vertices,
+        const bool sort_by_length) const {
+
+        // Edge segment in 2D key-space (XY plane at a fixed z key value).
+        struct EdgeSegment {
+            OctreeKey v0;
+            OctreeKey v1;
+        };
+
+        const auto setting = this->template GetSetting<OccupancyNdTreeSetting>();
+        const uint32_t tree_depth = setting->tree_depth;
+
+        // Convert z_slice to key-space to determine which z-key the slice passes through.
+        const auto z_key = this->CoordToKey(z_slice);
+
+        // --- Step 1: Collect frontier edge segments ---
+        //
+        // For each free leaf whose z-range contains z_key, check 4 lateral faces
+        // (W/E/S/N). On each face, the octree neighbor iterator sweeps over 2
+        // changing dimensions (one lateral + Z). We collect all neighbor rects,
+        // then do a 1D sweep along the lateral dimension within the slice's Z band
+        // to find gaps — exactly like the quadtree's emit_frontier_gaps.
+
+        std::vector<EdgeSegment> segments;
+
+        // Emit edge segments for uncovered lateral gaps on a face, considering
+        // only the portion of the face that intersects the slice z-band.
+        //
+        // Parameters:
+        //   nit/nit_end: directional leaf neighbor iterator range
+        //   fixed_dim: 0 (X) or 1 (Y) — the axis perpendicular to the face
+        //   fixed_val: key value on that axis (cell boundary)
+        //   lateral_dim: the lateral varying dimension (1=Y for W/E faces, 0=X for S/N faces)
+        //   lateral_min/lateral_max: lateral extent of the face in key-space
+        //   kz_min/kz_max: z extent of the cell in key-space
+        //   z_key_val: the z-key of the slice
+        const auto emit_slice_frontier_gaps = [&](auto nit,
+                                                  auto nit_end,
+                                                  int fixed_dim,
+                                                  uint32_t fixed_val,
+                                                  int lateral_dim,
+                                                  uint32_t lateral_min,
+                                                  uint32_t lateral_max,
+                                                  uint32_t kz_min,
+                                                  uint32_t kz_max,
+                                                  OctreeKey::KeyType z_key_val) {
+            // Collect neighbor coverage along the lateral dimension, filtered to
+            // those that overlap the slice z-band [z_key_val, z_key_val+1).
+            struct LateralInterval {
+                uint32_t lo, hi;
+            };
+            std::vector<LateralInterval> covered;
+
+            for (; nit != nit_end; ++nit) {
+                const uint32_t nd = nit.GetDepth();
+                const uint32_t nl = tree_depth - nd;
+                const OctreeKey &nk = nit.GetKey();
+                const uint32_t cell_size = 1u << nl;
+
+                // Neighbor's z range
+                uint32_t nz_lo = (nk[2] >> nl) << nl;
+                uint32_t nz_hi = nz_lo + cell_size;
+
+                // Skip neighbors that don't overlap the slice z-band
+                if (nz_hi <= z_key_val || nz_lo > z_key_val) { continue; }
+
+                // Neighbor's lateral range, clipped to face extent
+                uint32_t n_lat_lo = (nk[lateral_dim] >> nl) << nl;
+                uint32_t n_lat_hi = n_lat_lo + cell_size;
+                n_lat_lo = std::max(n_lat_lo, lateral_min);
+                n_lat_hi = std::min(n_lat_hi, lateral_max);
+
+                if (n_lat_lo < n_lat_hi) { covered.push_back({n_lat_lo, n_lat_hi}); }
+            }
+
+            // 1D sweep along lateral dimension to find gaps (same as quadtree)
+            std::sort(
+                covered.begin(),
+                covered.end(),
+                [](const LateralInterval &a, const LateralInterval &b) { return a.lo < b.lo; });
+
+            // Make edge segment vertices: 2D keys in the XY plane at z_key_val
+            auto make_vertex = [&](uint32_t lateral_val) -> OctreeKey {
+                OctreeKey k;
+                k[fixed_dim] = fixed_val;
+                k[lateral_dim] = lateral_val;
+                k[2] = z_key_val;
+                return k;
+            };
+
+            uint32_t current = lateral_min;
+            for (const auto &[lo, hi]: covered) {
+                if (lo > current) { segments.push_back({make_vertex(current), make_vertex(lo)}); }
+                current = std::max(current, hi);
+            }
+            if (current < lateral_max) {
+                segments.push_back({make_vertex(current), make_vertex(lateral_max)});
+            }
+        };
+
+        // Iterate all free leaves, skip those whose z-range doesn't contain z_key.
+        for (auto it = this->BeginLeaf(); it != this->EndLeaf(); ++it) {
+            if (this->IsNodeOccupied(it.GetNode())) { continue; }
+
+            const OctreeKey &key = it.GetKey();
+            const uint32_t depth = it.GetDepth();
+            const uint32_t level = tree_depth - depth;
+            const uint32_t cell_size = 1u << level;
+            const uint32_t kx_min = (key[0] >> level) << level;
+            const uint32_t ky_min = (key[1] >> level) << level;
+            const uint32_t kz_min = (key[2] >> level) << level;
+            const uint32_t kx_max = kx_min + cell_size;
+            const uint32_t ky_max = ky_min + cell_size;
+            const uint32_t kz_max = kz_min + cell_size;
+
+            // Skip cells that don't intersect the slice
+            if (z_key < kz_min || z_key >= kz_max) { continue; }
+
+            OctreeKey neighbor_key;
+
+            // West face: fixed X = kx_min, lateral = Y
+            if (this->ComputeWestNeighborKey(key, depth, neighbor_key)) {
+                emit_slice_frontier_gaps(
+                    this->BeginWestLeafNeighbor(key, depth),
+                    this->EndWestLeafNeighbor(),
+                    0,
+                    kx_min,
+                    1,
+                    ky_min,
+                    ky_max,
+                    kz_min,
+                    kz_max,
+                    z_key);
+            }
+
+            // East face: fixed X = kx_max, lateral = Y
+            if (this->ComputeEastNeighborKey(key, depth, neighbor_key)) {
+                emit_slice_frontier_gaps(
+                    this->BeginEastLeafNeighbor(key, depth),
+                    this->EndEastLeafNeighbor(),
+                    0,
+                    kx_max,
+                    1,
+                    ky_min,
+                    ky_max,
+                    kz_min,
+                    kz_max,
+                    z_key);
+            }
+
+            // South face: fixed Y = ky_min, lateral = X
+            if (this->ComputeSouthNeighborKey(key, depth, neighbor_key)) {
+                emit_slice_frontier_gaps(
+                    this->BeginSouthLeafNeighbor(key, depth),
+                    this->EndSouthLeafNeighbor(),
+                    1,
+                    ky_min,
+                    0,
+                    kx_min,
+                    kx_max,
+                    kz_min,
+                    kz_max,
+                    z_key);
+            }
+
+            // North face: fixed Y = ky_max, lateral = X
+            if (this->ComputeNorthNeighborKey(key, depth, neighbor_key)) {
+                emit_slice_frontier_gaps(
+                    this->BeginNorthLeafNeighbor(key, depth),
+                    this->EndNorthLeafNeighbor(),
+                    1,
+                    ky_max,
+                    0,
+                    kx_min,
+                    kx_max,
+                    kz_min,
+                    kz_max,
+                    z_key);
+            }
+        }
+
+        if (segments.empty()) { return {}; }
+
+        // --- Step 2: Chain segments into frontier polylines ---
+        // (Same algorithm as the quadtree's ExtractFrontiersImpl)
+
+        absl::flat_hash_map<OctreeKey, std::vector<std::size_t>> vertex_to_segments;
+        vertex_to_segments.reserve(segments.size() * 2);
+        for (std::size_t i = 0; i < segments.size(); ++i) {
+            vertex_to_segments[segments[i].v0].push_back(i);
+            vertex_to_segments[segments[i].v1].push_back(i);
+        }
+
+        std::vector<int> frontier_index(segments.size(), -1);
+        int current_frontier = -1;
+        const auto grow_chain = [&](OctreeKey tip, std::vector<OctreeKey> &chain) {
+            while (true) {
+                const auto &adj = vertex_to_segments[tip];
+                if (adj.size() > 2) { break; }  // branch point: stop
+                bool advanced = false;
+                for (const std::size_t si: adj) {
+                    if (frontier_index[si] >= 0) { continue; }  // already visited
+                    frontier_index[si] = current_frontier;
+                    const OctreeKey &next =
+                        (segments[si].v0 == tip) ? segments[si].v1 : segments[si].v0;
+                    chain.push_back(next);
+                    tip = next;
+                    advanced = true;
+                    break;
+                }
+                if (!advanced) { break; }
+            }
+        };
+
+        std::vector<SliceFrontier> frontiers;
+        std::vector<OctreeKey> forward;
+        std::vector<OctreeKey> backward;
+
+        for (std::size_t i = 0; i < segments.size(); ++i) {
+            if (frontier_index[i] >= 0) { continue; }
+            current_frontier = static_cast<int>(frontiers.size());
+            frontier_index[i] = current_frontier;
+
+            forward.clear();
+            grow_chain(segments[i].v1, forward);
+
+            backward.clear();
+            grow_chain(segments[i].v0, backward);
+
+            const std::size_t total = backward.size() + 2 + forward.size();
+            if (total < min_num_vertices) { continue; }
+
+            // Convert OctreeKeys to 2D XY coordinates
+            SliceFrontier frontier(2, static_cast<Eigen::Index>(total));
+            Eigen::Index col = 0;
+            for (auto rit = backward.rbegin(); rit != backward.rend(); ++rit) {
+                const Vector3 coord = this->KeyToVertexCoord(*rit);
+                frontier.col(col++) << coord[0], coord[1];
+            }
+            {
+                const Vector3 coord = this->KeyToVertexCoord(segments[i].v0);
+                frontier.col(col++) << coord[0], coord[1];
+            }
+            {
+                const Vector3 coord = this->KeyToVertexCoord(segments[i].v1);
+                frontier.col(col++) << coord[0], coord[1];
+            }
+            for (const auto &v: forward) {
+                const Vector3 coord = this->KeyToVertexCoord(v);
+                frontier.col(col++) << coord[0], coord[1];
+            }
+
+            frontiers.push_back(std::move(frontier));
+        }
+
+        if (sort_by_length) {
+            std::vector<std::pair<std::size_t, Dtype>> index_length(frontiers.size());
+            for (std::size_t i = 0; i < frontiers.size(); ++i) {
+                Dtype len = 0;
+                for (Eigen::Index j = 1; j < frontiers[i].cols(); ++j) {
+                    len += (frontiers[i].col(j) - frontiers[i].col(j - 1)).norm();
+                }
+                index_length[i] = {i, len};
+            }
+            std::sort(index_length.begin(), index_length.end(), [](const auto &a, const auto &b) {
+                return a.second > b.second;
+            });
+            std::vector<SliceFrontier> sorted;
+            sorted.reserve(frontiers.size());
+            for (const auto &[i, len]: index_length) { sorted.push_back(std::move(frontiers[i])); }
+            frontiers = std::move(sorted);
+        }
+
+        return frontiers;
+    }
+
 }  // namespace erl::geometry

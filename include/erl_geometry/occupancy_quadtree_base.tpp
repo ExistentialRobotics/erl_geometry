@@ -1396,6 +1396,8 @@ namespace erl::geometry {
         };
 
         std::vector<Frontier> frontiers;
+        std::vector<QuadtreeKey> forward;
+        std::vector<QuadtreeKey> backward;
 
         for (std::size_t i = 0; i < segments.size(); ++i) {
             if (frontier_index[i] >= 0) { continue; }
@@ -1403,11 +1405,11 @@ namespace erl::geometry {
             frontier_index[i] = current_frontier;
 
             // Grow forward from v1
-            std::vector<QuadtreeKey> forward;
+            forward.clear();
             grow_chain(segments[i].v1, forward);
 
             // Grow backward from v0
-            std::vector<QuadtreeKey> backward;
+            backward.clear();
             grow_chain(segments[i].v0, backward);
 
             // Assemble: backward (reversed) + v0 + v1 + forward
