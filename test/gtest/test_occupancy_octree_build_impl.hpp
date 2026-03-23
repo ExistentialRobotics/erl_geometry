@@ -84,7 +84,7 @@ public:
     explicit TestOccupancyOctreeBuildImpl(std::shared_ptr<Options> options_in)
         : options(std::move(options_in)) {
 
-        drawer_setting->occupied_only = true;
+        drawer_setting->draw_occupied = true;
         visualizer_setting->mesh_show_back_face = false;
 
         geometries.push_back(point_cloud);

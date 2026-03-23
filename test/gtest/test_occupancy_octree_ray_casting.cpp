@@ -67,7 +67,7 @@ struct UserData {
             drawer_setting->area_max[0],
             drawer_setting->area_max[1],
             drawer_setting->area_max[2]);
-        drawer_setting->occupied_only = true;
+        drawer_setting->draw_occupied = true;
         drawer = std::make_shared<OctreeDrawer>(drawer_setting);
         visualizer_setting->x = (drawer_setting->area_min[0] + drawer_setting->area_max[0]) / 2.;
         visualizer_setting->y = (drawer_setting->area_min[1] + drawer_setting->area_max[1]) / 2.;

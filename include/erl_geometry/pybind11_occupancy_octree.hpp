@@ -303,7 +303,9 @@ BindOccupancyOctree(
            const Eigen::Vector3d &area_max,
            const Eigen::Vector3d &border_color,
            const Eigen::Vector3d &occupied_color,
-           const bool occupied_only,
+           const Eigen::Vector3d &free_color,
+           const bool draw_occupied,
+           const bool draw_free,
            const bool draw_node_boxes,
            const bool draw_node_borders,
            const int window_width,
@@ -317,7 +319,9 @@ BindOccupancyOctree(
             drawer_setting->area_max = area_max;
             drawer_setting->border_color = border_color;
             drawer_setting->occupied_color = occupied_color;
-            drawer_setting->occupied_only = occupied_only;
+            drawer_setting->free_color = free_color;
+            drawer_setting->draw_occupied = draw_occupied;
+            drawer_setting->draw_free = draw_free;
             drawer_setting->draw_node_boxes = draw_node_boxes;
             drawer_setting->draw_node_borders = draw_node_borders;
 
@@ -343,7 +347,9 @@ BindOccupancyOctree(
         py::arg("area_max") = Vector3(1.0, 1.0, 1.0),
         py::arg("border_color") = Vector3(0.0, 0.0, 0.0),
         py::arg("occupied_color") = Vector3(0.5, 0.5, 0.5),
-        py::arg("occupied_only") = false,
+        py::arg("free_color") = Vector3(1.0, 1.0, 1.0),
+        py::arg("draw_occupied") = true,
+        py::arg("draw_free") = false,
         py::arg("draw_node_boxes") = true,
         py::arg("draw_node_borders") = true,
         py::arg("window_width") = 1920,

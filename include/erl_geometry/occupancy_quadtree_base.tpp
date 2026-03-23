@@ -1374,15 +1374,16 @@ namespace erl::geometry {
 
         // Follow the chain from `tip` by picking unvisited segments at non-branch
         // endpoints. Appends vertices (excluding `tip` itself) to `chain`.
-        std::vector<bool> visited(segments.size(), false);
+        std::vector<int> frontier_index(segments.size(), -1);
+        int current_frontier = -1;
         const auto grow_chain = [&](QuadtreeKey tip, std::vector<QuadtreeKey> &chain) {
             while (true) {
                 const auto &adj = vertex_to_segments[tip];
                 if (adj.size() > 2) { break; }  // branch point: stop
                 bool advanced = false;
                 for (const std::size_t si: adj) {
-                    if (visited[si]) { continue; }
-                    visited[si] = true;
+                    if (frontier_index[si] >= 0) { continue; }
+                    frontier_index[si] = current_frontier;
                     const QuadtreeKey &next =
                         (segments[si].v0 == tip) ? segments[si].v1 : segments[si].v0;
                     chain.push_back(next);
@@ -1397,8 +1398,9 @@ namespace erl::geometry {
         std::vector<Frontier> frontiers;
 
         for (std::size_t i = 0; i < segments.size(); ++i) {
-            if (visited[i]) { continue; }
-            visited[i] = true;
+            if (frontier_index[i] >= 0) { continue; }
+            current_frontier = static_cast<int>(frontiers.size());
+            frontier_index[i] = current_frontier;
 
             // Grow forward from v1
             std::vector<QuadtreeKey> forward;

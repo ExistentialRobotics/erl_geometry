@@ -61,6 +61,47 @@ namespace erl::geometry {
         void
         OnDeleteNodeChild(Node *node, Node *child, const OctreeKey &key) override;
 
+        //-- frontier extraction
+
+        /// A 3D frontier mesh representing the boundary between free and unknown space.
+        /// Each frontier is a connected component of frontier patches (analogous to
+        /// how the quadtree groups edge segments into polylines).
+        struct Frontier {
+            std::vector<Vector3> vertices;
+            std::vector<Eigen::Vector3i> faces;  // each element holds 3 vertex indices
+        };
+
+        /// Extract frontiers (boundaries between free and unknown space).
+        /// Each frontier is a connected triangle mesh of face patches.
+        /// @param min_num_triangles Minimum number of triangles for a frontier to be returned.
+        /// @param sort_by_area If true, sort frontiers by total surface area (descending).
+        /// @return Vector of frontiers.
+        [[nodiscard]] std::vector<Frontier>
+        ExtractFrontiers(std::size_t min_num_triangles = 1, bool sort_by_area = true) const;
+
+        /// Extract frontiers within an axis-aligned bounding box.
+        /// Free leaves intersecting the AABB are considered; the resulting mesh
+        /// may slightly exceed the AABB at cell boundaries.
+        /// @param aabb_min_x Minimum x coordinate of the query region.
+        /// @param aabb_min_y Minimum y coordinate of the query region.
+        /// @param aabb_min_z Minimum z coordinate of the query region.
+        /// @param aabb_max_x Maximum x coordinate of the query region.
+        /// @param aabb_max_y Maximum y coordinate of the query region.
+        /// @param aabb_max_z Maximum z coordinate of the query region.
+        /// @param min_num_triangles Minimum number of triangles for a frontier to be returned.
+        /// @param sort_by_area If true, sort frontiers by total surface area (descending).
+        /// @return Vector of frontiers.
+        [[nodiscard]] std::vector<Frontier>
+        ExtractFrontiers(
+            Dtype aabb_min_x,
+            Dtype aabb_min_y,
+            Dtype aabb_min_z,
+            Dtype aabb_max_x,
+            Dtype aabb_max_y,
+            Dtype aabb_max_z,
+            std::size_t min_num_triangles = 1,
+            bool sort_by_area = true) const;
+
         //-- Sample position
         /**
          * Sample positions from the free space.
@@ -313,6 +354,14 @@ namespace erl::geometry {
         UpdateNode(const OctreeKey &key, float log_odds_delta, bool lazy_eval);
 
     private:
+        template<typename LeafIterator>
+        [[nodiscard]] std::vector<Frontier>
+        ExtractFrontiersImpl(
+            LeafIterator it,
+            LeafIterator it_end,
+            std::size_t min_num_triangles,
+            bool sort_by_area) const;
+
         Node *
         UpdateNodeRecurs(
             Node *node,

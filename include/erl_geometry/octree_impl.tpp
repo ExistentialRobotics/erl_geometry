@@ -1406,6 +1406,7 @@ namespace erl::geometry {
         this->m_neighbor_key_[unchanged_dim] = key_unchanged;
         this->m_neighbor_key_[changing_dim1] = key[changing_dim1] - half_offset;
         this->m_neighbor_key_[changing_dim2] = key[changing_dim2] - half_offset;
+        this->m_min_key_changing_dim1_ = this->m_neighbor_key_[changing_dim1];
         this->m_max_key_changing_dim1_ = std::min(
             key[changing_dim1] + (level == 0 ? 1 : half_offset),
             static_cast<OctreeKey::KeyType>(1 << max_depth));
@@ -1443,9 +1444,16 @@ namespace erl::geometry {
 
             // found a neighbor
             s.key = this->m_tree_->AdjustKeyToDepth(m_neighbor_key_, node_depth);
-            // avoid duplicate
-            if (s.key[changing_dim1] != key_changing_dim1) {
-                // the node's center is not on the current row
+            // avoid duplicate: accept only at the cell's first dim1 row within scan range.
+            // The cell's d1 boundary is (center >> level) << level. We accept when the
+            // scan position equals max(cell_d1_lo, scan_start), i.e., the first dim1 row
+            // where this cell appears in our scan.
+            const uint32_t max_depth = this->m_tree_->GetTreeDepth();
+            const uint32_t nl = max_depth - node_depth;
+            const uint32_t cell_d1_lo = (s.key[changing_dim1] >> nl) << nl;
+            const uint32_t accept_d1 = std::max(cell_d1_lo, m_min_key_changing_dim1_);
+            if (key_changing_dim1 != accept_d1) {
+                // not the first row for this cell — skip to avoid duplicate
                 s.node = nullptr;
                 ++key_changing_dim2;
                 if (key_changing_dim2 >= m_max_key_changing_dim2_) {  // go to the next row
@@ -1455,13 +1463,12 @@ namespace erl::geometry {
                 continue;
             }
             // while the loop ends here, update key_changing_dim2 to the next value
-            const uint32_t max_depth = this->m_tree_->GetTreeDepth();
             key_changing_dim2 = s.key[changing_dim2] +
                                 (node_depth == max_depth ? 1 : (1 << (max_depth - node_depth - 1)));
         }
         // check if we have reached the end
-        if (s.node == nullptr && key_changing_dim1 >= m_max_key_changing_dim1_ &&
-            key_changing_dim2 >= m_max_key_changing_dim2_) {
+        if (s.node == nullptr || (key_changing_dim1 >= m_max_key_changing_dim1_ &&
+                                  key_changing_dim2 >= m_max_key_changing_dim2_)) {
             this->Terminate();
         }
     }

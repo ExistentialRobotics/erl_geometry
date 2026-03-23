@@ -666,6 +666,7 @@ namespace erl::geometry {
 
         protected:
             OctreeKey m_neighbor_key_ = {};
+            OctreeKey::KeyType m_min_key_changing_dim1_ = 0;
             OctreeKey::KeyType m_max_key_changing_dim1_ = 0;
             OctreeKey::KeyType m_min_key_changing_dim2_ = 0;
             OctreeKey::KeyType m_max_key_changing_dim2_ = 0;

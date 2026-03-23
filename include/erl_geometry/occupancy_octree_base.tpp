@@ -1231,4 +1231,437 @@ namespace erl::geometry {
 
         return s.good();
     }
+
+    // ==================== Frontier Extraction ====================
+
+    template<typename Dtype, class Node, class Setting>
+    template<typename LeafIterator>
+    std::vector<typename OccupancyOctreeBase<Dtype, Node, Setting>::Frontier>
+    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractFrontiersImpl(
+        LeafIterator it,
+        LeafIterator it_end,
+        const std::size_t min_num_triangles,
+        const bool sort_by_area) const {
+
+        struct FaceQuad {
+            int fixed_dim;
+            uint32_t fixed_val;
+            int d1_dim;
+            int d2_dim;
+            uint32_t d1_min, d1_max, d2_min, d2_max;
+            bool flip_winding;
+        };
+
+        const auto setting = this->template GetSetting<OccupancyNdTreeSetting>();
+        const uint32_t tree_depth = setting->tree_depth;
+
+        // --- Step 1: Collect frontier face quads ---
+
+        std::vector<FaceQuad> quads;
+
+        // For each face of a free leaf, find uncovered (unknown) rectangular regions
+        // via a 2D sweep. Each uncovered rectangle becomes a frontier quad.
+        const auto emit_frontier_quads = [&](auto nit,
+                                             auto nit_end,
+                                             int fixed_dim,
+                                             uint32_t fixed_val,
+                                             int d1_dim,
+                                             int d2_dim,
+                                             uint32_t d1_min,
+                                             uint32_t d1_max,
+                                             uint32_t d2_min,
+                                             uint32_t d2_max,
+                                             bool flip_winding) {
+            struct Rect {
+                uint32_t d1_min, d1_max, d2_min, d2_max;
+            };
+            std::vector<Rect> neighbor_rects;
+
+            for (; nit != nit_end; ++nit) {
+                const uint32_t nd = nit.GetDepth();
+                const uint32_t nl = tree_depth - nd;
+                const OctreeKey &nk = nit.GetKey();
+                const uint32_t cell_size = 1u << nl;
+
+                uint32_t n_d1_lo = (nk[d1_dim] >> nl) << nl;
+                uint32_t n_d1_hi = n_d1_lo + cell_size;
+                uint32_t n_d2_lo = (nk[d2_dim] >> nl) << nl;
+                uint32_t n_d2_hi = n_d2_lo + cell_size;
+
+                // Clip to face extent
+                n_d1_lo = std::max(n_d1_lo, d1_min);
+                n_d1_hi = std::min(n_d1_hi, d1_max);
+                n_d2_lo = std::max(n_d2_lo, d2_min);
+                n_d2_hi = std::min(n_d2_hi, d2_max);
+
+                if (n_d1_lo < n_d1_hi && n_d2_lo < n_d2_hi) {
+                    neighbor_rects.push_back({n_d1_lo, n_d1_hi, n_d2_lo, n_d2_hi});
+                }
+            }
+
+            // If no neighbors found, the entire face is frontier.
+            if (neighbor_rects.empty()) {
+                quads.push_back(
+                    {fixed_dim,
+                     fixed_val,
+                     d1_dim,
+                     d2_dim,
+                     d1_min,
+                     d1_max,
+                     d2_min,
+                     d2_max,
+                     flip_winding});
+                return;
+            }
+
+            if (neighbor_rects.size() == 1 && neighbor_rects[0].d1_min == d1_min &&
+                neighbor_rects[0].d1_max == d1_max && neighbor_rects[0].d2_min == d2_min &&
+                neighbor_rects[0].d2_max == d2_max) {
+                // The only neighbor fully covers the face, no frontier.
+                return;
+            }
+
+            // 2D sweep: split along d1 breakpoints, then 1D sweep along d2 per band.
+            std::vector<uint32_t> d1_breaks;
+            d1_breaks.push_back(d1_min);
+            d1_breaks.push_back(d1_max);
+            for (const auto &r: neighbor_rects) {
+                d1_breaks.push_back(r.d1_min);
+                d1_breaks.push_back(r.d1_max);
+            }
+            std::sort(d1_breaks.begin(), d1_breaks.end());
+            d1_breaks.erase(std::unique(d1_breaks.begin(), d1_breaks.end()), d1_breaks.end());
+
+            for (std::size_t bi = 0; bi + 1 < d1_breaks.size(); ++bi) {
+                const uint32_t band_lo = d1_breaks[bi];
+                const uint32_t band_hi = d1_breaks[bi + 1];
+
+                std::vector<std::pair<uint32_t, uint32_t>> covered;
+                for (const auto &r: neighbor_rects) {
+                    if (r.d1_min <= band_lo && r.d1_max >= band_hi) {
+                        covered.emplace_back(r.d2_min, r.d2_max);
+                    }
+                }
+                std::sort(covered.begin(), covered.end());
+
+                uint32_t current = d2_min;
+                for (const auto &[c_lo, c_hi]: covered) {
+                    if (c_lo > current) {
+                        quads.push_back(
+                            {fixed_dim,
+                             fixed_val,
+                             d1_dim,
+                             d2_dim,
+                             band_lo,
+                             band_hi,
+                             current,
+                             c_lo,
+                             flip_winding});
+                    }
+                    current = std::max(current, c_hi);
+                }
+                if (current < d2_max) {
+                    quads.push_back(
+                        {fixed_dim,
+                         fixed_val,
+                         d1_dim,
+                         d2_dim,
+                         band_lo,
+                         band_hi,
+                         current,
+                         d2_max,
+                         flip_winding});
+                }
+            }
+        };
+
+        for (; it != it_end; ++it) {
+            const Node *node = it.GetNode();
+            if (this->IsNodeOccupied(node)) { continue; }
+
+            const OctreeKey &key = it.GetKey();
+            const uint32_t depth = it.GetDepth();
+            const uint32_t level = tree_depth - depth;
+            const uint32_t cell_size = 1u << level;
+            const uint32_t kx_min = (key[0] >> level) << level;
+            const uint32_t ky_min = (key[1] >> level) << level;
+            const uint32_t kz_min = (key[2] >> level) << level;
+            const uint32_t kx_max = kx_min + cell_size;
+            const uint32_t ky_max = ky_min + cell_size;
+            const uint32_t kz_max = kz_min + cell_size;
+
+            OctreeKey neighbor_key;
+
+            // Winding flip rule:
+            // Natural cross(d1_axis, d2_axis) gives +X for (Y,Z), -Y for (X,Z), +Z for (X,Y).
+            // Outward normal points from free cell toward unknown space.
+            // West(-X): natural +X, want -X → flip.  East(+X): natural +X, want +X → no flip.
+            // South(-Y): natural -Y, want -Y → no flip.  North(+Y): natural -Y, want +Y → flip.
+            // Bottom(-Z): natural +Z, want -Z → flip.  Top(+Z): natural +Z, want +Z → no flip.
+
+            if (this->ComputeWestNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_quads(
+                    this->BeginWestLeafNeighbor(key, depth),
+                    this->EndWestLeafNeighbor(),
+                    0,
+                    kx_min,
+                    1,
+                    2,
+                    ky_min,
+                    ky_max,
+                    kz_min,
+                    kz_max,
+                    /*flip=*/true);
+            }
+            if (this->ComputeEastNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_quads(
+                    this->BeginEastLeafNeighbor(key, depth),
+                    this->EndEastLeafNeighbor(),
+                    0,
+                    kx_max,
+                    1,
+                    2,
+                    ky_min,
+                    ky_max,
+                    kz_min,
+                    kz_max,
+                    /*flip=*/false);
+            }
+            if (this->ComputeSouthNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_quads(
+                    this->BeginSouthLeafNeighbor(key, depth),
+                    this->EndSouthLeafNeighbor(),
+                    1,
+                    ky_min,
+                    0,
+                    2,
+                    kx_min,
+                    kx_max,
+                    kz_min,
+                    kz_max,
+                    /*flip=*/false);
+            }
+            if (this->ComputeNorthNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_quads(
+                    this->BeginNorthLeafNeighbor(key, depth),
+                    this->EndNorthLeafNeighbor(),
+                    1,
+                    ky_max,
+                    0,
+                    2,
+                    kx_min,
+                    kx_max,
+                    kz_min,
+                    kz_max,
+                    /*flip=*/true);
+            }
+            if (this->ComputeBottomNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_quads(
+                    this->BeginBottomLeafNeighbor(key, depth),
+                    this->EndBottomLeafNeighbor(),
+                    2,
+                    kz_min,
+                    0,
+                    1,
+                    kx_min,
+                    kx_max,
+                    ky_min,
+                    ky_max,
+                    /*flip=*/true);
+            }
+            if (this->ComputeTopNeighborKey(key, depth, neighbor_key)) {
+                emit_frontier_quads(
+                    this->BeginTopLeafNeighbor(key, depth),
+                    this->EndTopLeafNeighbor(),
+                    2,
+                    kz_max,
+                    0,
+                    1,
+                    kx_min,
+                    kx_max,
+                    ky_min,
+                    ky_max,
+                    /*flip=*/false);
+            }
+        }
+
+        if (quads.empty()) { return {}; }
+
+        // --- Step 2: Build corner keys for each quad and group by shared edges ---
+
+        // Compute 4 corner OctreeKeys for a quad.
+        // Order: p0=(d1_min,d2_min), p1=(d1_max,d2_min), p2=(d1_max,d2_max), p3=(d1_min,d2_max)
+        // If flip_winding, swap p1 and p3 to reverse winding.
+        const auto get_corners = [](const FaceQuad &q) -> std::array<OctreeKey, 4> {
+            std::array<OctreeKey, 4> c;
+            for (int i = 0; i < 4; ++i) {
+                c[i][q.fixed_dim] = q.fixed_val;
+                c[i][q.d1_dim] = (i == 1 || i == 2) ? q.d1_max : q.d1_min;
+                c[i][q.d2_dim] = (i == 2 || i == 3) ? q.d2_max : q.d2_min;
+            }
+            if (q.flip_winding) { std::swap(c[1], c[3]); }
+            return c;
+        };
+
+        // Build edge adjacency for connected component grouping.
+        // An edge is (min_key, max_key) pair ordered canonically.
+        struct KeyPair {
+            OctreeKey a, b;
+
+            bool
+            operator==(const KeyPair &other) const {
+                return a == other.a && b == other.b;
+            }
+        };
+
+        struct KeyPairHash {
+            std::size_t
+            operator()(const KeyPair &kp) const {
+                auto h1 = OctreeKey::KeyHash{}(kp.a);
+                auto h2 = OctreeKey::KeyHash{}(kp.b);
+                return h1 ^ (h2 * 2654435761u);
+            }
+        };
+
+        auto make_edge = [](const OctreeKey &a, const OctreeKey &b) -> KeyPair {
+            return (a < b) ? KeyPair{a, b} : KeyPair{b, a};
+        };
+
+        // edge -> list of quad indices
+        absl::flat_hash_map<KeyPair, std::vector<std::size_t>, KeyPairHash> edge_to_quads;
+        std::vector<std::array<OctreeKey, 4>> all_corners(quads.size());
+
+        for (std::size_t qi = 0; qi < quads.size(); ++qi) {
+            all_corners[qi] = get_corners(quads[qi]);
+            const auto &c = all_corners[qi];
+            // 4 edges: (c0,c1), (c1,c2), (c2,c3), (c3,c0)
+            for (int ei = 0; ei < 4; ++ei) {
+                auto edge = make_edge(c[ei], c[(ei + 1) % 4]);
+                edge_to_quads[edge].push_back(qi);
+            }
+        }
+
+        // BFS to find connected components
+        std::vector<int> component(quads.size(), -1);
+        int num_components = 0;
+        std::vector<std::size_t> bfs_queue;
+
+        for (std::size_t qi = 0; qi < quads.size(); ++qi) {
+            if (component[qi] >= 0) { continue; }
+            const int comp_id = num_components++;
+            component[qi] = comp_id;
+            bfs_queue.clear();
+            bfs_queue.push_back(qi);
+
+            for (std::size_t head = 0; head < bfs_queue.size(); ++head) {
+                const std::size_t cur = bfs_queue[head];
+                const auto &c = all_corners[cur];
+                for (int ei = 0; ei < 4; ++ei) {
+                    auto edge = make_edge(c[ei], c[(ei + 1) % 4]);
+                    for (const std::size_t neighbor_qi: edge_to_quads[edge]) {
+                        if (component[neighbor_qi] < 0) {
+                            component[neighbor_qi] = comp_id;
+                            bfs_queue.push_back(neighbor_qi);
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Step 3: Build indexed meshes per component ---
+
+        std::vector<Frontier> frontiers(num_components);
+
+        // Per-component vertex deduplication maps (OctreeKey -> vertex index)
+        std::vector<absl::flat_hash_map<OctreeKey, int>> comp_vertex_map(num_components);
+
+        for (std::size_t qi = 0; qi < quads.size(); ++qi) {
+            const int comp_id = component[qi];
+            auto &frontier = frontiers[comp_id];
+            auto &vertex_map = comp_vertex_map[comp_id];
+            const auto &c = all_corners[qi];
+
+            auto get_or_add_vertex = [&](const OctreeKey &k) -> int {
+                auto [iter, inserted] =
+                    vertex_map.emplace(k, static_cast<int>(frontier.vertices.size()));
+                if (inserted) { frontier.vertices.push_back(this->KeyToVertexCoord(k)); }
+                return iter->second;
+            };
+
+            int v0 = get_or_add_vertex(c[0]);
+            int v1 = get_or_add_vertex(c[1]);
+            int v2 = get_or_add_vertex(c[2]);
+            int v3 = get_or_add_vertex(c[3]);
+
+            frontier.faces.push_back({v0, v1, v2});
+            frontier.faces.push_back({v0, v2, v3});
+        }
+
+        // Remove empty frontiers and apply min_num_triangles filter
+        std::vector<Frontier> result;
+        for (auto &f: frontiers) {
+            if (f.faces.size() >= min_num_triangles) { result.push_back(std::move(f)); }
+        }
+
+        if (sort_by_area) {
+            // Compute total surface area per frontier and sort descending
+            std::vector<std::pair<std::size_t, Dtype>> index_area(result.size());
+            for (std::size_t i = 0; i < result.size(); ++i) {
+                Dtype area = 0;
+                for (const auto &face: result[i].faces) {
+                    const Vector3 &a = result[i].vertices[face[0]];
+                    const Vector3 &b = result[i].vertices[face[1]];
+                    const Vector3 &c = result[i].vertices[face[2]];
+                    area += (b - a).cross(c - a).norm() * static_cast<Dtype>(0.5);
+                }
+                index_area[i] = {i, area};
+            }
+            std::sort(index_area.begin(), index_area.end(), [](const auto &a, const auto &b) {
+                return a.second > b.second;
+            });
+            std::vector<Frontier> sorted;
+            sorted.reserve(result.size());
+            for (const auto &[i, area]: index_area) { sorted.push_back(std::move(result[i])); }
+            result = std::move(sorted);
+        }
+
+        return result;
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::vector<typename OccupancyOctreeBase<Dtype, Node, Setting>::Frontier>
+    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractFrontiers(
+        const std::size_t min_num_triangles,
+        const bool sort_by_area) const {
+        return ExtractFrontiersImpl(
+            this->BeginLeaf(),
+            this->EndLeaf(),
+            min_num_triangles,
+            sort_by_area);
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::vector<typename OccupancyOctreeBase<Dtype, Node, Setting>::Frontier>
+    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractFrontiers(
+        const Dtype aabb_min_x,
+        const Dtype aabb_min_y,
+        const Dtype aabb_min_z,
+        const Dtype aabb_max_x,
+        const Dtype aabb_max_y,
+        const Dtype aabb_max_z,
+        const std::size_t min_num_triangles,
+        const bool sort_by_area) const {
+        return ExtractFrontiersImpl(
+            this->BeginLeafInAabb(
+                aabb_min_x,
+                aabb_min_y,
+                aabb_min_z,
+                aabb_max_x,
+                aabb_max_y,
+                aabb_max_z),
+            this->EndLeafInAabb(),
+            min_num_triangles,
+            sort_by_area);
+    }
+
 }  // namespace erl::geometry

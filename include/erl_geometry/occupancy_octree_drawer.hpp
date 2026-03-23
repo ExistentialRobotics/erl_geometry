@@ -4,23 +4,25 @@
 
 #include "erl_common/yaml.hpp"
 
-#include <open3d/geometry/VoxelGrid.h>
-
 #include <functional>
 
 namespace erl::geometry {
 
     struct OccupancyOctreeDrawerSetting
         : common::Yamlable<OccupancyOctreeDrawerSetting, AbstractOctreeDrawer::Setting> {
-        bool occupied_only = false;
+        bool draw_occupied = true;
+        bool draw_free = false;
         Eigen::Vector3d occupied_color = {0.67, 0.33, 0.0};  // brown
+        Eigen::Vector3d free_color = {0.5, 0.5, 0.5};        // gray
         bool draw_node_boxes = true;
         bool draw_node_borders = true;
 
         ERL_REFLECT_SCHEMA(
             OccupancyOctreeDrawerSetting,
-            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, occupied_only),
+            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, draw_occupied),
+            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, draw_free),
             ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, occupied_color),
+            ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, free_color),
             ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, draw_node_boxes),
             ERL_REFLECT_MEMBER(OccupancyOctreeDrawerSetting, draw_node_borders));
     };

@@ -93,7 +93,7 @@ TEST(OccupancyOctree, Build) {
     auto drawer_setting = std::make_shared<OccupancyOctreeDrawer::Setting>();
     drawer_setting->area_min = mesh_legacy->GetMinBound();
     drawer_setting->area_max = mesh_legacy->GetMaxBound();
-    drawer_setting->occupied_only = true;
+    drawer_setting->draw_occupied = true;
     OccupancyOctreeDrawer drawer(drawer_setting);
     drawer.SetOctree(octree);
 

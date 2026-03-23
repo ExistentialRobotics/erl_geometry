@@ -1,5 +1,7 @@
 #pragma once
 
+#include <open3d/geometry/LineSet.h>
+
 namespace erl::geometry {
 
     template<typename OccupancyOctreeType>
@@ -118,7 +120,7 @@ namespace erl::geometry {
                 node_border->lines_.emplace_back(n + 3, n + 7);
             }
 
-            if (m_setting_->occupied_only) {
+            if (m_setting_->draw_occupied) {
                 if (m_draw_tree_) { m_draw_tree_(this, geometries, it); }
                 continue;
             }
@@ -173,16 +175,62 @@ namespace erl::geometry {
             const double x = it.GetX() * scaling;
             const double y = it.GetY() * scaling;
             const double z = it.GetZ() * scaling;
-            bool occupied = octree->IsNodeOccupied(*it);
+            const bool occupied = octree->IsNodeOccupied(*it);
+            const uint32_t level = octree->GetTreeDepth() - it.GetDepth();
 
-            if (m_setting_->occupied_only && !occupied) { continue; }
+            if ((!m_setting_->draw_occupied && occupied) || (!m_setting_->draw_free && !occupied)) {
+                continue;
+            }
 
-            if (occupied && m_setting_->draw_node_boxes) {
+            if (occupied && m_setting_->draw_node_boxes && m_setting_->draw_occupied) {
                 Eigen::Vector3i voxel_index(
                     std::floor(x / boxes->voxel_size_),   // x
                     std::floor(y / boxes->voxel_size_),   // y
                     std::floor(z / boxes->voxel_size_));  // z
-                boxes->AddVoxel(open3d::geometry::Voxel(voxel_index, m_setting_->occupied_color));
+                if (level == 0) {
+                    boxes->AddVoxel(
+                        open3d::geometry::Voxel(voxel_index, m_setting_->occupied_color));
+                } else {
+                    const int n = 1 << level;
+                    double x_min = std::floor((x - half_size) / boxes->voxel_size_);
+                    double y_min = std::floor((y - half_size) / boxes->voxel_size_);
+                    double z_min = std::floor((z - half_size) / boxes->voxel_size_);
+                    for (int i = 0; i < n; ++i) {
+                        for (int j = 0; j < n; ++j) {
+                            for (int k = 0; k < n; ++k) {
+                                boxes->AddVoxel(
+                                    open3d::geometry::Voxel(
+                                        Eigen::Vector3i(x_min + i, y_min + j, z_min + k),
+                                        m_setting_->occupied_color));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!occupied && m_setting_->draw_node_boxes && m_setting_->draw_free) {
+                Eigen::Vector3i voxel_index(
+                    std::floor(x / boxes->voxel_size_),   // x
+                    std::floor(y / boxes->voxel_size_),   // y
+                    std::floor(z / boxes->voxel_size_));  // z
+                if (level == 0) {
+                    boxes->AddVoxel(open3d::geometry::Voxel(voxel_index, m_setting_->free_color));
+                } else {
+                    const int n = 1 << level;
+                    double x_min = std::floor((x - half_size) / boxes->voxel_size_);
+                    double y_min = std::floor((y - half_size) / boxes->voxel_size_);
+                    double z_min = std::floor((z - half_size) / boxes->voxel_size_);
+                    for (int i = 0; i < n; ++i) {
+                        for (int j = 0; j < n; ++j) {
+                            for (int k = 0; k < n; ++k) {
+                                boxes->AddVoxel(
+                                    open3d::geometry::Voxel(
+                                        Eigen::Vector3i(x_min + i, y_min + j, z_min + k),
+                                        m_setting_->free_color));
+                            }
+                        }
+                    }
+                }
             }
 
             if (m_setting_->draw_node_borders) {

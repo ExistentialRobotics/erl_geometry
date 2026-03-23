@@ -88,6 +88,7 @@ erl_add_tests(
     test_lidar_frame_2d_basic
     test_lidar_frame_3d_basic
     test_occupancy_octree_build
+    test_occupancy_octree_extract_frontiers
     test_occupancy_octree_ray_casting
     test_occupancy_quadtree_batch_ray_casting
     test_occupancy_quadtree_build

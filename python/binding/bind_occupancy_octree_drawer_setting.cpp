@@ -11,7 +11,7 @@ BindOccupancyOctreeDrawerSetting(const py::module &m) {
         .def_readwrite("area_min", &T::area_min)
         .def_readwrite("area_max", &T::area_max)
         .def_readwrite("border_color", &T::border_color)
-        .def_readwrite("occupied_only", &T::occupied_only)
+        .def_readwrite("draw_occupied", &T::draw_occupied)
         .def_readwrite("occupied_color", &T::occupied_color)
         .def_readwrite("draw_node_boxes", &T::draw_node_boxes)
         .def_readwrite("draw_node_borders", &T::draw_node_borders);
