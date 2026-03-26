@@ -4,13 +4,15 @@
 
 namespace erl::geometry::logodd {
 
-    inline float
-    LogOdd(const float p) {
+    template<typename Dtype>
+    inline Dtype
+    LogOdd(const Dtype p) {
         return std::log(p / (1.0f - p));
     }
 
-    inline float
-    Probability(const float logodd) {
+    template<typename Dtype>
+    inline Dtype
+    Probability(const Dtype logodd) {
         return 1.0f / (1.0f + std::exp(-logodd));
     }
 }  // namespace erl::geometry::logodd
