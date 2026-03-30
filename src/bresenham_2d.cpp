@@ -9,6 +9,8 @@ namespace erl::geometry {
 
         Eigen::Vector2i delta = (end - start).array().abs();
         const int num_vertices = delta.maxCoeff() + 1;
+        if (num_vertices == 1) { return start; }
+
         Eigen::Matrix2Xi vertices(2, num_vertices);
 
         if (std::abs(delta.y()) == 0) {
