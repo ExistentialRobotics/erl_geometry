@@ -1232,9 +1232,7 @@ namespace erl::geometry {
     std::vector<typename OccupancyQuadtreeBase<Dtype, Node, Setting>::Frontier>
     OccupancyQuadtreeBase<Dtype, Node, Setting>::ExtractFrontiersImpl(
         LeafIterator it,
-        LeafIterator it_end,
-        const std::size_t min_num_vertices,
-        const bool sort_by_length) const {
+        LeafIterator it_end) const {
 
         // --- Step 0: Typedefs and helpers ---
 
@@ -1414,7 +1412,6 @@ namespace erl::geometry {
 
             // Assemble: backward (reversed) + v0 + v1 + forward
             const std::size_t total = backward.size() + 2 + forward.size();
-            if (total < min_num_vertices) { continue; }
 
             Frontier frontier(2, static_cast<Eigen::Index>(total));
             Eigen::Index col = 0;
@@ -1428,38 +1425,13 @@ namespace erl::geometry {
             frontiers.push_back(std::move(frontier));
         }
 
-        if (sort_by_length) {
-            // Sort by total edge length (descending)
-            std::vector<std::pair<std::size_t, Dtype>> index_length(frontiers.size());
-            for (std::size_t i = 0; i < frontiers.size(); ++i) {
-                Dtype len = 0;
-                for (Eigen::Index j = 1; j < frontiers[i].cols(); ++j) {
-                    len += (frontiers[i].col(j) - frontiers[i].col(j - 1)).norm();
-                }
-                index_length[i] = {i, len};
-            }
-            std::sort(index_length.begin(), index_length.end(), [](const auto &a, const auto &b) {
-                return a.second > b.second;
-            });
-            std::vector<Frontier> sorted;
-            sorted.reserve(frontiers.size());
-            for (const auto &[i, len]: index_length) { sorted.push_back(std::move(frontiers[i])); }
-            frontiers = std::move(sorted);
-        }
-
         return frontiers;
     }
 
     template<typename Dtype, class Node, class Setting>
     std::vector<typename OccupancyQuadtreeBase<Dtype, Node, Setting>::Frontier>
-    OccupancyQuadtreeBase<Dtype, Node, Setting>::ExtractFrontiers(
-        const std::size_t min_num_vertices,
-        const bool sort_by_length) const {
-        return ExtractFrontiersImpl(
-            this->BeginLeaf(),
-            this->EndLeaf(),
-            min_num_vertices,
-            sort_by_length);
+    OccupancyQuadtreeBase<Dtype, Node, Setting>::ExtractFrontiers() const {
+        return ExtractFrontiersImpl(this->BeginLeaf(), this->EndLeaf());
     }
 
     template<typename Dtype, class Node, class Setting>
@@ -1468,13 +1440,9 @@ namespace erl::geometry {
         const Dtype aabb_min_x,
         const Dtype aabb_min_y,
         const Dtype aabb_max_x,
-        const Dtype aabb_max_y,
-        const std::size_t min_num_vertices,
-        const bool sort_by_length) const {
+        const Dtype aabb_max_y) const {
         return ExtractFrontiersImpl(
             this->BeginLeafInAabb(aabb_min_x, aabb_min_y, aabb_max_x, aabb_max_y),
-            this->EndLeafInAabb(),
-            min_num_vertices,
-            sort_by_length);
+            this->EndLeafInAabb());
     }
 }  // namespace erl::geometry

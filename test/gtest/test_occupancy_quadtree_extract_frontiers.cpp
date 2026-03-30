@@ -40,16 +40,6 @@ BuildCircleTree(const Dtype resolution = 0.04) {
     return tree;
 }
 
-/// Compute the total edge length of a frontier polyline.
-static Dtype
-FrontierLength(const Matrix2X &frontier) {
-    Dtype len = 0;
-    for (Eigen::Index i = 1; i < frontier.cols(); ++i) {
-        len += (frontier.col(i) - frontier.col(i - 1)).norm();
-    }
-    return len;
-}
-
 TEST(OccupancyQuadtree, ExtractFrontiers_EmptyTree) {
     auto setting = std::make_shared<OccupancyQuadtree::Setting>();
     setting->resolution = 0.1;
@@ -99,8 +89,11 @@ TEST(OccupancyQuadtree, ExtractFrontiers_CircleHasFrontiers) {
     auto frontiers = tree->ExtractFrontiers();
 
     ASSERT_GT(frontiers.size(), 0);
-    // The largest frontier (from the occupied ring boundary) should be substantial
-    EXPECT_GT(frontiers[0].cols(), 2);
+    // At least one frontier should be substantial
+    auto max_it = std::max_element(
+        frontiers.begin(), frontiers.end(),
+        [](const auto &a, const auto &b) { return a.cols() < b.cols(); });
+    EXPECT_GT(max_it->cols(), 2);
 }
 
 TEST(OccupancyQuadtree, ExtractFrontiers_Visualization) {
@@ -152,51 +145,6 @@ TEST(OccupancyQuadtree, ExtractFrontiers_Visualization) {
     }
 
     cv::imwrite((test_output_dir / "frontiers.png").string(), img);
-}
-
-TEST(OccupancyQuadtree, ExtractFrontiers_SortedByLength) {
-    auto tree = BuildCircleTree(0.04);
-    auto frontiers = tree->ExtractFrontiers(/*min_num_vertices=*/1, /*sort_by_length=*/true);
-
-    for (std::size_t i = 1; i < frontiers.size(); ++i) {
-        EXPECT_GE(FrontierLength(frontiers[i - 1]), FrontierLength(frontiers[i]))
-            << "Frontiers not sorted by length at index " << i;
-    }
-}
-
-TEST(OccupancyQuadtree, ExtractFrontiers_UnsortedSameContent) {
-    auto tree = BuildCircleTree(0.04);
-    auto sorted = tree->ExtractFrontiers(/*min_num_vertices=*/1, /*sort_by_length=*/true);
-    auto unsorted = tree->ExtractFrontiers(/*min_num_vertices=*/1, /*sort_by_length=*/false);
-
-    // Both should return the same number of frontiers
-    ASSERT_EQ(sorted.size(), unsorted.size());
-
-    // Collect lengths from both, sort them, and verify they match
-    std::vector<Dtype> sorted_lengths;
-    std::vector<Dtype> unsorted_lengths;
-    sorted_lengths.reserve(sorted.size());
-    unsorted_lengths.reserve(unsorted.size());
-    for (const auto &f: sorted) { sorted_lengths.push_back(FrontierLength(f)); }
-    for (const auto &f: unsorted) { unsorted_lengths.push_back(FrontierLength(f)); }
-    std::sort(sorted_lengths.begin(), sorted_lengths.end());
-    std::sort(unsorted_lengths.begin(), unsorted_lengths.end());
-    for (std::size_t i = 0; i < sorted_lengths.size(); ++i) {
-        EXPECT_NEAR(sorted_lengths[i], unsorted_lengths[i], 1e-12)
-            << "Frontier length mismatch at index " << i;
-    }
-}
-
-TEST(OccupancyQuadtree, ExtractFrontiers_MinVerticesFiltering) {
-    auto tree = BuildCircleTree(0.04);
-
-    auto frontiers_all = tree->ExtractFrontiers(1);
-    auto frontiers_large = tree->ExtractFrontiers(100);
-
-    EXPECT_GE(frontiers_all.size(), frontiers_large.size());
-
-    // Every frontier in the filtered set must meet the minimum vertex count
-    for (const auto &f: frontiers_large) { EXPECT_GE(static_cast<std::size_t>(f.cols()), 100u); }
 }
 
 TEST(OccupancyQuadtree, ExtractFrontiers_InAabb) {

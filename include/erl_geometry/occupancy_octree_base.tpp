@@ -1239,9 +1239,7 @@ namespace erl::geometry {
     std::vector<typename OccupancyOctreeBase<Dtype, Node, Setting>::Frontier>
     OccupancyOctreeBase<Dtype, Node, Setting>::ExtractFrontiersImpl(
         LeafIterator it,
-        LeafIterator it_end,
-        const std::size_t min_num_triangles,
-        const bool sort_by_area) const {
+        LeafIterator it_end) const {
 
         struct FaceQuad {
             int fixed_dim;
@@ -1597,32 +1595,10 @@ namespace erl::geometry {
             frontier.faces.push_back({v0, v2, v3});
         }
 
-        // Remove empty frontiers and apply min_num_triangles filter
+        // Remove empty frontiers
         std::vector<Frontier> result;
         for (auto &f: frontiers) {
-            if (f.faces.size() >= min_num_triangles) { result.push_back(std::move(f)); }
-        }
-
-        if (sort_by_area) {
-            // Compute total surface area per frontier and sort descending
-            std::vector<std::pair<std::size_t, Dtype>> index_area(result.size());
-            for (std::size_t i = 0; i < result.size(); ++i) {
-                Dtype area = 0;
-                for (const auto &face: result[i].faces) {
-                    const Vector3 &a = result[i].vertices[face[0]];
-                    const Vector3 &b = result[i].vertices[face[1]];
-                    const Vector3 &c = result[i].vertices[face[2]];
-                    area += (b - a).cross(c - a).norm() * static_cast<Dtype>(0.5);
-                }
-                index_area[i] = {i, area};
-            }
-            std::sort(index_area.begin(), index_area.end(), [](const auto &a, const auto &b) {
-                return a.second > b.second;
-            });
-            std::vector<Frontier> sorted;
-            sorted.reserve(result.size());
-            for (const auto &[i, area]: index_area) { sorted.push_back(std::move(result[i])); }
-            result = std::move(sorted);
+            if (!f.faces.empty()) { result.push_back(std::move(f)); }
         }
 
         return result;
@@ -1630,14 +1606,8 @@ namespace erl::geometry {
 
     template<typename Dtype, class Node, class Setting>
     std::vector<typename OccupancyOctreeBase<Dtype, Node, Setting>::Frontier>
-    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractFrontiers(
-        const std::size_t min_num_triangles,
-        const bool sort_by_area) const {
-        return ExtractFrontiersImpl(
-            this->BeginLeaf(),
-            this->EndLeaf(),
-            min_num_triangles,
-            sort_by_area);
+    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractFrontiers() const {
+        return ExtractFrontiersImpl(this->BeginLeaf(), this->EndLeaf());
     }
 
     template<typename Dtype, class Node, class Setting>
@@ -1648,9 +1618,7 @@ namespace erl::geometry {
         const Dtype aabb_min_z,
         const Dtype aabb_max_x,
         const Dtype aabb_max_y,
-        const Dtype aabb_max_z,
-        const std::size_t min_num_triangles,
-        const bool sort_by_area) const {
+        const Dtype aabb_max_z) const {
         return ExtractFrontiersImpl(
             this->BeginLeafInAabb(
                 aabb_min_x,
@@ -1659,19 +1627,14 @@ namespace erl::geometry {
                 aabb_max_x,
                 aabb_max_y,
                 aabb_max_z),
-            this->EndLeafInAabb(),
-            min_num_triangles,
-            sort_by_area);
+            this->EndLeafInAabb());
     }
 
     // ==================== Slice Frontier Extraction ====================
 
     template<typename Dtype, class Node, class Setting>
     std::vector<typename OccupancyOctreeBase<Dtype, Node, Setting>::SliceFrontier>
-    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractSliceFrontiers(
-        const Dtype z_slice,
-        const std::size_t min_num_vertices,
-        const bool sort_by_length) const {
+    OccupancyOctreeBase<Dtype, Node, Setting>::ExtractSliceFrontiers(const Dtype z_slice) const {
 
         // Edge segment in 2D key-space (XY plane at a fixed z key value).
         struct EdgeSegment {
@@ -1890,7 +1853,6 @@ namespace erl::geometry {
             grow_chain(segments[i].v0, backward);
 
             const std::size_t total = backward.size() + 2 + forward.size();
-            if (total < min_num_vertices) { continue; }
 
             // Convert OctreeKeys to 2D XY coordinates
             SliceFrontier frontier(2, static_cast<Eigen::Index>(total));
@@ -1913,24 +1875,6 @@ namespace erl::geometry {
             }
 
             frontiers.push_back(std::move(frontier));
-        }
-
-        if (sort_by_length) {
-            std::vector<std::pair<std::size_t, Dtype>> index_length(frontiers.size());
-            for (std::size_t i = 0; i < frontiers.size(); ++i) {
-                Dtype len = 0;
-                for (Eigen::Index j = 1; j < frontiers[i].cols(); ++j) {
-                    len += (frontiers[i].col(j) - frontiers[i].col(j - 1)).norm();
-                }
-                index_length[i] = {i, len};
-            }
-            std::sort(index_length.begin(), index_length.end(), [](const auto &a, const auto &b) {
-                return a.second > b.second;
-            });
-            std::vector<SliceFrontier> sorted;
-            sorted.reserve(frontiers.size());
-            for (const auto &[i, len]: index_length) { sorted.push_back(std::move(frontiers[i])); }
-            frontiers = std::move(sorted);
         }
 
         return frontiers;

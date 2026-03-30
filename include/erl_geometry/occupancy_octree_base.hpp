@@ -73,11 +73,9 @@ namespace erl::geometry {
 
         /// Extract frontiers (boundaries between free and unknown space).
         /// Each frontier is a connected triangle mesh of face patches.
-        /// @param min_num_triangles Minimum number of triangles for a frontier to be returned.
-        /// @param sort_by_area If true, sort frontiers by total surface area (descending).
         /// @return Vector of frontiers.
         [[nodiscard]] std::vector<Frontier>
-        ExtractFrontiers(std::size_t min_num_triangles = 1, bool sort_by_area = true) const;
+        ExtractFrontiers() const;
 
         /// A 2D frontier polyline from a horizontal slice through the octree.
         /// Each frontier is an ordered polyline (2 x N matrix) of XY vertices.
@@ -89,14 +87,9 @@ namespace erl::geometry {
         /// unknown neighbors, producing edge segments that are chained into
         /// polylines — exactly like the quadtree frontier extraction.
         /// @param z_slice The z coordinate of the horizontal slice.
-        /// @param min_num_vertices Minimum number of vertices for a frontier to be returned.
-        /// @param sort_by_length If true, sort frontiers by total edge length (descending).
         /// @return Vector of 2D frontier polylines.
         [[nodiscard]] std::vector<SliceFrontier>
-        ExtractSliceFrontiers(
-            Dtype z_slice,
-            std::size_t min_num_vertices = 1,
-            bool sort_by_length = true) const;
+        ExtractSliceFrontiers(Dtype z_slice) const;
 
         /// Extract frontiers within an axis-aligned bounding box.
         /// Free leaves intersecting the AABB are considered; the resulting mesh
@@ -107,8 +100,6 @@ namespace erl::geometry {
         /// @param aabb_max_x Maximum x coordinate of the query region.
         /// @param aabb_max_y Maximum y coordinate of the query region.
         /// @param aabb_max_z Maximum z coordinate of the query region.
-        /// @param min_num_triangles Minimum number of triangles for a frontier to be returned.
-        /// @param sort_by_area If true, sort frontiers by total surface area (descending).
         /// @return Vector of frontiers.
         [[nodiscard]] std::vector<Frontier>
         ExtractFrontiers(
@@ -117,9 +108,7 @@ namespace erl::geometry {
             Dtype aabb_min_z,
             Dtype aabb_max_x,
             Dtype aabb_max_y,
-            Dtype aabb_max_z,
-            std::size_t min_num_triangles = 1,
-            bool sort_by_area = true) const;
+            Dtype aabb_max_z) const;
 
         //-- Sample position
         /**
@@ -375,11 +364,7 @@ namespace erl::geometry {
     private:
         template<typename LeafIterator>
         [[nodiscard]] std::vector<Frontier>
-        ExtractFrontiersImpl(
-            LeafIterator it,
-            LeafIterator it_end,
-            std::size_t min_num_triangles,
-            bool sort_by_area) const;
+        ExtractFrontiersImpl(LeafIterator it, LeafIterator it_end) const;
 
         Node *
         UpdateNodeRecurs(

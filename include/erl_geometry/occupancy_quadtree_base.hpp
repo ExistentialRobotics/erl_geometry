@@ -76,11 +76,9 @@ namespace erl::geometry {
         //-- frontier extraction
         /// Extract frontiers (boundaries between free and unknown space).
         /// Each frontier is an ordered polyline of vertices forming the boundary.
-        /// @param min_num_vertices Minimum number of vertices for a frontier to be returned.
-        /// @param sort_by_length If true, sort frontiers by total edge length (descending).
         /// @return Vector of frontiers.
         [[nodiscard]] std::vector<Frontier>
-        ExtractFrontiers(std::size_t min_num_vertices = 1, bool sort_by_length = true) const;
+        ExtractFrontiers() const;
 
         /// Extract frontiers within an axis-aligned bounding box.
         /// Free leaves intersecting the AABB are considered; the resulting polylines
@@ -89,17 +87,10 @@ namespace erl::geometry {
         /// @param aabb_min_y Minimum y coordinate of the query region.
         /// @param aabb_max_x Maximum x coordinate of the query region.
         /// @param aabb_max_y Maximum y coordinate of the query region.
-        /// @param min_num_vertices Minimum number of vertices for a frontier to be returned.
-        /// @param sort_by_length If true, sort frontiers by total edge length (descending).
         /// @return Vector of frontiers.
         [[nodiscard]] std::vector<Frontier>
-        ExtractFrontiers(
-            Dtype aabb_min_x,
-            Dtype aabb_min_y,
-            Dtype aabb_max_x,
-            Dtype aabb_max_y,
-            std::size_t min_num_vertices = 1,
-            bool sort_by_length = true) const;
+        ExtractFrontiers(Dtype aabb_min_x, Dtype aabb_min_y, Dtype aabb_max_x, Dtype aabb_max_y)
+            const;
 
         //-- Sample position
         /**
@@ -339,11 +330,7 @@ namespace erl::geometry {
     private:
         template<typename LeafIterator>
         [[nodiscard]] std::vector<Frontier>
-        ExtractFrontiersImpl(
-            LeafIterator it,
-            LeafIterator it_end,
-            std::size_t min_num_vertices,
-            bool sort_by_length) const;
+        ExtractFrontiersImpl(LeafIterator it, LeafIterator it_end) const;
 
         Node *
         UpdateNodeRecurs(

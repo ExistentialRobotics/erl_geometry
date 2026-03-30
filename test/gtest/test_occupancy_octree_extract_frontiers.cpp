@@ -98,19 +98,6 @@ SliceFrontierLength(const OccupancyOctree::SliceFrontier &frontier) {
     return len;
 }
 
-/// Compute total surface area of a frontier mesh.
-static Dtype
-FrontierArea(const OccupancyOctree::Frontier &frontier) {
-    Dtype area = 0;
-    for (const auto &face: frontier.faces) {
-        const Vector3 &a = frontier.vertices[face[0]];
-        const Vector3 &b = frontier.vertices[face[1]];
-        const Vector3 &c = frontier.vertices[face[2]];
-        area += (b - a).cross(c - a).norm() * 0.5;
-    }
-    return area;
-}
-
 TEST(OccupancyOctree, ExtractFrontiers_EmptyTree) {
     auto setting = std::make_shared<OccupancyOctree::Setting>();
     setting->resolution = 0.1;
@@ -161,50 +148,11 @@ TEST(OccupancyOctree, ExtractFrontiers_SphereHasFrontiers) {
     auto frontiers = tree->ExtractFrontiers();
 
     ASSERT_GT(frontiers.size(), 0u);
-    // The largest frontier should have substantial area
-    EXPECT_GT(frontiers[0].faces.size(), 2u);
-}
-
-TEST(OccupancyOctree, ExtractFrontiers_SortedByArea) {
-    auto tree = BuildSphereTree(0.1);
-    auto frontiers = tree->ExtractFrontiers(/*min_num_triangles=*/1, /*sort_by_area=*/true);
-
-    for (std::size_t i = 1; i < frontiers.size(); ++i) {
-        EXPECT_GE(FrontierArea(frontiers[i - 1]), FrontierArea(frontiers[i]))
-            << "Frontiers not sorted by area at index " << i;
-    }
-}
-
-TEST(OccupancyOctree, ExtractFrontiers_UnsortedSameContent) {
-    auto tree = BuildSphereTree(0.1);
-    auto sorted = tree->ExtractFrontiers(/*min_num_triangles=*/1, /*sort_by_area=*/true);
-    auto unsorted = tree->ExtractFrontiers(/*min_num_triangles=*/1, /*sort_by_area=*/false);
-
-    ASSERT_EQ(sorted.size(), unsorted.size());
-
-    std::vector<Dtype> sorted_areas;
-    std::vector<Dtype> unsorted_areas;
-    sorted_areas.reserve(sorted.size());
-    unsorted_areas.reserve(unsorted.size());
-    for (const auto &f: sorted) { sorted_areas.push_back(FrontierArea(f)); }
-    for (const auto &f: unsorted) { unsorted_areas.push_back(FrontierArea(f)); }
-    std::sort(sorted_areas.begin(), sorted_areas.end());
-    std::sort(unsorted_areas.begin(), unsorted_areas.end());
-    for (std::size_t i = 0; i < sorted_areas.size(); ++i) {
-        EXPECT_NEAR(sorted_areas[i], unsorted_areas[i], 1e-12)
-            << "Frontier area mismatch at index " << i;
-    }
-}
-
-TEST(OccupancyOctree, ExtractFrontiers_MinTrianglesFiltering) {
-    auto tree = BuildSphereTree(0.1);
-
-    auto frontiers_all = tree->ExtractFrontiers(1);
-    auto frontiers_large = tree->ExtractFrontiers(50);
-
-    EXPECT_GE(frontiers_all.size(), frontiers_large.size());
-
-    for (const auto &f: frontiers_large) { EXPECT_GE(f.faces.size(), 50u); }
+    // At least one frontier should have substantial area
+    auto max_it = std::max_element(
+        frontiers.begin(), frontiers.end(),
+        [](const auto &a, const auto &b) { return a.faces.size() < b.faces.size(); });
+    EXPECT_GT(max_it->faces.size(), 2u);
 }
 
 TEST(OccupancyOctree, ExtractFrontiers_InAabb) {
@@ -226,24 +174,6 @@ TEST(OccupancyOctree, ExtractFrontiers_InAabb) {
         aabb_max_y,
         aabb_max_z);
     auto frontiers_all = tree->ExtractFrontiers();
-
-    // ERL_INFO("Frontiers in AABB: {}, all frontiers: {}", frontiers.size(), frontiers_all.size());
-    // for (std::size_t i = 0; i < frontiers.size(); ++i) {
-    //     ERL_INFO(
-    //         "  AABB frontier {}: {} vertices, {} triangles, area {:.4f}",
-    //         i,
-    //         frontiers[i].vertices.size(),
-    //         frontiers[i].faces.size(),
-    //         FrontierArea(frontiers[i]));
-    // }
-    // for (std::size_t i = 0; i < frontiers_all.size(); ++i) {
-    //     ERL_INFO(
-    //         "  All  frontier {}: {} vertices, {} triangles, area {:.4f}",
-    //         i,
-    //         frontiers_all[i].vertices.size(),
-    //         frontiers_all[i].faces.size(),
-    //         FrontierArea(frontiers_all[i]));
-    // }
 
     // Save octree leaves
     auto drawer_setting = std::make_shared<OccupancyOctreeDrawer::Setting>();
@@ -528,30 +458,10 @@ TEST(OccupancyOctree, ExtractSliceFrontiers_SphereHasFrontiers) {
     // Slice through the center of the sphere
     auto frontiers = tree->ExtractSliceFrontiers(0.0);
     ASSERT_GT(frontiers.size(), 0u);
-    EXPECT_GT(frontiers[0].cols(), 2);
-}
-
-TEST(OccupancyOctree, ExtractSliceFrontiers_SortedByLength) {
-    auto tree = BuildSphereTree(0.1);
-    auto frontiers = tree->ExtractSliceFrontiers(0.0, /*min_num_vertices=*/1, /*sort_by_length=*/true);
-
-    for (std::size_t i = 1; i < frontiers.size(); ++i) {
-        EXPECT_GE(SliceFrontierLength(frontiers[i - 1]), SliceFrontierLength(frontiers[i]))
-            << "Slice frontiers not sorted by length at index " << i;
-    }
-}
-
-TEST(OccupancyOctree, ExtractSliceFrontiers_MinVerticesFiltering) {
-    auto tree = BuildSphereTree(0.1);
-
-    auto frontiers_all = tree->ExtractSliceFrontiers(0.0, 1);
-    auto frontiers_large = tree->ExtractSliceFrontiers(0.0, 20);
-
-    EXPECT_GE(frontiers_all.size(), frontiers_large.size());
-
-    for (const auto &f: frontiers_large) {
-        EXPECT_GE(static_cast<std::size_t>(f.cols()), 20u);
-    }
+    auto max_it = std::max_element(
+        frontiers.begin(), frontiers.end(),
+        [](const auto &a, const auto &b) { return a.cols() < b.cols(); });
+    EXPECT_GT(max_it->cols(), 2);
 }
 
 TEST(OccupancyOctree, ExtractSliceFrontiers_Visualization) {
