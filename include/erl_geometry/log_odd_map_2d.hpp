@@ -329,7 +329,7 @@ namespace erl::geometry {
                     possibility_map.cols());
             } else if (*m_grid_map_info_ != *grid_map_info) {
                 // reinitialize the internal map
-                m_grid_map_info_ = grid_map_info;
+                *m_grid_map_info_ = *grid_map_info;
                 m_log_map_ = cv::Mat(
                     m_grid_map_info_->Shape(0),
                     m_grid_map_info_->Shape(1),
