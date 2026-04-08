@@ -253,7 +253,15 @@ BindQuadtreeImpl(PyClass &tree) {
             "insert_node",
             py::overload_cast<const QuadtreeKey &, uint32_t>(&Quadtree::InsertNode),
             py::arg("key"),
-            py::arg("depth"));
+            py::arg("depth"))
+        .def(
+            "paint_tree",
+            &Quadtree::PaintTree,
+            py::arg("points"),
+            py::arg("colors"),
+            py::arg("set_color"),
+            py::arg("discrete"),
+            py::call_guard<py::gil_scoped_release>());
 
     // Iterators defined in QuadtreeImpl
     py::class_<

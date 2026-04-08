@@ -42,6 +42,7 @@ namespace erl::geometry {
         using Matrix3 = Eigen::Matrix3<Dtype>;
         using Vector3 = Eigen::Vector3<Dtype>;
         using VectorX = Eigen::VectorX<Dtype>;
+        using ColorMatrix = Eigen::Matrix<uint8_t, 4, Eigen::Dynamic>;
 
         OccupancyOctreeBase() = delete;  // no default constructor
 
@@ -176,6 +177,32 @@ namespace erl::geometry {
         virtual void
         InsertPointCloud(
             const Eigen::Ref<const Matrix3X> &points,
+            const Eigen::Ref<const Vector3> &sensor_origin,
+            Dtype min_range,
+            Dtype max_range,
+            bool with_count,
+            bool parallel,
+            bool lazy_eval,
+            bool discrete);
+
+        /**
+         * Insert a point cloud with per-point RGBA colors.
+         * Colors are stored in the tree nodes via incremental averaging when the
+         * node type supports it (e.g. ColoredOccupancyOctreeNode).
+         * @param points 3xN matrix of points in the world frame
+         * @param colors 4xN matrix of RGBA colors (uint8_t) corresponding to each point
+         * @param sensor_origin 3D vector of the sensor origin in the world frame
+         * @param min_range Minimum range of the sensor.
+         * @param max_range Maximum range of the sensor.
+         * @param with_count whether to update nodes with consideration of ray counts.
+         * @param parallel whether to use parallel computation
+         * @param lazy_eval Whether to defer occupancy update.
+         * @param discrete Whether to merge points in the same cell.
+         */
+        virtual void
+        InsertPointCloud(
+            const Eigen::Ref<const Matrix3X> &points,
+            const Eigen::Ref<const ColorMatrix> &colors,
             const Eigen::Ref<const Vector3> &sensor_origin,
             Dtype min_range,
             Dtype max_range,

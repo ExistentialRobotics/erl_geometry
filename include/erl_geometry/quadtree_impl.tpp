@@ -1,5 +1,6 @@
 #pragma once
 
+#include "color_traits.hpp"
 #include "intersection.hpp"
 
 #include <omp.h>
@@ -2531,6 +2532,66 @@ namespace erl::geometry {
         }
 
         return node;
+    }
+
+    template<class Node, class Interface, class InterfaceSetting>
+    void
+    QuadtreeImpl<Node, Interface, InterfaceSetting>::PaintTree(
+        const Eigen::Ref<const Matrix2X> &points,
+        const Eigen::Ref<const ColorMatrix> &colors,
+        const bool set_color,
+        const bool discrete) {
+        if constexpr (!detail::has_set_color_v<Node> || !detail::has_update_color_v<Node>) {
+            ERL_WARN(
+                "PaintTree called on a tree whose node type does not support color. Skipping.");
+        } else {  // constexpr if-else to avoid compile error when Node does not have color methods
+            ERL_DEBUG_ASSERT(
+                colors.cols() == points.cols(),
+                "colors and points must have the same number of columns.");
+
+            if (!discrete) {
+                for (Eigen::Index i = 0; i < points.cols(); ++i) {
+                    auto p = points.col(i);
+                    auto *node = const_cast<Node *>(this->Search(p[0], p[1]));
+                    if (node == nullptr) { continue; }
+                    const auto color = colors.col(i);
+                    if (set_color) {
+                        node->SetColor(color[0], color[1], color[2], color[3]);
+                    } else {
+                        node->UpdateColor(color[0], color[1], color[2], color[3]);
+                    }
+                }
+                return;
+            }
+
+            // discrete mode: deduplicate by key, last point wins
+            QuadtreeKeyLongMap key_to_index;
+            key_to_index.reserve(points.cols());
+            for (Eigen::Index i = 0; i < points.cols(); ++i) {
+                QuadtreeKey key;
+                auto p = points.col(i);
+                if (!this->CoordToKeyChecked(p[0], p[1], key)) { continue; }
+                key_to_index[key] = i;
+            }
+
+            // collect into a vector for parallel iteration
+            std::vector<std::pair<QuadtreeKey, Eigen::Index>> entries(
+                key_to_index.begin(),
+                key_to_index.end());
+
+#pragma omp parallel for schedule(dynamic)
+            for (std::size_t j = 0; j < entries.size(); ++j) {
+                const auto &[key, idx] = entries[j];
+                auto *node = const_cast<Node *>(this->Search(key));
+                if (node == nullptr) { continue; }
+                const auto color = colors.col(idx);
+                if (set_color) {
+                    node->SetColor(color[0], color[1], color[2], color[3]);
+                } else {
+                    node->UpdateColor(color[0], color[1], color[2], color[3]);
+                }
+            }
+        }
     }
 
     template<class Node, class Interface, class InterfaceSetting>

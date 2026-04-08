@@ -6,7 +6,8 @@ namespace erl::geometry {
 
     class ColoredOccupancyOctreeNode : public OccupancyOctreeNode {
     protected:
-        std::array<uint8_t, 4> m_color_ = {0, 0, 0, 0};  // RGBA color
+        std::array<uint8_t, 4> m_color_ = {255, 255, 255, 255};  // RGBA color
+        uint64_t m_count_ = 0;                             // count of samples for color averaging
 
     public:
         explicit ColoredOccupancyOctreeNode(
@@ -56,11 +57,22 @@ namespace erl::geometry {
             m_color_[3] = a;
         }
 
+        void
+        UpdateColor(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a) {
+            // incremental average
+            m_color_[0] = (m_color_[0] * m_count_ + r) / (m_count_ + 1);
+            m_color_[1] = (m_color_[1] * m_count_ + g) / (m_count_ + 1);
+            m_color_[2] = (m_color_[2] * m_count_ + b) / (m_count_ + 1);
+            m_color_[3] = (m_color_[3] * m_count_ + a) / (m_count_ + 1);
+            ++m_count_;
+        }
+
         //-- file IO
         std::istream &
         ReadData(std::istream &s) override {
             OccupancyOctreeNode::ReadData(s);
             s.read(reinterpret_cast<char *>(m_color_.data()), m_color_.size());
+            s.read(reinterpret_cast<char *>(&m_count_), sizeof(m_count_));
             return s;
         }
 
@@ -68,6 +80,7 @@ namespace erl::geometry {
         WriteData(std::ostream &s) const override {
             OccupancyOctreeNode::WriteData(s);
             s.write(reinterpret_cast<const char *>(m_color_.data()), m_color_.size());
+            s.write(reinterpret_cast<const char *>(&m_count_), sizeof(m_count_));
             return s;
         }
 
@@ -86,6 +99,7 @@ namespace erl::geometry {
         void
         Prune() override {
             m_color_ = static_cast<ColoredOccupancyOctreeNode *>(m_children_[0].get())->m_color_;
+            m_count_ = static_cast<ColoredOccupancyOctreeNode *>(m_children_[0].get())->m_count_;
             OccupancyOctreeNode::Prune();
         }
 
@@ -98,6 +112,7 @@ namespace erl::geometry {
                 auto *colored_child = reinterpret_cast<ColoredOccupancyOctreeNode *>(child.get());
                 colored_child->m_log_odds_ = m_log_odds_;
                 colored_child->m_color_ = m_color_;
+                colored_child->m_count_ = m_count_;
             }
             m_num_children_ = 8;
         }

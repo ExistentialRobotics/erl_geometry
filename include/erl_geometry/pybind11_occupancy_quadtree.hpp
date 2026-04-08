@@ -52,6 +52,7 @@ BindOccupancyQuadtree(
     using VectorX = Eigen::VectorX<Dtype>;
     using Matrix2 = Eigen::Matrix2<Dtype>;
     using Matrix2X = Eigen::Matrix2X<Dtype>;
+    using ColorMatrix = Eigen::Matrix<uint8_t, 4, Eigen::Dynamic>;
 
     py::class_<
         Quadtree,
@@ -100,8 +101,38 @@ BindOccupancyQuadtree(
             &Quadtree::template GetSetting<typename Quadtree::Setting>)
         .def(
             "insert_point_cloud",
-            &Quadtree::InsertPointCloud,
+            py::overload_cast<
+                const Eigen::Ref<const Matrix2X> &,
+                const Eigen::Ref<const Vector2> &,
+                Dtype,
+                Dtype,
+                bool,
+                bool,
+                bool,
+                bool>(&Quadtree::InsertPointCloud),
             py::arg("points"),
+            py::arg("sensor_origin"),
+            py::arg("min_range"),
+            py::arg("max_range"),
+            py::arg("with_count"),
+            py::arg("parallel"),
+            py::arg("lazy_eval"),
+            py::arg("discrete"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "insert_point_cloud",
+            py::overload_cast<
+                const Eigen::Ref<const Matrix2X> &,
+                const Eigen::Ref<const ColorMatrix> &,
+                const Eigen::Ref<const Vector2> &,
+                Dtype,
+                Dtype,
+                bool,
+                bool,
+                bool,
+                bool>(&Quadtree::InsertPointCloud),
+            py::arg("points"),
+            py::arg("colors"),
             py::arg("sensor_origin"),
             py::arg("min_range"),
             py::arg("max_range"),

@@ -24,7 +24,7 @@ namespace erl::geometry {
         explicit ColoredOccupancyOctree(const std::string &filename)
             : ColoredOccupancyOctree() {
             ERL_ASSERTM(
-                common::Serialization<ColoredOccupancyOctree>::Read(filename, this),
+                common::serialization::Serialization<ColoredOccupancyOctree>::Read(filename, this),
                 "Failed to read ColoredOccupancyOctree from file: {}",
                 filename);
         }

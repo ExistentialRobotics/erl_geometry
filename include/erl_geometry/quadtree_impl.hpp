@@ -62,6 +62,8 @@ namespace erl::geometry {
         using NodeType = Node;
         using KeyType = QuadtreeKey;
         using Vector2 = Eigen::Vector2<Dtype>;
+        using Matrix2X = Eigen::Matrix2X<Dtype>;
+        using ColorMatrix = Eigen::Matrix<uint8_t, 4, Eigen::Dynamic>;
 
         QuadtreeImpl() = delete;  // no default constructor
 
@@ -1223,6 +1225,25 @@ namespace erl::geometry {
 
         Node *
         InsertNode(const QuadtreeKey &key, uint32_t depth = 0);
+
+        /**
+         * Paint existing tree nodes with colors from a colored point cloud.
+         * Does not update occupancy -- only modifies node colors.
+         * When set_color is true, calls SetColor (overwrites) on each node.
+         * When set_color is false, calls UpdateColor (incremental average) on each node.
+         * @param points 2xN matrix of points in the world frame.
+         * @param colors 4xN matrix of RGBA colors (uint8_t) corresponding to each point.
+         * @param set_color If true, overwrites color by calling SetColor. If false, call
+         * UpdateColor.
+         * @param discrete If true, multiple points in the same node only update/set color once
+         * (last point wins) and nodes are painted in parallel.
+         */
+        void
+        PaintTree(
+            const Eigen::Ref<const Matrix2X> &points,
+            const Eigen::Ref<const ColorMatrix> &colors,
+            bool set_color,
+            bool discrete);
 
     protected:
         //-- file IO

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "color_traits.hpp"
+
 #include "erl_common/random.hpp"
 
 #include <omp.h>
@@ -365,6 +367,85 @@ namespace erl::geometry {
         // update occupied cells
         for (const OctreeKey &occupied_cell: occupied_cells) {
             this->UpdateNode(occupied_cell, true, lazy_eval);
+        }
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    void
+    OccupancyOctreeBase<Dtype, Node, Setting>::InsertPointCloud(
+        const Eigen::Ref<const Matrix3X> &points,
+        const Eigen::Ref<const ColorMatrix> &colors,
+        const Eigen::Ref<const Vector3> &sensor_origin,
+        const Dtype min_range,
+        const Dtype max_range,
+        const bool with_count,
+        const bool parallel,
+        const bool lazy_eval,
+        const bool discrete) {
+
+        if (points.cols() == 0) { return; }
+        ERL_DEBUG_ASSERT(
+            colors.cols() == points.cols(),
+            "colors and points must have the same number of columns.");
+
+        std::vector<Dtype> ranges;
+        std::vector<std::array<Dtype, 3>> diffs;
+        Matrix3X new_points;
+        OctreeKeyVector occupied_cells;
+        occupied_cells.reserve(points.cols());
+        ComputeOccupiedCells(
+            points,
+            sensor_origin,
+            min_range,
+            max_range,
+            discrete,
+            ranges,
+            diffs,
+            new_points,
+            occupied_cells);
+        ComputeFreeCells(new_points, sensor_origin, ranges, diffs, max_range, with_count, parallel);
+
+        // insert data into the tree and update colors on occupied nodes
+        if (with_count) {
+            for (const OctreeKey &free_cell: this->m_key_vectors_[0]) {
+                const long cnt = this->m_key_long_maps_[0][free_cell];
+                if (cnt <= 0) { continue; }
+                float log_odds_delta = m_setting_->log_odd_miss * static_cast<float>(cnt);
+                this->UpdateNode(free_cell, log_odds_delta, lazy_eval);
+            }
+            for (const OctreeKey &occupied_cell: occupied_cells) {
+                const auto &indices = m_end_point_mapping_[occupied_cell];
+                if (indices.empty()) { continue; }
+                float log_odds_delta = m_setting_->log_odd_hit * static_cast<float>(indices.size());
+                Node *node = this->UpdateNode(occupied_cell, log_odds_delta, lazy_eval);
+                if constexpr (detail::has_update_color_v<Node>) {
+                    if (node != nullptr) {
+                        for (const long idx: indices) {
+                            auto color = colors.col(idx);
+                            node->UpdateColor(color[0], color[1], color[2], color[3]);
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
+        // update free cells
+        for (const OctreeKey &free_cell: this->m_key_vectors_[0]) {
+            this->UpdateNode(free_cell, false, lazy_eval);
+        }
+        // update occupied cells
+        for (const OctreeKey &occupied_cell: occupied_cells) {
+            Node *node = this->UpdateNode(occupied_cell, true, lazy_eval);
+            if constexpr (detail::has_update_color_v<Node>) {
+                if (node != nullptr) {
+                    const auto &indices = m_end_point_mapping_[occupied_cell];
+                    for (const long idx: indices) {
+                        auto color = colors.col(idx);
+                        node->UpdateColor(color[0], color[1], color[2], color[3]);
+                    }
+                }
+            }
         }
     }
 

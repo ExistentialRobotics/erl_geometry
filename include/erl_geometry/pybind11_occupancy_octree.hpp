@@ -55,6 +55,7 @@ BindOccupancyOctree(
     using VectorX = Eigen::VectorX<Dtype>;
     using Matrix3X = Eigen::Matrix3X<Dtype>;
     using Matrix3 = Eigen::Matrix3<Dtype>;
+    using ColorMatrix = Eigen::Matrix<uint8_t, 4, Eigen::Dynamic>;
 
     py::class_<Octree, AbstractOccupancyOctree<Dtype>, std::shared_ptr<Octree>> tree(m, tree_name);
 
@@ -97,8 +98,38 @@ BindOccupancyOctree(
         .def_property_readonly("setting", &Octree::template GetSetting<typename Octree::Setting>)
         .def(
             "insert_point_cloud",
-            &Octree::InsertPointCloud,
+            py::overload_cast<
+                const Eigen::Ref<const Matrix3X> &,
+                const Eigen::Ref<const Vector3> &,
+                Dtype,
+                Dtype,
+                bool,
+                bool,
+                bool,
+                bool>(&Octree::InsertPointCloud),
             py::arg("points"),
+            py::arg("sensor_origin"),
+            py::arg("min_range"),
+            py::arg("max_range"),
+            py::arg("with_count"),
+            py::arg("parallel"),
+            py::arg("lazy_eval"),
+            py::arg("discrete"),
+            py::call_guard<py::gil_scoped_release>())
+        .def(
+            "insert_point_cloud",
+            py::overload_cast<
+                const Eigen::Ref<const Matrix3X> &,
+                const Eigen::Ref<const ColorMatrix> &,
+                const Eigen::Ref<const Vector3> &,
+                Dtype,
+                Dtype,
+                bool,
+                bool,
+                bool,
+                bool>(&Octree::InsertPointCloud),
+            py::arg("points"),
+            py::arg("colors"),
             py::arg("sensor_origin"),
             py::arg("min_range"),
             py::arg("max_range"),

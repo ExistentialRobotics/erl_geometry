@@ -279,7 +279,15 @@ BindOctreeImpl(PyClass &tree) {
             "insert_node",
             py::overload_cast<const OctreeKey &, uint32_t>(&Octree::InsertNode),
             py::arg("key"),
-            py::arg("depth"));
+            py::arg("depth"))
+        .def(
+            "paint_tree",
+            &Octree::PaintTree,
+            py::arg("points"),
+            py::arg("colors"),
+            py::arg("set_color"),
+            py::arg("discrete"),
+            py::call_guard<py::gil_scoped_release>());
 
     // Iterators defined in OctreeImpl
     py::class_<typename Octree::IteratorBase, typename AbstractOctree<Dtype>::OctreeNodeIterator>(
