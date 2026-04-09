@@ -17,6 +17,8 @@
 #include "erl_geometry/rgbd_frame_3d.hpp"
 #include "erl_geometry/semi_sparse_octree.hpp"
 #include "erl_geometry/semi_sparse_quadtree.hpp"
+#include "erl_geometry/colored_occupancy_octree.hpp"
+#include "erl_geometry/colored_occupancy_quadtree.hpp"
 
 namespace erl::geometry {
 
@@ -60,18 +62,27 @@ namespace erl::geometry {
         REGISTER(SemiSparseNdTreeSetting);
         REGISTER(OccupancyQuadtreeBaseSetting);
         REGISTER(OccupancyOctreeBaseSetting);
+
         REGISTER(OccupancyQuadtreeNode);
         REGISTER(OccupancyOctreeNode);
         REGISTER(OccupancyOctreeD);
         REGISTER(OccupancyOctreeF);
         REGISTER(OccupancyQuadtreeD);
         REGISTER(OccupancyQuadtreeF);
+
         REGISTER(SemiSparseOctreeNode);
         REGISTER(SemiSparseQuadtreeNode);
         REGISTER(SemiSparseOctreeD);
         REGISTER(SemiSparseOctreeF);
         REGISTER(SemiSparseQuadtreeD);
         REGISTER(SemiSparseQuadtreeF);
+
+        REGISTER(ColoredOccupancyOctreeNode);
+        REGISTER(ColoredOccupancyQuadtreeNode);
+        REGISTER(ColoredOccupancyOctreeD);
+        REGISTER(ColoredOccupancyOctreeF);
+        REGISTER(ColoredOccupancyQuadtreeD);
+        REGISTER(ColoredOccupancyQuadtreeF);
 
         REGISTER(AbstractQuadtreeDrawer::Setting);
         REGISTER(AbstractOctreeDrawer::Setting);
