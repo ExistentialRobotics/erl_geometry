@@ -2,6 +2,9 @@
 #include "erl_common/serialization.hpp"
 #include "erl_geometry/abstract_octree.hpp"
 
+#include <cstring>
+#include <sstream>
+
 template<typename Dtype>
 void
 BindAbstractOctreeImpl(const py::module &m, const char *name) {
@@ -26,6 +29,30 @@ BindAbstractOctreeImpl(const py::module &m, const char *name) {
                 return Serialization<T>::Read(filename, self);
             },
             py::arg("filename"))
+        // In-memory serialization: returns the same byte stream that the file-based Write
+        // produces (header + setting + data + end_of token). The returned uint8 Eigen vector
+        // crosses to Python as a 1-D numpy array, ready to be stored in a tensor.
+        .def(
+            "write",
+            [](const T *self) -> Eigen::Matrix<uint8_t, Eigen::Dynamic, 1> {
+                std::ostringstream oss(std::ios::out | std::ios::binary);
+                if (!Serialization<T>::Write(oss, self)) { return {}; }
+                const std::string s = oss.str();
+                Eigen::Matrix<uint8_t, Eigen::Dynamic, 1> out(static_cast<long>(s.size()));
+                std::memcpy(out.data(), s.data(), s.size());
+                return out;
+            })
+        .def(
+            "read",
+            [](T *self,
+               const Eigen::Ref<const Eigen::Matrix<uint8_t, Eigen::Dynamic, 1>> &bytes) -> bool {
+                std::string s(
+                    reinterpret_cast<const char *>(bytes.data()),
+                    static_cast<size_t>(bytes.size()));
+                std::istringstream iss(std::move(s), std::ios::in | std::ios::binary);
+                return Serialization<T>::Read(iss, self);
+            },
+            py::arg("bytes"))
         .def(
             "search_node",
             py::overload_cast<Dtype, Dtype, Dtype, uint32_t>(&T::SearchNode, py::const_),

@@ -3,6 +3,7 @@
 
 #include <c10/cuda/CUDAException.h>
 
+#define CHECK_NONEMPTY(x)   TORCH_CHECK((x).numel() > 0, #x " must be non-empty")
 #define CHECK_CUDA(x)       TORCH_CHECK((x).device().is_cuda(), #x " must be a CUDA tensor")
 #define CHECK_CONTIGUOUS(x) TORCH_CHECK((x).is_contiguous(), #x " must be contiguous")
 #define CHECK_LONG(x)       TORCH_CHECK((x).scalar_type() == torch::kInt64, #x " must be a Long tensor")
@@ -15,10 +16,11 @@ namespace erl::geometry {
     FindVoxelIndicesTorchCUDA(
         const torch::Tensor &codes,
         const int dims,
-        const int level,
+        const int n_levels,
         const torch::Tensor &children,
         torch::Tensor &voxel_indices) {
 
+        CHECK_NONEMPTY(codes);
         CHECK_CUDA(codes);
         CHECK_CONTIGUOUS(codes);
         TORCH_CHECK(
@@ -26,6 +28,7 @@ namespace erl::geometry {
             "codes must be of type UInt32 or UInt64.");
         TORCH_CHECK(dims == 2 || dims == 3, "dims must be 2 or 3.");
 
+        CHECK_NONEMPTY(children);
         CHECK_CUDA(children);
         CHECK_CONTIGUOUS(children);
 
@@ -48,7 +51,7 @@ namespace erl::geometry {
 
         switch (codes.scalar_type()) {
             case torch::kUInt32: {
-                TORCH_CHECK(dims * level <= 32, "For UInt32 codes, max level is 32 / dims.");
+                TORCH_CHECK(dims * n_levels <= 32, "For UInt32 codes, max level is 32 / dims.");
                 if (dims == 2) {
                     AT_DISPATCH_INTEGRAL_TYPES(
                         children.scalar_type(),
@@ -56,7 +59,7 @@ namespace erl::geometry {
                         [&] {
                             FindVoxelIndicesKernel<scalar_t, uint32_t, 2><<<blocks, threads>>>(
                                 codes.data_ptr<uint32_t>(),
-                                level,
+                                n_levels,
                                 children.data_ptr<scalar_t>(),
                                 voxel_indices.data_ptr<scalar_t>(),
                                 b);
@@ -68,7 +71,7 @@ namespace erl::geometry {
                         [&] {
                             FindVoxelIndicesKernel<scalar_t, uint32_t, 3><<<blocks, threads>>>(
                                 codes.data_ptr<uint32_t>(),
-                                level,
+                                n_levels,
                                 children.data_ptr<scalar_t>(),
                                 voxel_indices.data_ptr<scalar_t>(),
                                 b);
@@ -78,7 +81,7 @@ namespace erl::geometry {
                 break;
             }
             case torch::kUInt64: {
-                TORCH_CHECK(dims * level <= 64, "For UInt64 codes, max level is 64 / dims.");
+                TORCH_CHECK(dims * n_levels <= 64, "For UInt64 codes, max level is 64 / dims.");
                 if (dims == 2) {
                     AT_DISPATCH_INTEGRAL_TYPES(
                         children.scalar_type(),
@@ -86,7 +89,7 @@ namespace erl::geometry {
                         [&] {
                             FindVoxelIndicesKernel<scalar_t, uint64_t, 2><<<blocks, threads>>>(
                                 codes.data_ptr<uint64_t>(),
-                                level,
+                                n_levels,
                                 children.data_ptr<scalar_t>(),
                                 voxel_indices.data_ptr<scalar_t>(),
                                 b);
@@ -98,7 +101,7 @@ namespace erl::geometry {
                         [&] {
                             FindVoxelIndicesKernel<scalar_t, uint64_t, 3><<<blocks, threads>>>(
                                 codes.data_ptr<uint64_t>(),
-                                level,
+                                n_levels,
                                 children.data_ptr<scalar_t>(),
                                 voxel_indices.data_ptr<scalar_t>(),
                                 b);

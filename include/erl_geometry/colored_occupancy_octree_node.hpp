@@ -7,7 +7,7 @@ namespace erl::geometry {
     class ColoredOccupancyOctreeNode : public OccupancyOctreeNode {
     protected:
         std::array<uint8_t, 4> m_color_ = {255, 255, 255, 255};  // RGBA color
-        uint64_t m_count_ = 0;                             // count of samples for color averaging
+        uint64_t m_count_ = 0;  // count of samples for color averaging
 
     public:
         explicit ColoredOccupancyOctreeNode(

@@ -120,6 +120,21 @@ namespace erl::geometry {
         [[nodiscard]] NodeIndex
         FindVoxelIndex(const QuadtreeKey &key) const;
 
+    protected:
+        //-- file IO
+        /**
+         * Read the tree topology and side-buffer state from a binary stream. Called by
+         * AbstractQuadtree::Read after the tree has been Clear()ed and the setting applied.
+         */
+        std::istream &
+        ReadData(std::istream &s) override;
+
+        /**
+         * Write the tree topology and side-buffer state to a binary stream.
+         */
+        std::ostream &
+        WriteData(std::ostream &s) const override;
+
     private:
         NodeIndex
         AllocateVoxelEntry(

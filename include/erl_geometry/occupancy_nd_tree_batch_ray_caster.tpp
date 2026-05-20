@@ -16,9 +16,7 @@ namespace erl::geometry {
         const Eigen::VectorXb &leaf_only_flags,
         const Eigen::VectorXi &min_node_depths,
         const Eigen::VectorXi &max_node_depths)
-        : m_tree_(tree),
-          m_origins_(std::move(origins)),
-          m_directions_(std::move(directions)) {
+        : m_tree_(tree), m_origins_(std::move(origins)), m_directions_(std::move(directions)) {
 
         ERL_ASSERTM(
             m_origins_.cols() == m_directions_.cols(),

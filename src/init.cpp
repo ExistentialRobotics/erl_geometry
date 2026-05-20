@@ -2,6 +2,8 @@
 
 #include "erl_geometry/abstract_octree_drawer.hpp"
 #include "erl_geometry/abstract_quadtree_drawer.hpp"
+#include "erl_geometry/colored_occupancy_octree.hpp"
+#include "erl_geometry/colored_occupancy_quadtree.hpp"
 #include "erl_geometry/depth_camera_3d.hpp"
 #include "erl_geometry/depth_frame_3d.hpp"
 #include "erl_geometry/lidar_3d.hpp"
@@ -17,8 +19,6 @@
 #include "erl_geometry/rgbd_frame_3d.hpp"
 #include "erl_geometry/semi_sparse_octree.hpp"
 #include "erl_geometry/semi_sparse_quadtree.hpp"
-#include "erl_geometry/colored_occupancy_octree.hpp"
-#include "erl_geometry/colored_occupancy_quadtree.hpp"
 
 namespace erl::geometry {
 

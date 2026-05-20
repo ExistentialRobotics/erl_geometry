@@ -2,6 +2,8 @@
 
 #include "find_voxel_indices.hpp"
 
+#include "erl_common/serialization.hpp"
+
 namespace erl::geometry {
 
     template<typename Dtype, class Node, class Setting>
@@ -9,10 +11,20 @@ namespace erl::geometry {
         const std::shared_ptr<Setting> &setting)
         : Super(setting), m_setting_(setting) {
 
+        ERL_ASSERTM(m_setting_ != nullptr, "setting is nullptr.");
+        ERL_ASSERTM(m_setting_->tree_depth > 0, "tree_depth should be > 0.");
+        ERL_ASSERTM(m_setting_->init_voxel_num > 0, "init_voxel_num should be > 0.");
+
         m_parents_.resize(m_setting_->init_voxel_num);
         m_children_.resize(Eigen::NoChange, m_setting_->init_voxel_num);
         m_voxels_.resize(Eigen::NoChange, m_setting_->init_voxel_num);
         m_vertices_.resize(Eigen::NoChange, m_setting_->init_voxel_num);
+
+        // Set the last column (size) to 1 as the default value because in the Python
+        // implementation, index=-1 is used to indicate the absence of a node, which will
+        // pick the last column of the voxel.
+        // The size of a non-existent node should be >0 to avoid zero-division.
+        m_voxels_.rightCols<1>()[3] = 1;
 
         if (m_setting_->cache_voxel_centers) {
             m_voxel_centers_.resize(Eigen::NoChange, m_setting_->init_voxel_num);
@@ -217,6 +229,289 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, class Node, class Setting>
+    std::ostream &
+    SemiSparseOctreeBase<Dtype, Node, Setting>::WriteData(std::ostream &s) const {
+        using Self = SemiSparseOctreeBase;
+        using namespace common::serialization;
+
+        // OctreeKey is a packed struct of 3 KeyType values; assert layout before doing
+        // contiguous bulk writes of vectors-of-keys.
+        static_assert(
+            sizeof(OctreeKey) == 3 * sizeof(OctreeKey::KeyType),
+            "OctreeKey must be packed (3 * KeyType) for binary IO.");
+
+        static const TokenWriteFunctionPairs<Self> token_function_pairs = {
+            {
+                // Tree topology + each node's m_node_index_, delegated to the parent.
+                "topology",
+                [](const Self *self, std::ostream &stream) {
+                    self->Super::WriteData(stream);
+                    return stream.good();
+                },
+            },
+            {
+                // buf_size (allocated column count) + buf_head (live prefix length) + the live
+                // prefix of each side buffer. m_voxel_centers_ is included only when the
+                // setting cached them; a leading flag records this.
+                "buffers",
+                [](const Self *self, std::ostream &stream) {
+                    const NodeIndex buf_size = self->m_parents_.size();
+                    const NodeIndex buf_head = self->m_buf_head_;
+                    stream.write(reinterpret_cast<const char *>(&buf_size), sizeof(NodeIndex));
+                    stream.write(reinterpret_cast<const char *>(&buf_head), sizeof(NodeIndex));
+                    if (buf_head > 0) {
+                        // Eigen matrices are column-major: the first buf_head columns occupy a
+                        // contiguous prefix of data(), regardless of total allocation.
+                        stream.write(
+                            reinterpret_cast<const char *>(self->m_parents_.data()),
+                            sizeof(NodeIndex) * buf_head);
+                        stream.write(
+                            reinterpret_cast<const char *>(self->m_children_.data()),
+                            sizeof(NodeIndex) * 8 * buf_head);
+                        stream.write(
+                            reinterpret_cast<const char *>(self->m_voxels_.data()),
+                            sizeof(OctreeKey::KeyType) * 4 * buf_head);
+                        stream.write(
+                            reinterpret_cast<const char *>(self->m_vertices_.data()),
+                            sizeof(NodeIndex) * 8 * buf_head);
+                    }
+                    const char cache_centers = self->m_setting_->cache_voxel_centers ? 1 : 0;
+                    stream.write(&cache_centers, sizeof(char));
+                    if (cache_centers && buf_head > 0) {
+                        stream.write(
+                            reinterpret_cast<const char *>(self->m_voxel_centers_.data()),
+                            sizeof(Dtype) * 3 * buf_head);
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                // m_vertex_keys_ as a packed blob.
+                "vertex_keys",
+                [](const Self *self, std::ostream &stream) {
+                    const uint64_t n = self->m_vertex_keys_.size();
+                    stream.write(reinterpret_cast<const char *>(&n), sizeof(uint64_t));
+                    if (n > 0) {
+                        stream.write(
+                            reinterpret_cast<const char *>(self->m_vertex_keys_.data()),
+                            sizeof(OctreeKey) * n);
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                // m_key_to_vertex_map_ serialized as (count, [(key, NodeIndex)] * count).
+                "vertex_map",
+                [](const Self *self, std::ostream &stream) {
+                    const uint64_t n = self->m_key_to_vertex_map_.size();
+                    stream.write(reinterpret_cast<const char *>(&n), sizeof(uint64_t));
+                    for (const auto &kv: self->m_key_to_vertex_map_) {
+                        stream.write(reinterpret_cast<const char *>(&kv.first), sizeof(OctreeKey));
+                        stream.write(reinterpret_cast<const char *>(&kv.second), sizeof(NodeIndex));
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                // m_key_to_vertex_map_leaf_, same layout as vertex_map. Only populated when
+                // independent_smallest_leaf_vertex is on; otherwise the count is 0.
+                "vertex_map_leaf",
+                [](const Self *self, std::ostream &stream) {
+                    const uint64_t n = self->m_key_to_vertex_map_leaf_.size();
+                    stream.write(reinterpret_cast<const char *>(&n), sizeof(uint64_t));
+                    for (const auto &kv: self->m_key_to_vertex_map_leaf_) {
+                        stream.write(reinterpret_cast<const char *>(&kv.first), sizeof(OctreeKey));
+                        stream.write(reinterpret_cast<const char *>(&kv.second), sizeof(NodeIndex));
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                "recycled",
+                [](const Self *self, std::ostream &stream) {
+                    const uint64_t n = self->m_recycled_node_indices_.size();
+                    stream.write(reinterpret_cast<const char *>(&n), sizeof(uint64_t));
+                    for (const NodeIndex idx: self->m_recycled_node_indices_) {
+                        stream.write(reinterpret_cast<const char *>(&idx), sizeof(NodeIndex));
+                    }
+                    return stream.good();
+                },
+            },
+        };
+        WriteTokens(s, this, token_function_pairs);
+        return s;
+    }
+
+    template<typename Dtype, class Node, class Setting>
+    std::istream &
+    SemiSparseOctreeBase<Dtype, Node, Setting>::ReadData(std::istream &s) {
+        using Self = SemiSparseOctreeBase;
+        using namespace common::serialization;
+
+        static_assert(
+            sizeof(OctreeKey) == 3 * sizeof(OctreeKey::KeyType),
+            "OctreeKey must be packed (3 * KeyType) for binary IO.");
+
+        // AbstractOctree::Read calls Super::Clear() before reaching this point, which resets
+        // m_root_ / m_tree_size_ but leaves our side buffers in their constructor-seeded state.
+        // Wipe them so the load is not contaminated.
+        m_buf_head_ = 0;
+        m_parents_.resize(0);
+        m_children_.resize(Eigen::NoChange, 0);
+        m_voxels_.resize(Eigen::NoChange, 0);
+        m_voxel_centers_.resize(Eigen::NoChange, 0);
+        m_vertices_.resize(Eigen::NoChange, 0);
+        m_key_to_vertex_map_.clear();
+        m_key_to_vertex_map_leaf_.clear();
+        m_vertex_keys_.clear();
+        m_recycled_node_indices_.clear();
+
+        static const TokenReadFunctionPairs<Self> token_function_pairs = {
+            {
+                "topology",
+                [](Self *self, std::istream &stream) {
+                    self->Super::ReadData(stream);
+                    return stream.good();
+                },
+            },
+            {
+                "buffers",
+                [](Self *self, std::istream &stream) {
+                    NodeIndex buf_size = 0;
+                    stream.read(reinterpret_cast<char *>(&buf_size), sizeof(NodeIndex));
+                    stream.read(reinterpret_cast<char *>(&self->m_buf_head_), sizeof(NodeIndex));
+                    if (!stream.good()) { return false; }
+
+                    // Match the saved allocation so a round-trip preserves the buffer state
+                    // exactly. The lower bound m_buf_head_ + 1 reserves the last column for the
+                    // m_voxels_ size-sentinel (set to 1) that other code relies on when an
+                    // index of -1 is passed in.
+                    const NodeIndex alloc = std::max<NodeIndex>(buf_size, self->m_buf_head_ + 1);
+                    self->m_parents_.resize(alloc);
+                    self->m_children_.resize(Eigen::NoChange, alloc);
+                    self->m_voxels_.resize(Eigen::NoChange, alloc);
+                    self->m_vertices_.resize(Eigen::NoChange, alloc);
+
+                    if (self->m_buf_head_ > 0) {
+                        stream.read(
+                            reinterpret_cast<char *>(self->m_parents_.data()),
+                            sizeof(NodeIndex) * self->m_buf_head_);
+                        stream.read(
+                            reinterpret_cast<char *>(self->m_children_.data()),
+                            sizeof(NodeIndex) * 8 * self->m_buf_head_);
+                        stream.read(
+                            reinterpret_cast<char *>(self->m_voxels_.data()),
+                            sizeof(OctreeKey::KeyType) * 4 * self->m_buf_head_);
+                        stream.read(
+                            reinterpret_cast<char *>(self->m_vertices_.data()),
+                            sizeof(NodeIndex) * 8 * self->m_buf_head_);
+                    }
+                    self->m_voxels_.rightCols<1>()[3] = 1;
+
+                    char saved_cache_centers = 0;
+                    stream.read(&saved_cache_centers, sizeof(char));
+                    if (saved_cache_centers && self->m_buf_head_ > 0) {
+                        self->m_voxel_centers_.resize(Eigen::NoChange, alloc);
+                        stream.read(
+                            reinterpret_cast<char *>(self->m_voxel_centers_.data()),
+                            sizeof(Dtype) * 3 * self->m_buf_head_);
+                    } else if (self->m_setting_->cache_voxel_centers && self->m_buf_head_ > 0) {
+                        // The file does not carry centers but the current setting wants them
+                        // cached; rebuild from m_voxels_ using AllocateVoxelEntry's convention.
+                        self->m_voxel_centers_.resize(Eigen::NoChange, alloc);
+                        const auto r = static_cast<Dtype>(self->m_setting_->resolution);
+                        const auto key_offset = static_cast<Dtype>(self->m_tree_key_offset_);
+                        for (NodeIndex i = 0; i < self->m_buf_head_; ++i) {
+                            const auto kx = static_cast<Dtype>(self->m_voxels_(0, i));
+                            const auto ky = static_cast<Dtype>(self->m_voxels_(1, i));
+                            const auto kz = static_cast<Dtype>(self->m_voxels_(2, i));
+                            const auto size = self->m_voxels_(3, i);
+                            if (size == 1) {  // level 0: cell-center offset of +0.5
+                                // clang-format off
+                                self->m_voxel_centers_.col(i) <<
+                                    (kx - key_offset + 0.5f) * r,
+                                    (ky - key_offset + 0.5f) * r,
+                                    (kz - key_offset + 0.5f) * r;
+                                // clang-format on
+                            } else {
+                                // clang-format off
+                                self->m_voxel_centers_.col(i) <<
+                                    (kx - key_offset) * r,
+                                    (ky - key_offset) * r,
+                                    (kz - key_offset) * r;
+                                // clang-format on
+                            }
+                        }
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                "vertex_keys",
+                [](Self *self, std::istream &stream) {
+                    uint64_t n = 0;
+                    stream.read(reinterpret_cast<char *>(&n), sizeof(uint64_t));
+                    self->m_vertex_keys_.resize(n);
+                    if (n > 0) {
+                        stream.read(
+                            reinterpret_cast<char *>(self->m_vertex_keys_.data()),
+                            sizeof(OctreeKey) * n);
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                "vertex_map",
+                [](Self *self, std::istream &stream) {
+                    uint64_t n = 0;
+                    stream.read(reinterpret_cast<char *>(&n), sizeof(uint64_t));
+                    self->m_key_to_vertex_map_.reserve(n);
+                    for (uint64_t i = 0; i < n; ++i) {
+                        OctreeKey key;
+                        NodeIndex idx = -1;
+                        stream.read(reinterpret_cast<char *>(&key), sizeof(OctreeKey));
+                        stream.read(reinterpret_cast<char *>(&idx), sizeof(NodeIndex));
+                        self->m_key_to_vertex_map_.emplace(key, idx);
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                "vertex_map_leaf",
+                [](Self *self, std::istream &stream) {
+                    uint64_t n = 0;
+                    stream.read(reinterpret_cast<char *>(&n), sizeof(uint64_t));
+                    self->m_key_to_vertex_map_leaf_.reserve(n);
+                    for (uint64_t i = 0; i < n; ++i) {
+                        OctreeKey key;
+                        NodeIndex idx = -1;
+                        stream.read(reinterpret_cast<char *>(&key), sizeof(OctreeKey));
+                        stream.read(reinterpret_cast<char *>(&idx), sizeof(NodeIndex));
+                        self->m_key_to_vertex_map_leaf_.emplace(key, idx);
+                    }
+                    return stream.good();
+                },
+            },
+            {
+                "recycled",
+                [](Self *self, std::istream &stream) {
+                    uint64_t n = 0;
+                    stream.read(reinterpret_cast<char *>(&n), sizeof(uint64_t));
+                    self->m_recycled_node_indices_.reserve(n);
+                    for (uint64_t i = 0; i < n; ++i) {
+                        NodeIndex idx = -1;
+                        stream.read(reinterpret_cast<char *>(&idx), sizeof(NodeIndex));
+                        self->m_recycled_node_indices_.emplace(idx);
+                    }
+                    return stream.good();
+                },
+            },
+        };
+        ReadTokens(s, this, token_function_pairs);
+        return s;
+    }
+
+    template<typename Dtype, class Node, class Setting>
     typename SemiSparseOctreeBase<Dtype, Node, Setting>::NodeIndex
     SemiSparseOctreeBase<Dtype, Node, Setting>::AllocateVoxelEntry(
         const OctreeKey &key,
@@ -235,6 +530,7 @@ namespace erl::geometry {
                 if (m_setting_->cache_voxel_centers) {
                     m_voxel_centers_.conservativeResize(Eigen::NoChange, new_size);
                 }
+                m_voxels_.rightCols<1>()[3] = 1;
             }
             m_parents_[m_buf_head_] = parent_node_index;
             m_children_.col(m_buf_head_).setConstant(-1);

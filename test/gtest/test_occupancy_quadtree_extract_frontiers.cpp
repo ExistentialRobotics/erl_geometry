@@ -90,9 +90,10 @@ TEST(OccupancyQuadtree, ExtractFrontiers_CircleHasFrontiers) {
 
     ASSERT_GT(frontiers.size(), 0);
     // At least one frontier should be substantial
-    auto max_it = std::max_element(
-        frontiers.begin(), frontiers.end(),
-        [](const auto &a, const auto &b) { return a.cols() < b.cols(); });
+    auto max_it =
+        std::max_element(frontiers.begin(), frontiers.end(), [](const auto &a, const auto &b) {
+            return a.cols() < b.cols();
+        });
     EXPECT_GT(max_it->cols(), 2);
 }
 

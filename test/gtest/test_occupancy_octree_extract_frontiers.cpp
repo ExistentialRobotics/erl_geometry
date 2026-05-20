@@ -149,9 +149,10 @@ TEST(OccupancyOctree, ExtractFrontiers_SphereHasFrontiers) {
 
     ASSERT_GT(frontiers.size(), 0u);
     // At least one frontier should have substantial area
-    auto max_it = std::max_element(
-        frontiers.begin(), frontiers.end(),
-        [](const auto &a, const auto &b) { return a.faces.size() < b.faces.size(); });
+    auto max_it =
+        std::max_element(frontiers.begin(), frontiers.end(), [](const auto &a, const auto &b) {
+            return a.faces.size() < b.faces.size();
+        });
     EXPECT_GT(max_it->faces.size(), 2u);
 }
 
@@ -458,9 +459,10 @@ TEST(OccupancyOctree, ExtractSliceFrontiers_SphereHasFrontiers) {
     // Slice through the center of the sphere
     auto frontiers = tree->ExtractSliceFrontiers(0.0);
     ASSERT_GT(frontiers.size(), 0u);
-    auto max_it = std::max_element(
-        frontiers.begin(), frontiers.end(),
-        [](const auto &a, const auto &b) { return a.cols() < b.cols(); });
+    auto max_it =
+        std::max_element(frontiers.begin(), frontiers.end(), [](const auto &a, const auto &b) {
+            return a.cols() < b.cols();
+        });
     EXPECT_GT(max_it->cols(), 2);
 }
 
@@ -490,22 +492,24 @@ TEST(OccupancyOctree, ExtractSliceFrontiers_Visualization) {
         combined_lines += *ls;
     }
     open3d::io::WriteLineSet(
-        (test_output_dir / "slice_frontiers.ply").string(), combined_lines, true);
+        (test_output_dir / "slice_frontiers.ply").string(),
+        combined_lines,
+        true);
 
     // Save each frontier individually
     for (std::size_t fi = 0; fi < std::min(frontiers.size(), num_colors); ++fi) {
         auto ls = SliceFrontierToLineSet(frontiers[fi], z_slice, colors[fi % num_colors]);
         open3d::io::WriteLineSet(
             (test_output_dir / ("slice_frontier_" + std::to_string(fi) + ".ply")).string(),
-            *ls, true);
+            *ls,
+            true);
     }
 
     // Also save the 3D frontiers for comparison
     auto frontiers_3d = tree->ExtractFrontiers();
     open3d::geometry::TriangleMesh mesh_3d;
     for (const auto &f: frontiers_3d) { mesh_3d += *FrontierToMesh(f, {0.5, 0.5, 0.5}); }
-    open3d::io::WriteTriangleMesh(
-        (test_output_dir / "frontiers_3d.ply").string(), mesh_3d, true);
+    open3d::io::WriteTriangleMesh((test_output_dir / "frontiers_3d.ply").string(), mesh_3d, true);
 
     ERL_INFO("Saved {} slice frontier line sets to {}", frontiers.size(), test_output_dir.string());
 }
