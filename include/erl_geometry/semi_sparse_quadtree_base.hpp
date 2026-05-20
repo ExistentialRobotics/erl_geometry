@@ -90,6 +90,15 @@ namespace erl::geometry {
         [[nodiscard]] const QuadtreeKeyVector &
         GetVertexKeys() const;
 
+        /**
+         * Live high-water mark of the continuous node buffer. All live node indices live in
+         * [0, GetBufHead()), and any slot in that range that is not in the recycled set is a live
+         * node. Use this to slice the (parents/children/voxels/voxel_centers/vertices) buffers down
+         * to their used prefix.
+         */
+        [[nodiscard]] NodeIndex
+        GetBufHead() const;
+
         Eigen::VectorX<NodeIndex>
         InsertPoints(const Matrix2X &points);
 

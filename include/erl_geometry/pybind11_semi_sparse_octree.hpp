@@ -61,6 +61,7 @@ BindSemiSparseOctree(
             "num_independent_leaf_vertices",
             &Octree::GetIndependentLeafVertexCount)
         .def_property_readonly("vertex_keys", &Octree::GetVertexKeys)
+        .def_property_readonly("buf_head", &Octree::GetBufHead)
         .def(
             "insert_points",
             py::overload_cast<const Matrix3X &>(&Octree::InsertPoints),

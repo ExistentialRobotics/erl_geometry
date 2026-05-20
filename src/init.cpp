@@ -1,5 +1,6 @@
 #include "erl_geometry/init.hpp"
 
+#include "erl_common/init.hpp"
 #include "erl_geometry/abstract_octree_drawer.hpp"
 #include "erl_geometry/abstract_quadtree_drawer.hpp"
 #include "erl_geometry/colored_occupancy_octree.hpp"
@@ -31,6 +32,7 @@ namespace erl::geometry {
         static bool initialized_ = false;
 
         if (initialized_) { return true; }
+        if (!erl::common::Init()) { return false; }
 
         REGISTER(Lidar3Dd::Setting);
         REGISTER(Lidar3Df::Setting);

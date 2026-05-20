@@ -62,6 +62,7 @@ BindSemiSparseQuadtree(
             "num_independent_leaf_vertices",
             &Quadtree::GetIndependentLeafVertexCount)
         .def_property_readonly("vertex_keys", &Quadtree::GetVertexKeys)
+        .def_property_readonly("buf_head", &Quadtree::GetBufHead)
         .def(
             "insert_points",
             py::overload_cast<const Matrix2X &>(&Quadtree::InsertPoints),

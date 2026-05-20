@@ -102,6 +102,12 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, class Node, class Setting>
+    typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndex
+    SemiSparseQuadtreeBase<Dtype, Node, Setting>::GetBufHead() const {
+        return m_buf_head_;
+    }
+
+    template<typename Dtype, class Node, class Setting>
     typename SemiSparseQuadtreeBase<Dtype, Node, Setting>::NodeIndices
     SemiSparseQuadtreeBase<Dtype, Node, Setting>::InsertPoints(const Matrix2X &points) {
         return InsertPoints(points.data(), points.cols());
@@ -252,10 +258,14 @@ namespace erl::geometry {
                 // buf_size (allocated column count) + buf_head (live prefix length) + the live
                 // prefix of each side buffer. m_voxel_centers_ is included only when the
                 // setting cached them; a leading flag records this.
+                //
+                // We save the *minimum* allocation needed to round-trip: buf_head columns of live
+                // data plus one sentinel column. The reader's max(buf_size, buf_head + 1) bound
+                // then lands on buf_head + 1 — a compact buffer with no trailing unused slots.
                 "buffers",
                 [](const Self *self, std::ostream &stream) {
-                    const NodeIndex buf_size = self->m_parents_.size();
                     const NodeIndex buf_head = self->m_buf_head_;
+                    const NodeIndex buf_size = buf_head + 1;
                     stream.write(reinterpret_cast<const char *>(&buf_size), sizeof(NodeIndex));
                     stream.write(reinterpret_cast<const char *>(&buf_head), sizeof(NodeIndex));
                     if (buf_head > 0) {
@@ -423,24 +433,17 @@ namespace erl::geometry {
                         // cached; rebuild from m_voxels_ using AllocateVoxelEntry's convention.
                         self->m_voxel_centers_.resize(Eigen::NoChange, alloc);
                         const auto r = static_cast<Dtype>(self->m_setting_->resolution);
-                        const auto key_offset = self->m_tree_key_offset_;
+                        const auto key_offset = static_cast<Dtype>(self->m_tree_key_offset_);
                         for (NodeIndex i = 0; i < self->m_buf_head_; ++i) {
-                            const auto kx = self->m_voxels_(0, i);
-                            const auto ky = self->m_voxels_(1, i);
+                            const auto kx = static_cast<Dtype>(self->m_voxels_(0, i));
+                            const auto ky = static_cast<Dtype>(self->m_voxels_(1, i));
                             const auto size = self->m_voxels_(2, i);
                             if (size == 1) {  // level 0: cell-center offset of +0.5
-                                self->m_voxel_centers_.col(i)
-                                    << (static_cast<Dtype>(kx) - static_cast<Dtype>(key_offset) +
-                                        0.5f) *
-                                           r,
-                                    (static_cast<Dtype>(ky) - static_cast<Dtype>(key_offset) +
-                                     0.5f) *
-                                        r;
+                                self->m_voxel_centers_.col(i) << (kx - key_offset + 0.5f) * r,
+                                    (ky - key_offset + 0.5f) * r;
                             } else {
-                                self->m_voxel_centers_.col(i)
-                                    << (static_cast<Dtype>(kx) - static_cast<Dtype>(key_offset)) *
-                                           r,
-                                    (static_cast<Dtype>(ky) - static_cast<Dtype>(key_offset)) * r;
+                                self->m_voxel_centers_.col(i) << (kx - key_offset) * r,
+                                    (ky - key_offset) * r;
                             }
                         }
                     }

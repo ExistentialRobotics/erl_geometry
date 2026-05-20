@@ -102,6 +102,12 @@ namespace erl::geometry {
     }
 
     template<typename Dtype, class Node, class Setting>
+    typename SemiSparseOctreeBase<Dtype, Node, Setting>::NodeIndex
+    SemiSparseOctreeBase<Dtype, Node, Setting>::GetBufHead() const {
+        return m_buf_head_;
+    }
+
+    template<typename Dtype, class Node, class Setting>
     typename SemiSparseOctreeBase<Dtype, Node, Setting>::NodeIndices
     SemiSparseOctreeBase<Dtype, Node, Setting>::InsertPoints(const Matrix3X &points) {
         return InsertPoints(points.data(), points.cols());
@@ -253,10 +259,14 @@ namespace erl::geometry {
                 // buf_size (allocated column count) + buf_head (live prefix length) + the live
                 // prefix of each side buffer. m_voxel_centers_ is included only when the
                 // setting cached them; a leading flag records this.
+                //
+                // We save the *minimum* allocation needed to round-trip: buf_head columns of live
+                // data plus one sentinel column. The reader's max(buf_size, buf_head + 1) bound
+                // then lands on buf_head + 1 — a compact buffer with no trailing unused slots.
                 "buffers",
                 [](const Self *self, std::ostream &stream) {
-                    const NodeIndex buf_size = self->m_parents_.size();
                     const NodeIndex buf_head = self->m_buf_head_;
+                    const NodeIndex buf_size = buf_head + 1;
                     stream.write(reinterpret_cast<const char *>(&buf_size), sizeof(NodeIndex));
                     stream.write(reinterpret_cast<const char *>(&buf_head), sizeof(NodeIndex));
                     if (buf_head > 0) {
