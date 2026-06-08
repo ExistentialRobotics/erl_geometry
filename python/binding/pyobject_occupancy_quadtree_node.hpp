@@ -4,7 +4,8 @@
 #include "erl_geometry/occupancy_quadtree_node.hpp"
 
 namespace erl::geometry {
-    class PyObjectOccupancyQuadtreeNode : public OccupancyQuadtreeNode {
+    class __attribute__((visibility("hidden"))) PyObjectOccupancyQuadtreeNode
+        : public OccupancyQuadtreeNode {
     protected:
         py::object m_py_object_ = py::none();  // Store the Python object
 

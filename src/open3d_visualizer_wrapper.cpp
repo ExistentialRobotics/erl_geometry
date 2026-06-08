@@ -21,7 +21,7 @@ namespace erl::geometry {
 
     void
     Open3dVisualizerWrapper::Reset() {
-        m_visualizer_->DestroyVisualizerWindow();
+        if (m_visualizer_ != nullptr) { m_visualizer_->DestroyVisualizerWindow(); }
         m_visualizer_ = nullptr;
         m_keyboard_callback_ = nullptr;
         m_animation_callback_ = nullptr;
@@ -41,7 +41,7 @@ namespace erl::geometry {
 
     GLFWwindow *
     Open3dVisualizerWrapper::GetWindow() const {
-        return m_visualizer_->GetWindow();
+        return m_visualizer_ == nullptr ? nullptr : m_visualizer_->GetWindow();
     }
 
     void
@@ -56,6 +56,9 @@ namespace erl::geometry {
         std::function<bool(Open3dVisualizerWrapper *, open3d::visualization::Visualizer *)>
             callback) {
         m_animation_callback_ = std::move(callback);
+        // Headless: no visualizer to register with. The callback is stored and invoked
+        // directly by Show(); setting it to nullptr stops the Show() loop.
+        if (m_visualizer_ == nullptr) { return; }
         if (m_animation_callback_) {
             m_visualizer_->RegisterAnimationCallback(
                 [this](open3d::visualization::Visualizer *) -> bool {
@@ -71,6 +74,7 @@ namespace erl::geometry {
 
     void
     Open3dVisualizerWrapper::SetViewStatus(const std::filesystem::path &view_status_file) const {
+        if (m_visualizer_ == nullptr) { return; }  // headless: no view to set
         if (std::filesystem::exists(view_status_file)) {
             std::ifstream ifs(view_status_file);
             const auto json_str =
@@ -86,6 +90,7 @@ namespace erl::geometry {
     void
     Open3dVisualizerWrapper::AddGeometries(
         const std::vector<std::shared_ptr<open3d::geometry::Geometry>> &geometries) const {
+        if (m_visualizer_ == nullptr) { return; }  // headless: nothing to render
         for (const auto &geometry: geometries) { m_visualizer_->AddGeometry(geometry); }
     }
 
@@ -98,6 +103,18 @@ namespace erl::geometry {
 
     void
     Open3dVisualizerWrapper::Show(const int wait_time_seconds) {
+
+        if (m_visualizer_ == nullptr) {
+            // Headless: no window/render loop. Drive the animation callback ourselves with a
+            // null visualizer until it stops (returns false) or clears itself via
+            // SetAnimationCallback(nullptr). Copy the callback before each call so it stays
+            // alive even if it reassigns m_animation_callback_ while executing.
+            while (m_animation_callback_) {
+                auto callback = m_animation_callback_;
+                if (!callback(this, nullptr)) { break; }
+            }
+            return;
+        }
 
         if (wait_time_seconds > 0) {
             m_visualizer_->BuildUtilities();
@@ -122,6 +139,12 @@ namespace erl::geometry {
 
     void
     Open3dVisualizerWrapper::Init() {
+        if (m_setting_->headless) {
+            // Headless: skip all Open3D visualizer setup. No window/GL context is created;
+            // GetVisualizer() returns nullptr and Show() drives the animation callback directly.
+            m_visualizer_ = nullptr;
+            return;
+        }
         m_visualizer_ = std::make_shared<Open3dVisualizerWithKeyCallback>();
         ERL_ASSERTM(
             m_visualizer_->CreateVisualizerWindow(

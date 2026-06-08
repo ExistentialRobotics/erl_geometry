@@ -9,10 +9,11 @@
 
 namespace erl::geometry {
     template<typename Dtype>
-    class PyObjectOccupancyQuadtree : public OccupancyQuadtreeBase<
-                                          Dtype,
-                                          PyObjectOccupancyQuadtreeNode,
-                                          OccupancyQuadtreeBaseSetting> {
+    class __attribute__((visibility("hidden"))) PyObjectOccupancyQuadtree
+        : public OccupancyQuadtreeBase<
+              Dtype,
+              PyObjectOccupancyQuadtreeNode,
+              OccupancyQuadtreeBaseSetting> {
     public:
         using Setting = OccupancyQuadtreeBaseSetting;
         using Super = OccupancyQuadtreeBase<

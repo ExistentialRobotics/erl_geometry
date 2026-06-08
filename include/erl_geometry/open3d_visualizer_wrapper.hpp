@@ -37,6 +37,7 @@ namespace erl::geometry {
             double translate_step = 0.1;
             double angle_step = 0.1;
             bool mesh_show_back_face = false;
+            bool headless = false;  // true skips all Open3D visualizer setup (no window/context)
 
             ERL_REFLECT_SCHEMA(
                 Setting,
@@ -54,7 +55,8 @@ namespace erl::geometry {
                 ERL_REFLECT_MEMBER(Setting, yaw),
                 ERL_REFLECT_MEMBER(Setting, translate_step),
                 ERL_REFLECT_MEMBER(Setting, angle_step),
-                ERL_REFLECT_MEMBER(Setting, mesh_show_back_face));
+                ERL_REFLECT_MEMBER(Setting, mesh_show_back_face),
+                ERL_REFLECT_MEMBER(Setting, headless));
         };
 
     private:
