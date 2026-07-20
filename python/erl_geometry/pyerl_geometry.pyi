@@ -2,7 +2,9 @@
 Python 3 Interface of erl_geometry
 """
 from __future__ import annotations
+import collections.abc
 import numpy
+import numpy.typing
 import torch
 import typing
 __all__: list[str] = ['Aabb2Dd', 'Aabb2Df', 'Aabb3Dd', 'Aabb3Df', 'AbstractOccupancyOctreeD', 'AbstractOccupancyOctreeF', 'AbstractOccupancyQuadtreeD', 'AbstractOccupancyQuadtreeF', 'AbstractOctreeD', 'AbstractOctreeF', 'AbstractOctreeNode', 'AbstractQuadtreeD', 'AbstractQuadtreeF', 'AbstractQuadtreeNode', 'AxisAlignedRectangle2D', 'Box', 'CameraBase3Dd', 'CameraBase3Df', 'CameraIntrinsicD', 'CameraIntrinsicF', 'CityStreetMap', 'DepthCamera3Dd', 'DepthCamera3Df', 'DepthFrame3Dd', 'DepthFrame3Df', 'Ellipse2D', 'Ellipsoid', 'HouseExpoMap', 'Lidar2D', 'Lidar3Dd', 'Lidar3Df', 'LidarFrame2Dd', 'LidarFrame2Df', 'LidarFrame3Dd', 'LidarFrame3Df', 'Line2D', 'LogOddMap', 'LogOddMap2Dd', 'LogOddMap2Df', 'MarchingCubes', 'MeshSdf', 'NdTreeSetting', 'OccupancyNdTreeSetting', 'OccupancyOctreeBaseSetting', 'OccupancyOctreeD', 'OccupancyOctreeDrawerSetting', 'OccupancyOctreeF', 'OccupancyOctreeNode', 'OccupancyQuadtreeBaseSetting', 'OccupancyQuadtreeD', 'OccupancyQuadtreeDrawerSettingD', 'OccupancyQuadtreeDrawerSettingF', 'OccupancyQuadtreeF', 'OccupancyQuadtreeNode', 'OctreeKey', 'Primitive2D', 'Primitive3D', 'PyObjectOccupancyOctreeD', 'PyObjectOccupancyOctreeF', 'PyObjectOccupancyOctreeNode', 'PyObjectOccupancyQuadtreeD', 'PyObjectOccupancyQuadtreeF', 'PyObjectOccupancyQuadtreeNode', 'QuadtreeKey', 'RangeSensor3Dd', 'RangeSensor3Df', 'RangeSensorFrame3Dd', 'RangeSensorFrame3Df', 'Ray2D', 'Rectangle2D', 'RgbdCamera3Dd', 'RgbdCamera3Df', 'RgbdFrame3Dd', 'RgbdFrame3Df', 'Segment2D', 'SemiSparseNdTreeSetting', 'SemiSparseOctreeD', 'SemiSparseOctreeF', 'SemiSparseOctreeNode', 'SemiSparseQuadtreeD', 'SemiSparseQuadtreeF', 'SemiSparseQuadtreeNode', 'Space2D', 'Surface2D', 'TrajectoryD', 'TrajectoryF', 'YamlableBase', 'bresenham_2d', 'compute_intersection_between_line_and_ellipse_2d', 'compute_intersection_between_line_and_ellipsoid_3d', 'compute_intersection_between_ray_and_aabb_2d', 'compute_intersection_between_ray_and_aabb_3d', 'compute_intersection_between_ray_and_line_2d', 'compute_nearest_distance_from_point_to_line_segment_2d', 'compute_pixels_of_polygon_contour', 'convert_path_2d_to_3d_float32', 'convert_path_2d_to_3d_float64', 'create_ellipsoid_mesh', 'find_voxel_indices', 'hidden_point_removal', 'marching_square', 'morton_decode', 'morton_encode', 'parallel_hidden_point_removal', 'winding_number']
@@ -40,7 +42,7 @@ class Aabb2Dd:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -62,7 +64,7 @@ class Aabb2Dd:
             ...
         def __rxor__(self, other: typing.Any) -> typing.Any:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -82,36 +84,36 @@ class Aabb2Dd:
     def intersects(*args, **kwargs) -> bool:
         ...
     @typing.overload
-    def __contains__(self, point: numpy.ndarray[numpy.float64[2, 1]]) -> bool:
+    def __contains__(self, point: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> bool:
         ...
     @typing.overload
     def __contains__(self, another_aabb: Aabb2Dd) -> bool:
         ...
     @typing.overload
-    def __init__(self, center: numpy.ndarray[numpy.float64[2, 1]], half_size: float) -> None:
+    def __init__(self, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], half_size: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @typing.overload
-    def __init__(self, min: numpy.ndarray[numpy.float64[2, 1]], max: numpy.ndarray[numpy.float64[2, 1]]) -> None:
+    def __init__(self, min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
         ...
-    def corner(self, corner_type: Aabb2Dd.CornerType) -> numpy.ndarray[numpy.float64[2, 1]]:
-        ...
-    @typing.overload
-    def padding(self, padding: numpy.ndarray[numpy.float64[2, 1]]) -> Aabb2Dd:
+    def corner(self, corner_type: Aabb2Dd.CornerType) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @typing.overload
-    def padding(self, padding: float) -> Aabb2Dd:
+    def padding(self, padding: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> Aabb2Dd:
+        ...
+    @typing.overload
+    def padding(self, padding: typing.SupportsFloat | typing.SupportsIndex) -> Aabb2Dd:
         ...
     @property
-    def center(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def half_sizes(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def half_sizes(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def max(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def min(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
 class Aabb2Df:
     class CornerType:
@@ -147,7 +149,7 @@ class Aabb2Df:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -169,7 +171,7 @@ class Aabb2Df:
             ...
         def __rxor__(self, other: typing.Any) -> typing.Any:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -189,36 +191,36 @@ class Aabb2Df:
     def intersects(*args, **kwargs) -> bool:
         ...
     @typing.overload
-    def __contains__(self, point: numpy.ndarray[numpy.float32[2, 1]]) -> bool:
+    def __contains__(self, point: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> bool:
         ...
     @typing.overload
     def __contains__(self, another_aabb: Aabb2Df) -> bool:
         ...
     @typing.overload
-    def __init__(self, center: numpy.ndarray[numpy.float32[2, 1]], half_size: float) -> None:
+    def __init__(self, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"], half_size: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @typing.overload
-    def __init__(self, min: numpy.ndarray[numpy.float32[2, 1]], max: numpy.ndarray[numpy.float32[2, 1]]) -> None:
+    def __init__(self, min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"], max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> None:
         ...
-    def corner(self, corner_type: Aabb2Df.CornerType) -> numpy.ndarray[numpy.float32[2, 1]]:
-        ...
-    @typing.overload
-    def padding(self, padding: numpy.ndarray[numpy.float32[2, 1]]) -> Aabb2Df:
+    def corner(self, corner_type: Aabb2Df.CornerType) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @typing.overload
-    def padding(self, padding: float) -> Aabb2Df:
+    def padding(self, padding: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> Aabb2Df:
+        ...
+    @typing.overload
+    def padding(self, padding: typing.SupportsFloat | typing.SupportsIndex) -> Aabb2Df:
         ...
     @property
-    def center(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def half_sizes(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def half_sizes(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def max(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def min(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
 class Aabb3Dd:
     class CornerType:
@@ -266,7 +268,7 @@ class Aabb3Dd:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -288,7 +290,7 @@ class Aabb3Dd:
             ...
         def __rxor__(self, other: typing.Any) -> typing.Any:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -312,36 +314,36 @@ class Aabb3Dd:
     def intersects(*args, **kwargs) -> bool:
         ...
     @typing.overload
-    def __contains__(self, point: numpy.ndarray[numpy.float64[3, 1]]) -> bool:
+    def __contains__(self, point: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> bool:
         ...
     @typing.overload
     def __contains__(self, another_aabb: Aabb3Dd) -> bool:
         ...
     @typing.overload
-    def __init__(self, center: numpy.ndarray[numpy.float64[3, 1]], half_size: float) -> None:
+    def __init__(self, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], half_size: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @typing.overload
-    def __init__(self, min: numpy.ndarray[numpy.float64[3, 1]], max: numpy.ndarray[numpy.float64[3, 1]]) -> None:
+    def __init__(self, min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
         ...
-    def corner(self, corner_type: Aabb3Dd.CornerType) -> numpy.ndarray[numpy.float64[3, 1]]:
-        ...
-    @typing.overload
-    def padding(self, padding: numpy.ndarray[numpy.float64[3, 1]]) -> Aabb3Dd:
+    def corner(self, corner_type: Aabb3Dd.CornerType) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @typing.overload
-    def padding(self, padding: float) -> Aabb3Dd:
+    def padding(self, padding: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> Aabb3Dd:
+        ...
+    @typing.overload
+    def padding(self, padding: typing.SupportsFloat | typing.SupportsIndex) -> Aabb3Dd:
         ...
     @property
-    def center(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def half_sizes(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def half_sizes(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def max(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def min(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
 class Aabb3Df:
     class CornerType:
@@ -389,7 +391,7 @@ class Aabb3Df:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -411,7 +413,7 @@ class Aabb3Df:
             ...
         def __rxor__(self, other: typing.Any) -> typing.Any:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -435,39 +437,39 @@ class Aabb3Df:
     def intersects(*args, **kwargs) -> bool:
         ...
     @typing.overload
-    def __contains__(self, point: numpy.ndarray[numpy.float32[3, 1]]) -> bool:
+    def __contains__(self, point: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> bool:
         ...
     @typing.overload
     def __contains__(self, another_aabb: Aabb3Df) -> bool:
         ...
     @typing.overload
-    def __init__(self, center: numpy.ndarray[numpy.float32[3, 1]], half_size: float) -> None:
+    def __init__(self, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"], half_size: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @typing.overload
-    def __init__(self, min: numpy.ndarray[numpy.float32[3, 1]], max: numpy.ndarray[numpy.float32[3, 1]]) -> None:
+    def __init__(self, min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"], max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> None:
         ...
-    def corner(self, corner_type: Aabb3Df.CornerType) -> numpy.ndarray[numpy.float32[3, 1]]:
-        ...
-    @typing.overload
-    def padding(self, padding: numpy.ndarray[numpy.float32[3, 1]]) -> Aabb3Df:
+    def corner(self, corner_type: Aabb3Df.CornerType) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @typing.overload
-    def padding(self, padding: float) -> Aabb3Df:
+    def padding(self, padding: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> Aabb3Df:
+        ...
+    @typing.overload
+    def padding(self, padding: typing.SupportsFloat | typing.SupportsIndex) -> Aabb3Df:
         ...
     @property
-    def center(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def half_sizes(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def half_sizes(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def max(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def min(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
 class AbstractOccupancyOctreeD(AbstractOctreeD):
-    def get_hit_occupied_node(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, ignore_unknown: bool, max_range: float) -> dict:
+    def get_hit_occupied_node(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     def is_node_at_threshold(self, node: OccupancyOctreeNode) -> bool:
         ...
@@ -478,7 +480,7 @@ class AbstractOccupancyOctreeD(AbstractOctreeD):
     def write_binary(self, filename: str, prune_at_first: bool) -> bool:
         ...
 class AbstractOccupancyOctreeF(AbstractOctreeF):
-    def get_hit_occupied_node(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, ignore_unknown: bool, max_range: float) -> dict:
+    def get_hit_occupied_node(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     def is_node_at_threshold(self, node: OccupancyOctreeNode) -> bool:
         ...
@@ -489,7 +491,7 @@ class AbstractOccupancyOctreeF(AbstractOctreeF):
     def write_binary(self, filename: str, prune_at_first: bool) -> bool:
         ...
 class AbstractOccupancyQuadtreeD(AbstractQuadtreeD):
-    def get_hit_occupied_node(self, px: float, py: float, vx: float, vy: float, ignore_unknown: bool, max_range: float) -> dict:
+    def get_hit_occupied_node(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     def is_node_at_threshold(self, node: OccupancyQuadtreeNode) -> bool:
         ...
@@ -500,7 +502,7 @@ class AbstractOccupancyQuadtreeD(AbstractQuadtreeD):
     def write_binary(self, filename: str, prune_at_first: bool) -> bool:
         ...
 class AbstractOccupancyQuadtreeF(AbstractQuadtreeF):
-    def get_hit_occupied_node(self, px: float, py: float, vx: float, vy: float, ignore_unknown: bool, max_range: float) -> dict:
+    def get_hit_occupied_node(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     def is_node_at_threshold(self, node: OccupancyQuadtreeNode) -> bool:
         ...
@@ -540,17 +542,25 @@ class AbstractOctreeD:
             ...
     def apply_setting(self) -> None:
         ...
+    @typing.overload
     def read(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def read(self, bytes: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]) -> bool:
         ...
     def read_setting(self, arg0: ...) -> bool:
         ...
     @typing.overload
-    def search_node(self, x: float, y: float, z: float, max_depth: int) -> AbstractOctreeNode:
+    def search_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractOctreeNode:
         ...
     @typing.overload
-    def search_node(self, key: OctreeKey, max_depth: int) -> AbstractOctreeNode:
+    def search_node(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractOctreeNode:
         ...
+    @typing.overload
     def write(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def write(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]:
         ...
     def write_setting(self, arg0: ...) -> None:
         ...
@@ -587,17 +597,25 @@ class AbstractOctreeF:
             ...
     def apply_setting(self) -> None:
         ...
+    @typing.overload
     def read(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def read(self, bytes: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]) -> bool:
         ...
     def read_setting(self, arg0: ...) -> bool:
         ...
     @typing.overload
-    def search_node(self, x: float, y: float, z: float, max_depth: int) -> AbstractOctreeNode:
+    def search_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractOctreeNode:
         ...
     @typing.overload
-    def search_node(self, key: OctreeKey, max_depth: int) -> AbstractOctreeNode:
+    def search_node(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractOctreeNode:
         ...
+    @typing.overload
     def write(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def write(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]:
         ...
     def write_setting(self, arg0: ...) -> None:
         ...
@@ -605,7 +623,7 @@ class AbstractOctreeF:
     def tree_type(self) -> str:
         ...
 class AbstractOctreeNode:
-    def has_child(self, child_idx: int) -> bool:
+    def has_child(self, child_idx: typing.SupportsInt | typing.SupportsIndex) -> bool:
         ...
     @property
     def child_index(self) -> int:
@@ -649,17 +667,25 @@ class AbstractQuadtreeD:
             ...
     def apply_setting(self) -> None:
         ...
+    @typing.overload
     def read(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def read(self, bytes: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]) -> bool:
         ...
     def read_setting(self, arg0: ...) -> bool:
         ...
     @typing.overload
-    def search_node(self, x: float, y: float, max_depth: int) -> AbstractQuadtreeNode:
+    def search_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractQuadtreeNode:
         ...
     @typing.overload
-    def search_node(self, key: QuadtreeKey, max_depth: int) -> AbstractQuadtreeNode:
+    def search_node(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractQuadtreeNode:
         ...
+    @typing.overload
     def write(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def write(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]:
         ...
     def write_setting(self, arg0: ...) -> None:
         ...
@@ -693,17 +719,25 @@ class AbstractQuadtreeF:
             ...
     def apply_setting(self) -> None:
         ...
+    @typing.overload
     def read(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def read(self, bytes: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]) -> bool:
         ...
     def read_setting(self, arg0: ...) -> bool:
         ...
     @typing.overload
-    def search_node(self, x: float, y: float, max_depth: int) -> AbstractQuadtreeNode:
+    def search_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractQuadtreeNode:
         ...
     @typing.overload
-    def search_node(self, key: QuadtreeKey, max_depth: int) -> AbstractQuadtreeNode:
+    def search_node(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> AbstractQuadtreeNode:
         ...
+    @typing.overload
     def write(self, filename: str) -> bool:
+        ...
+    @typing.overload
+    def write(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, 1]"]:
         ...
     def write_setting(self, arg0: ...) -> None:
         ...
@@ -711,7 +745,7 @@ class AbstractQuadtreeF:
     def tree_type(self) -> str:
         ...
 class AbstractQuadtreeNode:
-    def has_child(self, child_idx: int) -> bool:
+    def has_child(self, child_idx: typing.SupportsInt | typing.SupportsIndex) -> bool:
         ...
     @property
     def child_index(self) -> int:
@@ -729,95 +763,213 @@ class AbstractQuadtreeNode:
     def num_children(self) -> int:
         ...
 class AxisAlignedRectangle2D(Primitive2D, Aabb2Dd):
-    def __init__(self, id: int, center: numpy.ndarray[numpy.float64[2, 1]], half_sizes: numpy.ndarray[numpy.float64[2, 1]]) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], half_sizes: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
         ...
 class Box(Primitive3D):
-    center: numpy.ndarray[numpy.float64[3, 1]]
-    rotation_matrix: numpy.ndarray[numpy.float64[3, 3]]
-    def __init__(self, id: int, center: numpy.ndarray[numpy.float64[3, 1]], half_sizes: numpy.ndarray[numpy.float64[3, 1]], rotation: numpy.ndarray[numpy.float64[3, 3]]) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], half_sizes: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], rotation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> None:
         ...
-    def rotate(self, rotation: numpy.ndarray[numpy.float64[3, 3]]) -> Box:
+    def rotate(self, rotation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> Box:
         ...
-    def translate(self, translation: numpy.ndarray[numpy.float64[3, 1]]) -> Box:
+    def translate(self, translation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> Box:
         ...
     @property
-    def half_sizes(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @center.setter
+    def center(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> Box:
+        ...
+    @property
+    def half_sizes(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @property
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
+        ...
+    @rotation_matrix.setter
+    def rotation_matrix(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> Box:
         ...
 class CameraBase3Dd:
     cTo: typing.ClassVar[numpy.ndarray]  # value = array([[ 0.,  0.,  1.,  0.],...
     oTc: typing.ClassVar[numpy.ndarray]  # value = array([[ 0., -1.,  0.,  0.],...
     @staticmethod
-    def compute_camera_pose(orientation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[3, 1]]) -> tuple[numpy.ndarray[numpy.float64[3, 3]], numpy.ndarray[numpy.float64[3, 1]]]:
+    def compute_camera_pose(orientation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @staticmethod
-    def compute_extrinsic(camera_orientation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], camera_translation: numpy.ndarray[numpy.float64[3, 1]]) -> numpy.ndarray[numpy.float64[4, 4]]:
+    def compute_extrinsic(camera_orientation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], camera_translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]:
         ...
     @staticmethod
-    def compute_optical_pose(orientation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[3, 1]]) -> tuple[numpy.ndarray[numpy.float64[3, 3]], numpy.ndarray[numpy.float64[3, 1]]]:
+    def compute_optical_pose(orientation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
 class CameraBase3Df:
     cTo: typing.ClassVar[numpy.ndarray]  # value = array([[ 0.,  0.,  1.,  0.],...
     oTc: typing.ClassVar[numpy.ndarray]  # value = array([[ 0., -1.,  0.,  0.],...
     @staticmethod
-    def compute_camera_pose(orientation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[3, 1]]) -> tuple[numpy.ndarray[numpy.float32[3, 3]], numpy.ndarray[numpy.float32[3, 1]]]:
+    def compute_camera_pose(orientation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @staticmethod
-    def compute_extrinsic(camera_orientation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], camera_translation: numpy.ndarray[numpy.float32[3, 1]]) -> numpy.ndarray[numpy.float32[4, 4]]:
+    def compute_extrinsic(camera_orientation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], camera_translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[4, 4]"]:
         ...
     @staticmethod
-    def compute_optical_pose(orientation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[3, 1]]) -> tuple[numpy.ndarray[numpy.float32[3, 3]], numpy.ndarray[numpy.float32[3, 1]]]:
+    def compute_optical_pose(orientation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
 class CameraIntrinsicD(YamlableBase):
-    camera_cx: float
-    camera_cy: float
-    camera_fx: float
-    camera_fy: float
-    image_height: int
-    image_width: int
     def __init__(self) -> None:
         ...
-    def compute_frame_direction(self, u: int, v: int) -> tuple[float, float, float]:
+    def compute_frame_direction(self, u: typing.SupportsInt | typing.SupportsIndex, v: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
         ...
-    def compute_frame_directions(self) -> numpy.ndarray[numpy.float64]:
+    def compute_frame_directions(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
-    def convert_depth_to_distance(self, depth: numpy.ndarray[numpy.float64[m, n]], rgb: Mat, optical_pose: numpy.ndarray[numpy.float64[4, 4]] | None = None) -> dict:
+    def convert_depth_to_distance(self, depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], rgb: Mat, optical_pose: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[4, 4]"] | None = None) -> dict:
         ...
-    def resize(self, factor: float) -> tuple[int, int]:
+    @typing.overload
+    def resize(self, factor: typing.SupportsFloat | typing.SupportsIndex) -> tuple[int, int]:
+        ...
+    @typing.overload
+    def resize(self, factor_height: typing.SupportsFloat | typing.SupportsIndex, factor_width: typing.SupportsFloat | typing.SupportsIndex) -> tuple[int, int]:
         ...
     @property
-    def matrix(self) -> numpy.ndarray[numpy.float64[3, 3]]:
+    def camera_cx(self) -> float:
+        ...
+    @camera_cx.setter
+    def camera_cx(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def camera_cy(self) -> float:
+        ...
+    @camera_cy.setter
+    def camera_cy(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def camera_fx(self) -> float:
+        ...
+    @camera_fx.setter
+    def camera_fx(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def camera_fy(self) -> float:
+        ...
+    @camera_fy.setter
+    def camera_fy(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def image_height(self) -> int:
+        ...
+    @image_height.setter
+    def image_height(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def image_width(self) -> int:
+        ...
+    @image_width.setter
+    def image_width(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
         ...
 class CameraIntrinsicF(YamlableBase):
-    camera_cx: float
-    camera_cy: float
-    camera_fx: float
-    camera_fy: float
-    image_height: int
-    image_width: int
     def __init__(self) -> None:
         ...
-    def compute_frame_direction(self, u: int, v: int) -> tuple[float, float, float]:
+    def compute_frame_direction(self, u: typing.SupportsInt | typing.SupportsIndex, v: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
         ...
-    def compute_frame_directions(self) -> numpy.ndarray[numpy.float32]:
+    def compute_frame_directions(self) -> numpy.typing.NDArray[numpy.float32]:
         ...
-    def convert_depth_to_distance(self, depth: numpy.ndarray[numpy.float32[m, n]], rgb: Mat, optical_pose: numpy.ndarray[numpy.float32[4, 4]] | None = None) -> dict:
+    def convert_depth_to_distance(self, depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"], rgb: Mat, optical_pose: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[4, 4]"] | None = None) -> dict:
         ...
-    def resize(self, factor: float) -> tuple[int, int]:
+    @typing.overload
+    def resize(self, factor: typing.SupportsFloat | typing.SupportsIndex) -> tuple[int, int]:
+        ...
+    @typing.overload
+    def resize(self, factor_height: typing.SupportsFloat | typing.SupportsIndex, factor_width: typing.SupportsFloat | typing.SupportsIndex) -> tuple[int, int]:
         ...
     @property
-    def matrix(self) -> numpy.ndarray[numpy.float32[3, 3]]:
+    def camera_cx(self) -> float:
+        ...
+    @camera_cx.setter
+    def camera_cx(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def camera_cy(self) -> float:
+        ...
+    @camera_cy.setter
+    def camera_cy(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def camera_fx(self) -> float:
+        ...
+    @camera_fx.setter
+    def camera_fx(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def camera_fy(self) -> float:
+        ...
+    @camera_fy.setter
+    def camera_fy(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def image_height(self) -> int:
+        ...
+    @image_height.setter
+    def image_height(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def image_width(self) -> int:
+        ...
+    @image_width.setter
+    def image_width(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]"]:
         ...
 class CityStreetMap:
     class Scene:
-        bucket: int
-        goal_x: int
-        goal_y: int
         map: str
-        map_height: int
-        map_width: int
-        optimal_length: float
-        start_x: int
-        start_y: int
+        @property
+        def bucket(self) -> int:
+            ...
+        @bucket.setter
+        def bucket(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def goal_x(self) -> int:
+            ...
+        @goal_x.setter
+        def goal_x(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def goal_y(self) -> int:
+            ...
+        @goal_y.setter
+        def goal_y(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def map_height(self) -> int:
+            ...
+        @map_height.setter
+        def map_height(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def map_width(self) -> int:
+            ...
+        @map_width.setter
+        def map_width(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def optimal_length(self) -> float:
+            ...
+        @optimal_length.setter
+        def optimal_length(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def start_x(self) -> int:
+            ...
+        @start_x.setter
+        def start_x(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def start_y(self) -> int:
+            ...
+        @start_y.setter
+        def start_y(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
     kFree: typing.ClassVar[int] = 0
     kObstacle: typing.ClassVar[int] = 255
     kOutOfBoundAt: typing.ClassVar[str] = '@'
@@ -857,20 +1009,20 @@ class DepthFrame3Dd(RangeSensorFrame3Dd):
         def __init__(self) -> None:
             ...
     @staticmethod
-    def depth_image_to_depth(depth_image: numpy.ndarray[numpy.float64[m, n]], depth_scale: float) -> numpy.ndarray[numpy.float64[m, n]]:
+    def depth_image_to_depth(depth_image: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], depth_scale: typing.SupportsFloat | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
     @staticmethod
-    def depth_to_depth_image(depth: numpy.ndarray[numpy.float64[m, n]], depth_scale: float) -> numpy.ndarray[numpy.float64[m, n]]:
+    def depth_to_depth_image(depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], depth_scale: typing.SupportsFloat | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
     def __init__(self, setting: DepthFrame3Dd.Setting) -> None:
         ...
     def reset(self) -> None:
         ...
     @typing.overload
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[3, 1]], depth: numpy.ndarray[numpy.float64[m, n]]) -> None:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"]) -> None:
         ...
     @typing.overload
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[3, 1]], depth_file: str, depth_scale: float) -> None:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], depth_file: str, depth_scale: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @property
     def image_height(self) -> int:
@@ -887,20 +1039,20 @@ class DepthFrame3Df(RangeSensorFrame3Df):
         def __init__(self) -> None:
             ...
     @staticmethod
-    def depth_image_to_depth(depth_image: numpy.ndarray[numpy.float32[m, n]], depth_scale: float) -> numpy.ndarray[numpy.float32[m, n]]:
+    def depth_image_to_depth(depth_image: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"], depth_scale: typing.SupportsFloat | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]:
         ...
     @staticmethod
-    def depth_to_depth_image(depth: numpy.ndarray[numpy.float32[m, n]], depth_scale: float) -> numpy.ndarray[numpy.float32[m, n]]:
+    def depth_to_depth_image(depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"], depth_scale: typing.SupportsFloat | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]:
         ...
     def __init__(self, setting: DepthFrame3Df.Setting) -> None:
         ...
     def reset(self) -> None:
         ...
     @typing.overload
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[3, 1]], depth: numpy.ndarray[numpy.float32[m, n]]) -> None:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"]) -> None:
         ...
     @typing.overload
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[3, 1]], depth_file: str, depth_scale: float) -> None:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], depth_file: str, depth_scale: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @property
     def image_height(self) -> int:
@@ -912,42 +1064,62 @@ class DepthFrame3Df(RangeSensorFrame3Df):
     def setting(self) -> DepthFrame3Df.Setting:
         ...
 class Ellipse2D(Primitive2D):
-    center: numpy.ndarray[numpy.float64[2, 1]]
-    orientation_angle: float
-    def __init__(self, id: int, center: numpy.ndarray[numpy.float64[2, 1]], a: float, b: float, angle: float) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], a: typing.SupportsFloat | typing.SupportsIndex, b: typing.SupportsFloat | typing.SupportsIndex, angle: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
-    def compute_points_on_boundary(self, num_points: int, start_angle: float, end_angle: float) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def compute_points_on_boundary(self, num_points: typing.SupportsInt | typing.SupportsIndex, start_angle: typing.SupportsFloat | typing.SupportsIndex, end_angle: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
-    def rotate(self, angle: float) -> Ellipse2D:
+    def rotate(self, angle: typing.SupportsFloat | typing.SupportsIndex) -> Ellipse2D:
         ...
-    def translate(self, translation: numpy.ndarray[numpy.float64[2, 1]]) -> Ellipse2D:
+    def translate(self, translation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> Ellipse2D:
         ...
     @property
-    def radii(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @center.setter
+    def center(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> Ellipse2D:
         ...
     @property
-    def rotation_matrix(self) -> numpy.ndarray[numpy.float64[2, 2]]:
+    def orientation_angle(self) -> float:
+        ...
+    @orientation_angle.setter
+    def orientation_angle(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> Ellipse2D:
+        ...
+    @property
+    def radii(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @property
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]"]:
         ...
 class Ellipsoid(Primitive3D):
-    center: numpy.ndarray[numpy.float64[3, 1]]
-    rotation_matrix: numpy.ndarray[numpy.float64[3, 3]]
-    def __init__(self, id: int, center: numpy.ndarray[numpy.float64[3, 1]], radius: numpy.ndarray[numpy.float64[3, 1]], rotation: numpy.ndarray[numpy.float64[3, 3]]) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], radius: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], rotation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> None:
         ...
-    def rotate(self, rotation: numpy.ndarray[numpy.float64[3, 3]]) -> Ellipsoid:
+    def rotate(self, rotation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> Ellipsoid:
         ...
-    def translate(self, translation: numpy.ndarray[numpy.float64[3, 1]]) -> Ellipsoid:
+    def translate(self, translation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> Ellipsoid:
         ...
     @property
-    def radii(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @center.setter
+    def center(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> Ellipsoid:
+        ...
+    @property
+    def radii(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @property
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
+        ...
+    @rotation_matrix.setter
+    def rotation_matrix(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> Ellipsoid:
         ...
 class HouseExpoMap:
     @typing.overload
     def __init__(self, file: str) -> None:
         ...
     @typing.overload
-    def __init__(self, file: str, wall_thickness: float) -> None:
+    def __init__(self, file: str, wall_thickness: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
-    def extrude_to_3d(self, room_height: float, filename: str) -> None:
+    def extrude_to_3d(self, room_height: typing.SupportsFloat | typing.SupportsIndex, filename: str) -> None:
         ...
     def to_json(self) -> str:
         ...
@@ -989,7 +1161,7 @@ class Lidar2D:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -1001,7 +1173,7 @@ class Lidar2D:
             ...
         def __repr__(self) -> str:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -1012,12 +1184,27 @@ class Lidar2D:
         def value(self) -> int:
             ...
     class Setting(YamlableBase):
-        max_angle: float
-        min_angle: float
         mode: Lidar2D.Mode
-        num_lines: int
         sign_method: Space2D.SignMethod
         def __init__(self) -> None:
+            ...
+        @property
+        def max_angle(self) -> float:
+            ...
+        @max_angle.setter
+        def max_angle(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def min_angle(self) -> float:
+            ...
+        @min_angle.setter
+        def min_angle(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_lines(self) -> int:
+            ...
+        @num_lines.setter
+        def num_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
     kDdf: typing.ClassVar[Lidar2D.Mode]  # value = <Mode.kDdf: 0>
     kSddfV1: typing.ClassVar[Lidar2D.Mode]  # value = <Mode.kSddfV1: 1>
@@ -1025,67 +1212,127 @@ class Lidar2D:
     def __init__(self, setting: Lidar2D.Setting, space2d: Space2D) -> None:
         ...
     @typing.overload
-    def scan(self, rotation_angle: float, translation: numpy.ndarray[numpy.float64[2, 1]], parallel: bool = False) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def scan(self, rotation_angle: typing.SupportsFloat | typing.SupportsIndex, translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], parallel: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @typing.overload
-    def scan(self, rotation: numpy.ndarray[numpy.float64[2, 2], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[2, 1]], parallel: bool = False) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def scan(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], parallel: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
-    def scan_multi_poses(self, poses: list[numpy.ndarray[numpy.float64[3, 3]]], parallel: bool = False) -> list[numpy.ndarray[numpy.float64[m, 1]]]:
-        ...
-    @property
-    def angles(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def scan_multi_poses(self, poses: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]], parallel: bool = False) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]]:
         ...
     @property
-    def ray_directions_in_frame(self) -> numpy.ndarray[numpy.float64[2, n]]:
+    def angles(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
+        ...
+    @property
+    def ray_directions_in_frame(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
         ...
     @property
     def setting(self) -> Lidar2D.Setting:
         ...
 class Lidar3Dd(RangeSensor3Dd):
     class Setting(YamlableBase):
-        azimuth_max: float
-        azimuth_min: float
-        elevation_max: float
-        elevation_min: float
-        num_azimuth_lines: int
-        num_elevation_lines: int
         def __init__(self) -> None:
+            ...
+        @property
+        def azimuth_max(self) -> float:
+            ...
+        @azimuth_max.setter
+        def azimuth_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def azimuth_min(self) -> float:
+            ...
+        @azimuth_min.setter
+        def azimuth_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_max(self) -> float:
+            ...
+        @elevation_max.setter
+        def elevation_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_min(self) -> float:
+            ...
+        @elevation_min.setter
+        def elevation_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_azimuth_lines(self) -> int:
+            ...
+        @num_azimuth_lines.setter
+        def num_azimuth_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_elevation_lines(self) -> int:
+            ...
+        @num_elevation_lines.setter
+        def num_elevation_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
     def __init__(self, setting: Lidar3Dd.Setting) -> None:
         ...
     @property
-    def azimuth_angles(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def azimuth_angles(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @property
-    def elevation_angles(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def elevation_angles(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @property
     def setting(self) -> Lidar3Dd.Setting:
         ...
 class Lidar3Df(RangeSensor3Df):
     class Setting(YamlableBase):
-        azimuth_max: float
-        azimuth_min: float
-        elevation_max: float
-        elevation_min: float
-        num_azimuth_lines: int
-        num_elevation_lines: int
         def __init__(self) -> None:
+            ...
+        @property
+        def azimuth_max(self) -> float:
+            ...
+        @azimuth_max.setter
+        def azimuth_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def azimuth_min(self) -> float:
+            ...
+        @azimuth_min.setter
+        def azimuth_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_max(self) -> float:
+            ...
+        @elevation_max.setter
+        def elevation_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_min(self) -> float:
+            ...
+        @elevation_min.setter
+        def elevation_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_azimuth_lines(self) -> int:
+            ...
+        @num_azimuth_lines.setter
+        def num_azimuth_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_elevation_lines(self) -> int:
+            ...
+        @num_elevation_lines.setter
+        def num_elevation_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
     def __init__(self, setting: Lidar3Df.Setting) -> None:
         ...
     @property
-    def azimuth_angles(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+    def azimuth_angles(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
         ...
     @property
-    def elevation_angles(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+    def elevation_angles(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
         ...
     @property
     def setting(self) -> Lidar3Df.Setting:
         ...
 class LidarFrame2Dd:
     class Partition:
-        def angle_in_partition(self, angle_world: float) -> bool:
+        def angle_in_partition(self, angle_world: typing.SupportsFloat | typing.SupportsIndex) -> bool:
             ...
         @property
         def index_begin(self) -> int:
@@ -1094,60 +1341,100 @@ class LidarFrame2Dd:
         def index_end(self) -> int:
             ...
     class Setting(YamlableBase):
-        angle_max: float
-        angle_min: float
-        discontinuity_factor: float
-        min_partition_size: int
-        num_rays: int
-        rolling_diff_discount: float
-        valid_range_max: float
-        valid_range_min: float
         def __init__(self) -> None:
+            ...
+        @property
+        def angle_max(self) -> float:
+            ...
+        @angle_max.setter
+        def angle_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def angle_min(self) -> float:
+            ...
+        @angle_min.setter
+        def angle_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def discontinuity_factor(self) -> float:
+            ...
+        @discontinuity_factor.setter
+        def discontinuity_factor(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def min_partition_size(self) -> int:
+            ...
+        @min_partition_size.setter
+        def min_partition_size(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_rays(self) -> int:
+            ...
+        @num_rays.setter
+        def num_rays(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def rolling_diff_discount(self) -> float:
+            ...
+        @rolling_diff_discount.setter
+        def rolling_diff_discount(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_max(self) -> float:
+            ...
+        @valid_range_max.setter
+        def valid_range_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_min(self) -> float:
+            ...
+        @valid_range_min.setter
+        def valid_range_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
             ...
     def __init__(self, setting: LidarFrame2Dd.Setting) -> None:
         ...
-    def compute_closest_end_point(self, position: numpy.ndarray[numpy.float64[2, 1]]) -> dict:
+    def compute_closest_end_point(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]) -> dict:
         ...
-    def compute_rays_at(self, position_world: numpy.ndarray[numpy.float64[2, 1]]) -> dict:
+    def compute_rays_at(self, position_world: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]) -> dict:
         ...
-    def coords_is_in_frame(self, angle_frame: float) -> bool:
+    def coords_is_in_frame(self, angle_frame: typing.SupportsFloat | typing.SupportsIndex) -> bool:
         ...
-    def dir_frame_to_world(self, dir_frame: numpy.ndarray[numpy.float64[2, 1]]) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def dir_frame_to_world(self, dir_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
-    def dir_world_to_frame(self, dir_world: numpy.ndarray[numpy.float64[2, 1]]) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def dir_world_to_frame(self, dir_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
-    def pos_frame_to_world(self, xy_frame: numpy.ndarray[numpy.float64[2, 1]]) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def pos_frame_to_world(self, xy_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
-    def pos_world_to_frame(self, xy_world: numpy.ndarray[numpy.float64[2, 1]]) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def pos_world_to_frame(self, xy_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
-    def position_is_in_frame(self, xy_frame: numpy.ndarray[numpy.float64[2, 1]]) -> bool:
-        ...
-    @typing.overload
-    def sample_along_rays(self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def position_is_in_frame(self, xy_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> bool:
         ...
     @typing.overload
-    def sample_along_rays(self, range_step: float, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def sample_along_rays(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def sample_in_region(self, num_positions: int, num_along_ray_samples_per_ray: int, num_near_surface_samples_per_ray: int, max_in_obstacle_dist: float) -> dict:
+    @typing.overload
+    def sample_along_rays(self, range_step: typing.SupportsFloat | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def sample_near_surface(self, num_samples_per_ray: int, max_offset: float, sampled_rays_ratio: float) -> dict:
+    def sample_in_region(self, num_positions: typing.SupportsInt | typing.SupportsIndex, num_along_ray_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, num_near_surface_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float64[2, 2], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[2, 1]], ranges: numpy.ndarray[numpy.float64[m, 1]]) -> None:
+    def sample_near_surface(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_offset: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    @property
-    def angles_in_frame(self) -> numpy.ndarray[numpy.float64[m, 1]]:
-        ...
-    @property
-    def angles_in_world(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"]) -> None:
         ...
     @property
-    def end_points_in_frame(self) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def angles_in_frame(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @property
-    def end_points_in_world(self) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def angles_in_world(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @property
-    def hit_points_world(self) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def end_points_in_frame(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
+        ...
+    @property
+    def end_points_in_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
+        ...
+    @property
+    def hit_points_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @property
     def hit_ray_indices(self) -> list[int]:
@@ -1174,32 +1461,32 @@ class LidarFrame2Dd:
     def partitions(self) -> list[LidarFrame2Dd.Partition]:
         ...
     @property
-    def pose_matrix(self) -> numpy.ndarray[numpy.float64[3, 3]]:
+    def pose_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
         ...
     @property
-    def ranges(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def ranges(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @property
-    def ray_directions_in_frame(self) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def ray_directions_in_frame(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @property
-    def ray_directions_in_world(self) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def ray_directions_in_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @property
     def rotation_angle(self) -> float:
         ...
     @property
-    def rotation_matrix(self) -> numpy.ndarray[numpy.float64[2, 2]]:
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]"]:
         ...
     @property
     def setting(self) -> LidarFrame2Dd.Setting:
         ...
     @property
-    def translation_vector(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def translation_vector(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
 class LidarFrame2Df:
     class Partition:
-        def angle_in_partition(self, angle_world: float) -> bool:
+        def angle_in_partition(self, angle_world: typing.SupportsFloat | typing.SupportsIndex) -> bool:
             ...
         @property
         def index_begin(self) -> int:
@@ -1208,60 +1495,100 @@ class LidarFrame2Df:
         def index_end(self) -> int:
             ...
     class Setting(YamlableBase):
-        angle_max: float
-        angle_min: float
-        discontinuity_factor: float
-        min_partition_size: int
-        num_rays: int
-        rolling_diff_discount: float
-        valid_range_max: float
-        valid_range_min: float
         def __init__(self) -> None:
+            ...
+        @property
+        def angle_max(self) -> float:
+            ...
+        @angle_max.setter
+        def angle_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def angle_min(self) -> float:
+            ...
+        @angle_min.setter
+        def angle_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def discontinuity_factor(self) -> float:
+            ...
+        @discontinuity_factor.setter
+        def discontinuity_factor(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def min_partition_size(self) -> int:
+            ...
+        @min_partition_size.setter
+        def min_partition_size(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_rays(self) -> int:
+            ...
+        @num_rays.setter
+        def num_rays(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def rolling_diff_discount(self) -> float:
+            ...
+        @rolling_diff_discount.setter
+        def rolling_diff_discount(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_max(self) -> float:
+            ...
+        @valid_range_max.setter
+        def valid_range_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_min(self) -> float:
+            ...
+        @valid_range_min.setter
+        def valid_range_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
             ...
     def __init__(self, setting: LidarFrame2Df.Setting) -> None:
         ...
-    def compute_closest_end_point(self, position: numpy.ndarray[numpy.float32[2, 1]]) -> dict:
+    def compute_closest_end_point(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]) -> dict:
         ...
-    def compute_rays_at(self, position_world: numpy.ndarray[numpy.float32[2, 1]]) -> dict:
+    def compute_rays_at(self, position_world: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]) -> dict:
         ...
-    def coords_is_in_frame(self, angle_frame: float) -> bool:
+    def coords_is_in_frame(self, angle_frame: typing.SupportsFloat | typing.SupportsIndex) -> bool:
         ...
-    def dir_frame_to_world(self, dir_frame: numpy.ndarray[numpy.float32[2, 1]]) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def dir_frame_to_world(self, dir_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
-    def dir_world_to_frame(self, dir_world: numpy.ndarray[numpy.float32[2, 1]]) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def dir_world_to_frame(self, dir_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
-    def pos_frame_to_world(self, xy_frame: numpy.ndarray[numpy.float32[2, 1]]) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def pos_frame_to_world(self, xy_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
-    def pos_world_to_frame(self, xy_world: numpy.ndarray[numpy.float32[2, 1]]) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def pos_world_to_frame(self, xy_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
-    def position_is_in_frame(self, xy_frame: numpy.ndarray[numpy.float32[2, 1]]) -> bool:
-        ...
-    @typing.overload
-    def sample_along_rays(self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def position_is_in_frame(self, xy_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> bool:
         ...
     @typing.overload
-    def sample_along_rays(self, range_step: float, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def sample_along_rays(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def sample_in_region(self, num_positions: int, num_along_ray_samples_per_ray: int, num_near_surface_samples_per_ray: int, max_in_obstacle_dist: float) -> dict:
+    @typing.overload
+    def sample_along_rays(self, range_step: typing.SupportsFloat | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def sample_near_surface(self, num_samples_per_ray: int, max_offset: float, sampled_rays_ratio: float) -> dict:
+    def sample_in_region(self, num_positions: typing.SupportsInt | typing.SupportsIndex, num_along_ray_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, num_near_surface_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float32[2, 2], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[2, 1]], ranges: numpy.ndarray[numpy.float32[m, 1]]) -> None:
+    def sample_near_surface(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_offset: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    @property
-    def angles_in_frame(self) -> numpy.ndarray[numpy.float32[m, 1]]:
-        ...
-    @property
-    def angles_in_world(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 2]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"]) -> None:
         ...
     @property
-    def end_points_in_frame(self) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def angles_in_frame(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
         ...
     @property
-    def end_points_in_world(self) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def angles_in_world(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
         ...
     @property
-    def hit_points_world(self) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def end_points_in_frame(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
+        ...
+    @property
+    def end_points_in_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
+        ...
+    @property
+    def hit_points_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @property
     def hit_ray_indices(self) -> list[int]:
@@ -1288,44 +1615,74 @@ class LidarFrame2Df:
     def partitions(self) -> list[LidarFrame2Df.Partition]:
         ...
     @property
-    def pose_matrix(self) -> numpy.ndarray[numpy.float32[3, 3]]:
+    def pose_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]"]:
         ...
     @property
-    def ranges(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+    def ranges(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
         ...
     @property
-    def ray_directions_in_frame(self) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def ray_directions_in_frame(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @property
-    def ray_directions_in_world(self) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def ray_directions_in_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @property
     def rotation_angle(self) -> float:
         ...
     @property
-    def rotation_matrix(self) -> numpy.ndarray[numpy.float32[2, 2]]:
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 2]"]:
         ...
     @property
     def setting(self) -> LidarFrame2Df.Setting:
         ...
     @property
-    def translation_vector(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def translation_vector(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
 class LidarFrame3Dd(RangeSensorFrame3Dd):
     class Setting(RangeSensorFrame3Dd.Setting):
-        azimuth_max: float
-        azimuth_min: float
-        elevation_max: float
-        elevation_min: float
-        num_azimuth_lines: int
-        num_elevation_lines: int
         def __init__(self) -> None:
+            ...
+        @property
+        def azimuth_max(self) -> float:
+            ...
+        @azimuth_max.setter
+        def azimuth_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def azimuth_min(self) -> float:
+            ...
+        @azimuth_min.setter
+        def azimuth_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_max(self) -> float:
+            ...
+        @elevation_max.setter
+        def elevation_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_min(self) -> float:
+            ...
+        @elevation_min.setter
+        def elevation_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_azimuth_lines(self) -> int:
+            ...
+        @num_azimuth_lines.setter
+        def num_azimuth_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_elevation_lines(self) -> int:
+            ...
+        @num_elevation_lines.setter
+        def num_elevation_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
     def __init__(self, setting: LidarFrame3Dd.Setting) -> None:
         ...
     def reset(self) -> None:
         ...
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[3, 1]], ranges: numpy.ndarray[numpy.float64[m, n]]) -> None:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"]) -> None:
         ...
     @property
     def num_azimuth_lines(self) -> int:
@@ -1338,19 +1695,49 @@ class LidarFrame3Dd(RangeSensorFrame3Dd):
         ...
 class LidarFrame3Df(RangeSensorFrame3Df):
     class Setting(RangeSensorFrame3Df.Setting):
-        azimuth_max: float
-        azimuth_min: float
-        elevation_max: float
-        elevation_min: float
-        num_azimuth_lines: int
-        num_elevation_lines: int
         def __init__(self) -> None:
+            ...
+        @property
+        def azimuth_max(self) -> float:
+            ...
+        @azimuth_max.setter
+        def azimuth_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def azimuth_min(self) -> float:
+            ...
+        @azimuth_min.setter
+        def azimuth_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_max(self) -> float:
+            ...
+        @elevation_max.setter
+        def elevation_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def elevation_min(self) -> float:
+            ...
+        @elevation_min.setter
+        def elevation_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_azimuth_lines(self) -> int:
+            ...
+        @num_azimuth_lines.setter
+        def num_azimuth_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_elevation_lines(self) -> int:
+            ...
+        @num_elevation_lines.setter
+        def num_elevation_lines(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
     def __init__(self, setting: LidarFrame3Df.Setting) -> None:
         ...
     def reset(self) -> None:
         ...
-    def update_ranges(self, rotation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[3, 1]], ranges: numpy.ndarray[numpy.float32[m, n]]) -> None:
+    def update_ranges(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"]) -> None:
         ...
     @property
     def num_azimuth_lines(self) -> int:
@@ -1362,29 +1749,35 @@ class LidarFrame3Df(RangeSensorFrame3Df):
     def setting(self) -> LidarFrame3Df.Setting:
         ...
 class Line2D(Primitive2D):
-    p0: numpy.ndarray[numpy.float64[2, 1]]
-    p1: numpy.ndarray[numpy.float64[2, 1]]
-    def __init__(self, id: int, p0: numpy.ndarray[numpy.float64[2, 1]], p1: numpy.ndarray[numpy.float64[2, 1]]) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, p0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], p1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
+        ...
+    @property
+    def p0(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @p0.setter
+    def p0(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
+        ...
+    @property
+    def p1(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @p1.setter
+    def p1(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
         ...
 class LogOddMap:
     class CellType:
         """
-        Type of grid cell.
-        
         Members:
         
-          kOccupied
+          occupied
         
-          kUnexplored
+          free
         
-          kFree
+          unexplored
         """
-        __members__: typing.ClassVar[dict[str, LogOddMap.CellType]]  # value = {'kOccupied': <CellType.kOccupied: 0>, 'kUnexplored': <CellType.kUnexplored: 128>, 'kFree': <CellType.kFree: 255>}
-        kFree: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.kFree: 255>
-        kOccupied: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.kOccupied: 0>
-        kUnexplored: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.kUnexplored: 128>
-        def __and__(self, other: typing.Any) -> typing.Any:
-            ...
+        __members__: typing.ClassVar[dict[str, LogOddMap.CellType]]  # value = {'occupied': <CellType.occupied: 100>, 'free': <CellType.free: 0>, 'unexplored': <CellType.unexplored: 255>}
+        free: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.free: 0>
+        occupied: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.occupied: 100>
+        unexplored: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.unexplored: 255>
         def __eq__(self, other: typing.Any) -> bool:
             ...
         def __ge__(self, other: typing.Any) -> bool:
@@ -1397,11 +1790,9 @@ class LogOddMap:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
-            ...
-        def __invert__(self) -> typing.Any:
             ...
         def __le__(self, other: typing.Any) -> bool:
             ...
@@ -1409,21 +1800,11 @@ class LogOddMap:
             ...
         def __ne__(self, other: typing.Any) -> bool:
             ...
-        def __or__(self, other: typing.Any) -> typing.Any:
-            ...
-        def __rand__(self, other: typing.Any) -> typing.Any:
-            ...
         def __repr__(self) -> str:
             ...
-        def __ror__(self, other: typing.Any) -> typing.Any:
-            ...
-        def __rxor__(self, other: typing.Any) -> typing.Any:
-            ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
-            ...
-        def __xor__(self, other: typing.Any) -> typing.Any:
             ...
         @property
         def name(self) -> str:
@@ -1431,22 +1812,74 @@ class LogOddMap:
         @property
         def value(self) -> int:
             ...
-    kFree: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.kFree: 255>
-    kOccupied: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.kOccupied: 0>
-    kUnexplored: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.kUnexplored: 128>
+    free: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.free: 0>
+    occupied: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.occupied: 100>
+    unexplored: typing.ClassVar[LogOddMap.CellType]  # value = <CellType.unexplored: 255>
 class LogOddMap2Dd:
     class Setting(YamlableBase):
         filter_obstacles_in_cleaned_mask: bool
-        max_log_odd: float
-        measurement_certainty: float
-        min_log_odd: float
-        num_iters_for_cleaned_mask: int
-        sensor_max_range: float
-        sensor_min_range: float
-        threshold_free: float
-        threshold_occupied: float
         use_cross_kernel: bool
         def __init__(self) -> None:
+            ...
+        @property
+        def kernel_size(self) -> int:
+            ...
+        @kernel_size.setter
+        def kernel_size(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def log_odd_hit(self) -> float:
+            ...
+        @log_odd_hit.setter
+        def log_odd_hit(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def log_odd_miss(self) -> float:
+            ...
+        @log_odd_miss.setter
+        def log_odd_miss(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def max_log_odd(self) -> float:
+            ...
+        @max_log_odd.setter
+        def max_log_odd(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def min_log_odd(self) -> float:
+            ...
+        @min_log_odd.setter
+        def min_log_odd(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_iters_for_cleaned_mask(self) -> int:
+            ...
+        @num_iters_for_cleaned_mask.setter
+        def num_iters_for_cleaned_mask(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def sensor_max_range(self) -> float:
+            ...
+        @sensor_max_range.setter
+        def sensor_max_range(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def sensor_min_range(self) -> float:
+            ...
+        @sensor_min_range.setter
+        def sensor_min_range(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def threshold_free(self) -> float:
+            ...
+        @threshold_free.setter
+        def threshold_free(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def threshold_occupied(self) -> float:
+            ...
+        @threshold_occupied.setter
+        def threshold_occupied(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
             ...
     @staticmethod
     @typing.overload
@@ -1457,33 +1890,26 @@ class LogOddMap2Dd:
     def __init__(*args, **kwargs) -> None:
         ...
     @staticmethod
-    def get_cell_type_from_name(cell_type_name: str) -> LogOddMap.CellType:
+    def load_external_possibility_map(*args, **kwargs) -> None:
         ...
-    @staticmethod
-    def get_cell_type_name(cell_type: LogOddMap.CellType) -> str:
+    def get_frontiers(self, clean_at_first: bool = True, approx_iters: typing.SupportsInt | typing.SupportsIndex = 4) -> list[typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"]]:
         ...
-    def compute_statistics_of_lidar_frame(self, position: numpy.ndarray[numpy.float64[2, 1]], theta: float, angles_body: numpy.ndarray[numpy.float64[m, 1]], ranges: numpy.ndarray[numpy.float64[m, 1]], clip_ranges: bool) -> tuple[int, int, int, int]:
-        ...
-    def get_frontiers(self, clean_at_first: bool = True, approx_iters: int = 4) -> list[numpy.ndarray[numpy.int32[2, n]]]:
-        ...
-    def load_external_possibility_map(self, position: numpy.ndarray[numpy.float64[2, 1]], theta: float, possibility_map: numpy.ndarray[numpy.int32[m, n], numpy.ndarray.flags.f_contiguous]) -> None:
-        ...
-    def update(self, position: numpy.ndarray[numpy.float64[2, 1]], theta: float, angles_body: numpy.ndarray[numpy.float64[m, 1]], ranges: numpy.ndarray[numpy.float64[m, 1]]) -> None:
+    def update(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], theta: typing.SupportsFloat | typing.SupportsIndex, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"]) -> None:
         ...
     @property
-    def cleaned_free_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def cleaned_free_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def cleaned_occupied_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def cleaned_occupied_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def cleaned_unexplored_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def cleaned_unexplored_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def free_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def free_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def log_map(self) -> numpy.ndarray[numpy.float64[m, n]]:
+    def log_map(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
     @property
     def num_free_cells(self) -> int:
@@ -1495,33 +1921,85 @@ class LogOddMap2Dd:
     def num_unexplored_cells(self) -> int:
         ...
     @property
-    def occupancy_map(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def occupancy_map(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def occupied_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def occupied_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def possibility_map(self) -> numpy.ndarray[numpy.float64[m, n]]:
+    def possibility_map(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
     @property
     def setting(self) -> LogOddMap2Dd.Setting:
         ...
     @property
-    def unexplored_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def unexplored_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
 class LogOddMap2Df:
     class Setting(YamlableBase):
         filter_obstacles_in_cleaned_mask: bool
-        max_log_odd: float
-        measurement_certainty: float
-        min_log_odd: float
-        num_iters_for_cleaned_mask: int
-        sensor_max_range: float
-        sensor_min_range: float
-        threshold_free: float
-        threshold_occupied: float
         use_cross_kernel: bool
         def __init__(self) -> None:
+            ...
+        @property
+        def kernel_size(self) -> int:
+            ...
+        @kernel_size.setter
+        def kernel_size(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def log_odd_hit(self) -> float:
+            ...
+        @log_odd_hit.setter
+        def log_odd_hit(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def log_odd_miss(self) -> float:
+            ...
+        @log_odd_miss.setter
+        def log_odd_miss(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def max_log_odd(self) -> float:
+            ...
+        @max_log_odd.setter
+        def max_log_odd(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def min_log_odd(self) -> float:
+            ...
+        @min_log_odd.setter
+        def min_log_odd(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def num_iters_for_cleaned_mask(self) -> int:
+            ...
+        @num_iters_for_cleaned_mask.setter
+        def num_iters_for_cleaned_mask(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def sensor_max_range(self) -> float:
+            ...
+        @sensor_max_range.setter
+        def sensor_max_range(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def sensor_min_range(self) -> float:
+            ...
+        @sensor_min_range.setter
+        def sensor_min_range(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def threshold_free(self) -> float:
+            ...
+        @threshold_free.setter
+        def threshold_free(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def threshold_occupied(self) -> float:
+            ...
+        @threshold_occupied.setter
+        def threshold_occupied(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
             ...
     @staticmethod
     @typing.overload
@@ -1532,33 +2010,26 @@ class LogOddMap2Df:
     def __init__(*args, **kwargs) -> None:
         ...
     @staticmethod
-    def get_cell_type_from_name(cell_type_name: str) -> LogOddMap.CellType:
+    def load_external_possibility_map(*args, **kwargs) -> None:
         ...
-    @staticmethod
-    def get_cell_type_name(cell_type: LogOddMap.CellType) -> str:
+    def get_frontiers(self, clean_at_first: bool = True, approx_iters: typing.SupportsInt | typing.SupportsIndex = 4) -> list[typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"]]:
         ...
-    def compute_statistics_of_lidar_frame(self, position: numpy.ndarray[numpy.float32[2, 1]], theta: float, angles_body: numpy.ndarray[numpy.float32[m, 1]], ranges: numpy.ndarray[numpy.float32[m, 1]], clip_ranges: bool) -> tuple[int, int, int, int]:
-        ...
-    def get_frontiers(self, clean_at_first: bool = True, approx_iters: int = 4) -> list[numpy.ndarray[numpy.int32[2, n]]]:
-        ...
-    def load_external_possibility_map(self, position: numpy.ndarray[numpy.float32[2, 1]], theta: float, possibility_map: numpy.ndarray[numpy.int32[m, n], numpy.ndarray.flags.f_contiguous]) -> None:
-        ...
-    def update(self, position: numpy.ndarray[numpy.float32[2, 1]], theta: float, angles_body: numpy.ndarray[numpy.float32[m, 1]], ranges: numpy.ndarray[numpy.float32[m, 1]]) -> None:
+    def update(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], theta: typing.SupportsFloat | typing.SupportsIndex, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, n]"]) -> None:
         ...
     @property
-    def cleaned_free_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def cleaned_free_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def cleaned_occupied_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def cleaned_occupied_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def cleaned_unexplored_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def cleaned_unexplored_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def free_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def free_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def log_map(self) -> numpy.ndarray[numpy.float32[m, n]]:
+    def log_map(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]:
         ...
     @property
     def num_free_cells(self) -> int:
@@ -1570,72 +2041,137 @@ class LogOddMap2Df:
     def num_unexplored_cells(self) -> int:
         ...
     @property
-    def occupancy_map(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def occupancy_map(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def occupied_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def occupied_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def possibility_map(self) -> numpy.ndarray[numpy.float32[m, n]]:
+    def possibility_map(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]:
         ...
     @property
     def setting(self) -> LogOddMap2Df.Setting:
         ...
     @property
-    def unexplored_mask(self) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def unexplored_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
 class MarchingCubes:
     class ValidCube:
-        cfg_index: int
-        coords: numpy.ndarray[numpy.int32[3, 1]]
-        edges: list[numpy.ndarray[numpy.int32[3, 1]]]
         def __init__(self) -> None:
             ...
+        @property
+        def cfg_index(self) -> int:
+            ...
+        @cfg_index.setter
+        def cfg_index(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def coords(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, 1]"]:
+            ...
+        @coords.setter
+        def coords(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[3, 1]"]) -> None:
+            ...
+        @property
+        def edges(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, 1]"]]:
+            ...
+        @edges.setter
+        def edges(self, arg0: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[3, 1]"]]) -> None:
+            ...
     @staticmethod
-    def calculate_cube_cfg_index(vertex_values: numpy.ndarray[numpy.float64[8, 1]], iso_value: float) -> int:
+    def calculate_cube_cfg_index(vertex_values: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[8, 1]"], iso_value: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @staticmethod
-    def collect_valid_cubes(grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], mask: numpy.ndarray[bool[m, 1]] | None = None, iso_value: float = 0.0, row_major: bool = True, parallel: bool = False) -> tuple[numpy.ndarray[numpy.int32[3, n]], numpy.ndarray[numpy.int32[m, 1]], numpy.ndarray[numpy.int32[2, n]], numpy.ndarray[numpy.int32[3, n]]]:
+    def collect_valid_cubes(grid_shape: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, 1]"], grid_values: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], mask: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] | None = None, iso_value: typing.SupportsFloat | typing.SupportsIndex = 0.0, row_major: bool = True, parallel: bool = False) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, n]"], typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"], typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, n]"]]:
         ...
     @staticmethod
-    def get_vertex_offsets() -> numpy.ndarray[numpy.int32]:
+    def get_vertex_offsets() -> numpy.typing.NDArray[numpy.int32]:
         ...
     @staticmethod
-    def process_valid_cubes(cube_coords: numpy.ndarray[numpy.int32[3, n]], cube_config_indices: numpy.ndarray[numpy.int32[m, 1]], cube_edge_indices: numpy.ndarray[numpy.int32[2, n]], edge_coords: numpy.ndarray[numpy.int32[3, n]], coords_min: numpy.ndarray[numpy.float64[3, 1]], grid_res: numpy.ndarray[numpy.float64[3, 1]], grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], iso_value: float, row_major: bool = True, parallel: bool = False) -> tuple[numpy.ndarray[numpy.float64[3, n]], numpy.ndarray[numpy.int32[3, n]], numpy.ndarray[numpy.float64[3, n]]]:
+    def process_valid_cubes(cube_coords: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[3, n]"], cube_config_indices: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"], cube_edge_indices: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[2, n]"], edge_coords: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[3, n]"], coords_min: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], grid_res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], grid_shape: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, 1]"], grid_values: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], iso_value: typing.SupportsFloat | typing.SupportsIndex, row_major: bool = True, parallel: bool = False) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"], typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, n]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"]]:
         ...
     @staticmethod
-    def run(coords_min: numpy.ndarray[numpy.float64[3, 1]], grid_res: numpy.ndarray[numpy.float64[3, 1]], grid_shape: numpy.ndarray[numpy.int32[3, 1]], grid_values: numpy.ndarray[numpy.float64[m, 1]], mask: numpy.ndarray[bool[m, 1]] | None = None, iso_value: float = 0.0, row_major: bool = True, parallel: bool = False) -> tuple[numpy.ndarray[numpy.float64[3, n]], numpy.ndarray[numpy.int32[3, n]], numpy.ndarray[numpy.float64[3, n]]]:
+    def run(coords_min: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], grid_res: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], grid_shape: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, 1]"], grid_values: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], mask: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] | None = None, iso_value: typing.SupportsFloat | typing.SupportsIndex = 0.0, row_major: bool = True, parallel: bool = False) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"], typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, n]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"]]:
         ...
     @staticmethod
-    def single_cube(vertex_coords: numpy.ndarray[numpy.float64[3, 8], numpy.ndarray.flags.f_contiguous], grid_values: numpy.ndarray[numpy.float64[8, 1]], iso_value: float) -> tuple:
+    def single_cube(vertex_coords: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 8]", "flags.f_contiguous"], grid_values: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[8, 1]"], iso_value: typing.SupportsFloat | typing.SupportsIndex) -> tuple[list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]], list[typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, 1]"]], list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]]:
         ...
     def __init__(self) -> None:
         ...
 class MeshSdf:
-    def __call__(self, points: numpy.ndarray[numpy.float64[3, n]], trunc_aabb: bool = False, n_threads: int = 32) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def __call__(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, n]"], trunc_aabb: bool = False, n_threads: typing.SupportsInt | typing.SupportsIndex = 24) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
-    def __init__(self, verts: list[numpy.ndarray[numpy.float64[3, 1]]], faces: list[numpy.ndarray[numpy.int32[3, 1]]], use_open3d: bool = True, robust: bool = True) -> None:
+    def __init__(self, verts: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]], faces: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[3, 1]"]], use_open3d: bool = True, robust: bool = True) -> None:
         ...
 class NdTreeSetting(YamlableBase):
     __hash__: typing.ClassVar[None] = None
-    resolution: float
-    tree_depth: int
     def __eq__(self, other: NdTreeSetting) -> bool:
         ...
     def __init__(self) -> None:
         ...
     def __ne__(self, other: NdTreeSetting) -> bool:
         ...
+    @property
+    def resolution(self) -> float:
+        ...
+    @resolution.setter
+    def resolution(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def tree_depth(self) -> int:
+        ...
+    @tree_depth.setter
+    def tree_depth(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
 class OccupancyNdTreeSetting(NdTreeSetting):
-    log_odd_hit: float
-    log_odd_max: float
-    log_odd_min: float
-    log_odd_miss: float
-    log_odd_occ_threshold: float
-    probability_hit: float
-    probability_miss: float
-    probability_occupied_threshold: float
     def __init__(self) -> None:
+        ...
+    @property
+    def log_odd_hit(self) -> float:
+        ...
+    @log_odd_hit.setter
+    def log_odd_hit(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def log_odd_max(self) -> float:
+        ...
+    @log_odd_max.setter
+    def log_odd_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def log_odd_min(self) -> float:
+        ...
+    @log_odd_min.setter
+    def log_odd_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def log_odd_miss(self) -> float:
+        ...
+    @log_odd_miss.setter
+    def log_odd_miss(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def log_odd_occ_threshold(self) -> float:
+        ...
+    @log_odd_occ_threshold.setter
+    def log_odd_occ_threshold(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def probability_hit(self) -> float:
+        ...
+    @probability_hit.setter
+    def probability_hit(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def probability_miss(self) -> float:
+        ...
+    @probability_miss.setter
+    def probability_miss(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def probability_occupied_threshold(self) -> float:
+        ...
+    @probability_occupied_threshold.setter
+    def probability_occupied_threshold(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
 class OccupancyOctreeBaseSetting(OccupancyNdTreeSetting):
     aabb: Aabb3Dd
@@ -1645,10 +2181,10 @@ class OccupancyOctreeBaseSetting(OccupancyNdTreeSetting):
         ...
 class OccupancyOctreeD(AbstractOccupancyOctreeD):
     class BatchRayCaster:
-        def step(self, max_depth: numpy.ndarray[bool[m, 1]] = 0) -> OccupancyOctreeD.BatchRayCaster:
+        def step(self, max_depth: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = 0) -> OccupancyOctreeD.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[OctreeKey]:
@@ -1660,25 +2196,25 @@ class OccupancyOctreeD(AbstractOccupancyOctreeD):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[OccupancyOctreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float64[3, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float64[3, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float64[3, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"]:
             ...
     class BottomLeafNeighborIterator(OccupancyOctreeD.IteratorBase):
         pass
@@ -1700,9 +2236,9 @@ class OccupancyOctreeD(AbstractOccupancyOctreeD):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[OccupancyOctreeD.Drawer, list[...], OccupancyOctreeD.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[OccupancyOctreeD.Drawer, collections.abc.Sequence[...], OccupancyOctreeD.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[OccupancyOctreeD.Drawer, list[...], OccupancyOctreeD.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[OccupancyOctreeD.Drawer, collections.abc.Sequence[...], OccupancyOctreeD.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def setting(self) -> OccupancyOctreeDrawerSetting:
@@ -1762,194 +2298,200 @@ class OccupancyOctreeD(AbstractOccupancyOctreeD):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: OctreeKey, depth: int) -> OctreeKey:
+    def adjust_key_to_depth(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
-    def cast_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float64[3, 1]], rotation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], azimuth_angles: numpy.ndarray[numpy.float64[m, 1]], elevation_angles: numpy.ndarray[numpy.float64[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], azimuth_angles: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], elevation_angles: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
-    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     def compute_common_ancestor_key(self, arg0: OctreeKey, arg1: OctreeKey) -> tuple[OctreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_east_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_north_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[numpy.ndarray[numpy.float64[3, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[OctreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[OctreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_south_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_top_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_top_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float) -> OctreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float, depth: int) -> OctreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float) -> OctreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float, depth: int) -> OctreeKey | None:
-        ...
-    def create_node_child(self, node: OccupancyOctreeNode, child_idx: int) -> OccupancyOctreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, z: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
+        ...
+    def create_node_child(self, node: OccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: OctreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: OccupancyOctreeNode, child_idx: int, key: OctreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: OccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: OctreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: OccupancyOctreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float64[3, n]], directions: numpy.ndarray[numpy.float64[3, n]], max_ranges: numpy.ndarray[numpy.float64[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float64[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: OccupancyOctreeNode, child_idx: int) -> OccupancyOctreeNode:
+    def get_node_child(self, node: OccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, z: float, depth: int) -> OccupancyOctreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: OctreeKey, depth: int) -> OccupancyOctreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[3, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[3, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: OccupancyOctreeNode) -> bool:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.TopLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.TopLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.WestLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeD.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: OctreeKey) -> tuple[float, float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: OctreeKey, depth: int) -> tuple[float, float, float]:
+    def key_to_coord(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: OccupancyOctreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float64[3, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, z: float, max_depth: int = 0) -> OccupancyOctreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def search(self, key: OctreeKey, max_depth: int = 0) -> OccupancyOctreeNode:
+    def search(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyOctreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, occupied: bool, lazy_eval: bool) -> OccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: OctreeKey, occupied: bool, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, log_odds_delta: float, lazy_eval: bool) -> OccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: OctreeKey, log_odds_delta: float, lazy_eval: bool) -> OccupancyOctreeNode:
+    def update_node(self, node_key: OctreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, scaling: float = 1.0, area_min: numpy.ndarray[numpy.float64[3, 1]] = ..., area_max: numpy.ndarray[numpy.float64[3, 1]] = ..., border_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_only: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: int = 1920, window_height: int = 1080, window_left: int = 50, window_top: int = 50) -> None:
+    def visualize(self, leaf_only: bool = False, scaling: typing.SupportsFloat | typing.SupportsIndex = 1.0, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., draw_occupied: bool = True, draw_free: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: typing.SupportsInt | typing.SupportsIndex = 1920, window_height: typing.SupportsInt | typing.SupportsIndex = 1080, window_left: typing.SupportsInt | typing.SupportsIndex = 50, window_top: typing.SupportsInt | typing.SupportsIndex = 50) -> None:
         ...
     @property
     def memory_usage(self) -> int:
@@ -1961,16 +2503,16 @@ class OccupancyOctreeD(AbstractOccupancyOctreeD):
     def metric_aabb(self) -> Aabb3Dd:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float64[3, 1]], numpy.ndarray[numpy.float64[3, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -1988,7 +2530,7 @@ class OccupancyOctreeD(AbstractOccupancyOctreeD):
     def setting(self) -> OccupancyOctreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
     def tree_center_key(self) -> OctreeKey:
@@ -1997,24 +2539,44 @@ class OccupancyOctreeD(AbstractOccupancyOctreeD):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
 class OccupancyOctreeDrawerSetting(YamlableBase):
-    area_max: numpy.ndarray[numpy.float64[3, 1]]
-    area_min: numpy.ndarray[numpy.float64[3, 1]]
-    border_color: numpy.ndarray[numpy.float64[3, 1]]
     draw_node_borders: bool
     draw_node_boxes: bool
-    occupied_color: numpy.ndarray[numpy.float64[3, 1]]
-    occupied_only: bool
+    draw_occupied: bool
     def __init__(self) -> None:
+        ...
+    @property
+    def area_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @area_max.setter
+    def area_max(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+        ...
+    @property
+    def area_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @area_min.setter
+    def area_min(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+        ...
+    @property
+    def border_color(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @border_color.setter
+    def border_color(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+        ...
+    @property
+    def occupied_color(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @occupied_color.setter
+    def occupied_color(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
         ...
 class OccupancyOctreeF(AbstractOccupancyOctreeF):
     class BatchRayCaster:
-        def step(self, max_depth: numpy.ndarray[bool[m, 1]] = 0) -> OccupancyOctreeF.BatchRayCaster:
+        def step(self, max_depth: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = 0) -> OccupancyOctreeF.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[OctreeKey]:
@@ -2026,25 +2588,25 @@ class OccupancyOctreeF(AbstractOccupancyOctreeF):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[OccupancyOctreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float32[3, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float32[3, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float32[3, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]"]:
             ...
     class BottomLeafNeighborIterator(OccupancyOctreeF.IteratorBase):
         pass
@@ -2066,9 +2628,9 @@ class OccupancyOctreeF(AbstractOccupancyOctreeF):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[OccupancyOctreeF.Drawer, list[...], OccupancyOctreeF.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[OccupancyOctreeF.Drawer, collections.abc.Sequence[...], OccupancyOctreeF.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[OccupancyOctreeF.Drawer, list[...], OccupancyOctreeF.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[OccupancyOctreeF.Drawer, collections.abc.Sequence[...], OccupancyOctreeF.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def setting(self) -> OccupancyOctreeDrawerSetting:
@@ -2128,194 +2690,200 @@ class OccupancyOctreeF(AbstractOccupancyOctreeF):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: OctreeKey, depth: int) -> OctreeKey:
+    def adjust_key_to_depth(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
-    def cast_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float32[3, 1]], rotation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], azimuth_angles: numpy.ndarray[numpy.float32[m, 1]], elevation_angles: numpy.ndarray[numpy.float32[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], azimuth_angles: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"], elevation_angles: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
-    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     def compute_common_ancestor_key(self, arg0: OctreeKey, arg1: OctreeKey) -> tuple[OctreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_east_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_north_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[numpy.ndarray[numpy.float32[3, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[OctreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[OctreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_south_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_top_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_top_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float) -> OctreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float, depth: int) -> OctreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float) -> OctreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float, depth: int) -> OctreeKey | None:
-        ...
-    def create_node_child(self, node: OccupancyOctreeNode, child_idx: int) -> OccupancyOctreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, z: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
+        ...
+    def create_node_child(self, node: OccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: OctreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: OccupancyOctreeNode, child_idx: int, key: OctreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: OccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: OctreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: OccupancyOctreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float32[3, n]], directions: numpy.ndarray[numpy.float32[3, n]], max_ranges: numpy.ndarray[numpy.float32[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float32[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: OccupancyOctreeNode, child_idx: int) -> OccupancyOctreeNode:
+    def get_node_child(self, node: OccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, z: float, depth: int) -> OccupancyOctreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: OctreeKey, depth: int) -> OccupancyOctreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[3, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[3, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: OccupancyOctreeNode) -> bool:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.TopLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.TopLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.WestLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyOctreeF.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: OctreeKey) -> tuple[float, float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: OctreeKey, depth: int) -> tuple[float, float, float]:
+    def key_to_coord(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: OccupancyOctreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float32[3, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, z: float, max_depth: int = 0) -> OccupancyOctreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def search(self, key: OctreeKey, max_depth: int = 0) -> OccupancyOctreeNode:
+    def search(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyOctreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, occupied: bool, lazy_eval: bool) -> OccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: OctreeKey, occupied: bool, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, log_odds_delta: float, lazy_eval: bool) -> OccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: OctreeKey, log_odds_delta: float, lazy_eval: bool) -> OccupancyOctreeNode:
+    def update_node(self, node_key: OctreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyOctreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, scaling: float = 1.0, area_min: numpy.ndarray[numpy.float64[3, 1]] = ..., area_max: numpy.ndarray[numpy.float64[3, 1]] = ..., border_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_only: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: int = 1920, window_height: int = 1080, window_left: int = 50, window_top: int = 50) -> None:
+    def visualize(self, leaf_only: bool = False, scaling: typing.SupportsFloat | typing.SupportsIndex = 1.0, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., draw_occupied: bool = True, draw_free: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: typing.SupportsInt | typing.SupportsIndex = 1920, window_height: typing.SupportsInt | typing.SupportsIndex = 1080, window_left: typing.SupportsInt | typing.SupportsIndex = 50, window_top: typing.SupportsInt | typing.SupportsIndex = 50) -> None:
         ...
     @property
     def memory_usage(self) -> int:
@@ -2327,16 +2895,16 @@ class OccupancyOctreeF(AbstractOccupancyOctreeF):
     def metric_aabb(self) -> Aabb3Df:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float32[3, 1]], numpy.ndarray[numpy.float32[3, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -2354,7 +2922,7 @@ class OccupancyOctreeF(AbstractOccupancyOctreeF):
     def setting(self) -> OccupancyOctreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
     def tree_center_key(self) -> OctreeKey:
@@ -2363,14 +2931,14 @@ class OccupancyOctreeF(AbstractOccupancyOctreeF):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
 class OccupancyOctreeNode(AbstractOctreeNode):
-    def add_log_odds(self, log_odds: float) -> None:
+    def add_log_odds(self, log_odds: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
-    def allow_update_log_odds(self, delta: float) -> bool:
+    def allow_update_log_odds(self, delta: typing.SupportsFloat | typing.SupportsIndex) -> bool:
         ...
-    def get_child(self, child_idx: int) -> OccupancyOctreeNode:
+    def get_child(self, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyOctreeNode:
         ...
     @property
     def log_odds(self) -> float:
@@ -2392,10 +2960,10 @@ class OccupancyQuadtreeBaseSetting(OccupancyNdTreeSetting):
         ...
 class OccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     class BatchRayCaster:
-        def step(self, mask: numpy.ndarray[bool[m, 1]] = ...) -> OccupancyQuadtreeD.BatchRayCaster:
+        def step(self, mask: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ...) -> OccupancyQuadtreeD.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[QuadtreeKey]:
@@ -2407,25 +2975,25 @@ class OccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[OccupancyQuadtreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float64[2, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float64[2, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
             ...
     class Drawer:
         @staticmethod
@@ -2445,9 +3013,9 @@ class OccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[OccupancyQuadtreeD.Drawer, Mat, OccupancyQuadtreeD.LeafIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[OccupancyQuadtreeD.Drawer, Mat, OccupancyQuadtreeD.LeafIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[OccupancyQuadtreeD.Drawer, Mat, OccupancyQuadtreeD.TreeIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[OccupancyQuadtreeD.Drawer, Mat, OccupancyQuadtreeD.TreeIterator], None]) -> None:
             ...
         @property
         def grid_map_info(self) -> ...:
@@ -2512,178 +3080,184 @@ class OccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: QuadtreeKey, depth: int) -> QuadtreeKey:
+    def adjust_key_to_depth(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
-    def cast_ray(self, px: float, py: float, vx: float, vy: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float64[2, 1]], rotation: numpy.ndarray[numpy.float64[2, 2], numpy.ndarray.flags.f_contiguous], angles: numpy.ndarray[numpy.float64[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]", "flags.f_contiguous"], angles: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
     def compute_common_ancestor_key(self, arg0: QuadtreeKey, arg1: QuadtreeKey) -> tuple[QuadtreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, ex: float, ey: float) -> list[numpy.ndarray[numpy.float64[2, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, ex: float, ey: float) -> list[QuadtreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[QuadtreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float) -> QuadtreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, depth: int) -> QuadtreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float) -> QuadtreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, depth: int) -> QuadtreeKey | None:
-        ...
-    def create_node_child(self, node: OccupancyQuadtreeNode, child_idx: int) -> OccupancyQuadtreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
+        ...
+    def create_node_child(self, node: OccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: QuadtreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: OccupancyQuadtreeNode, child_idx: int, key: QuadtreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: OccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: QuadtreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: OccupancyQuadtreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float64[2, n]], directions: numpy.ndarray[numpy.float64[2, n]], max_ranges: numpy.ndarray[numpy.float64[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float64[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: OccupancyQuadtreeNode, child_idx: int) -> OccupancyQuadtreeNode:
+    def get_node_child(self, node: OccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, depth: int) -> OccupancyQuadtreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: QuadtreeKey, depth: int) -> OccupancyQuadtreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[2, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[2, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, ex: float, ey: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: OccupancyQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, vx: float, vy: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.WestLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeD.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: QuadtreeKey) -> tuple[float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: QuadtreeKey, depth: int) -> tuple[float, float]:
+    def key_to_coord(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: OccupancyQuadtreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, max_depth: int = 0) -> OccupancyQuadtreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def search(self, key: QuadtreeKey, max_depth: int = 0) -> OccupancyQuadtreeNode:
+    def search(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyQuadtreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, occupied: bool, lazy_eval: bool) -> OccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: QuadtreeKey, occupied: bool, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, log_odds_delta: float, lazy_eval: bool) -> OccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: QuadtreeKey, log_odds_delta: float, lazy_eval: bool) -> OccupancyQuadtreeNode:
+    def update_node(self, node_key: QuadtreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, area_min: numpy.ndarray[numpy.float32[2, 1]] | None = None, area_max: numpy.ndarray[numpy.float32[2, 1]] | None = None, resolution: float = 0.1, padding: int = 1, bg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., fg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., occupied_color: numpy.ndarray[numpy.int32[4, 1]] = ..., free_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_thickness: int = 1) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def visualize(self, leaf_only: bool = False, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, resolution: typing.SupportsFloat | typing.SupportsIndex = 0.1, padding: typing.SupportsInt | typing.SupportsIndex = 1, bg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., fg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_thickness: typing.SupportsInt | typing.SupportsIndex = 1) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
     def memory_usage(self) -> int:
@@ -2695,16 +3269,16 @@ class OccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def metric_aabb(self) -> Aabb2Dd:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float64[2, 1]], numpy.ndarray[numpy.float64[2, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -2722,7 +3296,7 @@ class OccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def setting(self) -> OccupancyQuadtreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
     def tree_center_key(self) -> QuadtreeKey:
@@ -2731,42 +3305,102 @@ class OccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
 class OccupancyQuadtreeDrawerSettingD(YamlableBase):
-    area_max: numpy.ndarray[numpy.float32[2, 1]]
-    area_min: numpy.ndarray[numpy.float32[2, 1]]
     bg_color: Scalar
     border_color: Scalar
-    border_thickness: int
     fg_color: Scalar
     free_color: Scalar
     occupied_color: Scalar
-    padding: int
-    resolution: float
-    scaling: float
     def __init__(self) -> None:
         ...
+    @property
+    def area_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
+        ...
+    @area_max.setter
+    def area_max(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> None:
+        ...
+    @property
+    def area_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
+        ...
+    @area_min.setter
+    def area_min(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> None:
+        ...
+    @property
+    def border_thickness(self) -> int:
+        ...
+    @border_thickness.setter
+    def border_thickness(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def padding(self) -> int:
+        ...
+    @padding.setter
+    def padding(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def resolution(self) -> float:
+        ...
+    @resolution.setter
+    def resolution(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def scaling(self) -> float:
+        ...
+    @scaling.setter
+    def scaling(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
 class OccupancyQuadtreeDrawerSettingF(YamlableBase):
-    area_max: numpy.ndarray[numpy.float32[2, 1]]
-    area_min: numpy.ndarray[numpy.float32[2, 1]]
     bg_color: Scalar
     border_color: Scalar
-    border_thickness: int
     fg_color: Scalar
     free_color: Scalar
     occupied_color: Scalar
-    padding: int
-    resolution: float
-    scaling: float
     def __init__(self) -> None:
+        ...
+    @property
+    def area_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
+        ...
+    @area_max.setter
+    def area_max(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> None:
+        ...
+    @property
+    def area_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
+        ...
+    @area_min.setter
+    def area_min(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> None:
+        ...
+    @property
+    def border_thickness(self) -> int:
+        ...
+    @border_thickness.setter
+    def border_thickness(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def padding(self) -> int:
+        ...
+    @padding.setter
+    def padding(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def resolution(self) -> float:
+        ...
+    @resolution.setter
+    def resolution(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def scaling(self) -> float:
+        ...
+    @scaling.setter
+    def scaling(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
 class OccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     class BatchRayCaster:
-        def step(self, mask: numpy.ndarray[bool[m, 1]] = ...) -> OccupancyQuadtreeF.BatchRayCaster:
+        def step(self, mask: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ...) -> OccupancyQuadtreeF.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[QuadtreeKey]:
@@ -2778,25 +3412,25 @@ class OccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[OccupancyQuadtreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float32[2, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float32[2, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]"]:
             ...
     class Drawer:
         @staticmethod
@@ -2816,9 +3450,9 @@ class OccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[OccupancyQuadtreeF.Drawer, Mat, OccupancyQuadtreeF.LeafIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[OccupancyQuadtreeF.Drawer, Mat, OccupancyQuadtreeF.LeafIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[OccupancyQuadtreeF.Drawer, Mat, OccupancyQuadtreeF.TreeIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[OccupancyQuadtreeF.Drawer, Mat, OccupancyQuadtreeF.TreeIterator], None]) -> None:
             ...
         @property
         def grid_map_info(self) -> ...:
@@ -2883,178 +3517,184 @@ class OccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: QuadtreeKey, depth: int) -> QuadtreeKey:
+    def adjust_key_to_depth(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
-    def cast_ray(self, px: float, py: float, vx: float, vy: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float32[2, 1]], rotation: numpy.ndarray[numpy.float32[2, 2], numpy.ndarray.flags.f_contiguous], angles: numpy.ndarray[numpy.float32[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 2]", "flags.f_contiguous"], angles: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
     def compute_common_ancestor_key(self, arg0: QuadtreeKey, arg1: QuadtreeKey) -> tuple[QuadtreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, ex: float, ey: float) -> list[numpy.ndarray[numpy.float32[2, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, ex: float, ey: float) -> list[QuadtreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[QuadtreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float) -> QuadtreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, depth: int) -> QuadtreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float) -> QuadtreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, depth: int) -> QuadtreeKey | None:
-        ...
-    def create_node_child(self, node: OccupancyQuadtreeNode, child_idx: int) -> OccupancyQuadtreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
+        ...
+    def create_node_child(self, node: OccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: QuadtreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: OccupancyQuadtreeNode, child_idx: int, key: QuadtreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: OccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: QuadtreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: OccupancyQuadtreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float32[2, n]], directions: numpy.ndarray[numpy.float32[2, n]], max_ranges: numpy.ndarray[numpy.float32[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float32[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: OccupancyQuadtreeNode, child_idx: int) -> OccupancyQuadtreeNode:
+    def get_node_child(self, node: OccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, depth: int) -> OccupancyQuadtreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: QuadtreeKey, depth: int) -> OccupancyQuadtreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[2, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[2, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, ex: float, ey: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: OccupancyQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, vx: float, vy: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.WestLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[OccupancyQuadtreeF.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: QuadtreeKey) -> tuple[float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: QuadtreeKey, depth: int) -> tuple[float, float]:
+    def key_to_coord(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: OccupancyQuadtreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, max_depth: int = 0) -> OccupancyQuadtreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def search(self, key: QuadtreeKey, max_depth: int = 0) -> OccupancyQuadtreeNode:
+    def search(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> OccupancyQuadtreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, occupied: bool, lazy_eval: bool) -> OccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: QuadtreeKey, occupied: bool, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, log_odds_delta: float, lazy_eval: bool) -> OccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: QuadtreeKey, log_odds_delta: float, lazy_eval: bool) -> OccupancyQuadtreeNode:
+    def update_node(self, node_key: QuadtreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> OccupancyQuadtreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, area_min: numpy.ndarray[numpy.float32[2, 1]] | None = None, area_max: numpy.ndarray[numpy.float32[2, 1]] | None = None, resolution: float = 0.1, padding: int = 1, bg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., fg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., occupied_color: numpy.ndarray[numpy.int32[4, 1]] = ..., free_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_thickness: int = 1) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def visualize(self, leaf_only: bool = False, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, resolution: typing.SupportsFloat | typing.SupportsIndex = 0.1, padding: typing.SupportsInt | typing.SupportsIndex = 1, bg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., fg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_thickness: typing.SupportsInt | typing.SupportsIndex = 1) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
     def memory_usage(self) -> int:
@@ -3066,16 +3706,16 @@ class OccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def metric_aabb(self) -> Aabb2Df:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float32[2, 1]], numpy.ndarray[numpy.float32[2, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -3093,7 +3733,7 @@ class OccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def setting(self) -> OccupancyQuadtreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
     def tree_center_key(self) -> QuadtreeKey:
@@ -3102,14 +3742,14 @@ class OccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
 class OccupancyQuadtreeNode(AbstractQuadtreeNode):
-    def add_log_odds(self, log_odds: float) -> None:
+    def add_log_odds(self, log_odds: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
-    def allow_update_log_odds(self, delta: float) -> bool:
+    def allow_update_log_odds(self, delta: typing.SupportsFloat | typing.SupportsIndex) -> bool:
         ...
-    def get_child(self, child_idx: int) -> OccupancyQuadtreeNode:
+    def get_child(self, child_idx: typing.SupportsInt | typing.SupportsIndex) -> OccupancyQuadtreeNode:
         ...
     @property
     def log_odds(self) -> float:
@@ -3126,7 +3766,7 @@ class OccupancyQuadtreeNode(AbstractQuadtreeNode):
 class OctreeKey:
     def __eq__(self, arg0: OctreeKey) -> bool:
         ...
-    def __getitem__(self, arg0: int) -> int:
+    def __getitem__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     def __hash__(self) -> int:
         ...
@@ -3134,7 +3774,7 @@ class OctreeKey:
     def __init__(self) -> None:
         ...
     @typing.overload
-    def __init__(self, a: int, b: int, c: int) -> None:
+    def __init__(self, a: typing.SupportsInt | typing.SupportsIndex, b: typing.SupportsInt | typing.SupportsIndex, c: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     def __ne__(self, arg0: OctreeKey) -> bool:
         ...
@@ -3174,7 +3814,7 @@ class Primitive2D:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -3182,7 +3822,7 @@ class Primitive2D:
             ...
         def __repr__(self) -> str:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -3198,19 +3838,24 @@ class Primitive2D:
     kRay2D: typing.ClassVar[Primitive2D.Type]  # value = <Type.kRay2D: 2>
     kRectangle: typing.ClassVar[Primitive2D.Type]  # value = <Type.kRectangle: 4>
     kSegment2D: typing.ClassVar[Primitive2D.Type]  # value = <Type.kSegment2D: 1>
-    id: int
     @typing.overload
-    def compute_intersections(self, line: ...) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
-        ...
-    @typing.overload
-    def compute_intersections(self, segment: ...) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def compute_intersections(self, line: ...) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @typing.overload
-    def compute_intersections(self, ray: ...) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def compute_intersections(self, segment: ...) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
-    def is_inside(self, point: numpy.ndarray[numpy.float64[2, 1]]) -> bool:
+    @typing.overload
+    def compute_intersections(self, ray: ...) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
-    def is_on_boundary(self, point: numpy.ndarray[numpy.float64[2, 1]]) -> bool:
+    def is_inside(self, point: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> bool:
+        ...
+    def is_on_boundary(self, point: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> bool:
+        ...
+    @property
+    def id(self) -> int:
+        ...
+    @id.setter
+    def id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
     def orientation_angle(self) -> float:
@@ -3256,7 +3901,7 @@ class Primitive3D:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -3264,7 +3909,7 @@ class Primitive3D:
             ...
         def __repr__(self) -> str:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -3274,18 +3919,23 @@ class Primitive3D:
         @property
         def value(self) -> int:
             ...
-    id: int
-    def is_inside(self, point: numpy.ndarray[numpy.float64[3, 1]]) -> bool:
+    def is_inside(self, point: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> bool:
+        ...
+    @property
+    def id(self) -> int:
+        ...
+    @id.setter
+    def id(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
     def type(self) -> Primitive3D.Type:
         ...
 class PyObjectOccupancyOctreeD(AbstractOccupancyOctreeD):
     class BatchRayCaster:
-        def step(self, max_depth: numpy.ndarray[bool[m, 1]] = 0) -> PyObjectOccupancyOctreeD.BatchRayCaster:
+        def step(self, max_depth: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = 0) -> PyObjectOccupancyOctreeD.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[OctreeKey]:
@@ -3297,25 +3947,25 @@ class PyObjectOccupancyOctreeD(AbstractOccupancyOctreeD):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[PyObjectOccupancyOctreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float64[3, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float64[3, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float64[3, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"]:
             ...
     class BottomLeafNeighborIterator(PyObjectOccupancyOctreeD.IteratorBase):
         pass
@@ -3337,9 +3987,9 @@ class PyObjectOccupancyOctreeD(AbstractOccupancyOctreeD):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[PyObjectOccupancyOctreeD.Drawer, list[...], PyObjectOccupancyOctreeD.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyOctreeD.Drawer, collections.abc.Sequence[...], PyObjectOccupancyOctreeD.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[PyObjectOccupancyOctreeD.Drawer, list[...], PyObjectOccupancyOctreeD.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyOctreeD.Drawer, collections.abc.Sequence[...], PyObjectOccupancyOctreeD.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def setting(self) -> OccupancyOctreeDrawerSetting:
@@ -3399,194 +4049,200 @@ class PyObjectOccupancyOctreeD(AbstractOccupancyOctreeD):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: OctreeKey, depth: int) -> OctreeKey:
+    def adjust_key_to_depth(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
-    def cast_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float64[3, 1]], rotation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], azimuth_angles: numpy.ndarray[numpy.float64[m, 1]], elevation_angles: numpy.ndarray[numpy.float64[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], azimuth_angles: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], elevation_angles: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
-    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     def compute_common_ancestor_key(self, arg0: OctreeKey, arg1: OctreeKey) -> tuple[OctreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_east_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_north_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[numpy.ndarray[numpy.float64[3, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[OctreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[OctreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_south_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_top_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_top_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float) -> OctreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float, depth: int) -> OctreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float) -> OctreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float, depth: int) -> OctreeKey | None:
-        ...
-    def create_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: int) -> PyObjectOccupancyOctreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, z: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
+        ...
+    def create_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: OctreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: int, key: OctreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: OctreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: PyObjectOccupancyOctreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float64[3, n]], directions: numpy.ndarray[numpy.float64[3, n]], max_ranges: numpy.ndarray[numpy.float64[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float64[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: int) -> PyObjectOccupancyOctreeNode:
+    def get_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, z: float, depth: int) -> PyObjectOccupancyOctreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: OctreeKey, depth: int) -> PyObjectOccupancyOctreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[3, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[3, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: PyObjectOccupancyOctreeNode) -> bool:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.TopLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.TopLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.WestLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeD.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: OctreeKey) -> tuple[float, float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: OctreeKey, depth: int) -> tuple[float, float, float]:
+    def key_to_coord(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: PyObjectOccupancyOctreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float64[3, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, z: float, max_depth: int = 0) -> PyObjectOccupancyOctreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def search(self, key: OctreeKey, max_depth: int = 0) -> PyObjectOccupancyOctreeNode:
+    def search(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyOctreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: OctreeKey, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: OctreeKey, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
+    def update_node(self, node_key: OctreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, scaling: float = 1.0, area_min: numpy.ndarray[numpy.float64[3, 1]] = ..., area_max: numpy.ndarray[numpy.float64[3, 1]] = ..., border_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_only: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: int = 1920, window_height: int = 1080, window_left: int = 50, window_top: int = 50) -> None:
+    def visualize(self, leaf_only: bool = False, scaling: typing.SupportsFloat | typing.SupportsIndex = 1.0, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., draw_occupied: bool = True, draw_free: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: typing.SupportsInt | typing.SupportsIndex = 1920, window_height: typing.SupportsInt | typing.SupportsIndex = 1080, window_left: typing.SupportsInt | typing.SupportsIndex = 50, window_top: typing.SupportsInt | typing.SupportsIndex = 50) -> None:
         ...
     @property
     def memory_usage(self) -> int:
@@ -3598,16 +4254,16 @@ class PyObjectOccupancyOctreeD(AbstractOccupancyOctreeD):
     def metric_aabb(self) -> Aabb3Dd:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float64[3, 1]], numpy.ndarray[numpy.float64[3, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -3625,7 +4281,7 @@ class PyObjectOccupancyOctreeD(AbstractOccupancyOctreeD):
     def setting(self) -> OccupancyOctreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
     def tree_center_key(self) -> OctreeKey:
@@ -3634,14 +4290,14 @@ class PyObjectOccupancyOctreeD(AbstractOccupancyOctreeD):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
 class PyObjectOccupancyOctreeF(AbstractOccupancyOctreeF):
     class BatchRayCaster:
-        def step(self, max_depth: numpy.ndarray[bool[m, 1]] = 0) -> PyObjectOccupancyOctreeF.BatchRayCaster:
+        def step(self, max_depth: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = 0) -> PyObjectOccupancyOctreeF.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[OctreeKey]:
@@ -3653,25 +4309,25 @@ class PyObjectOccupancyOctreeF(AbstractOccupancyOctreeF):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[PyObjectOccupancyOctreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float32[3, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float32[3, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float32[3, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]"]:
             ...
     class BottomLeafNeighborIterator(PyObjectOccupancyOctreeF.IteratorBase):
         pass
@@ -3693,9 +4349,9 @@ class PyObjectOccupancyOctreeF(AbstractOccupancyOctreeF):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[PyObjectOccupancyOctreeF.Drawer, list[...], PyObjectOccupancyOctreeF.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyOctreeF.Drawer, collections.abc.Sequence[...], PyObjectOccupancyOctreeF.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[PyObjectOccupancyOctreeF.Drawer, list[...], PyObjectOccupancyOctreeF.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyOctreeF.Drawer, collections.abc.Sequence[...], PyObjectOccupancyOctreeF.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def setting(self) -> OccupancyOctreeDrawerSetting:
@@ -3755,194 +4411,200 @@ class PyObjectOccupancyOctreeF(AbstractOccupancyOctreeF):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: OctreeKey, depth: int) -> OctreeKey:
+    def adjust_key_to_depth(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
-    def cast_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float32[3, 1]], rotation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], azimuth_angles: numpy.ndarray[numpy.float32[m, 1]], elevation_angles: numpy.ndarray[numpy.float32[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], azimuth_angles: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"], elevation_angles: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
-    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     def compute_common_ancestor_key(self, arg0: OctreeKey, arg1: OctreeKey) -> tuple[OctreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_east_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_north_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[numpy.ndarray[numpy.float32[3, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[OctreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[OctreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_south_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_top_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_top_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float) -> OctreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float, depth: int) -> OctreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float) -> OctreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float, depth: int) -> OctreeKey | None:
-        ...
-    def create_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: int) -> PyObjectOccupancyOctreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, z: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
+        ...
+    def create_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: OctreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: int, key: OctreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: OctreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: PyObjectOccupancyOctreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float32[3, n]], directions: numpy.ndarray[numpy.float32[3, n]], max_ranges: numpy.ndarray[numpy.float32[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float32[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: int) -> PyObjectOccupancyOctreeNode:
+    def get_node_child(self, node: PyObjectOccupancyOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, z: float, depth: int) -> PyObjectOccupancyOctreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: OctreeKey, depth: int) -> PyObjectOccupancyOctreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[3, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[3, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: PyObjectOccupancyOctreeNode) -> bool:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.TopLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.TopLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.WestLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyOctreeF.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: OctreeKey) -> tuple[float, float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: OctreeKey, depth: int) -> tuple[float, float, float]:
+    def key_to_coord(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: PyObjectOccupancyOctreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float32[3, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, z: float, max_depth: int = 0) -> PyObjectOccupancyOctreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def search(self, key: OctreeKey, max_depth: int = 0) -> PyObjectOccupancyOctreeNode:
+    def search(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyOctreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: OctreeKey, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, z: float, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: OctreeKey, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
+    def update_node(self, node_key: OctreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyOctreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, scaling: float = 1.0, area_min: numpy.ndarray[numpy.float64[3, 1]] = ..., area_max: numpy.ndarray[numpy.float64[3, 1]] = ..., border_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_color: numpy.ndarray[numpy.float64[3, 1]] = ..., occupied_only: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: int = 1920, window_height: int = 1080, window_left: int = 50, window_top: int = 50) -> None:
+    def visualize(self, leaf_only: bool = False, scaling: typing.SupportsFloat | typing.SupportsIndex = 1.0, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., draw_occupied: bool = True, draw_free: bool = False, draw_node_boxes: bool = True, draw_node_borders: bool = True, window_width: typing.SupportsInt | typing.SupportsIndex = 1920, window_height: typing.SupportsInt | typing.SupportsIndex = 1080, window_left: typing.SupportsInt | typing.SupportsIndex = 50, window_top: typing.SupportsInt | typing.SupportsIndex = 50) -> None:
         ...
     @property
     def memory_usage(self) -> int:
@@ -3954,16 +4616,16 @@ class PyObjectOccupancyOctreeF(AbstractOccupancyOctreeF):
     def metric_aabb(self) -> Aabb3Df:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float32[3, 1]], numpy.ndarray[numpy.float32[3, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -3981,7 +4643,7 @@ class PyObjectOccupancyOctreeF(AbstractOccupancyOctreeF):
     def setting(self) -> OccupancyOctreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
     def tree_center_key(self) -> OctreeKey:
@@ -3990,15 +4652,15 @@ class PyObjectOccupancyOctreeF(AbstractOccupancyOctreeF):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
 class PyObjectOccupancyOctreeNode(AbstractOctreeNode):
     py_object: typing.Any
-    def add_log_odds(self, log_odds: float) -> None:
+    def add_log_odds(self, log_odds: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
-    def allow_update_log_odds(self, delta: float) -> bool:
+    def allow_update_log_odds(self, delta: typing.SupportsFloat | typing.SupportsIndex) -> bool:
         ...
-    def get_child(self, child_idx: int) -> PyObjectOccupancyOctreeNode:
+    def get_child(self, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyOctreeNode:
         ...
     @property
     def log_odds(self) -> float:
@@ -4014,10 +4676,10 @@ class PyObjectOccupancyOctreeNode(AbstractOctreeNode):
         ...
 class PyObjectOccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     class BatchRayCaster:
-        def step(self, mask: numpy.ndarray[bool[m, 1]] = ...) -> PyObjectOccupancyQuadtreeD.BatchRayCaster:
+        def step(self, mask: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ...) -> PyObjectOccupancyQuadtreeD.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[QuadtreeKey]:
@@ -4029,25 +4691,25 @@ class PyObjectOccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float64[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[PyObjectOccupancyQuadtreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float64[2, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float64[2, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
             ...
     class Drawer:
         @staticmethod
@@ -4067,9 +4729,9 @@ class PyObjectOccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[PyObjectOccupancyQuadtreeD.Drawer, Mat, PyObjectOccupancyQuadtreeD.LeafIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyQuadtreeD.Drawer, Mat, PyObjectOccupancyQuadtreeD.LeafIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[PyObjectOccupancyQuadtreeD.Drawer, Mat, PyObjectOccupancyQuadtreeD.TreeIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyQuadtreeD.Drawer, Mat, PyObjectOccupancyQuadtreeD.TreeIterator], None]) -> None:
             ...
         @property
         def grid_map_info(self) -> ...:
@@ -4130,178 +4792,184 @@ class PyObjectOccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: QuadtreeKey, depth: int) -> QuadtreeKey:
+    def adjust_key_to_depth(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
-    def cast_ray(self, px: float, py: float, vx: float, vy: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float64[2, 1]], rotation: numpy.ndarray[numpy.float64[2, 2], numpy.ndarray.flags.f_contiguous], angles: numpy.ndarray[numpy.float64[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]", "flags.f_contiguous"], angles: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
     def compute_common_ancestor_key(self, arg0: QuadtreeKey, arg1: QuadtreeKey) -> tuple[QuadtreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, ex: float, ey: float) -> list[numpy.ndarray[numpy.float64[2, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, ex: float, ey: float) -> list[QuadtreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[QuadtreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float) -> QuadtreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, depth: int) -> QuadtreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float) -> QuadtreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, depth: int) -> QuadtreeKey | None:
-        ...
-    def create_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: int) -> PyObjectOccupancyQuadtreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
+        ...
+    def create_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: QuadtreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: int, key: QuadtreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: QuadtreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: PyObjectOccupancyQuadtreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float64[2, n]], directions: numpy.ndarray[numpy.float64[2, n]], max_ranges: numpy.ndarray[numpy.float64[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float64[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: int) -> PyObjectOccupancyQuadtreeNode:
+    def get_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, depth: int) -> PyObjectOccupancyQuadtreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: QuadtreeKey, depth: int) -> PyObjectOccupancyQuadtreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[2, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float64[2, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, ex: float, ey: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: PyObjectOccupancyQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, vx: float, vy: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.WestLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeD.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: QuadtreeKey) -> tuple[float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: QuadtreeKey, depth: int) -> tuple[float, float]:
+    def key_to_coord(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: PyObjectOccupancyQuadtreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, max_depth: int = 0) -> PyObjectOccupancyQuadtreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def search(self, key: QuadtreeKey, max_depth: int = 0) -> PyObjectOccupancyQuadtreeNode:
+    def search(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyQuadtreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: QuadtreeKey, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: QuadtreeKey, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
+    def update_node(self, node_key: QuadtreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, area_min: numpy.ndarray[numpy.float32[2, 1]] | None = None, area_max: numpy.ndarray[numpy.float32[2, 1]] | None = None, resolution: float = 0.1, padding: int = 1, bg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., fg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., occupied_color: numpy.ndarray[numpy.int32[4, 1]] = ..., free_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_thickness: int = 1) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def visualize(self, leaf_only: bool = False, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, resolution: typing.SupportsFloat | typing.SupportsIndex = 0.1, padding: typing.SupportsInt | typing.SupportsIndex = 1, bg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., fg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_thickness: typing.SupportsInt | typing.SupportsIndex = 1) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
     def memory_usage(self) -> int:
@@ -4313,16 +4981,16 @@ class PyObjectOccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def metric_aabb(self) -> Aabb2Dd:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float64[2, 1]], numpy.ndarray[numpy.float64[2, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -4340,7 +5008,7 @@ class PyObjectOccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def setting(self) -> OccupancyQuadtreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
     def tree_center_key(self) -> QuadtreeKey:
@@ -4349,14 +5017,14 @@ class PyObjectOccupancyQuadtreeD(AbstractOccupancyQuadtreeD):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
 class PyObjectOccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     class BatchRayCaster:
-        def step(self, mask: numpy.ndarray[bool[m, 1]] = ...) -> PyObjectOccupancyQuadtreeF.BatchRayCaster:
+        def step(self, mask: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ...) -> PyObjectOccupancyQuadtreeF.BatchRayCaster:
             ...
         @property
-        def ever_hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def ever_hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def frontier_keys(self) -> list[QuadtreeKey]:
@@ -4368,25 +5036,25 @@ class PyObjectOccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
         def frontier_ray_indices(self) -> list[list[int]]:
             ...
         @property
-        def hit_distances(self) -> numpy.ndarray[numpy.float32[m, 1]]:
+        def hit_distances(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"]:
             ...
         @property
-        def hit_flags(self) -> numpy.ndarray[bool[m, 1]]:
+        def hit_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
             ...
         @property
         def hit_nodes(self) -> list[PyObjectOccupancyQuadtreeNode]:
             ...
         @property
-        def hit_positions(self) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+        def hit_positions(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
             ...
         @property
         def num_rays(self) -> int:
             ...
         @property
-        def ray_directions(self) -> numpy.ndarray[numpy.float32[2, n]]:
+        def ray_directions(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]"]:
             ...
         @property
-        def ray_origins(self) -> numpy.ndarray[numpy.float32[2, n]]:
+        def ray_origins(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]"]:
             ...
     class Drawer:
         @staticmethod
@@ -4406,9 +5074,9 @@ class PyObjectOccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[PyObjectOccupancyQuadtreeF.Drawer, Mat, PyObjectOccupancyQuadtreeF.LeafIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyQuadtreeF.Drawer, Mat, PyObjectOccupancyQuadtreeF.LeafIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[PyObjectOccupancyQuadtreeF.Drawer, Mat, PyObjectOccupancyQuadtreeF.TreeIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[PyObjectOccupancyQuadtreeF.Drawer, Mat, PyObjectOccupancyQuadtreeF.TreeIterator], None]) -> None:
             ...
         @property
         def grid_map_info(self) -> ...:
@@ -4469,178 +5137,184 @@ class PyObjectOccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: QuadtreeKey, depth: int) -> QuadtreeKey:
+    def adjust_key_to_depth(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
-    def cast_ray(self, px: float, py: float, vx: float, vy: float, ignore_unknown: bool, max_range: float) -> dict:
-        ...
-    @typing.overload
-    def cast_rays(self, position: numpy.ndarray[numpy.float32[2, 1]], rotation: numpy.ndarray[numpy.float32[2, 2], numpy.ndarray.flags.f_contiguous], angles: numpy.ndarray[numpy.float32[m, 1]], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def cast_rays(self, positions: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], directions: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], ignore_unknown: bool, max_range: float, prune_rays: bool, parallel: bool) -> dict:
+    def cast_rays(self, position: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 2]", "flags.f_contiguous"], angles: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 1]"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
+        ...
+    @typing.overload
+    def cast_rays(self, positions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], directions: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], ignore_unknown: bool, max_range: typing.SupportsFloat | typing.SupportsIndex, prune_rays: bool, parallel: bool) -> dict:
         ...
     def clear(self) -> None:
         ...
     def compute_common_ancestor_key(self, arg0: QuadtreeKey, arg1: QuadtreeKey) -> tuple[QuadtreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, ex: float, ey: float) -> list[numpy.ndarray[numpy.float32[2, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, ex: float, ey: float) -> list[QuadtreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[QuadtreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float) -> QuadtreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, depth: int) -> QuadtreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float) -> QuadtreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, depth: int) -> QuadtreeKey | None:
-        ...
-    def create_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: int) -> PyObjectOccupancyQuadtreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
+        ...
+    def create_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: QuadtreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: int, key: QuadtreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: QuadtreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
     def expand_node(self, node: PyObjectOccupancyQuadtreeNode) -> None:
         ...
-    def get_batch_ray_caster(self, origins: numpy.ndarray[numpy.float32[2, n]], directions: numpy.ndarray[numpy.float32[2, n]], max_ranges: numpy.ndarray[numpy.float32[m, 1]] = ..., node_paddings: numpy.ndarray[numpy.float32[m, 1]] = ..., bidirectional_flags: numpy.ndarray[bool[m, 1]] = ..., leaf_only_flags: numpy.ndarray[bool[m, 1]] = ..., min_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ..., max_node_depths: numpy.ndarray[numpy.int32[m, 1]] = ...) -> ...:
+    def get_batch_ray_caster(self, origins: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, n]"], directions: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, n]"], max_ranges: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., node_paddings: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, 1]"] = ..., bidirectional_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., leaf_only_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"] = ..., min_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ..., max_node_depths: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"] = ...) -> ...:
         ...
-    def get_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: int) -> PyObjectOccupancyQuadtreeNode:
+    def get_node_child(self, node: PyObjectOccupancyQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
-        ...
-    @typing.overload
-    def insert_node(self, x: float, y: float, depth: int) -> PyObjectOccupancyQuadtreeNode:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
-    def insert_node(self, key: QuadtreeKey, depth: int) -> PyObjectOccupancyQuadtreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def insert_point_cloud(self, points: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[2, 1]], min_range: float, max_range: float, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+    @typing.overload
+    def insert_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def insert_point_cloud_rays(self, points: numpy.ndarray[numpy.float32[2, n], numpy.ndarray.flags.f_contiguous], sensor_origin: numpy.ndarray[numpy.float32[2, 1]], min_range: float, max_range: float, parallel: bool, lazy_eval: bool) -> None:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
         ...
-    def insert_ray(self, sx: float, sy: float, ex: float, ey: float, min_range: float, max_range: float, lazy_eval: bool) -> bool:
+    @typing.overload
+    def insert_point_cloud(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, with_count: bool, parallel: bool, lazy_eval: bool, discrete: bool) -> None:
+        ...
+    def insert_point_cloud_rays(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], sensor_origin: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, parallel: bool, lazy_eval: bool) -> None:
+        ...
+    def insert_ray(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, min_range: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> bool:
         ...
     def is_node_collapsible(self, node: PyObjectOccupancyQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, vx: float, vy: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.WestLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[PyObjectOccupancyQuadtreeF.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: QuadtreeKey) -> tuple[float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: QuadtreeKey, depth: int) -> tuple[float, float]:
+    def key_to_coord(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: PyObjectOccupancyQuadtreeNode) -> bool:
         ...
-    def sample_positions(self, num_positions: int) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def sample_positions(self, num_positions: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @typing.overload
-    def search(self, x: float, y: float, max_depth: int = 0) -> PyObjectOccupancyQuadtreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def search(self, key: QuadtreeKey, max_depth: int = 0) -> PyObjectOccupancyQuadtreeNode:
+    def search(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> PyObjectOccupancyQuadtreeNode:
         ...
     def to_max_likelihood(self) -> None:
         ...
     def update_inner_occupancy(self) -> None:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
     def update_node(self, node_key: QuadtreeKey, occupied: bool, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, x: float, y: float, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
+    def update_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
     @typing.overload
-    def update_node(self, node_key: QuadtreeKey, log_odds_delta: float, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
+    def update_node(self, node_key: QuadtreeKey, log_odds_delta: typing.SupportsFloat | typing.SupportsIndex, lazy_eval: bool) -> PyObjectOccupancyQuadtreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, area_min: numpy.ndarray[numpy.float32[2, 1]] | None = None, area_max: numpy.ndarray[numpy.float32[2, 1]] | None = None, resolution: float = 0.1, padding: int = 1, bg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., fg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., occupied_color: numpy.ndarray[numpy.int32[4, 1]] = ..., free_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_thickness: int = 1) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def visualize(self, leaf_only: bool = False, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, resolution: typing.SupportsFloat | typing.SupportsIndex = 0.1, padding: typing.SupportsInt | typing.SupportsIndex = 1, bg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., fg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., occupied_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., free_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_thickness: typing.SupportsInt | typing.SupportsIndex = 1) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
     def memory_usage(self) -> int:
@@ -4652,16 +5326,16 @@ class PyObjectOccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def metric_aabb(self) -> Aabb2Df:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float32[2, 1]], numpy.ndarray[numpy.float32[2, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
     def number_of_leaf_nodes(self) -> int:
@@ -4679,7 +5353,7 @@ class PyObjectOccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def setting(self) -> OccupancyQuadtreeBaseSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
     def tree_center_key(self) -> QuadtreeKey:
@@ -4688,15 +5362,15 @@ class PyObjectOccupancyQuadtreeF(AbstractOccupancyQuadtreeF):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
 class PyObjectOccupancyQuadtreeNode(AbstractQuadtreeNode):
     py_object: typing.Any
-    def add_log_odds(self, log_odds: float) -> None:
+    def add_log_odds(self, log_odds: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
-    def allow_update_log_odds(self, delta: float) -> bool:
+    def allow_update_log_odds(self, delta: typing.SupportsFloat | typing.SupportsIndex) -> bool:
         ...
-    def get_child(self, child_idx: int) -> PyObjectOccupancyQuadtreeNode:
+    def get_child(self, child_idx: typing.SupportsInt | typing.SupportsIndex) -> PyObjectOccupancyQuadtreeNode:
         ...
     @property
     def log_odds(self) -> float:
@@ -4713,7 +5387,7 @@ class PyObjectOccupancyQuadtreeNode(AbstractQuadtreeNode):
 class QuadtreeKey:
     def __eq__(self, arg0: QuadtreeKey) -> bool:
         ...
-    def __getitem__(self, arg0: int) -> int:
+    def __getitem__(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     def __hash__(self) -> int:
         ...
@@ -4721,7 +5395,7 @@ class QuadtreeKey:
     def __init__(self) -> None:
         ...
     @typing.overload
-    def __init__(self, a: int, b: int) -> None:
+    def __init__(self, a: typing.SupportsInt | typing.SupportsIndex, b: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     def __ne__(self, arg0: QuadtreeKey) -> bool:
         ...
@@ -4734,93 +5408,113 @@ class RangeSensor3Dd:
     def add_mesh(self, mesh_path: str) -> None:
         ...
     @typing.overload
-    def add_mesh(self, vertices: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], triangles: numpy.ndarray[numpy.int32[3, n], numpy.ndarray.flags.f_contiguous]) -> None:
+    def add_mesh(self, vertices: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], triangles: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, n]", "flags.f_contiguous"]) -> None:
         ...
     @typing.overload
-    def add_mesh(self, vertices: list[numpy.ndarray[numpy.float64[3, 1]]], triangles: list[numpy.ndarray[numpy.int32[3, 1]]]) -> None:
+    def add_mesh(self, vertices: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]], triangles: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[3, 1]"]]) -> None:
         ...
-    def scan(self, orientation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[3, 1]], add_noise: bool = False, noise_stddev: float = 0.03, cache_normals: bool = False) -> numpy.ndarray[numpy.float64[m, n]]:
-        ...
-    @property
-    def cached_normals(self) -> numpy.ndarray[numpy.float64]:
+    def scan(self, orientation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], add_noise: bool = False, noise_stddev: typing.SupportsFloat | typing.SupportsIndex = 0.03, cache_normals: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
     @property
-    def optical_pose(self, arg1: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], arg2: numpy.ndarray[numpy.float64[3, 1]]) -> tuple[numpy.ndarray[numpy.float64[3, 3]], numpy.ndarray[numpy.float64[3, 1]]]:
+    def cached_normals(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def ray_directions_in_frame(self) -> numpy.ndarray[numpy.float64]:
+    def optical_pose(self, arg1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], arg2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
+        ...
+    @property
+    def ray_directions_in_frame(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
 class RangeSensor3Df:
     @typing.overload
     def add_mesh(self, mesh_path: str) -> None:
         ...
     @typing.overload
-    def add_mesh(self, vertices: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], triangles: numpy.ndarray[numpy.int32[3, n], numpy.ndarray.flags.f_contiguous]) -> None:
+    def add_mesh(self, vertices: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], triangles: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, n]", "flags.f_contiguous"]) -> None:
         ...
     @typing.overload
-    def add_mesh(self, vertices: list[numpy.ndarray[numpy.float32[3, 1]]], triangles: list[numpy.ndarray[numpy.int32[3, 1]]]) -> None:
+    def add_mesh(self, vertices: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]], triangles: collections.abc.Sequence[typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[3, 1]"]]) -> None:
         ...
-    def scan(self, orientation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[3, 1]], add_noise: bool = False, noise_stddev: float = 0.03, cache_normals: bool = False) -> numpy.ndarray[numpy.float32[m, n]]:
-        ...
-    @property
-    def cached_normals(self) -> numpy.ndarray[numpy.float64]:
+    def scan(self, orientation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], add_noise: bool = False, noise_stddev: typing.SupportsFloat | typing.SupportsIndex = 0.03, cache_normals: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]:
         ...
     @property
-    def optical_pose(self, arg1: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], arg2: numpy.ndarray[numpy.float32[3, 1]]) -> tuple[numpy.ndarray[numpy.float32[3, 3]], numpy.ndarray[numpy.float32[3, 1]]]:
+    def cached_normals(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def ray_directions_in_frame(self) -> numpy.ndarray[numpy.float64]:
+    def optical_pose(self, arg1: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], arg2: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
+        ...
+    @property
+    def ray_directions_in_frame(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
 class RangeSensorFrame3Dd:
     class Setting(YamlableBase):
-        col_margin: int
-        row_margin: int
-        valid_range_max: float
-        valid_range_min: float
-    def compute_closest_end_point(self, position_world: numpy.ndarray[numpy.float64[3, 1]], brute_force: bool = False) -> dict:
+        @property
+        def col_margin(self) -> int:
+            ...
+        @col_margin.setter
+        def col_margin(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def row_margin(self) -> int:
+            ...
+        @row_margin.setter
+        def row_margin(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_max(self) -> float:
+            ...
+        @valid_range_max.setter
+        def valid_range_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_min(self) -> float:
+            ...
+        @valid_range_min.setter
+        def valid_range_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+    def compute_closest_end_point(self, position_world: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], brute_force: bool = False) -> dict:
         ...
-    def compute_frame_coords(self, xyz_frame: numpy.ndarray[numpy.float64[3, 1]]) -> dict:
+    def compute_frame_coords(self, xyz_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> dict:
         ...
-    def compute_rays_at(self, position_world: numpy.ndarray[numpy.float64[3, 1]]) -> dict:
+    def compute_rays_at(self, position_world: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> dict:
         ...
-    def coords_is_in_frame(self, frame_coords: numpy.ndarray[numpy.float64[2, 1]]) -> bool:
+    def coords_is_in_frame(self, frame_coords: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> bool:
         ...
-    def dir_frame_to_world(self, dir_frame: numpy.ndarray[numpy.float64[3, 1]]) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def dir_frame_to_world(self, dir_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
-    def dir_world_to_frame(self, dir_world: numpy.ndarray[numpy.float64[3, 1]]) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def dir_world_to_frame(self, dir_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
-    def pos_frame_to_world(self, pos_frame: numpy.ndarray[numpy.float64[3, 1]]) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def pos_frame_to_world(self, pos_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
-    def pos_world_to_frame(self, pos_world: numpy.ndarray[numpy.float64[3, 1]]) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def pos_world_to_frame(self, pos_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
-    def position_is_in_frame(self, xyz_frame: numpy.ndarray[numpy.float64[3, 1]]) -> bool:
+    def position_is_in_frame(self, xyz_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> bool:
         ...
     @typing.overload
-    def sample_along_rays(self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def sample_along_rays(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def sample_along_rays(self, range_step: float, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def sample_along_rays(self, range_step: typing.SupportsFloat | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def sample_in_region_hpr(self, num_positions: int, num_near_surface_samples_per_ray: int, num_along_ray_samples_per_ray: int, max_in_obstacle_dist: float, parallel: bool) -> dict:
+    def sample_in_region_hpr(self, num_positions: typing.SupportsInt | typing.SupportsIndex, num_near_surface_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, num_along_ray_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, parallel: bool) -> dict:
         ...
-    def sample_in_region_vrs(self, num_hit_points: int, num_samples_per_azimuth_segment: int, num_azimuth_segments: int, parallel: bool) -> dict:
+    def sample_in_region_vrs(self, num_hit_points: typing.SupportsInt | typing.SupportsIndex, num_samples_per_azimuth_segment: typing.SupportsInt | typing.SupportsIndex, num_azimuth_segments: typing.SupportsInt | typing.SupportsIndex, parallel: bool) -> dict:
         ...
-    def sample_near_surface(self, num_samples_per_ray: int, max_offset: float, sampled_rays_ratio: float) -> dict:
-        ...
-    @property
-    def end_points_in_frame(self) -> numpy.ndarray[numpy.float64]:
+    def sample_near_surface(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_offset: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @property
-    def end_points_in_world(self) -> numpy.ndarray[numpy.float64]:
+    def end_points_in_frame(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def frame_coords(self) -> numpy.ndarray[numpy.float64]:
+    def end_points_in_world(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def hit_mask(self) -> numpy.ndarray[bool[m, n]]:
+    def frame_coords(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def hit_points_world(self) -> list[numpy.ndarray[numpy.float64[3, 1]]]:
+    def hit_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, n]"]:
+        ...
+    @property
+    def hit_points_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @property
     def hit_ray_indices(self) -> list[tuple[int, int]]:
@@ -4841,73 +5535,93 @@ class RangeSensorFrame3Dd:
     def num_rays(self) -> int:
         ...
     @property
-    def pose_matrix(self) -> numpy.ndarray[numpy.float64[4, 4]]:
+    def pose_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]:
         ...
     @property
-    def ranges(self) -> numpy.ndarray[numpy.float64[m, n]]:
+    def ranges(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
     @property
-    def ray_directions_in_frame(self) -> numpy.ndarray[numpy.float64]:
+    def ray_directions_in_frame(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def ray_directions_in_world(self) -> numpy.ndarray[numpy.float64]:
+    def ray_directions_in_world(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
-    def rotation_matrix(self) -> numpy.ndarray[numpy.float64[3, 3]]:
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
         ...
     @property
-    def translation_vector(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def translation_vector(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
 class RangeSensorFrame3Df:
     class Setting(YamlableBase):
-        col_margin: int
-        row_margin: int
-        valid_range_max: float
-        valid_range_min: float
-    def compute_closest_end_point(self, position_world: numpy.ndarray[numpy.float32[3, 1]], brute_force: bool = False) -> dict:
+        @property
+        def col_margin(self) -> int:
+            ...
+        @col_margin.setter
+        def col_margin(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def row_margin(self) -> int:
+            ...
+        @row_margin.setter
+        def row_margin(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_max(self) -> float:
+            ...
+        @valid_range_max.setter
+        def valid_range_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+        @property
+        def valid_range_min(self) -> float:
+            ...
+        @valid_range_min.setter
+        def valid_range_min(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+            ...
+    def compute_closest_end_point(self, position_world: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], brute_force: bool = False) -> dict:
         ...
-    def compute_frame_coords(self, xyz_frame: numpy.ndarray[numpy.float32[3, 1]]) -> dict:
+    def compute_frame_coords(self, xyz_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> dict:
         ...
-    def compute_rays_at(self, position_world: numpy.ndarray[numpy.float32[3, 1]]) -> dict:
+    def compute_rays_at(self, position_world: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]) -> dict:
         ...
-    def coords_is_in_frame(self, frame_coords: numpy.ndarray[numpy.float32[2, 1]]) -> bool:
+    def coords_is_in_frame(self, frame_coords: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"]) -> bool:
         ...
-    def dir_frame_to_world(self, dir_frame: numpy.ndarray[numpy.float32[3, 1]]) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def dir_frame_to_world(self, dir_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
-    def dir_world_to_frame(self, dir_world: numpy.ndarray[numpy.float32[3, 1]]) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def dir_world_to_frame(self, dir_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
-    def pos_frame_to_world(self, pos_frame: numpy.ndarray[numpy.float32[3, 1]]) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def pos_frame_to_world(self, pos_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
-    def pos_world_to_frame(self, pos_world: numpy.ndarray[numpy.float32[3, 1]]) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def pos_world_to_frame(self, pos_world: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
-    def position_is_in_frame(self, xyz_frame: numpy.ndarray[numpy.float32[3, 1]]) -> bool:
+    def position_is_in_frame(self, xyz_frame: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> bool:
         ...
     @typing.overload
-    def sample_along_rays(self, num_samples_per_ray: int, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def sample_along_rays(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @typing.overload
-    def sample_along_rays(self, range_step: float, max_in_obstacle_dist: float, sampled_rays_ratio: float) -> dict:
+    def sample_along_rays(self, range_step: typing.SupportsFloat | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
-    def sample_in_region_hpr(self, num_positions: int, num_near_surface_samples_per_ray: int, num_along_ray_samples_per_ray: int, max_in_obstacle_dist: float, parallel: bool) -> dict:
+    def sample_in_region_hpr(self, num_positions: typing.SupportsInt | typing.SupportsIndex, num_near_surface_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, num_along_ray_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_in_obstacle_dist: typing.SupportsFloat | typing.SupportsIndex, parallel: bool) -> dict:
         ...
-    def sample_in_region_vrs(self, num_hit_points: int, num_samples_per_azimuth_segment: int, num_azimuth_segments: int, parallel: bool) -> dict:
+    def sample_in_region_vrs(self, num_hit_points: typing.SupportsInt | typing.SupportsIndex, num_samples_per_azimuth_segment: typing.SupportsInt | typing.SupportsIndex, num_azimuth_segments: typing.SupportsInt | typing.SupportsIndex, parallel: bool) -> dict:
         ...
-    def sample_near_surface(self, num_samples_per_ray: int, max_offset: float, sampled_rays_ratio: float) -> dict:
-        ...
-    @property
-    def end_points_in_frame(self) -> numpy.ndarray[numpy.float32]:
+    def sample_near_surface(self, num_samples_per_ray: typing.SupportsInt | typing.SupportsIndex, max_offset: typing.SupportsFloat | typing.SupportsIndex, sampled_rays_ratio: typing.SupportsFloat | typing.SupportsIndex) -> dict:
         ...
     @property
-    def end_points_in_world(self) -> numpy.ndarray[numpy.float32]:
+    def end_points_in_frame(self) -> numpy.typing.NDArray[numpy.float32]:
         ...
     @property
-    def frame_coords(self) -> numpy.ndarray[numpy.float32]:
+    def end_points_in_world(self) -> numpy.typing.NDArray[numpy.float32]:
         ...
     @property
-    def hit_mask(self) -> numpy.ndarray[bool[m, n]]:
+    def frame_coords(self) -> numpy.typing.NDArray[numpy.float32]:
         ...
     @property
-    def hit_points_world(self) -> list[numpy.ndarray[numpy.float32[3, 1]]]:
+    def hit_mask(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, n]"]:
+        ...
+    @property
+    def hit_points_world(self) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @property
     def hit_ray_indices(self) -> list[tuple[int, int]]:
@@ -4928,42 +5642,62 @@ class RangeSensorFrame3Df:
     def num_rays(self) -> int:
         ...
     @property
-    def pose_matrix(self) -> numpy.ndarray[numpy.float32[4, 4]]:
+    def pose_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[4, 4]"]:
         ...
     @property
-    def ranges(self) -> numpy.ndarray[numpy.float32[m, n]]:
+    def ranges(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]:
         ...
     @property
-    def ray_directions_in_frame(self) -> numpy.ndarray[numpy.float32]:
+    def ray_directions_in_frame(self) -> numpy.typing.NDArray[numpy.float32]:
         ...
     @property
-    def ray_directions_in_world(self) -> numpy.ndarray[numpy.float32]:
+    def ray_directions_in_world(self) -> numpy.typing.NDArray[numpy.float32]:
         ...
     @property
-    def rotation_matrix(self) -> numpy.ndarray[numpy.float32[3, 3]]:
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]"]:
         ...
     @property
-    def translation_vector(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def translation_vector(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
 class Ray2D(Primitive2D):
-    direction: numpy.ndarray[numpy.float64[2, 1]]
-    origin: numpy.ndarray[numpy.float64[2, 1]]
-    def __init__(self, id: int, origin: numpy.ndarray[numpy.float64[2, 1]], direction: numpy.ndarray[numpy.float64[2, 1]]) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, origin: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], direction: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
+        ...
+    @property
+    def direction(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @direction.setter
+    def direction(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
+        ...
+    @property
+    def origin(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @origin.setter
+    def origin(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
         ...
 class Rectangle2D(Primitive2D):
-    center: numpy.ndarray[numpy.float64[2, 1]]
-    orientation_angle: float
-    def __init__(self, id: int, center: numpy.ndarray[numpy.float64[2, 1]], half_sizes: numpy.ndarray[numpy.float64[2, 1]], angle: float) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, center: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], half_sizes: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], angle: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
-    def compute_points_on_boundary(self, num_points: int) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def compute_points_on_boundary(self, num_points: typing.SupportsInt | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
-    def translate(self, translation: numpy.ndarray[numpy.float64[2, 1]]) -> Rectangle2D:
+    def translate(self, translation: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> Rectangle2D:
         ...
     @property
-    def half_sizes(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @center.setter
+    def center(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> Rectangle2D:
         ...
     @property
-    def rotation_matrix(self) -> numpy.ndarray[numpy.float64[2, 2]]:
+    def half_sizes(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @property
+    def orientation_angle(self) -> float:
+        ...
+    @orientation_angle.setter
+    def orientation_angle(self, arg1: typing.SupportsFloat | typing.SupportsIndex) -> Rectangle2D:
+        ...
+    @property
+    def rotation_matrix(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]"]:
         ...
 class RgbdCamera3Dd(CameraBase3Dd):
     @staticmethod
@@ -4973,10 +5707,10 @@ class RgbdCamera3Dd(CameraBase3Dd):
         ...
     def add_mesh(self, mesh_path: str) -> None:
         ...
-    def scan(self, arg0: numpy.ndarray[numpy.float64[3, 3]], arg1: numpy.ndarray[numpy.float64[3, 1]]) -> dict:
+    def scan(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> dict:
         ...
     @property
-    def ray_directions_in_frame(self) -> numpy.ndarray[numpy.float64]:
+    def ray_directions_in_frame(self) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @property
     def setting(self) -> CameraIntrinsicD:
@@ -4989,10 +5723,10 @@ class RgbdCamera3Df(CameraBase3Df):
         ...
     def add_mesh(self, mesh_path: str) -> None:
         ...
-    def scan(self, arg0: numpy.ndarray[numpy.float32[3, 3]], arg1: numpy.ndarray[numpy.float32[3, 1]]) -> dict:
+    def scan(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 3]"], arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, 1]"]) -> dict:
         ...
     @property
-    def ray_directions_in_frame(self) -> numpy.ndarray[numpy.float32]:
+    def ray_directions_in_frame(self) -> numpy.typing.NDArray[numpy.float32]:
         ...
     @property
     def setting(self) -> CameraIntrinsicF:
@@ -5002,23 +5736,34 @@ class RgbdFrame3Dd(DepthFrame3Dd):
         ...
     def convert_to_point_cloud(self, in_world_frame: bool) -> dict:
         ...
-    def update_rgbd(self, rotation: numpy.ndarray[numpy.float64[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float64[3, 1]], depth: numpy.ndarray[numpy.float64[m, n]], rgb: Mat) -> None:
+    def update_rgbd(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], rgb: Mat, is_rgb: bool) -> None:
         ...
 class RgbdFrame3Df(DepthFrame3Df):
     def __init__(self, setting: DepthFrame3Df.Setting) -> None:
         ...
     def convert_to_point_cloud(self, in_world_frame: bool) -> dict:
         ...
-    def update_rgbd(self, rotation: numpy.ndarray[numpy.float32[3, 3], numpy.ndarray.flags.f_contiguous], translation: numpy.ndarray[numpy.float32[3, 1]], depth: numpy.ndarray[numpy.float32[m, n]], rgb: Mat) -> None:
+    def update_rgbd(self, rotation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]", "flags.f_contiguous"], translation: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], depth: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"], rgb: Mat, is_rgb: bool) -> None:
         ...
 class Segment2D(Line2D):
-    def __init__(self, id: int, p0: numpy.ndarray[numpy.float64[2, 1]], p1: numpy.ndarray[numpy.float64[2, 1]]) -> None:
+    def __init__(self, id: typing.SupportsInt | typing.SupportsIndex, p0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], p1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> None:
         ...
 class SemiSparseNdTreeSetting(NdTreeSetting):
     cache_voxel_centers: bool
-    init_voxel_num: int
-    semi_sparse_depth: int
+    independent_smallest_leaf_vertex: bool
     def __init__(self) -> None:
+        ...
+    @property
+    def init_voxel_num(self) -> int:
+        ...
+    @init_voxel_num.setter
+    def init_voxel_num(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def semi_sparse_depth(self) -> int:
+        ...
+    @semi_sparse_depth.setter
+    def semi_sparse_depth(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
 class SemiSparseOctreeD(AbstractOctreeD):
     class BottomLeafNeighborIterator(SemiSparseOctreeD.IteratorBase):
@@ -5041,9 +5786,9 @@ class SemiSparseOctreeD(AbstractOctreeD):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[SemiSparseOctreeD.Drawer, list[...], SemiSparseOctreeD.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[SemiSparseOctreeD.Drawer, collections.abc.Sequence[...], SemiSparseOctreeD.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[SemiSparseOctreeD.Drawer, list[...], SemiSparseOctreeD.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[SemiSparseOctreeD.Drawer, collections.abc.Sequence[...], SemiSparseOctreeD.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def setting(self) -> ...:
@@ -5103,64 +5848,64 @@ class SemiSparseOctreeD(AbstractOctreeD):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: OctreeKey, depth: int) -> OctreeKey:
+    def adjust_key_to_depth(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     def clear(self) -> None:
         ...
-    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     def compute_common_ancestor_key(self, arg0: OctreeKey, arg1: OctreeKey) -> tuple[OctreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_east_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_north_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[numpy.ndarray[numpy.float64[3, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[OctreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[OctreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_south_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_top_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_top_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float) -> OctreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float, depth: int) -> OctreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float) -> OctreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float, depth: int) -> OctreeKey | None:
-        ...
-    def create_node_child(self, node: SemiSparseOctreeNode, child_idx: int) -> SemiSparseOctreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, z: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
+        ...
+    def create_node_child(self, node: SemiSparseOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: OctreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: SemiSparseOctreeNode, child_idx: int, key: OctreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: SemiSparseOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: OctreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
@@ -5169,31 +5914,31 @@ class SemiSparseOctreeD(AbstractOctreeD):
     def find_voxel_index(self, key: OctreeKey) -> int:
         ...
     @typing.overload
-    def find_voxel_indices(self, points: numpy.ndarray[numpy.float64[3, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
-    def find_voxel_indices(self, keys: numpy.ndarray[numpy.uint32[3, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[3, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
-    def get_node_child(self, node: SemiSparseOctreeNode, child_idx: int) -> SemiSparseOctreeNode:
+    def get_node_child(self, node: SemiSparseOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
-    def insert_key(self, key: OctreeKey, max_depth: int) -> int:
+    def insert_key(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def insert_keys(self, keys: numpy.ndarray[numpy.uint32[3, n]]) -> None:
+    def insert_keys(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[3, n]"]) -> None:
         ...
     @typing.overload
     def insert_keys(self, keys: torch.Tensor) -> torch.Tensor:
         ...
     @typing.overload
-    def insert_node(self, x: float, y: float, z: float, depth: int) -> SemiSparseOctreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def insert_node(self, key: OctreeKey, depth: int) -> SemiSparseOctreeNode:
+    def insert_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def insert_points(self, points: numpy.ndarray[numpy.float64[3, n]]) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def insert_points(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
     def insert_points(self, points: torch.Tensor) -> torch.Tensor:
@@ -5201,87 +5946,92 @@ class SemiSparseOctreeD(AbstractOctreeD):
     def is_node_collapsible(self, node: SemiSparseOctreeNode) -> bool:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.TopLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.TopLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.WestLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeD.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: OctreeKey) -> tuple[float, float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: OctreeKey, depth: int) -> tuple[float, float, float]:
+    def key_to_coord(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: SemiSparseOctreeNode) -> bool:
         ...
     @typing.overload
-    def search(self, x: float, y: float, z: float, max_depth: int = 0) -> SemiSparseOctreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def search(self, key: OctreeKey, max_depth: int = 0) -> SemiSparseOctreeNode:
+    def search(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseOctreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, scaling: float = 1.0, area_min: numpy.ndarray[numpy.float64[3, 1]] = ..., area_max: numpy.ndarray[numpy.float64[3, 1]] = ..., border_color: numpy.ndarray[numpy.float64[3, 1]] = ..., window_width: int = 1920, window_height: int = 1080, window_left: int = 50, window_top: int = 50) -> None:
+    def visualize(self, leaf_only: bool = False, scaling: typing.SupportsFloat | typing.SupportsIndex = 1.0, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., window_width: typing.SupportsInt | typing.SupportsIndex = 1920, window_height: typing.SupportsInt | typing.SupportsIndex = 1080, window_left: typing.SupportsInt | typing.SupportsIndex = 50, window_top: typing.SupportsInt | typing.SupportsIndex = 50) -> None:
         ...
     @property
-    def children(self) -> numpy.ndarray[numpy.int64[8, n]]:
+    def buf_head(self) -> int:
+        ...
+    @property
+    def children(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[8, n]"]:
         ...
     @property
     def children_tensor(self) -> torch.Tensor:
@@ -5296,16 +6046,19 @@ class SemiSparseOctreeD(AbstractOctreeD):
     def metric_aabb(self) -> Aabb3Dd:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float64[3, 1]], numpy.ndarray[numpy.float64[3, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
+    @property
+    def num_independent_leaf_vertices(self) -> int:
         ...
     @property
     def num_vertices(self) -> int:
@@ -5317,7 +6070,7 @@ class SemiSparseOctreeD(AbstractOctreeD):
     def number_of_nodes(self) -> int:
         ...
     @property
-    def parents(self) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def parents(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @property
     def parents_tensor(self) -> torch.Tensor:
@@ -5332,7 +6085,7 @@ class SemiSparseOctreeD(AbstractOctreeD):
     def setting(self) -> SemiSparseNdTreeSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
     def tree_center_key(self) -> OctreeKey:
@@ -5341,25 +6094,25 @@ class SemiSparseOctreeD(AbstractOctreeD):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float64[3, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
         ...
     @property
     def vertex_keys(self) -> list[OctreeKey]:
         ...
     @property
-    def vertices(self) -> numpy.ndarray[numpy.int64[8, n]]:
+    def vertices(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[8, n]"]:
         ...
     @property
     def vertices_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxel_centers(self) -> numpy.ndarray[numpy.float64[3, n]]:
+    def voxel_centers(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]"]:
         ...
     @property
     def voxel_centers_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxels(self) -> numpy.ndarray[numpy.uint32[4, n]]:
+    def voxels(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[4, n]"]:
         ...
     @property
     def voxels_tensor(self) -> torch.Tensor:
@@ -5385,9 +6138,9 @@ class SemiSparseOctreeF(AbstractOctreeF):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[SemiSparseOctreeF.Drawer, list[...], SemiSparseOctreeF.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[SemiSparseOctreeF.Drawer, collections.abc.Sequence[...], SemiSparseOctreeF.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[SemiSparseOctreeF.Drawer, list[...], SemiSparseOctreeF.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[SemiSparseOctreeF.Drawer, collections.abc.Sequence[...], SemiSparseOctreeF.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def setting(self) -> ...:
@@ -5447,64 +6200,64 @@ class SemiSparseOctreeF(AbstractOctreeF):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: OctreeKey, depth: int) -> OctreeKey:
+    def adjust_key_to_depth(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     def clear(self) -> None:
         ...
-    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_bottom_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     def compute_common_ancestor_key(self, arg0: OctreeKey, arg1: OctreeKey) -> tuple[OctreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_east_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_north_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[numpy.ndarray[numpy.float32[3, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, sz: float, ex: float, ey: float, ez: float) -> list[OctreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, sz: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex, ez: typing.SupportsFloat | typing.SupportsIndex) -> list[OctreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_south_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_top_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
+    def compute_top_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: OctreeKey, depth: int) -> OctreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float) -> OctreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, z: float, depth: int) -> OctreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> OctreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float) -> OctreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, z: float, depth: int) -> OctreeKey | None:
-        ...
-    def create_node_child(self, node: SemiSparseOctreeNode, child_idx: int) -> SemiSparseOctreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, z: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.OctreeKey | None:
+        ...
+    def create_node_child(self, node: SemiSparseOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: OctreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: SemiSparseOctreeNode, child_idx: int, key: OctreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: SemiSparseOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: OctreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
@@ -5513,31 +6266,31 @@ class SemiSparseOctreeF(AbstractOctreeF):
     def find_voxel_index(self, key: OctreeKey) -> int:
         ...
     @typing.overload
-    def find_voxel_indices(self, points: numpy.ndarray[numpy.float32[3, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
-    def find_voxel_indices(self, keys: numpy.ndarray[numpy.uint32[3, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[3, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
-    def get_node_child(self, node: SemiSparseOctreeNode, child_idx: int) -> SemiSparseOctreeNode:
+    def get_node_child(self, node: SemiSparseOctreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
-    def insert_key(self, key: OctreeKey, max_depth: int) -> int:
+    def insert_key(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def insert_keys(self, keys: numpy.ndarray[numpy.uint32[3, n]]) -> None:
+    def insert_keys(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[3, n]"]) -> None:
         ...
     @typing.overload
     def insert_keys(self, keys: torch.Tensor) -> torch.Tensor:
         ...
     @typing.overload
-    def insert_node(self, x: float, y: float, z: float, depth: int) -> SemiSparseOctreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def insert_node(self, key: OctreeKey, depth: int) -> SemiSparseOctreeNode:
+    def insert_node(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def insert_points(self, points: numpy.ndarray[numpy.float32[3, n]]) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def insert_points(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[3, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
     def insert_points(self, points: torch.Tensor) -> torch.Tensor:
@@ -5545,87 +6298,92 @@ class SemiSparseOctreeF(AbstractOctreeF):
     def is_node_collapsible(self, node: SemiSparseOctreeNode) -> bool:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.BottomLeafNeighborIterator]:
+    def iter_bottom_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_min_z: float, aabb_max_x: float, aabb_max_y: float, aabb_max_z: float, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: OctreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, pz: float, vx: float, vy: float, vz: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_min_z: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: OctreeKey, aabb_max_key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, pz: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, vz: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = True, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.TopLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.TopLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, z: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.WestLeafNeighborIterator]:
+    def iter_top_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseOctreeF.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: OctreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: OctreeKey) -> tuple[float, float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: OctreeKey, depth: int) -> tuple[float, float, float]:
+    def key_to_coord(self, key: OctreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: SemiSparseOctreeNode) -> bool:
         ...
     @typing.overload
-    def search(self, x: float, y: float, z: float, max_depth: int = 0) -> SemiSparseOctreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, z: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseOctreeNode:
         ...
     @typing.overload
-    def search(self, key: OctreeKey, max_depth: int = 0) -> SemiSparseOctreeNode:
+    def search(self, key: OctreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseOctreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, scaling: float = 1.0, area_min: numpy.ndarray[numpy.float64[3, 1]] = ..., area_max: numpy.ndarray[numpy.float64[3, 1]] = ..., border_color: numpy.ndarray[numpy.float64[3, 1]] = ..., window_width: int = 1920, window_height: int = 1080, window_left: int = 50, window_top: int = 50) -> None:
+    def visualize(self, leaf_only: bool = False, scaling: typing.SupportsFloat | typing.SupportsIndex = 1.0, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"] = ..., window_width: typing.SupportsInt | typing.SupportsIndex = 1920, window_height: typing.SupportsInt | typing.SupportsIndex = 1080, window_left: typing.SupportsInt | typing.SupportsIndex = 50, window_top: typing.SupportsInt | typing.SupportsIndex = 50) -> None:
         ...
     @property
-    def children(self) -> numpy.ndarray[numpy.int64[8, n]]:
+    def buf_head(self) -> int:
+        ...
+    @property
+    def children(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[8, n]"]:
         ...
     @property
     def children_tensor(self) -> torch.Tensor:
@@ -5640,16 +6398,19 @@ class SemiSparseOctreeF(AbstractOctreeF):
     def metric_aabb(self) -> Aabb3Df:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float32[3, 1]], numpy.ndarray[numpy.float32[3, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
+        ...
+    @property
+    def num_independent_leaf_vertices(self) -> int:
         ...
     @property
     def num_vertices(self) -> int:
@@ -5661,7 +6422,7 @@ class SemiSparseOctreeF(AbstractOctreeF):
     def number_of_nodes(self) -> int:
         ...
     @property
-    def parents(self) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def parents(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @property
     def parents_tensor(self) -> torch.Tensor:
@@ -5676,7 +6437,7 @@ class SemiSparseOctreeF(AbstractOctreeF):
     def setting(self) -> SemiSparseNdTreeSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
     def tree_center_key(self) -> OctreeKey:
@@ -5685,25 +6446,25 @@ class SemiSparseOctreeF(AbstractOctreeF):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float32[3, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]:
         ...
     @property
     def vertex_keys(self) -> list[OctreeKey]:
         ...
     @property
-    def vertices(self) -> numpy.ndarray[numpy.int64[8, n]]:
+    def vertices(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[8, n]"]:
         ...
     @property
     def vertices_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxel_centers(self) -> numpy.ndarray[numpy.float32[3, n]]:
+    def voxel_centers(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]"]:
         ...
     @property
     def voxel_centers_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxels(self) -> numpy.ndarray[numpy.uint32[4, n]]:
+    def voxels(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[4, n]"]:
         ...
     @property
     def voxels_tensor(self) -> torch.Tensor:
@@ -5731,9 +6492,9 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[SemiSparseQuadtreeD.Drawer, Mat, SemiSparseQuadtreeD.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[SemiSparseQuadtreeD.Drawer, Mat, SemiSparseQuadtreeD.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[SemiSparseQuadtreeD.Drawer, Mat, SemiSparseQuadtreeD.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[SemiSparseQuadtreeD.Drawer, Mat, SemiSparseQuadtreeD.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def grid_map_info(self) -> ...:
@@ -5794,60 +6555,60 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: QuadtreeKey, depth: int) -> QuadtreeKey:
+    def adjust_key_to_depth(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     def clear(self) -> None:
         ...
     def compute_common_ancestor_key(self, arg0: QuadtreeKey, arg1: QuadtreeKey) -> tuple[QuadtreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, ex: float, ey: float) -> list[numpy.ndarray[numpy.float64[2, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, ex: float, ey: float) -> list[QuadtreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[QuadtreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float) -> QuadtreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, depth: int) -> QuadtreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float) -> QuadtreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, depth: int) -> QuadtreeKey | None:
-        ...
-    def create_node_child(self, node: SemiSparseQuadtreeNode, child_idx: int) -> SemiSparseQuadtreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
+        ...
+    def create_node_child(self, node: SemiSparseQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: QuadtreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: SemiSparseQuadtreeNode, child_idx: int, key: QuadtreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: SemiSparseQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: QuadtreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
@@ -5856,31 +6617,31 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
     def find_voxel_index(self, key: QuadtreeKey) -> int:
         ...
     @typing.overload
-    def find_voxel_indices(self, points: numpy.ndarray[numpy.float64[2, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
-    def find_voxel_indices(self, keys: numpy.ndarray[numpy.uint32[2, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[2, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
-    def get_node_child(self, node: SemiSparseQuadtreeNode, child_idx: int) -> SemiSparseQuadtreeNode:
+    def get_node_child(self, node: SemiSparseQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
-    def insert_key(self, key: QuadtreeKey, max_depth: int) -> int:
+    def insert_key(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def insert_keys(self, keys: numpy.ndarray[numpy.uint32[2, n]]) -> None:
+    def insert_keys(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[2, n]"]) -> None:
         ...
     @typing.overload
     def insert_keys(self, keys: torch.Tensor) -> torch.Tensor:
         ...
     @typing.overload
-    def insert_node(self, x: float, y: float, depth: int) -> SemiSparseQuadtreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def insert_node(self, key: QuadtreeKey, depth: int) -> SemiSparseQuadtreeNode:
+    def insert_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def insert_points(self, points: numpy.ndarray[numpy.float64[2, n]]) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def insert_points(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
     def insert_points(self, points: torch.Tensor) -> torch.Tensor:
@@ -5888,75 +6649,80 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
     def is_node_collapsible(self, node: SemiSparseQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, vx: float, vy: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.WestLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeD.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: QuadtreeKey) -> tuple[float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: QuadtreeKey, depth: int) -> tuple[float, float]:
+    def key_to_coord(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: SemiSparseQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def search(self, x: float, y: float, max_depth: int = 0) -> SemiSparseQuadtreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def search(self, key: QuadtreeKey, max_depth: int = 0) -> SemiSparseQuadtreeNode:
+    def search(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseQuadtreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, area_min: numpy.ndarray[numpy.float32[2, 1]] | None = None, area_max: numpy.ndarray[numpy.float32[2, 1]] | None = None, resolution: float = 0.1, padding: int = 1, bg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., fg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_thickness: int = 1) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def visualize(self, leaf_only: bool = False, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, resolution: typing.SupportsFloat | typing.SupportsIndex = 0.1, padding: typing.SupportsInt | typing.SupportsIndex = 1, bg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., fg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_thickness: typing.SupportsInt | typing.SupportsIndex = 1) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def children(self) -> numpy.ndarray[numpy.int64[4, n]]:
+    def buf_head(self) -> int:
+        ...
+    @property
+    def children(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[4, n]"]:
         ...
     @property
     def children_tensor(self) -> torch.Tensor:
@@ -5971,16 +6737,19 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
     def metric_aabb(self) -> Aabb2Dd:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float64[2, 1]], numpy.ndarray[numpy.float64[2, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
+        ...
+    @property
+    def num_independent_leaf_vertices(self) -> int:
         ...
     @property
     def num_vertices(self) -> int:
@@ -5992,7 +6761,7 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
     def number_of_nodes(self) -> int:
         ...
     @property
-    def parents(self) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def parents(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @property
     def parents_tensor(self) -> torch.Tensor:
@@ -6007,7 +6776,7 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
     def setting(self) -> SemiSparseNdTreeSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
     def tree_center_key(self) -> QuadtreeKey:
@@ -6016,25 +6785,25 @@ class SemiSparseQuadtreeD(AbstractQuadtreeD):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float64[2, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]:
         ...
     @property
     def vertex_keys(self) -> list[QuadtreeKey]:
         ...
     @property
-    def vertices(self) -> numpy.ndarray[numpy.int64[4, n]]:
+    def vertices(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[4, n]"]:
         ...
     @property
     def vertices_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxel_centers(self) -> numpy.ndarray[numpy.float64[2, n]]:
+    def voxel_centers(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
         ...
     @property
     def voxel_centers_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxels(self) -> numpy.ndarray[numpy.uint32[3, n]]:
+    def voxels(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[3, n]"]:
         ...
     @property
     def voxels_tensor(self) -> torch.Tensor:
@@ -6058,9 +6827,9 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
         @typing.overload
         def draw_tree(self, filename: str) -> None:
             ...
-        def set_draw_leaf_callback(self, callback: typing.Callable[[SemiSparseQuadtreeF.Drawer, Mat, SemiSparseQuadtreeF.LeafInAabbIterator], None]) -> None:
+        def set_draw_leaf_callback(self, callback: collections.abc.Callable[[SemiSparseQuadtreeF.Drawer, Mat, SemiSparseQuadtreeF.LeafInAabbIterator], None]) -> None:
             ...
-        def set_draw_tree_callback(self, callback: typing.Callable[[SemiSparseQuadtreeF.Drawer, Mat, SemiSparseQuadtreeF.TreeInAabbIterator], None]) -> None:
+        def set_draw_tree_callback(self, callback: collections.abc.Callable[[SemiSparseQuadtreeF.Drawer, Mat, SemiSparseQuadtreeF.TreeInAabbIterator], None]) -> None:
             ...
         @property
         def grid_map_info(self) -> ...:
@@ -6121,60 +6890,60 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
     def __init__(self, filename: str) -> None:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: int, depth: int) -> int:
+    def adjust_key_to_depth(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def adjust_key_to_depth(self, key: QuadtreeKey, depth: int) -> QuadtreeKey:
+    def adjust_key_to_depth(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     def clear(self) -> None:
         ...
     def compute_common_ancestor_key(self, arg0: QuadtreeKey, arg1: QuadtreeKey) -> tuple[QuadtreeKey, int]:
         ...
-    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_east_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_north_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_ray_coords(self, sx: float, sy: float, ex: float, ey: float) -> list[numpy.ndarray[numpy.float32[2, 1]]] | None:
+    def compute_ray_coords(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]] | None:
         ...
-    def compute_ray_keys(self, sx: float, sy: float, ex: float, ey: float) -> list[QuadtreeKey] | None:
+    def compute_ray_keys(self, sx: typing.SupportsFloat | typing.SupportsIndex, sy: typing.SupportsFloat | typing.SupportsIndex, ex: typing.SupportsFloat | typing.SupportsIndex, ey: typing.SupportsFloat | typing.SupportsIndex) -> list[QuadtreeKey] | None:
         ...
-    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
+    def compute_south_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
-    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: int) -> QuadtreeKey | None:
-        ...
-    @typing.overload
-    def coord_to_key(self, coordinate: float) -> int:
+    def compute_west_neighbor_key(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def coord_to_key(self, coordinate: float, depth: int) -> int:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float) -> QuadtreeKey:
+    def coord_to_key(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def coord_to_key(self, x: float, y: float, depth: int) -> QuadtreeKey:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float) -> int | None:
+    def coord_to_key(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> QuadtreeKey:
         ...
     @typing.overload
-    def coord_to_key_checked(self, coordinate: float, depth: int) -> int | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float) -> QuadtreeKey | None:
+    def coord_to_key_checked(self, coordinate: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int | None:
         ...
     @typing.overload
-    def coord_to_key_checked(self, x: float, y: float, depth: int) -> QuadtreeKey | None:
-        ...
-    def create_node_child(self, node: SemiSparseQuadtreeNode, child_idx: int) -> SemiSparseQuadtreeNode:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
         ...
     @typing.overload
-    def delete_node(self, x: float, y: float, depth: int) -> int:
+    def coord_to_key_checked(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> erl_geometry.pyerl_geometry.QuadtreeKey | None:
+        ...
+    def create_node_child(self, node: SemiSparseQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def delete_node(self, key: QuadtreeKey, depth: int) -> None:
+    def delete_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
-    def delete_node_child(self, node: SemiSparseQuadtreeNode, child_idx: int, key: QuadtreeKey) -> int:
+    @typing.overload
+    def delete_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def delete_node_child(self, node: SemiSparseQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex, key: QuadtreeKey) -> int:
         ...
     def expand(self) -> None:
         ...
@@ -6183,31 +6952,31 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
     def find_voxel_index(self, key: QuadtreeKey) -> int:
         ...
     @typing.overload
-    def find_voxel_indices(self, points: numpy.ndarray[numpy.float32[2, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
-    def find_voxel_indices(self, keys: numpy.ndarray[numpy.uint32[2, n]], parallel: bool) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def find_voxel_indices(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[2, n]"], parallel: bool) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
-    def get_node_child(self, node: SemiSparseQuadtreeNode, child_idx: int) -> SemiSparseQuadtreeNode:
+    def get_node_child(self, node: SemiSparseQuadtreeNode, child_idx: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
-    def get_node_size(self, depth: int) -> float:
+    def get_node_size(self, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
-    def insert_key(self, key: QuadtreeKey, max_depth: int) -> int:
+    def insert_key(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex) -> int:
         ...
     @typing.overload
-    def insert_keys(self, keys: numpy.ndarray[numpy.uint32[2, n]]) -> None:
+    def insert_keys(self, keys: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[2, n]"]) -> None:
         ...
     @typing.overload
     def insert_keys(self, keys: torch.Tensor) -> torch.Tensor:
         ...
     @typing.overload
-    def insert_node(self, x: float, y: float, depth: int) -> SemiSparseQuadtreeNode:
+    def insert_node(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def insert_node(self, key: QuadtreeKey, depth: int) -> SemiSparseQuadtreeNode:
+    def insert_node(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def insert_points(self, points: numpy.ndarray[numpy.float32[2, n]]) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def insert_points(self, points: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @typing.overload
     def insert_points(self, points: torch.Tensor) -> torch.Tensor:
@@ -6215,75 +6984,80 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
     def is_node_collapsible(self, node: SemiSparseQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.EastLeafNeighborIterator]:
+    def iter_east_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
-    def iter_leaf(self, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.LeafIterator]:
-        ...
-    @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.LeafInAabbIterator]:
+    def iter_leaf(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.LeafInAabbIterator]:
-        ...
-    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: int, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.LeafOfNodeIterator]:
-        ...
-    def iter_node(self, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.TreeIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_x: float, aabb_min_y: float, aabb_max_x: float, aabb_max_y: float, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.TreeInAabbIterator]:
+    def iter_leaf_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_leaf_of_node(self, node_key: QuadtreeKey, node_depth: typing.SupportsInt | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node(self, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.TreeInAabbIterator]:
-        ...
-    def iter_node_on_ray(self, px: float, py: float, vx: float, vy: float, max_range: float = -1, node_padding: float = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: int = 0, max_node_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.NodeOnRayIterator]:
+    def iter_node_in_aabb(self, aabb_min_x: typing.SupportsFloat | typing.SupportsIndex, aabb_min_y: typing.SupportsFloat | typing.SupportsIndex, aabb_max_x: typing.SupportsFloat | typing.SupportsIndex, aabb_max_y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.NorthLeafNeighborIterator]:
+    def iter_node_in_aabb(self, aabb_min_key: QuadtreeKey, aabb_max_key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
+        ...
+    def iter_node_on_ray(self, px: typing.SupportsFloat | typing.SupportsIndex, py: typing.SupportsFloat | typing.SupportsIndex, vx: typing.SupportsFloat | typing.SupportsIndex, vy: typing.SupportsFloat | typing.SupportsIndex, max_range: typing.SupportsFloat | typing.SupportsIndex = -1, node_padding: typing.SupportsFloat | typing.SupportsIndex = 0, bidirectional: bool = False, leaf_only: bool = False, min_node_depth: typing.SupportsInt | typing.SupportsIndex = 0, max_node_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.NorthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.SouthLeafNeighborIterator]:
+    def iter_north_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.SouthLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, x: float, y: float, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.WestLeafNeighborIterator]:
+    def iter_south_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: int, max_leaf_depth: int = 0) -> typing.Iterator[SemiSparseQuadtreeF.WestLeafNeighborIterator]:
+    def iter_west_leaf_neighbor(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int) -> float:
+    def iter_west_leaf_neighbor(self, key: QuadtreeKey, key_depth: typing.SupportsInt | typing.SupportsIndex, max_leaf_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> None:
         ...
     @typing.overload
-    def key_to_coord(self, key: int, depth: int) -> float:
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex) -> float:
+        ...
+    @typing.overload
+    def key_to_coord(self, key: typing.SupportsInt | typing.SupportsIndex, depth: typing.SupportsInt | typing.SupportsIndex) -> float:
         ...
     @typing.overload
     def key_to_coord(self, key: QuadtreeKey) -> tuple[float, float]:
         ...
     @typing.overload
-    def key_to_coord(self, key: QuadtreeKey, depth: int) -> tuple[float, float]:
+    def key_to_coord(self, key: QuadtreeKey, depth: typing.SupportsInt | typing.SupportsIndex) -> tuple[float, float]:
+        ...
+    def paint_tree(self, points: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]", "flags.f_contiguous"], colors: typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[4, n]", "flags.f_contiguous"], set_color: bool, discrete: bool) -> None:
         ...
     def prune(self) -> None:
         ...
     def prune_node(self, node: SemiSparseQuadtreeNode) -> bool:
         ...
     @typing.overload
-    def search(self, x: float, y: float, max_depth: int = 0) -> SemiSparseQuadtreeNode:
+    def search(self, x: typing.SupportsFloat | typing.SupportsIndex, y: typing.SupportsFloat | typing.SupportsIndex, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseQuadtreeNode:
         ...
     @typing.overload
-    def search(self, key: QuadtreeKey, max_depth: int = 0) -> SemiSparseQuadtreeNode:
+    def search(self, key: QuadtreeKey, max_depth: typing.SupportsInt | typing.SupportsIndex = 0) -> SemiSparseQuadtreeNode:
         ...
-    def visualize(self, leaf_only: bool = False, area_min: numpy.ndarray[numpy.float32[2, 1]] | None = None, area_max: numpy.ndarray[numpy.float32[2, 1]] | None = None, resolution: float = 0.1, padding: int = 1, bg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., fg_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_color: numpy.ndarray[numpy.int32[4, 1]] = ..., border_thickness: int = 1) -> numpy.ndarray[numpy.uint8[m, n]]:
+    def visualize(self, leaf_only: bool = False, area_min: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, area_max: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[2, 1]"] | None = None, resolution: typing.SupportsFloat | typing.SupportsIndex = 0.1, padding: typing.SupportsInt | typing.SupportsIndex = 1, bg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., fg_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_color: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[4, 1]"] = ..., border_thickness: typing.SupportsInt | typing.SupportsIndex = 1) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @property
-    def children(self) -> numpy.ndarray[numpy.int64[4, n]]:
+    def buf_head(self) -> int:
+        ...
+    @property
+    def children(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[4, n]"]:
         ...
     @property
     def children_tensor(self) -> torch.Tensor:
@@ -6298,16 +7072,19 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
     def metric_aabb(self) -> Aabb2Df:
         ...
     @property
-    def metric_max(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_max(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def metric_min(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_min(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
-    def metric_min_max(self) -> tuple[numpy.ndarray[numpy.float32[2, 1]], numpy.ndarray[numpy.float32[2, 1]]]:
+    def metric_min_max(self) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @property
-    def metric_size(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def metric_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
+        ...
+    @property
+    def num_independent_leaf_vertices(self) -> int:
         ...
     @property
     def num_vertices(self) -> int:
@@ -6319,7 +7096,7 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
     def number_of_nodes(self) -> int:
         ...
     @property
-    def parents(self) -> numpy.ndarray[numpy.int64[m, 1]]:
+    def parents(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[m, 1]"]:
         ...
     @property
     def parents_tensor(self) -> torch.Tensor:
@@ -6334,7 +7111,7 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
     def setting(self) -> SemiSparseNdTreeSetting:
         ...
     @property
-    def tree_center(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def tree_center(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
     def tree_center_key(self) -> QuadtreeKey:
@@ -6343,25 +7120,25 @@ class SemiSparseQuadtreeF(AbstractQuadtreeF):
     def tree_depth(self) -> int:
         ...
     @property
-    def tree_max_half_size(self) -> numpy.ndarray[numpy.float32[2, 1]]:
+    def tree_max_half_size(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]:
         ...
     @property
     def vertex_keys(self) -> list[QuadtreeKey]:
         ...
     @property
-    def vertices(self) -> numpy.ndarray[numpy.int64[4, n]]:
+    def vertices(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int64], "[4, n]"]:
         ...
     @property
     def vertices_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxel_centers(self) -> numpy.ndarray[numpy.float32[2, n]]:
+    def voxel_centers(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, n]"]:
         ...
     @property
     def voxel_centers_tensor(self) -> torch.Tensor:
         ...
     @property
-    def voxels(self) -> numpy.ndarray[numpy.uint32[3, n]]:
+    def voxels(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[3, n]"]:
         ...
     @property
     def voxels_tensor(self) -> torch.Tensor:
@@ -6373,20 +7150,18 @@ class SemiSparseQuadtreeNode(AbstractQuadtreeNode):
 class Space2D:
     class SignMethod:
         """
-        Algorithm to determine SDF sign.
-        
         Members:
         
-          kPointNormal : Use the normal of the nearest vertex to determine the sign.
+          point_normal
         
-          kLineNormal : Use the normal of the nearest line segment to determine the sign.
+          line_normal
         
-          kPolygon : Use the nearest object polygon and the winding number algorithm to determine the sign.
+          polygon
         """
-        __members__: typing.ClassVar[dict[str, Space2D.SignMethod]]  # value = {'kPointNormal': <SignMethod.kPointNormal: 0>, 'kLineNormal': <SignMethod.kLineNormal: 1>, 'kPolygon': <SignMethod.kPolygon: 2>}
-        kLineNormal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.kLineNormal: 1>
-        kPointNormal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.kPointNormal: 0>
-        kPolygon: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.kPolygon: 2>
+        __members__: typing.ClassVar[dict[str, Space2D.SignMethod]]  # value = {'point_normal': <SignMethod.point_normal: 0>, 'line_normal': <SignMethod.line_normal: 1>, 'polygon': <SignMethod.polygon: 2>}
+        line_normal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.line_normal: 1>
+        point_normal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.point_normal: 0>
+        polygon: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.polygon: 2>
         def __eq__(self, other: typing.Any) -> bool:
             ...
         def __ge__(self, other: typing.Any) -> bool:
@@ -6399,7 +7174,7 @@ class Space2D:
             ...
         def __index__(self) -> int:
             ...
-        def __init__(self, value: int) -> None:
+        def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __int__(self) -> int:
             ...
@@ -6411,7 +7186,7 @@ class Space2D:
             ...
         def __repr__(self) -> str:
             ...
-        def __setstate__(self, state: int) -> None:
+        def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
             ...
         def __str__(self) -> str:
             ...
@@ -6421,82 +7196,82 @@ class Space2D:
         @property
         def value(self) -> int:
             ...
-    kLineNormal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.kLineNormal: 1>
-    kPointNormal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.kPointNormal: 0>
-    kPolygon: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.kPolygon: 2>
+    line_normal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.line_normal: 1>
+    point_normal: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.point_normal: 0>
+    polygon: typing.ClassVar[Space2D.SignMethod]  # value = <SignMethod.polygon: 2>
     @staticmethod
     @typing.overload
     def __init__(*args, **kwargs) -> None:
         ...
     @staticmethod
     @typing.overload
-    def compute_ddf(*args, **kwargs) -> numpy.ndarray[numpy.float64]:
+    def compute_ddf(*args, **kwargs) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @staticmethod
     @typing.overload
-    def compute_sddf_v1(*args, **kwargs) -> numpy.ndarray[numpy.float64]:
+    def compute_sddf_v1(*args, **kwargs) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @staticmethod
     @typing.overload
-    def compute_sddf_v2(*args, **kwargs) -> numpy.ndarray[numpy.float64]:
+    def compute_sddf_v2(*args, **kwargs) -> numpy.typing.NDArray[numpy.float64]:
         ...
     @staticmethod
-    def compute_sdf_image(*args, **kwargs) -> numpy.ndarray[numpy.float64[m, n]]:
+    def compute_sdf_image(*args, **kwargs) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
     @staticmethod
-    def generate_map_image(*args, **kwargs) -> numpy.ndarray[numpy.uint8[m, n]]:
-        ...
-    @staticmethod
-    def get_sign_method_from_name(sign_method_name: str) -> Space2D.SignMethod:
-        ...
-    @staticmethod
-    def get_sign_method_name(sign_method: Space2D.SignMethod) -> str:
+    def generate_map_image(*args, **kwargs) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         ...
     @typing.overload
-    def __init__(self, ordered_object_vertices: list[numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous]], ordered_object_normals: list[numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous]]) -> None:
+    def __init__(self, ordered_object_vertices: collections.abc.Sequence[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"]], ordered_object_normals: collections.abc.Sequence[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"]]) -> None:
         ...
     @typing.overload
-    def __init__(self, ordered_object_vertices: list[numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous]], outside_flags: numpy.ndarray[bool[m, 1]], delta: float = 0.01, parallel: bool = False) -> None:
+    def __init__(self, ordered_object_vertices: collections.abc.Sequence[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"]], outside_flags: typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"], delta: typing.SupportsFloat | typing.SupportsIndex = 0.01, parallel: bool = False) -> None:
         ...
     @typing.overload
     def __init__(self, space2d: Space2D) -> None:
         ...
     @typing.overload
-    def compute_ddf(self, query_points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], query_directions: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], parallel: bool = False) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def compute_ddf(self, query_points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], query_directions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], parallel: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @typing.overload
-    def compute_sddf_v1(self, query_points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], query_directions: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], parallel: bool = False) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def compute_sddf_v1(self, query_points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], query_directions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], parallel: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
     @typing.overload
-    def compute_sddf_v2(self, query_points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], query_directions: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], sign_method: Space2D.SignMethod = ..., parallel: bool = False) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def compute_sddf_v2(self, query_points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], query_directions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], sign_method: Space2D.SignMethod = ..., parallel: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
-    def compute_sdf(self, query_points: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous], sign_method: Space2D.SignMethod = ..., use_kd_tree: bool = False, parallel: bool = False) -> numpy.ndarray[numpy.float64[m, 1]]:
+    def compute_sdf(self, query_points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"], sign_method: Space2D.SignMethod = ..., use_kd_tree: bool = False, parallel: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         ...
-    def compute_sdf_greedily(self, q: numpy.ndarray[numpy.float64[2, 1]], sign_method: Space2D.SignMethod) -> float:
+    def compute_sdf_greedily(self, q: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], sign_method: Space2D.SignMethod) -> float:
         ...
-    def compute_sdf_with_kdtree(self, q: numpy.ndarray[numpy.float64[2, 1]], sign_method: Space2D.SignMethod) -> float:
+    def compute_sdf_with_kdtree(self, q: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"], sign_method: Space2D.SignMethod) -> float:
         ...
     @property
     def surface(self) -> Surface2D:
         ...
 class Surface2D:
-    lines_to_vertices: numpy.ndarray[numpy.int32[2, n]]
-    normals: numpy.ndarray[numpy.float64[2, n]]
-    objects_to_lines: numpy.ndarray[numpy.int32[2, n]]
-    outside_flags: numpy.ndarray[bool[m, 1]]
-    vertices: numpy.ndarray[numpy.float64[2, n]]
-    vertices_to_objects: numpy.ndarray[numpy.int32[m, 1]]
     @typing.overload
-    def __init__(self, vertices: numpy.ndarray[numpy.float64[2, n]], normals: numpy.ndarray[numpy.float64[2, n]], lines2vertices: numpy.ndarray[numpy.int32[2, n]], objects2lines: numpy.ndarray[numpy.int32[2, n]], outside_flags: numpy.ndarray[bool[m, 1]]) -> None:
+    def __init__(self, vertices: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"], normals: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"], lines2vertices: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[2, n]"], objects2lines: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[2, n]"], outside_flags: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"]) -> None:
         ...
     @typing.overload
     def __init__(self, surface: Surface2D) -> None:
         ...
-    def get_object_normals(self, index_object: int) -> numpy.ndarray[numpy.float64[2, n]]:
+    def get_object_normals(self, index_object: typing.SupportsInt | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
         ...
-    def get_object_vertices(self, index_object: int) -> numpy.ndarray[numpy.float64[2, n]]:
+    def get_object_vertices(self, index_object: typing.SupportsInt | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
         ...
-    def get_vertex_neighbors(self, index_vertex: int) -> tuple[int, int]:
+    def get_vertex_neighbors(self, index_vertex: typing.SupportsInt | typing.SupportsIndex) -> tuple[int, int]:
+        ...
+    @property
+    def lines_to_vertices(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"]:
+        ...
+    @lines_to_vertices.setter
+    def lines_to_vertices(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[2, n]"]) -> None:
+        ...
+    @property
+    def normals(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
+        ...
+    @normals.setter
+    def normals(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"]) -> None:
         ...
     @property
     def normals_available(self) -> bool:
@@ -6511,35 +7286,59 @@ class Surface2D:
     def num_vertices(self) -> int:
         ...
     @property
+    def objects_to_lines(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"]:
+        ...
+    @objects_to_lines.setter
+    def objects_to_lines(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[2, n]"]) -> None:
+        ...
+    @property
+    def outside_flags(self) -> typing.Annotated[numpy.typing.NDArray[numpy.bool], "[m, 1]"]:
+        ...
+    @outside_flags.setter
+    def outside_flags(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.bool, "[m, 1]"]) -> None:
+        ...
+    @property
     def outside_flags_available(self) -> bool:
+        ...
+    @property
+    def vertices(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"]:
+        ...
+    @vertices.setter
+    def vertices(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, n]"]) -> None:
+        ...
+    @property
+    def vertices_to_objects(self) -> typing.Annotated[numpy.typing.NDArray[numpy.int32], "[m, 1]"]:
+        ...
+    @vertices_to_objects.setter
+    def vertices_to_objects(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"]) -> None:
         ...
 class TrajectoryD:
     @staticmethod
-    def load_2d(filename: str, binary: bool) -> list[numpy.ndarray[numpy.float64[2, 1]]]:
+    def load_2d(filename: str, binary: bool) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]:
         ...
     @staticmethod
-    def load_3d(filename: str, binary: bool) -> list[numpy.ndarray[numpy.float64[3, 1]]]:
+    def load_3d(filename: str, binary: bool) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]:
         ...
     @staticmethod
-    def load_se2(filename: str, binary: bool) -> list[tuple[numpy.ndarray[numpy.float64[2, 2]], numpy.ndarray[numpy.float64[2, 1]]]]:
+    def load_se2(filename: str, binary: bool) -> list[tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 2]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]]]:
         ...
     @staticmethod
-    def load_se3(filename: str, binary: bool) -> list[tuple[numpy.ndarray[numpy.float64[3, 3]], numpy.ndarray[numpy.float64[3, 1]]]]:
+    def load_se3(filename: str, binary: bool) -> list[tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]]]:
         ...
     def __init__(self) -> None:
         ...
 class TrajectoryF:
     @staticmethod
-    def load_2d(filename: str, binary: bool) -> list[numpy.ndarray[numpy.float32[2, 1]]]:
+    def load_2d(filename: str, binary: bool) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]:
         ...
     @staticmethod
-    def load_3d(filename: str, binary: bool) -> list[numpy.ndarray[numpy.float32[3, 1]]]:
+    def load_3d(filename: str, binary: bool) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]:
         ...
     @staticmethod
-    def load_se2(filename: str, binary: bool) -> list[tuple[numpy.ndarray[numpy.float32[2, 2]], numpy.ndarray[numpy.float32[2, 1]]]]:
+    def load_se2(filename: str, binary: bool) -> list[tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 2]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[2, 1]"]]]:
         ...
     @staticmethod
-    def load_se3(filename: str, binary: bool) -> list[tuple[numpy.ndarray[numpy.float32[3, 3]], numpy.ndarray[numpy.float32[3, 1]]]]:
+    def load_se3(filename: str, binary: bool) -> list[tuple[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 3]"], typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, 1]"]]]:
         ...
     def __init__(self) -> None:
         ...
@@ -6550,47 +7349,49 @@ class YamlableBase:
         ...
     def as_yaml_string(self) -> str:
         ...
-    def from_yaml_file(self, yaml_file: str) -> bool:
+    def from_command_line(self, args: collections.abc.Sequence[str]) -> bool:
+        ...
+    def from_yaml_file(self, yaml_file: str, base_config_field: str) -> bool:
         ...
     def from_yaml_string(self, yaml_str: str) -> bool:
         ...
-def bresenham_2d(start: numpy.ndarray[numpy.int32[2, 1]], end: numpy.ndarray[numpy.int32[2, 1]], stop: typing.Callable[[int, int], bool] | None = None) -> numpy.ndarray[numpy.int32[2, n]]:
+def bresenham_2d(start: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, 1]"], end: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, 1]"], stop: collections.abc.Callable[[typing.SupportsInt | typing.SupportsIndex, typing.SupportsInt | typing.SupportsIndex], bool] | None = None) -> typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"]:
     ...
-def compute_intersection_between_line_and_ellipse_2d(x0: float, y0: float, x1: float, y1: float, a: float, b: float) -> tuple:
+def compute_intersection_between_line_and_ellipse_2d(x0: typing.SupportsFloat | typing.SupportsIndex, y0: typing.SupportsFloat | typing.SupportsIndex, x1: typing.SupportsFloat | typing.SupportsIndex, y1: typing.SupportsFloat | typing.SupportsIndex, a: typing.SupportsFloat | typing.SupportsIndex, b: typing.SupportsFloat | typing.SupportsIndex) -> tuple[float, float, bool]:
     ...
-def compute_intersection_between_line_and_ellipsoid_3d(x0: float, y0: float, z0: float, x1: float, y1: float, z1: float, a: float, b: float, c: float) -> tuple:
+def compute_intersection_between_line_and_ellipsoid_3d(x0: typing.SupportsFloat | typing.SupportsIndex, y0: typing.SupportsFloat | typing.SupportsIndex, z0: typing.SupportsFloat | typing.SupportsIndex, x1: typing.SupportsFloat | typing.SupportsIndex, y1: typing.SupportsFloat | typing.SupportsIndex, z1: typing.SupportsFloat | typing.SupportsIndex, a: typing.SupportsFloat | typing.SupportsIndex, b: typing.SupportsFloat | typing.SupportsIndex, c: typing.SupportsFloat | typing.SupportsIndex) -> tuple[float, float, bool]:
     ...
-def compute_intersection_between_ray_and_aabb_2d(ray_start_point: numpy.ndarray[numpy.float64[2, 1]], ray_direction: numpy.ndarray[numpy.float64[2, 1]], aabb_min: numpy.ndarray[numpy.float64[2, 1]], aabb_max: numpy.ndarray[numpy.float64[2, 1]]) -> dict:
+def compute_intersection_between_ray_and_aabb_2d(ray_start_point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], ray_direction: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], aabb_min: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], aabb_max: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]) -> dict:
     ...
-def compute_intersection_between_ray_and_aabb_3d(ray_start_point: numpy.ndarray[numpy.float64[3, 1]], ray_direction: numpy.ndarray[numpy.float64[3, 1]], aabb_min: numpy.ndarray[numpy.float64[3, 1]], aabb_max: numpy.ndarray[numpy.float64[3, 1]]) -> dict:
+def compute_intersection_between_ray_and_aabb_3d(ray_start_point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], ray_direction: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], aabb_min: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], aabb_max: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]) -> dict:
     ...
-def compute_intersection_between_ray_and_line_2d(ray_start_point: numpy.ndarray[numpy.float64[2, 1]], ray_direction: numpy.ndarray[numpy.float64[2, 1]], segment_point1: numpy.ndarray[numpy.float64[2, 1]], segment_point2: numpy.ndarray[numpy.float64[2, 1]]) -> tuple:
+def compute_intersection_between_ray_and_line_2d(ray_start_point: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], ray_direction: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], segment_point1: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], segment_point2: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"]) -> tuple[float, float, bool]:
     ...
-def compute_nearest_distance_from_point_to_line_segment_2d(point_x: float, point_y: float, line_segment_x1: float, line_segment_y1: float, line_segment_x2: float, line_segment_y2: float) -> float:
+def compute_nearest_distance_from_point_to_line_segment_2d(point_x: typing.SupportsFloat | typing.SupportsIndex, point_y: typing.SupportsFloat | typing.SupportsIndex, line_segment_x1: typing.SupportsFloat | typing.SupportsIndex, line_segment_y1: typing.SupportsFloat | typing.SupportsIndex, line_segment_x2: typing.SupportsFloat | typing.SupportsIndex, line_segment_y2: typing.SupportsFloat | typing.SupportsIndex) -> float:
     ...
-def compute_pixels_of_polygon_contour(polygon_vertices: numpy.ndarray[numpy.int32[2, n], numpy.ndarray.flags.f_contiguous]) -> numpy.ndarray[numpy.int32[2, n]]:
+def compute_pixels_of_polygon_contour(polygon_vertices: typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]", "flags.f_contiguous"]) -> typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"]:
     ...
-def convert_path_2d_to_3d_float32(path_2d: numpy.ndarray[numpy.float32[3, n], numpy.ndarray.flags.f_contiguous], z: float) -> list[numpy.ndarray[numpy.float32[4, 4]]]:
+def convert_path_2d_to_3d_float32(path_2d: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[3, n]", "flags.f_contiguous"], z: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float32], "[4, 4]"]]:
     ...
-def convert_path_2d_to_3d_float64(path_2d: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], z: float) -> list[numpy.ndarray[numpy.float64[4, 4]]]:
+def convert_path_2d_to_3d_float64(path_2d: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], z: typing.SupportsFloat | typing.SupportsIndex) -> list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 4]"]]:
     ...
-def create_ellipsoid_mesh(a: float, b: float, c: float, num_azimuths: int = 360, num_elevations: int = 180) -> tuple:
+def create_ellipsoid_mesh(a: typing.SupportsFloat | typing.SupportsIndex, b: typing.SupportsFloat | typing.SupportsIndex, c: typing.SupportsFloat | typing.SupportsIndex, num_azimuths: typing.SupportsInt | typing.SupportsIndex = 360, num_elevations: typing.SupportsInt | typing.SupportsIndex = 180) -> tuple[list[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]], list[typing.Annotated[numpy.typing.NDArray[numpy.int32], "[3, 1]"]]]:
     ...
-def find_voxel_indices(codes: torch.Tensor, dims: int, level: int, children: torch.Tensor, parallel: bool = True) -> torch.Tensor:
+def find_voxel_indices(codes: torch.Tensor, dims: typing.SupportsInt | typing.SupportsIndex, n_levels: typing.SupportsInt | typing.SupportsIndex, children: torch.Tensor, parallel: bool = True) -> torch.Tensor:
     """
     Find voxel indices from morton codes and tree structure.
     
     Args:
         codes (torch.Tensor): Tensor of morton code with dtype torch.uint32 or torch.uint64.
         dims (int): Space dimension, 2 or 3.
-        level (int): The level to start the search, usually tree_depth - 1.
+        n_levels (int): The number of levels to search from the root.
         children (torch.Tensor): Tensor of shape (M, 2^dims) that stores the tree structure.
         parallel (bool, optional): If true, use parallel for to speed up the search when using CPU. Default is True.
     
     Returns:
         torch.Tensor: Tensor to store the found voxel indices, has the same shape as codes and the same dtype as children.
     """
-def hidden_point_removal(points: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], view_position: numpy.ndarray[numpy.float64[3, 1]], radius: float, fast: bool = False, joggle_inputs: bool = False, return_meshes: bool = False) -> dict:
+def hidden_point_removal(points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], view_position: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"], radius: typing.SupportsFloat | typing.SupportsIndex, fast: bool = False, joggle_inputs: bool = False, return_meshes: bool = False) -> dict:
     """
     Remove hidden points from the point cloud.
     
@@ -6603,9 +7404,9 @@ def hidden_point_removal(points: numpy.ndarray[numpy.float64[3, n], numpy.ndarra
     Returns:
         A dictionary containing the visible point indices and optionally the mesh vertices and triangles.
     """
-def marching_square(img: numpy.ndarray[numpy.float64[m, n], numpy.ndarray.flags.f_contiguous], iso_value: float) -> tuple:
+def marching_square(img: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], iso_value: typing.SupportsFloat | typing.SupportsIndex) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]"], typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"], typing.Annotated[numpy.typing.NDArray[numpy.int32], "[2, n]"]]:
     ...
-def morton_decode(codes: torch.Tensor, dims: int) -> torch.Tensor:
+def morton_decode(codes: torch.Tensor, dims: typing.SupportsInt | typing.SupportsIndex) -> torch.Tensor:
     """
     Decode morton codes to coordinates.
     
@@ -6626,7 +7427,7 @@ def morton_encode(coords: torch.Tensor) -> torch.Tensor:
     Returns:
         torch.Tensor: Output tensor of shape (D1, ..., D2) with dtype torch.uint32 or torch.uint64.
     """
-def parallel_hidden_point_removal(points: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], view_positions: numpy.ndarray[numpy.float64[3, n], numpy.ndarray.flags.f_contiguous], radii: numpy.ndarray[numpy.float64[m, 1]], fast: bool = False, joggle_inputs: bool = False, return_meshes: bool = False) -> dict:
+def parallel_hidden_point_removal(points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], view_positions: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, n]", "flags.f_contiguous"], radii: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], fast: bool = False, joggle_inputs: bool = False, return_meshes: bool = False) -> dict:
     """
     Remove hidden points from the point cloud w.r.t. multiple camera positions. The function is parallelized.
     
@@ -6639,5 +7440,5 @@ def parallel_hidden_point_removal(points: numpy.ndarray[numpy.float64[3, n], num
     Returns:
         A dictionary containing the visible point indices and optionally the mesh vertices and triangles for each camera position.
     """
-def winding_number(p: numpy.ndarray[numpy.float64[2, 1]], vertices: numpy.ndarray[numpy.float64[2, n], numpy.ndarray.flags.f_contiguous]) -> int:
+def winding_number(p: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"], vertices: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, n]", "flags.f_contiguous"]) -> int:
     ...
