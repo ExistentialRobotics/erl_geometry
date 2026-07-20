@@ -35,10 +35,9 @@ public:
         // options->max_range = 35.0f;
 
         if (options->max_wp_idx < 0) {
-            options->max_wp_idx = erl::geometry::NewerCollege::kNumFrames;
+            options->max_wp_idx = dataset.Size();
         } else {
-            options->max_wp_idx =
-                std::min(options->max_wp_idx, erl::geometry::NewerCollege::kNumFrames);
+            options->max_wp_idx = std::min(options->max_wp_idx, dataset.Size());
         }
     }
 

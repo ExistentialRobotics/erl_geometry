@@ -176,7 +176,7 @@ namespace erl::geometry {
             ERL_ASSERT_PTR(m_tree_);
             nanoflann::SearchParameters params;
             params.sorted = sorted;
-            m_tree_->radiusSearch(point.data(), radius * radius, indices_dists, params);
+            (void) m_tree_->radiusSearch(point.data(), radius * radius, indices_dists, params);
         }
 
         [[nodiscard]] IndexType

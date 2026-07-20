@@ -11,7 +11,7 @@
 struct Options : erl::common::Yamlable<Options> {
     std::string newer_college_directory = ERL_GEOMETRY_ROOT_DIR "/data/newer_college";
     long stride = 1;
-    long max_wp_idx = erl::geometry::NewerCollege::Size() - 1;
+    long max_wp_idx = -1;  // < 0 means use all frames from the trajectory file
 
     ERL_REFLECT_SCHEMA(
         Options,
@@ -27,6 +27,7 @@ TEST(NewerCollege, Load) {
 
     using namespace erl::geometry;
     NewerCollege newer_college(options.newer_college_directory);
+    if (options.max_wp_idx < 0) { options.max_wp_idx = newer_college.Size() - 1; }
     cv::Mat range_img;
     cv::Mat range_img_jet;
     auto gt_mesh = newer_college.GetGroundTruthMesh();

@@ -468,7 +468,7 @@ namespace erl::geometry {
                 const auto &indices = m_end_point_mapping_[occupied_cell];
                 if (indices.empty()) { continue; }
                 float log_odds_delta = m_setting_->log_odd_hit * static_cast<float>(indices.size());
-                Node *node = this->UpdateNode(occupied_cell, log_odds_delta, lazy_eval);
+                [[maybe_unused]] Node *node = this->UpdateNode(occupied_cell, log_odds_delta, lazy_eval);
                 if constexpr (detail::has_update_color_v<Node>) {
                     if (node != nullptr) {
                         for (const long idx: indices) {
@@ -487,7 +487,7 @@ namespace erl::geometry {
         }
         // update occupied cells
         for (const QuadtreeKey &occupied_cell: occupied_cells) {
-            Node *node = this->UpdateNode(occupied_cell, true, lazy_eval);
+            [[maybe_unused]] Node *node = this->UpdateNode(occupied_cell, true, lazy_eval);
             if constexpr (detail::has_update_color_v<Node>) {
                 if (node != nullptr) {
                     const auto &indices = m_end_point_mapping_[occupied_cell];

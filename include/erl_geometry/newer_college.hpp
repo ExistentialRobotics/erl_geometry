@@ -11,7 +11,6 @@ namespace erl::geometry {
 
     class NewerCollege {
     public:
-        static constexpr long kNumFrames = 1988;
         static constexpr long kNumAzimuthLines = 1024;
         static constexpr long kNumElevationLines = 128;
         static constexpr double kVerticalFov = M_PI_2;
@@ -52,6 +51,7 @@ namespace erl::geometry {
     private:
         std::filesystem::path m_directory_;
         Eigen::Matrix<double, 7, Eigen::Dynamic> m_poses_;  // (x, y, z, qx, qy, qz, qw)
+        long m_num_frames_ = 0;  // number of frames, loaded from the trajectory file
 
     public:
         struct Frame {
@@ -74,9 +74,9 @@ namespace erl::geometry {
         [[nodiscard]] std::shared_ptr<open3d::geometry::TriangleMesh>
         GetGroundTruthMesh() const;
 
-        [[nodiscard]] static long
-        Size() {
-            return kNumFrames;
+        [[nodiscard]] long
+        Size() const {
+            return m_num_frames_;
         }
 
         [[nodiscard]] static Eigen::Vector3d

@@ -8,12 +8,24 @@
 #include <open3d/geometry/PointCloud.h>
 #include <open3d/io/TriangleMeshIO.h>
 
+struct Options : erl::common::Yamlable<Options> {
+    std::string directory = ERL_GEOMETRY_ROOT_DIR "/data/replica_rgbd";
+    std::string scene_name = "room0";
+
+    ERL_REFLECT_SCHEMA(
+        Options,
+        ERL_REFLECT_MEMBER(Options, directory),
+        ERL_REFLECT_MEMBER(Options, scene_name));
+};
+
+Options g_options;
+
 TEST(ReplicaRgbd, Load) {
     using namespace erl::common;
     using namespace erl::geometry;
     constexpr bool bgr = true;
 
-    ReplicaRgbd dataset("/home/daizhirui/DataArchive/Replica-SDF-aug2", "room0", bgr);
+    ReplicaRgbd dataset(g_options.directory, g_options.scene_name, bgr);
     ASSERT_EQ(dataset.Size(), 2600);
 
     const auto frame_setting = std::make_shared<RgbdFrame3Dd::Setting>();
@@ -69,4 +81,12 @@ TEST(ReplicaRgbd, Load) {
         return true;
     });
     visualizer.Show();
+}
+
+int
+main(int argc, char *argv[]) {
+    testing::InitGoogleTest(&argc, argv);
+    g_options.FromCommandLine(argc, argv);
+    std::cout << "Options:\n" << g_options << std::endl;
+    return RUN_ALL_TESTS();
 }

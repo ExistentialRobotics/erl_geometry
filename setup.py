@@ -25,7 +25,9 @@ try:
     if cusparselt_dir is None:
         import nvidia
 
-        cusparselt_dir = pathlib.Path(nvidia.__file__).parent / "cusparselt"
+        # `nvidia` is a PEP-420 namespace package, so `nvidia.__file__` is None.
+        # Use `__path__` to locate the package directory instead.
+        cusparselt_dir = pathlib.Path(list(nvidia.__path__)[0]) / "cusparselt"
 
     print(f"Torch_DIR: {torch_dir}")
     print(f"cuSPARSELt_DIR: {cusparselt_dir}")

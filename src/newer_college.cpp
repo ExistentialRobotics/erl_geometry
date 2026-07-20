@@ -48,11 +48,8 @@ namespace erl::geometry {
             csv_path,
             common::EigenTextFormat::kCsvFmt,
             true);
-        ERL_ASSERTM(
-            m_poses_.cols() == kNumFrames,
-            "Expected {} frames in poses.csv, got {}",
-            kNumFrames,
-            m_poses_.cols());
+        m_num_frames_ = m_poses_.cols();
+        ERL_ASSERTM(m_num_frames_ > 0, "No frames found in {}", csv_path);
     }
 
     std::shared_ptr<open3d::geometry::PointCloud>
@@ -82,10 +79,10 @@ namespace erl::geometry {
     NewerCollege::Frame
     NewerCollege::operator[](long index) const {
         ERL_ASSERTM(
-            index >= 0 && index < kNumFrames,
+            index >= 0 && index < m_num_frames_,
             "Index out of bounds: {}. Valid range is [0, {})",
             index,
-            kNumFrames);
+            m_num_frames_);
         Frame frame;
         const double *pose = m_poses_.col(index).data();
         frame.rotation = Eigen::Quaterniond(pose[6], pose[3], pose[4], pose[5]).toRotationMatrix();
